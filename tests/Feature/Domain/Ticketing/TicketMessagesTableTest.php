@@ -3,6 +3,9 @@
 declare(strict_types=1);
 
 use App\Domain\Identity\Models\User;
+use App\Domain\Mail\Enums\EmailDirection;
+use App\Domain\Mail\Enums\EmailStatus;
+use App\Domain\Mail\Models\EmailMessage;
 use App\Domain\Ticketing\Enums\TicketMessageChannel;
 use App\Domain\Ticketing\Enums\TicketMessageVisibility;
 use App\Domain\Ticketing\Models\Ticket;
@@ -99,4 +102,38 @@ test('the attachments media collection is registered', function (): void {
     ]);
 
     expect($message->getMediaCollection('attachments'))->not->toBeNull();
+});
+
+test('deleting the linked email message sets email_message_id to null', function (): void {
+    $email = EmailMessage::create([
+        'direction' => EmailDirection::Inbound,
+        'from_email' => 'mittente@example.com',
+        'status' => EmailStatus::Received,
+    ]);
+    $message = TicketMessage::create([
+        'ticket_id' => makeTicket()->id,
+        'channel' => TicketMessageChannel::Email,
+        'email_message_id' => $email->id,
+        'posted_at' => now(),
+    ]);
+
+    $email->delete();
+
+    expect($message->fresh()->email_message_id)->toBeNull();
+});
+
+test('belongs to an email message', function (): void {
+    $email = EmailMessage::create([
+        'direction' => EmailDirection::Inbound,
+        'from_email' => 'mittente@example.com',
+        'status' => EmailStatus::Received,
+    ]);
+    $message = TicketMessage::create([
+        'ticket_id' => makeTicket()->id,
+        'channel' => TicketMessageChannel::Email,
+        'email_message_id' => $email->id,
+        'posted_at' => now(),
+    ]);
+
+    expect($message->emailMessage->is($email))->toBeTrue();
 });

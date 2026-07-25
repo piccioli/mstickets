@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Ticketing\Models;
 
 use App\Domain\Identity\Models\User;
+use App\Domain\Mail\Models\EmailMessage;
 use App\Domain\Ticketing\Enums\TicketMessageChannel;
 use App\Domain\Ticketing\Enums\TicketMessageVisibility;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -66,5 +67,13 @@ class TicketMessage extends Model implements HasMedia
     public function author(): BelongsTo
     {
         return $this->belongsTo(User::class, 'author_id');
+    }
+
+    /**
+     * @return BelongsTo<EmailMessage, $this>
+     */
+    public function emailMessage(): BelongsTo
+    {
+        return $this->belongsTo(EmailMessage::class);
     }
 }
