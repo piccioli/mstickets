@@ -18,3 +18,5 @@ Piano e story: `../scripts/ralph/prd.json`. Log di avanzamento: `../scripts/ralp
 ## Ambiente locale vs Docker
 
 Lo sviluppo di scaffold è stato verificato con PHP 8.5 locale (compatibile con il vincolo `^8.4`), ma il target Docker/produzione (US-002) è PHP 8.4-FPM: il Dockerfile deve pinnare 8.4, non assumere la versione locale dell'agente.
+
+`docker-compose.yml` ha un `name: orchestrator-v2` esplicito in cima: senza di questo, Compose deriva il nome progetto dalla directory (`orchestrator`), che può collidere con altri stack Docker Compose presenti sulla stessa macchina host. Non rimuovere quel campo. Prima di un `docker compose down`/`rm` verificare sempre `docker ps -a` per non toccare container di altri progetti.
