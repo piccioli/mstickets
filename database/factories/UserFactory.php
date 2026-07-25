@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Models\User;
+use App\Domain\Identity\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -14,6 +14,12 @@ use Illuminate\Support\Str;
  */
 class UserFactory extends Factory
 {
+    /**
+     * The model's namespace (`App\Domain\Identity\Models`) no longer matches the
+     * default `App\<FactoryBasename>` guess: set explicitly.
+     */
+    protected $model = User::class;
+
     /**
      * The current password being used by the factory.
      */

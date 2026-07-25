@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -18,10 +19,20 @@ return new class extends Migration
             $table->string('name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
-            $table->string('password');
+            $table->string('password')->nullable();
             $table->rememberToken();
+            $table->string('locale', 5)->default('it');
+            $table->string('drive_url')->nullable();
+            $table->string('drive_budget_url')->nullable();
+            $table->timestamp('deactivated_at')->nullable();
             $table->timestamps();
+            $table->softDeletes();
         });
+
+        // Indice funzionale per confronti case-insensitive sull'email (§5.2): il vincolo
+        // unique() sopra resta case-sensitive a livello di colonna, questo indice serve alle
+        // query che cercano/matchano per lower(email) (es. import ETL, match email inbound).
+        DB::statement('create index users_email_lower_index on users (lower(email))');
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary();
