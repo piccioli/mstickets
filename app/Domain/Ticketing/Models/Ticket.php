@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Ticketing\Models;
 
 use App\Domain\Identity\Models\User;
+use App\Domain\Tags\Models\Tag;
 use App\Domain\Ticketing\Enums\TicketPriority;
 use App\Domain\Ticketing\Enums\TicketStatus;
 use App\Domain\Ticketing\Enums\TicketType;
@@ -121,5 +122,13 @@ class Ticket extends Model
     public function workLogs(): HasMany
     {
         return $this->hasMany(TicketWorkLog::class);
+    }
+
+    /**
+     * @return BelongsToMany<Tag, $this>
+     */
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(Tag::class, 'ticket_tag')->withTimestamps();
     }
 }
