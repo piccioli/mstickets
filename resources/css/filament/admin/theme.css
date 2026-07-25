@@ -1,0 +1,12 @@
+@import '/vendor/filament/filament/resources/css/theme.css';
+
+@source '../../../../app/Filament';
+@source '../../../../resources/views/filament';
+
+/*
+ * Design tokens (Montagna Servizi, US-004): custom properties only, no
+ * hex/spacing/etc. values are rewritten here. Palette/font are fed into
+ * Filament's own color/font system in AdminPanelProvider via App\Support\DesignTokens,
+ * which reads the same source file below.
+ */
+@import '../../theme.css';

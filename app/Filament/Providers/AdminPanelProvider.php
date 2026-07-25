@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Providers;
 
+use App\Support\DesignTokens;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -11,7 +12,6 @@ use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
-use Filament\Support\Colors\Color;
 use Filament\Widgets\AccountWidget;
 use Filament\Widgets\FilamentInfoWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -30,8 +30,20 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->brandName('Montagna Servizi')
+            ->brandLogo(asset('images/branding/montagna-servizi-logo.png'))
+            ->darkModeBrandLogo(asset('images/branding/montagna-servizi-logo-white.png'))
+            ->brandLogoHeight('2rem')
+            ->favicon(asset('images/branding/montagna-servizi-mark.png'))
+            ->viteTheme('resources/css/filament/admin/theme.css')
+            ->font(DesignTokens::primaryFontFamily())
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => DesignTokens::get('ms-brand'),
+                'danger' => DesignTokens::get('ms-action-danger'),
+                'warning' => DesignTokens::get('ms-action-warning-cta'),
+                'info' => DesignTokens::get('ms-action-info-cta'),
+                'success' => DesignTokens::get('ms-success-dot'),
+                'gray' => DesignTokens::get('ms-text-muted'),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
