@@ -99,6 +99,23 @@ return [
             'sslmode' => env('DB_SSLMODE', 'prefer'),
         ],
 
+        // Database di appoggio in sola lettura per il dump v1 (§4.2, §11.1 P2 del PRD).
+        // Serve solo al servizio Compose "db_legacy" (profilo "etl") e ai comandi
+        // dell'ETL (es. v1:inspect): mai scritto dal codice applicativo.
+        'legacy' => [
+            'driver' => 'pgsql',
+            'host' => env('DB_LEGACY_HOST', 'db_legacy'),
+            'port' => env('DB_LEGACY_PORT', '5432'),
+            'database' => env('DB_LEGACY_DATABASE', 'orchestrator_legacy'),
+            'username' => env('DB_LEGACY_USERNAME', 'orchestrator_legacy'),
+            'password' => env('DB_LEGACY_PASSWORD', 'orchestrator_legacy'),
+            'charset' => env('DB_CHARSET', 'utf8'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'search_path' => 'public',
+            'sslmode' => env('DB_SSLMODE', 'prefer'),
+        ],
+
         'sqlsrv' => [
             'driver' => 'sqlsrv',
             'url' => env('DB_URL'),

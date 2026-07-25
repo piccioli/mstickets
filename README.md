@@ -66,6 +66,16 @@ bin/load-v1-dump path/to/dump.sql # ripristina il dump SQL in db_legacy
 L'ETL (Fase 2+) non scrive mai sul database v1: `db_legacy` è la sorgente in sola lettura usata da tutto il
 codice di importazione successivo (`app/Import/`, comandi `v1:inspect`/`v1:import`/`v1:validate`).
 
+Prima di finalizzare lo schema v2 (§0.1 punto 5), ispezionare il dump reale con:
+
+```bash
+docker compose exec app php artisan v1:inspect
+```
+
+Il report viene salvato in `storage/app/import/inspect-<timestamp>.md` (conteggi per tabella, formati di
+`users.roles`, parsing di `stories.customer_request`, FK orfane, ecc.) ed è versionato nel repository per essere
+allegato alla PR di questa fase.
+
 ## CI
 
 Ogni pull request esegue `.github/workflows/ci.yml` (GitHub Actions), che deve essere verde prima del merge:
