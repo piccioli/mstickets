@@ -41,6 +41,17 @@ php artisan boost:install
 
 Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
 
+## Docker
+
+Ambiente di sviluppo containerizzato (§4.2 del PRD): `app` (PHP 8.4-FPM), `web` (nginx, unico entrypoint HTTP), `db` (Postgres 16), `redis` (Redis 7), `queue` (Horizon), `scheduler` (`schedule:work`), `mailpit` (SMTP+IMAP locale).
+
+```bash
+cp .env.example .env
+docker compose up -d --build
+```
+
+L'app è raggiungibile su `http://localhost:8080`, la UI di Mailpit su `http://localhost:8025`. Nessun servizio gira come `root` e non è richiesto alcun `chown` manuale: il mismatch UID/GID tra host e container è risolto in build-time passando `WWWUSER`/`WWWGROUP` (UID/GID dell'utente host) come build arg del servizio `app`.
+
 ## Contributing
 
 Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
