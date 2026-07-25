@@ -20,3 +20,10 @@ Piano e story: `../scripts/ralph/prd.json`. Log di avanzamento: `../scripts/ralp
 Lo sviluppo di scaffold è stato verificato con PHP 8.5 locale (compatibile con il vincolo `^8.4`), ma il target Docker/produzione (US-002) è PHP 8.4-FPM: il Dockerfile deve pinnare 8.4, non assumere la versione locale dell'agente.
 
 `docker-compose.yml` ha un `name: orchestrator-v2` esplicito in cima: senza di questo, Compose deriva il nome progetto dalla directory (`orchestrator`), che può collidere con altri stack Docker Compose presenti sulla stessa macchina host. Non rimuovere quel campo. Prima di un `docker compose down`/`rm` verificare sempre `docker ps -a` per non toccare container di altri progetti.
+
+## Design system (US-004/US-005)
+
+- Fonte di verità dei token visivi: `docs/design-system.md` (documento) e `resources/css/theme.css` (custom properties `--ms-*`). Il tema Filament/Tailwind v4 (US-005) **deve** derivare da queste custom properties, non riscrivere hex/valori a mano una seconda volta.
+- Il progetto Claude Design (`b41c13f4-8321-4716-be35-295d0bdd9d1e`, tool MCP esposto come `DesignSync`) contiene DUE design distinti bundlati insieme: il mockup applicativo `Piattaforma Montagna Servizi.dc.html` (teal `#17a180`, font Nunito Sans — quello usato per i token) e, sotto `_ds/`, una copia in sola lettura del design system del sito marketing (verde pino `#1D574B`, font Manrope) che **non** è la fonte per il pannello. Non confondere i due se serve ri-consultare il design.
+- Nessun SVG del logo/mark è mai stato fornito: solo PNG raster in `assets/`. Se serve un logo vettoriale per il pannello (favicon, sidebar ad alta densità), richiederlo al committente invece di tracciarlo dal PNG.
+- I colori di stato ticket nel mockup coprono solo 6 dei 12 case dell'enum `TicketStatus` (§5.2): vedi la tabella di mappatura/gap in `docs/design-system.md` prima di implementare badge di stato in US-012 o nelle risorse Filament dei ticket.
