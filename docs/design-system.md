@@ -115,6 +115,15 @@ scegliere la categoria semantica più vicina fra quelle sopra (es. `progress`→
 `done`/`released`→COMPLETATO, `problem`/`rejected`→danger) e va annotato in
 `docs/design-inventory.md`.
 
+**Risolto in US-012** (`App\Domain\Ticketing\Enums\TicketStatus::getColor()`): poiché Filament
+richiede un nome di colore registrato in `AdminPanelProvider` (non un hex arbitrario), la
+mappatura usa i 6 nomi Filament già disponibili (`info`/`gray`/`warning`/`success`/`danger`),
+scelti in base all'hex v1 di riferimento (§5.3 del PRD) incrociato con la categoria semantica
+del mockup dove presente: `new`→info, `backlog`→gray, `assigned`/`todo`/`progress`/`testing`/
+`waiting`→warning, `tested`/`released`/`done`→success, `problem`/`rejected`→danger. Se il
+committente fornirà una palette di stato completa al checkpoint di fine Fase 0, questa
+mappatura va rivista (l'enum resta l'unico posto dove vive, §5.3).
+
 ## Tipografia
 
 - **Famiglia**: `'Nunito Sans', sans-serif` (caricata da Google Fonts nel mockup:
