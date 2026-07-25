@@ -44,6 +44,13 @@ Lo sviluppo di scaffold è stato verificato con PHP 8.5 locale (compatibile con 
 - Le tabelle di `spatie/laravel-permission` si pubblicano con `php artisan vendor:publish --provider="Spatie\Permission\PermissionServiceProvider"` (migrazione + `config/permission.php`): **non riscriverle a mano**. Di default `config('permission.teams')` è già `false` e il guard di default (`config('auth.defaults.guard')` = `web`) è già l'unico usato: non serve altra configurazione per rispettare i vincoli di questo progetto (guard unico `web`, niente teams).
 - Il modello `User` usa il trait `Spatie\Permission\Traits\HasRoles` (non `filament-shield`, vietato dal PRD): ruoli/permessi vanno creati solo dal seeder (§9.2), mai con `Role::create()`/`Permission::create()` da codice applicativo a runtime.
 
+## Ruoli e permessi — enum (US-011)
+
+- `App\Domain\Identity\Enums\UserRole` (5 case: `Admin`/`Developer`/`Manager`/`Customer`/`Fundraising`) e `App\Domain\Identity\Enums\Permission` (52 case, catalogo completo §9.3) sono la **sorgente di verità**: il seeder di ruoli/permessi (US-018) deve iterare `UserRole::cases()`/`Permission::cases()` per creare le righe Spatie, mai scrivere stringhe letterali. Aggiungere/rimuovere un permesso significa modificare `Permission` qui, non una tabella o un seeder scollegato.
+- Naming dei case: `PascalCase` che rispecchia il `value` `<dominio>.<azione>[.<ambito>]` (es. case `TicketManageInternalFields` → value `'ticket.manage-internal-fields'`). Nuovi permessi vanno aggiunti seguendo questa stessa trasformazione (punti/trattini nel value, PascalCase nel nome del case) per restare consistenti.
+- `UserRole` implementa `HasLabel`/`HasColor`/`HasIcon` di Filament (badge di ruolo pronti per resource/tabelle: `$role->getColor()` restituisce uno dei nomi di colore già registrati in `AdminPanelProvider`, es. `'danger'`/`'info'`/`'warning'`/`'success'`/`'gray'` — non un hex). `Permission` implementa solo `HasLabel` (colore/icona per 52 permessi granulari non veicolerebbe informazione utile, a differenza dei 5 ruoli).
+- Nessuna delle due enum ha una migrazione/tabella propria: sono catalogate solo in PHP; le tabelle Spatie (`roles`/`permissions`/...) restano quelle pubblicate in US-010.
+
 ## ETL / dump v1 (US-007+)
 
 - `db_legacy` (Postgres 16, database di appoggio in sola lettura per il dump v1) parte SOLO con `docker compose --profile etl up -d db_legacy` / `make etl-up`, mai con un `docker compose up` normale: non aggiungere `db_legacy` alle dipendenze di default di `app`/`web`/`queue`.
