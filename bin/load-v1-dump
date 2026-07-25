@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+#
+# Ripristina un dump SQL v1 nel servizio db_legacy (database di appoggio
+# in sola lettura, §4.2 / §11.1 P2 del PRD). Non scrive mai sul database v1
+# sorgente: il dump viene letto da file e ripristinato in un container separato.
+#
+# Uso: bin/load-v1-dump path/to/dump.sql
+
+set -euo pipefail
+
+if [ "$#" -ne 1 ]; then
+    echo "Uso: bin/load-v1-dump path/to/dump.sql" >&2
+    exit 1
+fi
+
+DUMP_PATH="$1"
+
+if [ ! -f "$DUMP_PATH" ]; then
+    echo "Errore: file dump non trovato: $DUMP_PATH" >&2
+    exit 1
+fi
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO_ROOT"
+
+if [ -f .env ]; then
+    set -a
+    # shellcheck disable=SC1091
+    source .env
+    set +a
+fi
+
+DB_LEGACY_DATABASE="${DB_LEGACY_DATABASE:-orchestrator_legacy}"
+DB_LEGACY_USERNAME="${DB_LEGACY_USERNAME:-orchestrator_legacy}"
+
+echo "Avvio del servizio db_legacy (profilo etl)..."
+docker compose --profile etl up -d db_legacy
+
+echo "Attendo che db_legacy sia pronto..."
+until docker compose --profile etl exec -T db_legacy pg_isready -U "$DB_LEGACY_USERNAME" -d "$DB_LEGACY_DATABASE" >/dev/null 2>&1; do
+    sleep 1
+done
+
+echo "Ripristino $DUMP_PATH in db_legacy (sola lettura, database separato da 'db')..."
+docker compose --profile etl exec -T db_legacy psql -v ON_ERROR_STOP=1 -U "$DB_LEGACY_USERNAME" -d "$DB_LEGACY_DATABASE" < "$DUMP_PATH"
+
+echo "Dump caricato in db_legacy."

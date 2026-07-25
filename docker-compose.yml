@@ -58,6 +58,23 @@ services:
     networks:
       - orchestrator
 
+  db_legacy:
+    image: postgres:16-alpine
+    profiles: ["etl"]
+    environment:
+      POSTGRES_DB: ${DB_LEGACY_DATABASE:-orchestrator_legacy}
+      POSTGRES_USER: ${DB_LEGACY_USERNAME:-orchestrator_legacy}
+      POSTGRES_PASSWORD: ${DB_LEGACY_PASSWORD:-orchestrator_legacy}
+    volumes:
+      - db_legacy_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_LEGACY_USERNAME:-orchestrator_legacy} -d ${DB_LEGACY_DATABASE:-orchestrator_legacy}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - orchestrator
+
   redis:
     image: redis:7-alpine
     volumes:
@@ -103,6 +120,7 @@ services:
 volumes:
   db_data:
   redis_data:
+  db_legacy_data:
 
 networks:
   orchestrator:

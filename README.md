@@ -52,6 +52,20 @@ docker compose up -d --build
 
 L'app è raggiungibile su `http://localhost:8080`, la UI di Mailpit su `http://localhost:8025`. Nessun servizio gira come `root` e non è richiesto alcun `chown` manuale: il mismatch UID/GID tra host e container è risolto in build-time passando `WWWUSER`/`WWWGROUP` (UID/GID dell'utente host) come build arg del servizio `app`.
 
+### Database di appoggio per il dump v1 (`db_legacy`)
+
+Il servizio `db_legacy` (Postgres 16, §4.2 / §11.1 principio P2 del PRD) ospita il dump v1 in **sola
+lettura**, isolato dall'esercizio normale: non parte con `docker compose up`, solo col profilo Compose
+dedicato `etl`.
+
+```bash
+make etl-up                       # avvia (solo) il servizio db_legacy
+bin/load-v1-dump path/to/dump.sql # ripristina il dump SQL in db_legacy
+```
+
+L'ETL (Fase 2+) non scrive mai sul database v1: `db_legacy` è la sorgente in sola lettura usata da tutto il
+codice di importazione successivo (`app/Import/`, comandi `v1:inspect`/`v1:import`/`v1:validate`).
+
 ## CI
 
 Ogni pull request esegue `.github/workflows/ci.yml` (GitHub Actions), che deve essere verde prima del merge:
