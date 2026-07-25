@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  quality:
+    name: Pint, Larastan, Pest
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo, pdo_pgsql, redis, zip, intl, bcmath, opcache, pcntl
+          coverage: pcov
+
+      - name: Copy .env
+        run: cp .env.example .env
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Generate application key
+        run: php artisan key:generate
+
+      - name: Pint
+        run: vendor/bin/pint --test
+
+      - name: Larastan
+        run: vendor/bin/phpstan analyse --memory-limit=1G
+
+      - name: Pest (with coverage)
+        run: vendor/bin/pest --coverage
+
+      # Quando la Fase 2 introduce i comandi v1:import/v1:validate, aggiungere qui
+      # uno step dedicato "ETL validate" (php artisan v1:validate) che gira dopo
+      # Pest e prima del build Docker. Non esiste ancora in questa fase (Fase 0).
+
+  docker-build:
+    name: Build Docker containers
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Copy .env
+        run: cp .env.example .env
+
+      - name: Build app image
+        run: docker compose build app

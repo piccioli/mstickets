@@ -52,6 +52,19 @@ docker compose up -d --build
 
 L'app è raggiungibile su `http://localhost:8080`, la UI di Mailpit su `http://localhost:8025`. Nessun servizio gira come `root` e non è richiesto alcun `chown` manuale: il mismatch UID/GID tra host e container è risolto in build-time passando `WWWUSER`/`WWWGROUP` (UID/GID dell'utente host) come build arg del servizio `app`.
 
+## CI
+
+Ogni pull request esegue `.github/workflows/ci.yml` (GitHub Actions), che deve essere verde prima del merge:
+
+1. **Pint** (`vendor/bin/pint --test`) — stile del codice, preset `laravel`.
+2. **Larastan** (`vendor/bin/phpstan analyse --memory-limit=1G`) — analisi statica a livello 6.
+3. **Pest con coverage** (`vendor/bin/pest --coverage`) — suite di test (driver di coverage `pcov`).
+4. **Build dei container Docker** (`docker compose build app`) — verifica che l'immagine PHP-FPM buildi senza errori.
+
+La pipeline fallisce se uno qualunque di questi step fallisce. Lo step ETL (`php artisan v1:validate`) non esiste ancora in questa fase: il punto di inserimento futuro è commentato direttamente nel workflow, da aggiungere in Fase 2 insieme al comando `v1:import`.
+
+Il badge di stato verrà aggiunto al README non appena il repository avrà un remote GitHub configurato (`https://github.com/<org>/<repo>/actions/workflows/ci.yml/badge.svg`).
+
 ## Contributing
 
 Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
