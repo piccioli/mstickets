@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Ticketing\Models;
 
+use App\Domain\Fundraising\Models\FundraisingProject;
 use App\Domain\Identity\Models\User;
 use App\Domain\Tags\Models\Tag;
 use App\Domain\Ticketing\Enums\TicketPriority;
@@ -130,5 +131,13 @@ class Ticket extends Model
     public function tags(): BelongsToMany
     {
         return $this->belongsToMany(Tag::class, 'ticket_tag')->withTimestamps();
+    }
+
+    /**
+     * @return BelongsTo<FundraisingProject, $this>
+     */
+    public function fundraisingProject(): BelongsTo
+    {
+        return $this->belongsTo(FundraisingProject::class);
     }
 }
