@@ -20,11 +20,17 @@ RUN install-php-extensions \
 WORKDIR /app
 COPY . /app
 
-RUN composer install --no-dev --optimize-autoloader --no-interaction \
-    && php artisan config:cache \
-    && php artisan event:cache
+# NON eseguire qui `php artisan config:cache`/`event:cache`: a build time
+# env_file non ha ancora iniettato le variabili reali (DB_HOST, DB_PASSWORD,
+# APP_KEY, ...), quindi la cache congelerebbe i default vuoti/sbagliati letti
+# da .env.example (o nessun valore). Questi comandi girano invece a runtime in
+# docker/uat/app-entrypoint.sh, dopo che l'ambiente del container e' disponibile.
+RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 ENV SERVER_NAME=:8000
 EXPOSE 8000
 
-CMD ["frankenphp", "php-server", "--listen", ":8000", "--root", "/app/public"]
+COPY docker/uat/app-entrypoint.sh /app-entrypoint.sh
+RUN chmod +x /app-entrypoint.sh
+
+ENTRYPOINT ["/app-entrypoint.sh"]
