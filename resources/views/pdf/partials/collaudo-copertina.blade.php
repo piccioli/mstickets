@@ -12,3 +12,19 @@
         @endforeach
     </tbody>
 </table>
+
+<h3>Come accedere a Mailpit</h3>
+<p>Le email inviate dall'ambiente UAT non escono realmente: sono intercettate da Mailpit, raggiungibile
+all'indirizzo sopra con autenticazione HTTP (utente/password forniti separatamente dal team, non stampati
+in questo documento per non esporli insieme all'URL pubblico).</p>
+
+<h3>Come segnalare un problema</h3>
+<p>Per ogni test fallito, annotare l'ID del test (es. F1-03), una descrizione di cosa è successo invece del
+comportamento atteso, e se possibile uno screenshot.</p>
+
+<h3>Indice</h3>
+<ol>
+    @foreach ($manifest['topics'] as $topic)
+        <li>{{ $topic['titolo'] }} ({{ count($topic['test']) }} test)</li>
+    @endforeach
+</ol>
