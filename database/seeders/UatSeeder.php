@@ -36,9 +36,10 @@ use RuntimeException;
  * ogni deploy UAT come `migrate:fresh --seed --class=UatSeeder` (non tramite `DatabaseSeeder`,
  * quindi richiama da sé `RolePermissionSeeder`): a differenza di `DevelopmentSeeder` (Fase 0,
  * dati "di sviluppo" generici), qui titoli/nomi sono testo scritto a mano, stabile tra un deploy
- * e l'altro, e mai frutto di generazione casuale — `fake()->seed(42)` è comunque impostato in
- * apertura come rete di sicurezza sulla riproducibilità, nel caso un futuro intervento
- * aggiunga chiamate a `fake()` in questo seeder. Non eseguibile in produzione.
+ * e l'altro, e mai frutto di generazione casuale. Nessuna chiamata a `fake()`: `fakerphp/faker`
+ * è una dipendenza `require-dev`, assente nell'immagine UAT costruita con `composer install
+ * --no-dev` (vedi `docker/uat/Dockerfile`), quindi qualunque uso di `fake()` qui farebbe
+ * crashare il seeder ad ogni deploy reale. Non eseguibile in produzione.
  */
 class UatSeeder extends Seeder
 {
@@ -69,11 +70,6 @@ class UatSeeder extends Seeder
         if (app()->environment('production')) {
             throw new RuntimeException('UatSeeder non può essere eseguito in produzione.');
         }
-
-        // Rete di sicurezza sulla riproducibilità: nessun `fake()` è oggi usato in questo
-        // seeder (ogni dato è testo letterale), ma il seed fisso garantisce che eventuali
-        // usi futuri restino comunque deterministici tra un `migrate:fresh --seed` e l'altro.
-        fake()->seed(42);
 
         // Eseguito standalone via `--class=UatSeeder`, senza passare dalla catena di
         // `DatabaseSeeder`: i ruoli/permessi vanno materializzati qui.
