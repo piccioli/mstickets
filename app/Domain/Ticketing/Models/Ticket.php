@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace App\Domain\Ticketing\Models;
 
 use App\Domain\Fundraising\Models\FundraisingProject;
+use App\Domain\Identity\Enums\Permission;
 use App\Domain\Identity\Models\User;
 use App\Domain\Tags\Models\Tag;
 use App\Domain\Ticketing\Enums\TicketPriority;
 use App\Domain\Ticketing\Enums\TicketStatus;
 use App\Domain\Ticketing\Enums\TicketType;
+use App\Domain\Ticketing\Policies\TicketPolicy;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -139,5 +142,40 @@ class Ticket extends Model
     public function fundraisingProject(): BelongsTo
     {
         return $this->belongsTo(FundraisingProject::class);
+    }
+
+    /**
+     * Unica fonte di verità per "quali ticket può vedere $user" (§9.5): usata sia da
+     * {@see TicketPolicy::view()} sia da qualunque query
+     * futura (viste/filtri Filament, US-111/US-112), mai duplicata come `if` sparso.
+     * `ticket.view.any` vede tutto; `ticket.view.assigned` vede i ticket dove è
+     * assignee o tester; `ticket.view.own` vede i propri (requester_id). Nessuno di
+     * questi permessi non restituisce nessuna riga.
+     *
+     * @param  Builder<Ticket>  $query
+     * @return Builder<Ticket>
+     */
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        if ($user->can(Permission::TicketViewAny)) {
+            return $query;
+        }
+
+        $canViewAssigned = $user->can(Permission::TicketViewAssigned);
+        $canViewOwn = $user->can(Permission::TicketViewOwn);
+
+        if (! $canViewAssigned && ! $canViewOwn) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->where(function (Builder $query) use ($user, $canViewAssigned, $canViewOwn): void {
+            if ($canViewAssigned) {
+                $query->orWhere('assignee_id', $user->id)->orWhere('tester_id', $user->id);
+            }
+
+            if ($canViewOwn) {
+                $query->orWhere('requester_id', $user->id);
+            }
+        });
     }
 }
