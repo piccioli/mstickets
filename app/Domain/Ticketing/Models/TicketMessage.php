@@ -9,6 +9,7 @@ use App\Domain\Identity\Models\User;
 use App\Domain\Mail\Models\EmailMessage;
 use App\Domain\Ticketing\Enums\TicketMessageChannel;
 use App\Domain\Ticketing\Enums\TicketMessageVisibility;
+use App\Domain\Ticketing\Support\TicketAttachmentTypes;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
@@ -50,9 +51,16 @@ class TicketMessage extends Model implements HasMedia
         ];
     }
 
+    /**
+     * Disco PRIVATO dedicato (§9.6 del PRD, US-107): mai il disco `public` di default
+     * di medialibrary. Tipi ammessi letti dalla configurazione condivisa
+     * {@see TicketAttachmentTypes} (§17.2), mai duplicati qui.
+     */
     public function registerMediaCollections(): void
     {
-        $this->addMediaCollection('attachments');
+        $this->addMediaCollection('attachments')
+            ->useDisk(TicketAttachmentTypes::disk())
+            ->acceptsMimeTypes(TicketAttachmentTypes::allowedMimeTypes());
     }
 
     /**

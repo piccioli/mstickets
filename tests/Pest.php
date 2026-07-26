@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Domain\Identity\Enums\Permission as PermissionEnum;
 use App\Domain\Identity\Models\User;
 use App\Domain\Ticketing\Models\Ticket;
+use App\Domain\Ticketing\Models\TicketMessage;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
@@ -72,4 +73,21 @@ function ticket(array $attributes = []): Ticket
 function systemUser(): User
 {
     return User::factory()->create(['email' => config('orchestrator.system_user.email')]);
+}
+
+/**
+ * Crea un ticket_message pubblico/web con i soli attributi obbligatori dello schema
+ * (`ticket_id`, `channel`, `posted_at`), riusato da qualunque test che ha solo bisogno
+ * di un messaggio "esiste" a cui allegare file (US-107) senza passare da
+ * `PostTicketMessage::run()` (che sanitizza/emette eventi non pertinenti a quei test).
+ *
+ * @param  array<string, mixed>  $attributes
+ */
+function ticketMessage(array $attributes = []): TicketMessage
+{
+    return TicketMessage::create(array_merge([
+        'ticket_id' => ticket()->id,
+        'channel' => 'web',
+        'posted_at' => now(),
+    ], $attributes))->fresh();
 }

@@ -28,6 +28,16 @@ final readonly class TicketLogChanges
         return new self(['description' => 'changed']);
     }
 
+    public static function attachmentAdded(string $fileName): self
+    {
+        return new self(['attachment' => ['action' => 'added', 'file_name' => $fileName]]);
+    }
+
+    public static function attachmentRemoved(string $fileName): self
+    {
+        return new self(['attachment' => ['action' => 'removed', 'file_name' => $fileName]]);
+    }
+
     /**
      * @return array<string, mixed>
      */
