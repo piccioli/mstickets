@@ -31,6 +31,17 @@ jobs:
       - name: Generate application key
         run: php artisan key:generate
 
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Build front-end assets
+        run: npm run build
+
       - name: Pint
         run: vendor/bin/pint --test
 
