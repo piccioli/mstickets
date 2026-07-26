@@ -7,6 +7,11 @@ namespace App\Domain\Ticketing\StateMachine;
 use App\Domain\Identity\Models\User;
 use App\Domain\Ticketing\Enums\TicketStatus;
 use App\Domain\Ticketing\Models\Ticket;
+use App\Domain\Ticketing\Rules\TicketProblemReasonRequiredRule;
+use App\Domain\Ticketing\Rules\TicketTesterRequiredRule;
+use App\Domain\Ticketing\Rules\TicketWaitingReasonRequiredRule;
+use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Translation\PotentiallyTranslatedString;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -97,7 +102,7 @@ final class TicketStateMachine
                 to: TicketStatus::Testing,
                 actors: [TransitionActor::AdminOrManager, TransitionActor::Assignee],
                 guard: self::guardTesterValued(...),
-                guardMessage: 'La transizione richiede di specificare un tester.',
+                guardMessage: TicketTesterRequiredRule::MESSAGE,
             ),
             new Transition(
                 from: [TicketStatus::Progress],
@@ -148,7 +153,7 @@ final class TicketStateMachine
                 to: TicketStatus::Waiting,
                 actors: [TransitionActor::AdminOrManager, TransitionActor::Assignee],
                 guard: self::guardWaitingReasonValued(...),
-                guardMessage: 'Il motivo dell\'attesa è obbligatorio.',
+                guardMessage: TicketWaitingReasonRequiredRule::MESSAGE,
                 effects: [TransitionEffect::SavePreviousStatus],
             ),
             new Transition(
@@ -162,7 +167,7 @@ final class TicketStateMachine
                 to: TicketStatus::Problem,
                 actors: [TransitionActor::AdminOrManager, TransitionActor::Assignee],
                 guard: self::guardProblemReasonValued(...),
-                guardMessage: 'Il motivo del blocco è obbligatorio.',
+                guardMessage: TicketProblemReasonRequiredRule::MESSAGE,
                 effects: [TransitionEffect::SavePreviousStatus],
             ),
             new Transition(
@@ -266,7 +271,7 @@ final class TicketStateMachine
     {
         $value = array_key_exists('tester_id', $context) ? $context['tester_id'] : $ticket->tester_id;
 
-        return $value !== null;
+        return self::passesRule($value, new TicketTesterRequiredRule);
     }
 
     /**
@@ -276,7 +281,7 @@ final class TicketStateMachine
     {
         $value = array_key_exists('waiting_reason', $context) ? $context['waiting_reason'] : $ticket->waiting_reason;
 
-        return is_string($value) && trim($value) !== '';
+        return self::passesRule($value, new TicketWaitingReasonRequiredRule);
     }
 
     /**
@@ -286,7 +291,25 @@ final class TicketStateMachine
     {
         $value = array_key_exists('problem_reason', $context) ? $context['problem_reason'] : $ticket->problem_reason;
 
-        return is_string($value) && trim($value) !== '';
+        return self::passesRule($value, new TicketProblemReasonRequiredRule);
+    }
+
+    /**
+     * Esegue una Validation Rule di dominio (US-102) su un singolo valore e ne riporta
+     * l'esito come booleano, cortocircuitando il primo `$fail()`: le regole restano la
+     * fonte unica di verità sia per il guard sia per qualunque form/API che le riusa.
+     */
+    private static function passesRule(mixed $value, ValidationRule $rule): bool
+    {
+        $failed = false;
+
+        $rule->validate('value', $value, function (string $attribute, ?string $message = null) use (&$failed): PotentiallyTranslatedString {
+            $failed = true;
+
+            return new PotentiallyTranslatedString($message ?? $attribute, app('translator'));
+        });
+
+        return ! $failed;
     }
 
     /**
