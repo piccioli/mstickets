@@ -41,9 +41,29 @@ php artisan boost:install
 
 Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
 
+## Setup rapido (`make setup`)
+
+Un solo comando porta l'ambiente da zero (nessun volume/vendor/node_modules preesistente) a navigabile
+(§4.2 del PRD): build delle immagini, dipendenze PHP e frontend, chiave applicativa, migrazioni e seed di
+sviluppo (5 utenti, uno per ruolo, credenziali stampate a fine seed).
+
+```bash
+make setup
+```
+
+Richiede solo Docker e Node.js sul host (npm compila gli asset Filament/Tailwind via Vite, gli altri
+passi girano nei container). Rilanciabile senza distruggere dati esistenti: `.env` non viene sovrascritto
+se già presente, le migrazioni e il seed di sviluppo sono idempotenti. L'app è raggiungibile su
+`http://localhost:8080/admin`, login con una delle credenziali stampate a fine `make setup` (es.
+`admin@orchestrator.local` / `password`): il pannello riflette il tema Montagna Servizi importato in
+US-004/US-005 (palette teal, font Nunito Sans, logo), non il tema di default di Filament.
+
 ## Docker
 
 Ambiente di sviluppo containerizzato (§4.2 del PRD): `app` (PHP 8.4-FPM), `web` (nginx, unico entrypoint HTTP), `db` (Postgres 16), `redis` (Redis 7), `queue` (Horizon), `scheduler` (`schedule:work`), `mailpit` (SMTP+IMAP locale).
+
+`make setup` esegue già tutti i passi seguenti in sequenza; questi comandi restano utili per gestire lo
+stack manualmente (rebuild di una sola immagine, restart di un servizio, ecc.):
 
 ```bash
 cp .env.example .env
@@ -74,7 +94,20 @@ docker compose exec app php artisan v1:inspect
 
 Il report viene salvato in `storage/app/import/inspect-<timestamp>.md` (conteggi per tabella, formati di
 `users.roles`, parsing di `stories.customer_request`, FK orfane, ecc.) ed è versionato nel repository per essere
-allegato alla PR di questa fase.
+allegato alla PR di questa fase. Il report generato su un dump v1 reale di questa fase è
+[`storage/app/import/inspect-20260725_225710.md`](storage/app/import/inspect-20260725_225710.md).
+
+## Punto di controllo obbligatorio prima della Fase 1
+
+La Fase 0 (Fondazioni) non introduce nessuna business logic di dominio: prima di iniziare la Fase 1
+(Ticketing core) è **richiesta una conferma esplicita del committente** su:
+
+- [`docs/design-inventory.md`](docs/design-inventory.md) — inventario di ogni schermata/componente del
+  mockup importato, con classificazione in-scope/fuori-scope per questa release;
+- il report di `v1:inspect` referenziato sopra — cosa smentisce il dato reale v1 rispetto al modello
+  dichiarato, prima di finalizzare lo schema v2.
+
+Nessun lavoro della Fase 1 va iniziato prima di questa conferma (§0.1 punto 4 del PRD).
 
 ## CI
 

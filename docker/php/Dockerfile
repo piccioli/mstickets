@@ -14,7 +14,7 @@ RUN apk add --no-cache \
         fcgi \
         shadow \
     && apk add --no-cache --virtual .build-deps ${PHPIZE_DEPS} \
-    && docker-php-ext-install pdo pdo_pgsql zip intl bcmath opcache pcntl \
+    && docker-php-ext-install pdo pdo_pgsql zip intl bcmath opcache pcntl exif \
     && pecl install redis \
     && docker-php-ext-enable redis \
     && groupmod -o -g "${GID}" www-data \
