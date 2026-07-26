@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Support\Collaudo\CollaudoTestReference;
 use Illuminate\Console\Command;
 
 final class CollaudoVerifyManifestCommand extends Command
@@ -47,6 +48,24 @@ final class CollaudoVerifyManifestCommand extends Command
 
     public function resolveTestReference(string $reference): bool
     {
-        return file_exists(base_path($reference));
+        $path = base_path(CollaudoTestReference::file($reference));
+
+        if (! file_exists($path)) {
+            return false;
+        }
+
+        $description = CollaudoTestReference::description($reference);
+
+        // Riferimento a percorso nudo (nessun `::descrizione`): resta valido il
+        // solo controllo di esistenza del file.
+        if ($description === null) {
+            return true;
+        }
+
+        // Verifica per-descrizione: il test citato deve esistere ANCORA dentro il
+        // file (es. `it('descrizione', ...)`). Così rinominare/cancellare un
+        // singolo test in un file referenziato da più voci del manifest viene
+        // rilevato, non solo la cancellazione dell'intero file.
+        return str_contains((string) file_get_contents($path), $description);
     }
 }

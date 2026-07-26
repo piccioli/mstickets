@@ -25,7 +25,7 @@
                     <tr>
                         <td class="test-id">{{ $test['id'] }}</td>
                         <td>{{ $test['descrizione'] }}</td>
-                        <td>{{ $test['test_automatico'] }}</td>
+                        <td>{{ \App\Support\Collaudo\CollaudoTestReference::file($test['test_automatico']) }}</td>
                     </tr>
                 @endforeach
             </tbody>
