@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources\Tickets\Tables;
 
 use App\Domain\Ticketing\Enums\TicketStatus;
+use App\Domain\Ticketing\Models\Ticket;
 use App\Filament\Resources\Tickets\Support\TicketFieldAccess;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -31,6 +32,8 @@ class TicketsTable
                 TextColumn::make('assignee.name')->label('Assegnatario')->searchable()->placeholder('Nessuno')
                     ->visible(fn (): bool => TicketFieldAccess::canManageInternalFields()),
                 TextColumn::make('created_at')->label('Creato il')->dateTime()->sortable(),
+                TextColumn::make('status_changed_at')->label('Giorni in stato')->sortable()
+                    ->getStateUsing(fn (Ticket $record): int => (int) $record->status_changed_at->diffInDays(now())),
             ])
             ->filters([
                 SelectFilter::make('status')

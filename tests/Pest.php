@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domain\Identity\Enums\Permission as PermissionEnum;
+use App\Domain\Identity\Enums\UserRole;
 use App\Domain\Identity\Models\User;
 use App\Domain\Ticketing\Enums\TicketLogEvent;
 use App\Domain\Ticketing\Models\Ticket;
@@ -10,6 +11,7 @@ use App\Domain\Ticketing\Models\TicketLog;
 use App\Domain\Ticketing\Models\TicketMessage;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 pest()->extend(TestCase::class)->in('Feature', 'Unit');
@@ -110,4 +112,18 @@ function ticketLog(Ticket $ticket, array $attributes = []): TicketLog
         'event' => TicketLogEvent::StatusChanged,
         'occurred_at' => now(),
     ], $attributes));
+}
+
+/**
+ * Assegna un ruolo applicativo (Spatie) a uno User già esistente, creando la riga
+ * `roles` se non esiste ancora. Usato dai query object di US-111 che distinguono
+ * i ticket in base al ruolo del richiedente (es. `AllCustomerTicketsQuery`,
+ * `InternalTicketsQuery`), non dai soli permessi diretti come `userWithPermissions()`.
+ */
+function withRole(User $user, UserRole $role): User
+{
+    Role::query()->firstOrCreate(['name' => $role->value, 'guard_name' => 'web']);
+    $user->assignRole($role->value);
+
+    return $user->fresh();
 }
