@@ -18,28 +18,12 @@ use App\Filament\Resources\Tickets\TicketResource;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
-use Spatie\Permission\Models\Role;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
     Filament::setCurrentPanel('admin');
 });
-
-/**
- * Assegna un ruolo applicativo "vuoto" solo per superare il gate d'accesso al
- * pannello (§9.1, US-020), isolando il test sui soli permessi diretti concessi
- * da `userWithPermissions()`. Nome scelto per non collidere con l'omonimo helper
- * locale già dichiarato in RoleAndPermissionManagementTest.php (stesso processo
- * Pest, §US-102 gotcha sul redeclare).
- */
-function grantTicketPanelRole(User $user, UserRole $role = UserRole::Developer): User
-{
-    Role::query()->firstOrCreate(['name' => $role->value, 'guard_name' => 'web']);
-    $user->assignRole($role->value);
-
-    return $user->fresh();
-}
 
 test('a user without any ticket view permission is denied access to the tickets list', function (): void {
     $user = grantTicketPanelRole(userWithPermissions());

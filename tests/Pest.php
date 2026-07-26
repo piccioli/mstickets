@@ -5,11 +5,13 @@ declare(strict_types=1);
 use App\Domain\Identity\Enums\Permission as PermissionEnum;
 use App\Domain\Identity\Enums\UserRole;
 use App\Domain\Identity\Models\User;
+use App\Domain\Tags\Models\Tag;
 use App\Domain\Ticketing\Enums\TicketLogEvent;
 use App\Domain\Ticketing\Models\Ticket;
 use App\Domain\Ticketing\Models\TicketLog;
 use App\Domain\Ticketing\Models\TicketMessage;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -126,4 +128,37 @@ function withRole(User $user, UserRole $role): User
     $user->assignRole($role->value);
 
     return $user->fresh();
+}
+
+/**
+ * Assegna un ruolo applicativo "vuoto" solo per superare il gate d'accesso al
+ * pannello Filament (§9.1, US-020), isolando il test sui soli permessi diretti
+ * concessi da `userWithPermissions()`. Spostato qui da `TicketResourceTest.php`
+ * (US-110) per essere riusato da qualunque test Filament sul dominio Ticketing
+ * (es. `TicketsTableFiltersTest.php`, US-112) senza rischiare il fatal error di
+ * redeclare se più file lo dichiarassero localmente.
+ */
+function grantTicketPanelRole(User $user, UserRole $role = UserRole::Developer): User
+{
+    Role::query()->firstOrCreate(['name' => $role->value, 'guard_name' => 'web']);
+    $user->assignRole($role->value);
+
+    return $user->fresh();
+}
+
+/**
+ * Crea un Tag con i soli attributi obbligatori dello schema (`name`, `slug`
+ * univoco), riusato dai test dei filtri di `TicketsTable` (US-112) senza dover
+ * costruire uno slug a mano ad ogni chiamata.
+ *
+ * @param  array<string, mixed>  $attributes
+ */
+function tag(array $attributes = []): Tag
+{
+    $name = $attributes['name'] ?? 'Commessa '.Str::random(8);
+
+    return Tag::create(array_merge([
+        'name' => $name,
+        'slug' => Str::slug($name).'-'.Str::random(6),
+    ], $attributes))->fresh();
 }
