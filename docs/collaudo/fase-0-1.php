@@ -337,6 +337,16 @@ return [
                     'descrizione' => 'L\'analizzatore delle incongruenze stato/timestamp trova le righe in uno stato che richiede una data assente',
                     'test_automatico' => 'tests/Unit/Import/Inspect/StatusTimestampAnalyzerTest.php',
                 ],
+                [
+                    'id' => 'F0-55',
+                    'descrizione' => 'L\'analizzatore della gerarchia story_story individua le incongruenze rispetto a stories.parent_id in entrambe le direzioni',
+                    'test_automatico' => 'tests/Unit/Import/Inspect/StoryHierarchyAnalyzerTest.php',
+                ],
+                [
+                    'id' => 'F0-56',
+                    'descrizione' => 'L\'analizzatore dei tag polimorfici raggruppa i taggable_type e conta quelli diversi da Documentation',
+                    'test_automatico' => 'tests/Unit/Import/Inspect/TaggableAnalyzerTest.php',
+                ],
             ],
         ],
 
