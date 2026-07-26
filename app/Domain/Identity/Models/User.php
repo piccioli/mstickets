@@ -83,4 +83,14 @@ class User extends Authenticatable implements FilamentUser
     {
         return UserFactory::new();
     }
+
+    /**
+     * L'utente di sistema (§6.2.1, `config('orchestrator.system_user')`, US-022) è
+     * l'unico attore ammesso per le transizioni riservate a comandi schedulati/listener
+     * di dominio (es. `waiting → previous_status` per l'effetto T7, US-106/US-101).
+     */
+    public function isSystem(): bool
+    {
+        return $this->email === config('orchestrator.system_user.email');
+    }
 }
