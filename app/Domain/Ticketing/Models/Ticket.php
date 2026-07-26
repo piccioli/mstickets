@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Collection;
 
 #[Fillable([
     'parent_id', 'title', 'description', 'status', 'previous_status', 'status_changed_at',
@@ -118,6 +119,23 @@ class Ticket extends Model
     public function participants(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'ticket_participants')->withTimestamps();
+    }
+
+    /**
+     * Destinatari di un messaggio (§6.1.7): partecipanti + richiedente + assegnatario +
+     * tester, deduplicati, escluso l'autore del messaggio. Riusato da qualunque punto
+     * futuro che debba davvero notificare questi utenti (invio email, Fase 3): questa
+     * fase si limita a esporre il calcolo, senza inviare nulla.
+     *
+     * @return Collection<int, User>
+     */
+    public function messageRecipients(User $author): Collection
+    {
+        return $this->participants
+            ->merge(array_filter([$this->requester, $this->assignee, $this->tester]))
+            ->reject(fn (User $user): bool => $user->is($author))
+            ->unique('id')
+            ->values();
     }
 
     /**

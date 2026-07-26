@@ -89,7 +89,7 @@ final class TicketStateMachine
             new Transition(
                 from: [TicketStatus::Assigned],
                 to: TicketStatus::Todo,
-                actors: [TransitionActor::AdminOrManager, TransitionActor::Assignee],
+                actors: [TransitionActor::AdminOrManager, TransitionActor::Assignee, TransitionActor::System],
             ),
             new Transition(
                 from: [TicketStatus::Todo],
@@ -113,7 +113,7 @@ final class TicketStateMachine
             new Transition(
                 from: [TicketStatus::Progress],
                 to: TicketStatus::Todo,
-                actors: [TransitionActor::AdminOrManager, TransitionActor::Assignee],
+                actors: [TransitionActor::AdminOrManager, TransitionActor::Assignee, TransitionActor::System],
             ),
             new Transition(
                 from: [TicketStatus::Testing],
