@@ -20,10 +20,7 @@ final class SystemUserCheck implements DoctorCheck
     {
         $email = (string) config('orchestrator.system_user.email');
 
-        $user = User::query()->firstOrCreate(
-            ['email' => $email],
-            ['name' => (string) config('orchestrator.system_user.name')],
-        );
+        $user = User::system();
 
         return [new DoctorCheckResult(
             'Utente di sistema',

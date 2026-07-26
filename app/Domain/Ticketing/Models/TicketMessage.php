@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Domain\Ticketing\Models;
 
+use App\Domain\Identity\Enums\Permission;
 use App\Domain\Identity\Models\User;
 use App\Domain\Mail\Models\EmailMessage;
 use App\Domain\Ticketing\Enums\TicketMessageChannel;
 use App\Domain\Ticketing\Enums\TicketMessageVisibility;
+use App\Domain\Ticketing\Support\TicketAttachmentTypes;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -48,9 +51,16 @@ class TicketMessage extends Model implements HasMedia
         ];
     }
 
+    /**
+     * Disco PRIVATO dedicato (§9.6 del PRD, US-107): mai il disco `public` di default
+     * di medialibrary. Tipi ammessi letti dalla configurazione condivisa
+     * {@see TicketAttachmentTypes} (§17.2), mai duplicati qui.
+     */
     public function registerMediaCollections(): void
     {
-        $this->addMediaCollection('attachments');
+        $this->addMediaCollection('attachments')
+            ->useDisk(TicketAttachmentTypes::disk())
+            ->acceptsMimeTypes(TicketAttachmentTypes::allowedMimeTypes());
     }
 
     /**
@@ -75,5 +85,24 @@ class TicketMessage extends Model implements HasMedia
     public function emailMessage(): BelongsTo
     {
         return $this->belongsTo(EmailMessage::class);
+    }
+
+    /**
+     * Esclude i messaggi `visibility = internal` per chi non ha
+     * `ticket-message.view.internal` (§9.5): uno scope sulla relazione, da incatenare
+     * a `$ticket->messages()` in qualunque query futura, non un filtro applicato solo
+     * in vista — un cliente non può raggiungere un messaggio interno nemmeno con un
+     * accesso diretto by-id.
+     *
+     * @param  Builder<TicketMessage>  $query
+     * @return Builder<TicketMessage>
+     */
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        if ($user->can(Permission::TicketMessageViewInternal)) {
+            return $query;
+        }
+
+        return $query->where('visibility', TicketMessageVisibility::Public);
     }
 }

@@ -47,6 +47,18 @@ return [
             'report' => false,
         ],
 
+        // Disco privato dedicato agli allegati dei messaggi del ticket (§9.6 del PRD,
+        // US-107): mai `public`, il download passa da una rotta autorizzata dalla
+        // TicketPolicy. `serve` a false: nessuna route di framework che esponga il
+        // file per path, solo il controller dedicato.
+        'ticket-attachments' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/ticket-attachments'),
+            'serve' => false,
+            'throw' => false,
+            'report' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),
