@@ -65,4 +65,20 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Tracciamento visualizzazioni (§6.2.3 del PRD)
+    |--------------------------------------------------------------------------
+    |
+    | Soglia di throttling per l'aggiornamento di `ticket_views.last_viewed_at`/
+    | `view_count`: una visualizzazione entro questa finestra dall'ultima
+    | registrata per lo stesso (ticket, utente, giorno) non tocca la riga
+    | esistente (US-108).
+    |
+    */
+
+    'views' => [
+        'throttle_minutes' => (int) env('TICKET_VIEW_THROTTLE_MINUTES', 30),
+    ],
+
 ];
