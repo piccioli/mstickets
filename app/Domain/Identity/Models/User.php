@@ -93,4 +93,17 @@ class User extends Authenticatable implements FilamentUser
     {
         return $this->email === config('orchestrator.system_user.email');
     }
+
+    /**
+     * Risolve (creandolo se manca, come `orchestrator:doctor`) l'utente di sistema
+     * (§6.2.1, US-022): fallback per l'autore di `ticket_logs`/eventi generati dal
+     * sistema quando non c'è un utente autenticato, mai un id hard-coded.
+     */
+    public static function system(): self
+    {
+        return self::query()->firstOrCreate(
+            ['email' => (string) config('orchestrator.system_user.email')],
+            ['name' => (string) config('orchestrator.system_user.name')],
+        );
+    }
 }

@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use App\Domain\Identity\Enums\Permission as PermissionEnum;
-use App\Domain\Identity\Models\User;
 use App\Domain\Ticketing\Enums\TicketStatus;
 use App\Domain\Ticketing\Models\Ticket;
 use App\Domain\Ticketing\StateMachine\TicketStateMachine;
@@ -12,19 +11,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 
 uses(RefreshDatabase::class);
-
-function ticket(array $attributes = []): Ticket
-{
-    return Ticket::create(array_merge([
-        'title' => 'Errore login',
-        'status_changed_at' => now(),
-    ], $attributes))->fresh();
-}
-
-function systemUser(): User
-{
-    return User::factory()->create(['email' => config('orchestrator.system_user.email')]);
-}
 
 // --- new -> assigned --------------------------------------------------------------
 

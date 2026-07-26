@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domain\Identity\Enums\Permission as PermissionEnum;
 use App\Domain\Identity\Models\User;
+use App\Domain\Ticketing\Models\Ticket;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
@@ -46,4 +47,29 @@ function ruleFails(ValidationRule $rule, mixed $value, string $attribute = 'valu
     });
 
     return $failed;
+}
+
+/**
+ * Crea un ticket con i soli attributi obbligatori dello schema (`title`,
+ * `status_changed_at`), riusato da qualunque test che ha solo bisogno di un ticket
+ * "esiste" senza badare al contenuto degli altri campi (macchina a stati, Action, Rule).
+ *
+ * @param  array<string, mixed>  $attributes
+ */
+function ticket(array $attributes = []): Ticket
+{
+    return Ticket::create(array_merge([
+        'title' => 'Errore login',
+        'status_changed_at' => now(),
+    ], $attributes))->fresh();
+}
+
+/**
+ * Crea un utente con l'email configurata come utente di sistema (§6.2.1): riconosciuto
+ * da `User::isSystem()`/attore `TransitionActor::System` senza dover passare dal comando
+ * `orchestrator:doctor` in un test.
+ */
+function systemUser(): User
+{
+    return User::factory()->create(['email' => config('orchestrator.system_user.email')]);
 }

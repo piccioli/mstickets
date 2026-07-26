@@ -203,8 +203,11 @@ final class TicketStateMachine
      *                                         applicare contestualmente alla transizione
      *                                         (es. `assignee_id`, `tester_id`,
      *                                         `waiting_reason`, `problem_reason`).
+     * @return Transition La riga di tabella risolta, così l'Action chiamante
+     *                    (`ChangeTicketStatus`, US-103) può eseguirne gli `effects`
+     *                    senza dover ripetere la ricerca.
      */
-    public static function authorize(Ticket $ticket, TicketStatus $to, User $user, array $context = []): void
+    public static function authorize(Ticket $ticket, TicketStatus $to, User $user, array $context = []): Transition
     {
         $from = $ticket->status;
 
@@ -227,6 +230,8 @@ final class TicketStateMachine
                 'status' => [$transition->guardMessage ?? 'La transizione non soddisfa le condizioni richieste.'],
             ]);
         }
+
+        return $transition;
     }
 
     /**
