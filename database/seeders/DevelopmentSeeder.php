@@ -15,9 +15,6 @@ use App\Domain\Fundraising\Models\FundraisingProject;
 use App\Domain\Identity\Enums\UserRole;
 use App\Domain\Identity\Models\Organization;
 use App\Domain\Identity\Models\User;
-use App\Domain\Reporting\Enums\ActivityReportOwnerKind;
-use App\Domain\Reporting\Enums\ActivityReportPeriodType;
-use App\Domain\Reporting\Models\ActivityReport;
 use App\Domain\Tags\Models\Tag;
 use App\Domain\Ticketing\Enums\TicketMessageChannel;
 use App\Domain\Ticketing\Enums\TicketPriority;
@@ -26,6 +23,7 @@ use App\Domain\Ticketing\Enums\TicketType;
 use App\Domain\Ticketing\Models\Ticket;
 use App\Domain\Ticketing\Models\TicketMessage;
 use App\Support\Doctor\Checks\SystemUserCheck;
+use Database\Seeders\Concerns\SeedsActivityReports;
 use Illuminate\Console\Command;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
@@ -38,6 +36,8 @@ use RuntimeException;
  */
 class DevelopmentSeeder extends Seeder
 {
+    use SeedsActivityReports;
+
     private const PASSWORD = 'password';
 
     /**
@@ -274,28 +274,6 @@ class DevelopmentSeeder extends Seeder
                 ->usingFileName("allegato-{$index}.txt")
                 ->toMediaCollection('attachments');
         }
-    }
-
-    /**
-     * @param  array<string, User>  $roleUsers
-     * @param  list<Organization>  $organizations
-     * @param  list<Ticket>  $tickets
-     */
-    private function seedActivityReports(array $roleUsers, array $organizations, array $tickets): void
-    {
-        $customer = $roleUsers[UserRole::Customer->value];
-
-        $userReport = ActivityReport::query()->firstOrCreate(
-            ['owner_kind' => ActivityReportOwnerKind::User, 'owner_user_id' => $customer->id, 'period_type' => ActivityReportPeriodType::Monthly, 'year' => 2026, 'month' => 6],
-            ['locale' => 'it'],
-        );
-        $userReport->tickets()->syncWithoutDetaching(array_map(static fn (Ticket $ticket): int => $ticket->id, array_slice($tickets, 0, 5)));
-
-        $organizationReport = ActivityReport::query()->firstOrCreate(
-            ['owner_kind' => ActivityReportOwnerKind::Organization, 'owner_organization_id' => $organizations[0]->id, 'period_type' => ActivityReportPeriodType::Annual, 'year' => 2025],
-            ['locale' => 'it'],
-        );
-        $organizationReport->tickets()->syncWithoutDetaching(array_map(static fn (Ticket $ticket): int => $ticket->id, array_slice($tickets, 5, 5)));
     }
 
     /**
