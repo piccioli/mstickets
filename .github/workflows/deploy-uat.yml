@@ -1,0 +1,50 @@
+name: Deploy UAT
+
+on:
+  push:
+    branches: [develop]
+
+concurrency:
+  group: deploy-uat
+  cancel-in-progress: false
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/uat/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/piccioli/mstickets-uat:${{ github.sha }}
+            ghcr.io/piccioli/mstickets-uat:latest
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configura chiave SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.UAT_SSH_PRIVATE_KEY }}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          echo "${{ secrets.UAT_SSH_HOST_KEY }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy su msuat
+        run: |
+          ssh -i ~/.ssh/id_deploy -o UserKnownHostsFile=~/.ssh/known_hosts root@135.181.25.33 "ghcr.io/piccioli/mstickets-uat:${{ github.sha }}"

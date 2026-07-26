@@ -266,3 +266,16 @@ Lo sviluppo di scaffold è stato verificato con PHP 8.5 locale (compatibile con 
 - **`$this->travelTo(CarbonImmutable::parse(...))` prima di ogni `ChangeTicketStatus::run()`** è il modo per costruire una sequenza di `ticket_logs` con `occurred_at` deterministici, poi passata a `WorkedTimeCalculator`/`RecalculateWorkedTime::run()` per assertare `worked_minutes`/`ticket_work_logs` con numeri esatti (non solo "maggiore di zero"). Usare sempre un giorno feriale noto (es. lunedì) per evitare il weekend-skip dell'algoritmo.
 - **Un log identificato solo da `to_status` non è univoco quando lo stesso stato di destinazione viene raggiunto più volte nello stesso test** (es. `to_status = todo` sia dalla transizione ordinaria `assigned → todo` sia da una demozione `progress → todo` successiva): filtrare sempre anche su `from_status` prima di uno `->sole()`, mai un `->latest(...)->sole()` (`sole()` conta l'intero risultato della query, l'ordinamento non lo riduce a una riga).
 - **Due livelli di difesa distinti contro una transizione/contesto manipolato, da testare separatamente**: (1) Filament risolve `$data` di un'action dallo **stato dello schema dichiarato**, non dall'array grezzo — un campo iniettato via `setActionData()` ma assente dallo schema (es. `assignee_id` quando l'attore si auto-assegna, US-110) viene ignorato, non genera un errore; (2) `TicketStateMachine::authorize()`/i guard degli attori (es. `AutoAssigningDeveloper::authorize()`, US-101) restano comunque la difesa "vera", verificabile chiamando `ChangeTicketStatus::run()` direttamente con un `context` impersonato, indipendentemente da qualunque comportamento di Filament. Un test che assume che (1) da solo basti a dimostrare la sicurezza è un test debole: verificare sempre anche (2).
+
+## Processo di collaudo (obbligatorio per ogni fase)
+
+Ogni fase completata (Fase 2 in poi) deve produrre, prima di essere considerata chiusa:
+
+1. `docs/collaudo/fase-<N>.php` — manifest topic → test numerati (es. `F2-01`) → riferimento a un test
+   automatico REALMENTE esistente (`php artisan collaudo:verify-manifest <N>` deve passare).
+2. `php artisan collaudo:generate <N>` — PDF di collaudo con carta intestata Montagna Servizi, Parte 1
+   (istruzioni: URL app UAT, URL Mailpit, credenziali) + una sezione per topic con i test numerati.
+3. Il deploy su UAT (automatico al merge su `develop`) deve riflettere lo stato descritto nel manifest:
+   `UatSeeder` (o il suo successore quando arriverà l'ETL reale in Fase 2+) gira ad ogni deploy.
+4. Se un test del collaudo fallisce durante una sessione di collaudo reale, il test automatico
+   corrispondente (dal manifest) va rivisto: non copriva il caso reale che ha fatto fallire il collaudo.

@@ -1,0 +1,79 @@
+name: ticket-uat
+
+services:
+  app:
+    image: ${IMAGE:-ghcr.io/piccioli/mstickets-uat:latest}
+    restart: unless-stopped
+    mem_limit: ${MEM_LIMIT_APP:-512m}
+    env_file: .env.uat
+    ports:
+      - "127.0.0.1:8090:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - ticket-uat
+
+  worker:
+    image: ${IMAGE:-ghcr.io/piccioli/mstickets-uat:latest}
+    restart: unless-stopped
+    mem_limit: ${MEM_LIMIT_WORKER:-256m}
+    env_file: .env.uat
+    entrypoint: ["/app/docker/uat/worker-entrypoint.sh"]
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - ticket-uat
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    mem_limit: ${MEM_LIMIT_DB:-384m}
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-ticket_uat}
+      POSTGRES_USER: ${DB_USERNAME:-ticket_uat}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?err}
+    volumes:
+      - ticket_uat_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-ticket_uat}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - ticket-uat
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    mem_limit: ${MEM_LIMIT_REDIS:-128m}
+    command: ["redis-server", "--maxmemory", "100mb", "--maxmemory-policy", "allkeys-lru"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - ticket-uat
+
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    mem_limit: ${MEM_LIMIT_MAILPIT:-128m}
+    command: ["--max", "500"]
+    ports:
+      - "127.0.0.1:8091:8025"
+    networks:
+      - ticket-uat
+
+networks:
+  ticket-uat:
+    driver: bridge
+
+volumes:
+  ticket_uat_db_data:

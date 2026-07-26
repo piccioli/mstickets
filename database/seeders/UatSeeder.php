@@ -31,10 +31,17 @@ use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
- * Popola un ambiente di sviluppo realistico su tutti i moduli in scope (§4.2, US-023): il
- * pannello è così navigabile senza dover ripristinare il dump v1. Non eseguibile in produzione.
+ * Popola l'ambiente pubblico di collaudo (UAT) con un dataset realistico e deterministico,
+ * pensato per essere descritto uno-a-uno nel PDF di collaudo formale (Task 3/8). Eseguito ad
+ * ogni deploy UAT come `migrate:fresh --seed --class=UatSeeder` (non tramite `DatabaseSeeder`,
+ * quindi richiama da sé `RolePermissionSeeder`): a differenza di `DevelopmentSeeder` (Fase 0,
+ * dati "di sviluppo" generici), qui titoli/nomi sono testo scritto a mano, stabile tra un deploy
+ * e l'altro, e mai frutto di generazione casuale. Nessuna chiamata a `fake()`: `fakerphp/faker`
+ * è una dipendenza `require-dev`, assente nell'immagine UAT costruita con `composer install
+ * --no-dev` (vedi `docker/uat/Dockerfile`), quindi qualunque uso di `fake()` qui farebbe
+ * crashare il seeder ad ogni deploy reale. Non eseguibile in produzione.
  */
-class DevelopmentSeeder extends Seeder
+class UatSeeder extends Seeder
 {
     use SeedsActivityReports;
 
@@ -46,9 +53,8 @@ class DevelopmentSeeder extends Seeder
     private array $credentials = [];
 
     /**
-     * Copia nullable del comando console: la proprietà ereditata `Seeder::$command` è
-     * documentata come sempre presente, ma non lo è quando il seeder gira fuori da
-     * `php artisan db:seed` (es. istanziato direttamente nei test).
+     * Copia nullable del comando console: vedi `DevelopmentSeeder` per il razionale
+     * (Larastan tratta `Seeder::$command` come sempre presente, non lo è nei test).
      */
     private ?Command $console = null;
 
@@ -62,8 +68,12 @@ class DevelopmentSeeder extends Seeder
     public function run(): void
     {
         if (app()->environment('production')) {
-            throw new RuntimeException('DevelopmentSeeder non può essere eseguito in produzione.');
+            throw new RuntimeException('UatSeeder non può essere eseguito in produzione.');
         }
+
+        // Eseguito standalone via `--class=UatSeeder`, senza passare dalla catena di
+        // `DatabaseSeeder`: i ruoli/permessi vanno materializzati qui.
+        $this->call(RolePermissionSeeder::class);
 
         app(SystemUserCheck::class)->run();
 
@@ -77,7 +87,7 @@ class DevelopmentSeeder extends Seeder
             $this->seedActivityReports($roleUsers, $organizations, $tickets);
             $this->seedFundraising($roleUsers);
         } else {
-            $this->console?->info('DevelopmentSeeder: ticket/tag/documentazione/report/fundraising già presenti, salto la generazione.');
+            $this->console?->info('UatSeeder: ticket/tag/documentazione/report/fundraising già presenti, salto la generazione.');
         }
 
         $this->printCredentials();
@@ -89,11 +99,11 @@ class DevelopmentSeeder extends Seeder
     private function seedRoleUsers(): array
     {
         $names = [
-            UserRole::Admin->value => 'Anna Amministratore',
-            UserRole::Developer->value => 'Dario Sviluppatore',
-            UserRole::Manager->value => 'Marco Manager',
-            UserRole::Customer->value => 'Cliente CAI',
-            UserRole::Fundraising->value => 'Fabia Fundraising',
+            UserRole::Admin->value => 'Amministratore Collaudo',
+            UserRole::Developer->value => 'Sviluppatore Collaudo',
+            UserRole::Manager->value => 'Manager Collaudo',
+            UserRole::Customer->value => 'Socio CAI Collaudo',
+            UserRole::Fundraising->value => 'Referente Fundraising Collaudo',
         ];
 
         $users = [];
@@ -124,7 +134,7 @@ class DevelopmentSeeder extends Seeder
      */
     private function seedOrganizations(): array
     {
-        $names = ['CAI Sezione di Torino', 'CAI Sezione di Bergamo'];
+        $names = ['CAI Sezione di Aosta', 'CAI Sezione di Trento'];
 
         return array_map(
             static fn (string $name): Organization => Organization::query()->firstOrCreate(['name' => $name], ['locale' => 'it']),
@@ -138,11 +148,11 @@ class DevelopmentSeeder extends Seeder
     private function seedDocumentationPages(): array
     {
         $pages = [
-            ['title' => 'Come aprire una richiesta di supporto', 'category' => DocumentationCategory::Customer],
-            ['title' => 'Guida al pannello ticket per i soci', 'category' => DocumentationCategory::Customer],
-            ['title' => 'FAQ abbonamenti e fatturazione', 'category' => DocumentationCategory::Customer],
-            ['title' => 'Policy interna di assegnazione ticket', 'category' => DocumentationCategory::Internal],
-            ['title' => 'Procedura interna di rilascio in produzione', 'category' => DocumentationCategory::Internal],
+            ['title' => 'Guida rapida al portale ticket per i soci CAI', 'category' => DocumentationCategory::Customer],
+            ['title' => 'FAQ tesseramento e rinnovo della quota associativa', 'category' => DocumentationCategory::Customer],
+            ['title' => 'Come segnalare un problema tecnico dal portale', 'category' => DocumentationCategory::Customer],
+            ['title' => 'Procedura interna di validazione dei ticket in collaudo', 'category' => DocumentationCategory::Internal],
+            ['title' => 'Checklist di rilascio per l\'ambiente di collaudo UAT', 'category' => DocumentationCategory::Internal],
         ];
 
         return array_map(static function (array $page): DocumentationPage {
@@ -152,7 +162,7 @@ class DevelopmentSeeder extends Seeder
                 ['slug' => $slug],
                 [
                     'title' => $page['title'],
-                    'body' => "Contenuto di sviluppo per «{$page['title']}».",
+                    'body' => "Contenuto di collaudo UAT per «{$page['title']}».",
                     'category' => $page['category'],
                 ],
             );
@@ -183,6 +193,66 @@ class DevelopmentSeeder extends Seeder
     }
 
     /**
+     * Titoli scritti a mano, riconoscibili nel dominio CAI/montagna, raggruppati per tipo di
+     * ticket: pensati per essere citati uno-a-uno nel PDF di collaudo, mai generati a caso.
+     *
+     * @return array<string, list<string>>
+     */
+    private function ticketTitlesByType(): array
+    {
+        return [
+            TicketType::Bug->value => [
+                'Il pulsante «Rinnova tessera» non risponde su Safari mobile',
+                'Errore 500 aprendo il dettaglio di un ticket con più allegati',
+                "L'importo del bollettino MAV non arrotonda correttamente le quote sezionali",
+                "Il calendario delle escursioni mostra date errate con l'ora legale",
+                'La ricerca socio per codice fiscale restituisce risultati duplicati',
+                'Il PDF della tessera stampa il logo sovrapposto al QR code',
+                'Il filtro per sezione territoriale non si azzera dopo il logout',
+                "L'invio della newsletter blocca la coda se un indirizzo email è malformato",
+                'Il contatore rinnovi tessere non si aggiorna dopo un bonifico',
+                "L'elenco rifugi non carica le foto su connessione lenta",
+            ],
+            TicketType::Feature->value => [
+                "Aggiungere l'export CSV dell'elenco iscritti al corso di escursionismo",
+                'Notifica al socio 30 giorni prima della scadenza tessera',
+                'Filtro avanzato per cercare rifugi per fascia altimetrica',
+                'Firma digitale del modulo di iscrizione minori accompagnati',
+                'Dashboard riepilogativa delle quote raccolte per sezione',
+                'Allegare il certificato medico direttamente al profilo socio',
+                'Integrazione con il calendario per le uscite del gruppo escursionismo',
+                'Modulo di richiesta rimborso spese per gli accompagnatori',
+                'Vista mappa interattiva dei sentieri segnalati dalla sezione',
+                'Badge digitale sostitutivo della tessera cartacea in rifugio',
+            ],
+            TicketType::Helpdesk->value => [
+                "Il socio non riceve l'email di conferma rinnovo tessera",
+                'Richiesta di reset password per un accompagnatore in trasferta',
+                "Come modificare l'indirizzo di residenza di un socio già iscritto",
+                'Il socio non trova più la ricevuta del bollettino dell\'anno scorso',
+                'Assistenza per l\'accesso da un nuovo dispositivo',
+                'Richiesta di duplicato tessera per smarrimento',
+                'Il socio chiede come trasferirsi da una sezione a un\'altra',
+                'Segnalazione di un doppio addebito sulla quota associativa',
+                'Richiesta chiarimenti sulla copertura assicurativa in escursione',
+                'Il referente sezione chiede l\'elenco aggiornato dei soci minorenni',
+            ],
+            TicketType::Scrum->value => [
+                'Sprint planning: revisione backlog modulo tesseramento',
+                'Refactoring del servizio di calcolo quote per il nuovo anno sociale',
+                'Aggiornamento dipendenze in vista del prossimo rilascio',
+                'Retrospettiva sprint: automatizzare i test del modulo rendicontazione',
+                'Spike tecnico: migrazione del disco allegati su storage esterno',
+                'Debito tecnico: consolidare le policy duplicate del modulo ticketing',
+                'Preparazione demo di fine sprint per il modulo fundraising',
+                'Pianificazione capacità del team per il collaudo UAT',
+                'Code review incrociata sulle Action del modulo Ticketing',
+                'Chiusura sprint: verifica indici mancanti su Postgres',
+            ],
+        ];
+    }
+
+    /**
      * @param  array<string, User>  $roleUsers
      * @param  list<Tag>  $tags
      * @return list<Ticket>
@@ -196,6 +266,7 @@ class DevelopmentSeeder extends Seeder
         $statuses = TicketStatus::cases();
         $types = TicketType::cases();
         $priorities = TicketPriority::cases();
+        $titlesByType = $this->ticketTitlesByType();
 
         $tickets = [];
 
@@ -206,9 +277,12 @@ class DevelopmentSeeder extends Seeder
             $assignee = $i % 2 === 0 ? $developer : $manager;
             $statusChangedAt = now()->subDays(40 - $i);
 
+            $titlesForType = $titlesByType[$type->value];
+            $title = $titlesForType[intdiv($i, count($types)) % count($titlesForType)];
+
             $attributes = [
-                'title' => "[{$type->getLabel()}] Ticket di sviluppo #{$i}",
-                'description' => "Descrizione generata per l'ambiente di sviluppo (ticket #{$i}).",
+                'title' => $title,
+                'description' => "Caso di collaudo UAT #{$i}: {$title}.",
                 'status' => $status,
                 'type' => $type,
                 'priority' => $priority,
@@ -224,7 +298,7 @@ class DevelopmentSeeder extends Seeder
             }
 
             if ($status === TicketStatus::Waiting) {
-                $attributes['waiting_reason'] = 'In attesa di risposta dal cliente.';
+                $attributes['waiting_reason'] = 'In attesa di riscontro dal socio.';
             }
 
             if ($status === TicketStatus::Problem) {
@@ -242,7 +316,7 @@ class DevelopmentSeeder extends Seeder
             $ticket = Ticket::query()->create($attributes);
             $ticket->tags()->attach($tags[$i % count($tags)]->id);
 
-            $this->seedTicketConversation($ticket, $customer, $assignee, $statusChangedAt, $i);
+            $this->seedTicketConversation($ticket, $customer, $assignee, $statusChangedAt, $title);
 
             $tickets[] = $ticket;
         }
@@ -250,13 +324,13 @@ class DevelopmentSeeder extends Seeder
         return $tickets;
     }
 
-    private function seedTicketConversation(Ticket $ticket, User $customer, User $assignee, Carbon $statusChangedAt, int $index): void
+    private function seedTicketConversation(Ticket $ticket, User $customer, User $assignee, Carbon $statusChangedAt, string $title): void
     {
-        $firstMessage = TicketMessage::query()->create([
+        TicketMessage::query()->create([
             'ticket_id' => $ticket->id,
             'author_id' => $customer->id,
             'channel' => TicketMessageChannel::Web,
-            'body_text' => "Richiesta iniziale del cliente per il ticket #{$index}.",
+            'body_text' => "Segnalazione del socio: {$title}.",
             'posted_at' => $statusChangedAt,
         ]);
 
@@ -264,16 +338,9 @@ class DevelopmentSeeder extends Seeder
             'ticket_id' => $ticket->id,
             'author_id' => $assignee->id,
             'channel' => TicketMessageChannel::Web,
-            'body_text' => 'Presa in carico dal team di sviluppo.',
+            'body_text' => 'Presa in carico dal team di supporto.',
             'posted_at' => $statusChangedAt->copy()->addHour(),
         ]);
-
-        if ($index % 4 === 0) {
-            $firstMessage
-                ->addMediaFromString("Contenuto finto dell'allegato del ticket #{$index}.")
-                ->usingFileName("allegato-{$index}.txt")
-                ->toMediaCollection('attachments');
-        }
     }
 
     /**
@@ -284,11 +351,11 @@ class DevelopmentSeeder extends Seeder
         $fundraisingUser = $roleUsers[UserRole::Fundraising->value];
 
         $evaluated = FundraisingOpportunity::query()->create([
-            'name' => 'Bando Sostieni la Montagna 2026',
-            'official_url' => 'https://example.org/bandi/sostieni-la-montagna-2026',
+            'name' => 'Bando Montagna per Tutti 2026',
+            'official_url' => 'https://example.org/bandi/montagna-per-tutti-2026',
             'endowment_fund' => 250000,
             'deadline' => now()->addMonths(3)->toDateString(),
-            'program_name' => 'Sostieni la Montagna',
+            'program_name' => 'Montagna per Tutti',
             'sponsor' => 'Fondazione CAI',
             'cofinancing_quota' => 20,
             'max_contribution' => 30000,
@@ -309,7 +376,7 @@ class DevelopmentSeeder extends Seeder
                 'fundraising_opportunity_id' => $evaluated->id,
                 'criterion_key' => $criterion,
                 'score' => $score,
-                'notes' => "Valutazione di sviluppo per {$criterion->getLabel()}.",
+                'notes' => "Valutazione di collaudo UAT per {$criterion->getLabel()}.",
             ]);
 
             if ($score >= 0) {
@@ -326,7 +393,7 @@ class DevelopmentSeeder extends Seeder
         ]);
 
         FundraisingOpportunity::query()->create([
-            'name' => 'Fondo europeo cooperazione alpina',
+            'name' => 'Fondo europeo tutela sentieri alpini',
             'deadline' => now()->addMonths(6)->toDateString(),
             'territorial_scope' => TerritorialScope::European,
             'created_by' => $fundraisingUser->id,
@@ -334,7 +401,7 @@ class DevelopmentSeeder extends Seeder
         ]);
 
         FundraisingOpportunity::query()->create([
-            'name' => 'Contributo regionale attività CAI',
+            'name' => 'Contributo regionale manutenzione rifugi',
             'deadline' => now()->addMonth()->toDateString(),
             'territorial_scope' => TerritorialScope::Regional,
             'created_by' => $fundraisingUser->id,
@@ -342,7 +409,7 @@ class DevelopmentSeeder extends Seeder
         ]);
 
         FundraisingProject::query()->create([
-            'title' => 'Recupero sentiero alpino',
+            'title' => 'Sistemazione sentiero CAI Aosta',
             'fundraising_opportunity_id' => $evaluated->id,
             'lead_user_id' => $fundraisingUser->id,
             'created_by' => $fundraisingUser->id,
@@ -353,7 +420,7 @@ class DevelopmentSeeder extends Seeder
         ]);
 
         FundraisingProject::query()->create([
-            'title' => 'Rifugio digitale accessibile',
+            'title' => 'Portale digitale prenotazione rifugi',
             'fundraising_opportunity_id' => $evaluated->id,
             'lead_user_id' => $fundraisingUser->id,
             'created_by' => $fundraisingUser->id,
@@ -366,7 +433,7 @@ class DevelopmentSeeder extends Seeder
     private function printCredentials(): void
     {
         $this->console?->newLine();
-        $this->console?->info('Credenziali di sviluppo (ambiente non-prod):');
+        $this->console?->info('Credenziali di collaudo UAT (ambiente non-prod):');
 
         foreach ($this->credentials as $name => $credential) {
             $this->console?->line("- {$name}: {$credential['email']} / {$credential['password']}");
