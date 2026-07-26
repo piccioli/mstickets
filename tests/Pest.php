@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 use App\Domain\Identity\Enums\Permission as PermissionEnum;
 use App\Domain\Identity\Models\User;
+use App\Domain\Ticketing\Enums\TicketLogEvent;
 use App\Domain\Ticketing\Models\Ticket;
+use App\Domain\Ticketing\Models\TicketLog;
 use App\Domain\Ticketing\Models\TicketMessage;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Spatie\Permission\Models\Permission;
@@ -90,4 +92,22 @@ function ticketMessage(array $attributes = []): TicketMessage
         'channel' => 'web',
         'posted_at' => now(),
     ], $attributes))->fresh();
+}
+
+/**
+ * Crea un `ticket_log` con i soli attributi obbligatori dello schema (`ticket_id`,
+ * `event`, `occurred_at`), riusato dai test di `WorkedTimeCalculator`/
+ * `RecalculateWorkedTime` (US-109) per costruire una sequenza di log senza passare
+ * da `ChangeTicketStatus` (che applicherebbe anche i guard della macchina a stati,
+ * non pertinenti a quei test).
+ *
+ * @param  array<string, mixed>  $attributes
+ */
+function ticketLog(Ticket $ticket, array $attributes = []): TicketLog
+{
+    return TicketLog::create(array_merge([
+        'ticket_id' => $ticket->id,
+        'event' => TicketLogEvent::StatusChanged,
+        'occurred_at' => now(),
+    ], $attributes));
 }

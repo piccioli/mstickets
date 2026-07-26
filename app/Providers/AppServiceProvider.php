@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Domain\Ticketing\Events\TicketMessagePosted;
+use App\Domain\Ticketing\Events\TicketStatusChanged;
 use App\Domain\Ticketing\Listeners\RestoreTicketStatusOnRequesterMessage;
+use App\Domain\TimeTracking\Listeners\RecalculateWorkedTimeOnStatusChange;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
@@ -28,5 +30,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Event::listen(TicketMessagePosted::class, RestoreTicketStatusOnRequesterMessage::class);
+        Event::listen(TicketStatusChanged::class, RecalculateWorkedTimeOnStatusChange::class);
     }
 }
