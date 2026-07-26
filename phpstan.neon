@@ -10,3 +10,9 @@ parameters:
     level: 6
 
     tmpDir: storage/framework/phpstan
+
+    # I modelli di questo repo castano gli attributi via il metodo `protected function
+    # casts(): array` (stile Laravel 11+), non la vecchia proprietà `protected $casts`:
+    # senza questo flag Larastan non infererebbe il tipo backed-enum degli attributi
+    # castati (es. Ticket::$status) e li tratterebbe come `string`.
+    parseModelCastsMethod: true
