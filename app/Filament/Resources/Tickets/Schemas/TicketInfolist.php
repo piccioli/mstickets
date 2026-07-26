@@ -6,11 +6,11 @@ namespace App\Filament\Resources\Tickets\Schemas;
 
 use App\Domain\Identity\Enums\Permission;
 use App\Domain\Identity\Models\User;
-use App\Domain\Ticketing\Enums\TicketLogEvent;
 use App\Domain\Ticketing\Models\Ticket;
 use App\Domain\Ticketing\Models\TicketLog;
 use App\Domain\Ticketing\Models\TicketMessage;
 use App\Filament\Resources\Tickets\Support\TicketFieldAccess;
+use App\Filament\Resources\Tickets\Support\TicketLogFormatter;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
@@ -156,7 +156,7 @@ class TicketInfolist
                                 TextEntry::make('event')->label('Evento')->badge(),
                                 TextEntry::make('diff')
                                     ->hiddenLabel()
-                                    ->state(fn (TicketLog $record): string => self::describeLog($record)),
+                                    ->state(fn (TicketLog $record): string => TicketLogFormatter::describe($record)),
                                 TextEntry::make('user.name')->label('Utente')->placeholder('Sistema'),
                                 TextEntry::make('occurred_at')->label('Quando')->dateTime(),
                             ])
@@ -164,42 +164,6 @@ class TicketInfolist
                             ->placeholder('Nessun evento'),
                     ]),
             ]);
-    }
-
-    /**
-     * Un cambio di stato legge sempre `from_status`/`to_status` (già enum castati),
-     * mai il JSON `changes` (AC #9): gli altri eventi leggono da `changes`
-     * (`TicketLogChanges`, US-103) e/o dall'etichetta dell'evento stesso.
-     */
-    private static function describeLog(TicketLog $log): string
-    {
-        if ($log->event === TicketLogEvent::StatusChanged) {
-            $from = $log->from_status?->getLabel() ?? '—';
-            $to = $log->to_status?->getLabel() ?? '—';
-
-            return "{$from} → {$to}";
-        }
-
-        /** @var array<string, mixed> $changes */
-        $changes = $log->changes ?? [];
-
-        return match ($log->event) {
-            TicketLogEvent::Assigned => self::describeAssigneeChange($changes),
-            TicketLogEvent::AttachmentAdded => 'Aggiunto: '.(string) ($changes['attachment']['file_name'] ?? ''),
-            TicketLogEvent::AttachmentRemoved => 'Rimosso: '.(string) ($changes['attachment']['file_name'] ?? ''),
-            default => $log->event->getLabel(),
-        };
-    }
-
-    /**
-     * @param  array<string, mixed>  $changes
-     */
-    private static function describeAssigneeChange(array $changes): string
-    {
-        $from = $changes['assignee_id']['from'] ?? null;
-        $to = $changes['assignee_id']['to'] ?? null;
-
-        return sprintf('Assegnatario: %s → %s', $from ?? '—', $to ?? '—');
     }
 
     private static function attachmentsHtml(TicketMessage $message): string
