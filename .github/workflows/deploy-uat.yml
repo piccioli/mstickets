@@ -47,4 +47,4 @@ jobs:
 
       - name: Deploy su msuat
         run: |
-          ssh -i ~/.ssh/id_deploy -o UserKnownHostsFile=~/.ssh/known_hosts root@135.181.25.33 "echo deploy-triggered"
+          ssh -i ~/.ssh/id_deploy -o UserKnownHostsFile=~/.ssh/known_hosts root@135.181.25.33 "ghcr.io/piccioli/mstickets-uat:${{ github.sha }}"

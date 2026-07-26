@@ -65,7 +65,7 @@ services:
     image: axllent/mailpit:latest
     restart: unless-stopped
     mem_limit: ${MEM_LIMIT_MAILPIT:-128m}
-    command: ["/mailpit", "--max-messages", "500"]
+    command: ["--max", "500"]
     ports:
       - "127.0.0.1:8091:8025"
     networks:
