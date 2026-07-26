@@ -174,7 +174,7 @@ return [
                 ],
                 [
                     'id' => 'F0-27',
-                    'descrizione' => "Lo storico del ticket è visualizzabile solo con il permesso dedicato e non è mai scrivibile manualmente dall'utente",
+                    'descrizione' => 'Lo storico del ticket è visualizzabile solo con il permesso dedicato e non è mai scrivibile manualmente dall\'utente',
                     'test_automatico' => 'tests/Feature/Domain/Ticketing/TicketLogPolicyTest.php',
                 ],
                 [
@@ -244,7 +244,7 @@ return [
                 ],
                 [
                     'id' => 'F0-40',
-                    'descrizione' => "Le tabelle di infrastruttura per l'importazione (esecuzioni e mappature) rispettano lo schema richiesto",
+                    'descrizione' => 'Le tabelle di infrastruttura per l\'importazione (esecuzioni e mappature) rispettano lo schema richiesto',
                     'test_automatico' => 'tests/Feature/Import/ImportRunsTableTest.php',
                 ],
             ],
@@ -254,7 +254,7 @@ return [
             'test' => [
                 [
                     'id' => 'F0-41',
-                    'descrizione' => "Il comando diagnostico segnala con codice di uscita ed elenco leggibile quali controlli passano e quali falliscono, creando l'utente di sistema se assente",
+                    'descrizione' => 'Il comando diagnostico segnala con codice di uscita ed elenco leggibile quali controlli passano e quali falliscono, creando l\'utente di sistema se assente',
                     'test_automatico' => 'tests/Feature/Console/OrchestratorDoctorCommandTest.php',
                 ],
                 [
@@ -269,7 +269,7 @@ return [
                 ],
                 [
                     'id' => 'F0-44',
-                    'descrizione' => "L'utente di sistema viene creato se assente e non consente mai l'accesso al pannello",
+                    'descrizione' => 'L\'utente di sistema viene creato se assente e non consente mai l\'accesso al pannello',
                     'test_automatico' => 'tests/Unit/Support/Doctor/SystemUserCheckTest.php',
                 ],
                 [
@@ -309,13 +309,33 @@ return [
             'test' => [
                 [
                     'id' => 'F0-49',
-                    'descrizione' => "L'analizzatore di chiavi esterne orfane conta correttamente le righe orfane e ignora i valori nulli",
+                    'descrizione' => 'L\'analizzatore di chiavi esterne orfane conta correttamente le righe orfane e ignora i valori nulli',
                     'test_automatico' => 'tests/Unit/Import/Inspect/OrphanForeignKeyAnalyzerTest.php',
                 ],
                 [
                     'id' => 'F0-50',
-                    'descrizione' => "L'analizzatore di email duplicate individua i duplicati che differiscono solo per maiuscole/minuscole",
+                    'descrizione' => 'L\'analizzatore di email duplicate individua i duplicati che differiscono solo per maiuscole/minuscole',
                     'test_automatico' => 'tests/Unit/Import/Inspect/DuplicateEmailAnalyzerTest.php',
+                ],
+                [
+                    'id' => 'F0-51',
+                    'descrizione' => 'L\'analizzatore del changes di story_logs conta i JSON interpretabili e la distribuzione delle chiavi',
+                    'test_automatico' => 'tests/Unit/Import/Inspect/ChangesKeyAnalyzerTest.php',
+                ],
+                [
+                    'id' => 'F0-52',
+                    'descrizione' => 'L\'analizzatore di customer_request separa correttamente un elenco HTML in messaggi distinti',
+                    'test_automatico' => 'tests/Unit/Import/Inspect/CustomerRequestAnalyzerTest.php',
+                ],
+                [
+                    'id' => 'F0-53',
+                    'descrizione' => 'L\'analizzatore dei ruoli utente v1 distingue ruoli in formato JSON, ruoli scalari e valori nulli/sconosciuti',
+                    'test_automatico' => 'tests/Unit/Import/Inspect/RoleValueAnalyzerTest.php',
+                ],
+                [
+                    'id' => 'F0-54',
+                    'descrizione' => 'L\'analizzatore delle incongruenze stato/timestamp trova le righe in uno stato che richiede una data assente',
+                    'test_automatico' => 'tests/Unit/Import/Inspect/StatusTimestampAnalyzerTest.php',
                 ],
             ],
         ],
@@ -396,7 +416,7 @@ return [
                 ],
                 [
                     'id' => 'F1-13',
-                    'descrizione' => "L'assegnazione di un ticket a un utente registra uno storico con l'assegnatario precedente e quello nuovo",
+                    'descrizione' => 'L\'assegnazione di un ticket a un utente registra uno storico con l\'assegnatario precedente e quello nuovo',
                     'test_automatico' => 'tests/Feature/Domain/Ticketing/Actions/AssignTicketTest.php',
                 ],
                 [
@@ -451,7 +471,7 @@ return [
                 ],
                 [
                     'id' => 'F1-21',
-                    'descrizione' => "L'autore di un messaggio viene aggiunto ai partecipanti del ticket, senza duplicati",
+                    'descrizione' => 'L\'autore di un messaggio viene aggiunto ai partecipanti del ticket, senza duplicati',
                     'test_automatico' => 'tests/Feature/Domain/Ticketing/Actions/PostTicketMessageTest.php',
                 ],
                 [
@@ -611,7 +631,7 @@ return [
                 ],
                 [
                     'id' => 'F1-49',
-                    'descrizione' => "L'apertura della pagina di dettaglio di un ticket registra una visualizzazione",
+                    'descrizione' => 'L\'apertura della pagina di dettaglio di un ticket registra una visualizzazione',
                     'test_automatico' => 'tests/Feature/Filament/Ticketing/TicketResourceTest.php',
                 ],
             ],
@@ -756,7 +776,7 @@ return [
                 ],
                 [
                     'id' => 'F1-74',
-                    'descrizione' => "Una transizione vietata tentata direttamente contro l'azione di cambio stato (bypassando la UI) viene rifiutata e non scrive nulla",
+                    'descrizione' => 'Una transizione vietata tentata direttamente contro l\'azione di cambio stato (bypassando la UI) viene rifiutata e non scrive nulla',
                     'test_automatico' => 'tests/Feature/Domain/Ticketing/TicketLifecycleEndToEndTest.php',
                 ],
             ],
