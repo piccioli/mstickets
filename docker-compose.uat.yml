@@ -13,6 +13,17 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      # L'immagine base FrankenPHP ha un HEALTHCHECK ereditato che interroga
+      # l'admin API di Caddy su :2019 (curl http://localhost:2019/metrics),
+      # mai esposta da "frankenphp php-server" (admin endpoint disabilitato
+      # di proposito): risultava sempre "unhealthy" a torto. Sovrascritto
+      # per controllare la porta HTTP realmente servita.
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/admin/login || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     networks:
       - ticket-uat
 
@@ -27,6 +38,11 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      # Stesso HEALTHCHECK ereditato di "app" (nessuna porta HTTP qui):
+      # disabilitato esplicitamente, la liveness dei due processi e' gia'
+      # garantita da restart_loop in worker-entrypoint.sh.
+      disable: true
     networks:
       - ticket-uat
 
