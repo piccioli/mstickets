@@ -5,7 +5,12 @@
         <div class="mkt-auth__panel-content">
             <img src="{{ asset('images/branding/montagna-servizi-logo-white.png') }}" alt="Montagna Servizi" class="mkt-logo">
 
-            <div>
+            <div class="mkt-auth__panel-mobile-only">
+                <div class="mkt-auth__eyebrow">Piattaforma Servizi CAI</div>
+                <div class="mkt-auth__mobile-title">Bentornato</div>
+            </div>
+
+            <div class="mkt-auth__panel-desktop-only">
                 <div class="mkt-auth__eyebrow">Piattaforma Servizi CAI</div>
                 <h1 class="mkt-auth__title">Concentrati su ciò che conta: la montagna e la comunità.</h1>
                 <p class="mkt-auth__lead">
@@ -20,7 +25,7 @@
                     ] as $benefit)
                         <div class="mkt-auth__benefit">
                             <span class="mkt-auth__benefit-icon">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                             </span>
                             <span>{{ $benefit }}</span>
                         </div>
@@ -28,7 +33,7 @@
                 </div>
             </div>
 
-            <div class="mkt-auth__tagline">Affidabilità · Competenza · Prossimità</div>
+            <div class="mkt-auth__tagline mkt-auth__panel-desktop-only">Affidabilità · Competenza · Prossimità</div>
         </div>
     </div>
 

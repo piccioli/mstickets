@@ -320,48 +320,98 @@
 
 /* ---------------------------------------------------------------------- */
 /* Login / recupero password — layout split                               */
+/* Fedeltà al mockup: su mobile il pannello fotografico NON scompare, resta */
+/* un banner compatto in alto (240px login / 190px recupero) con logo +    */
+/* titolo breve; il contenuto lungo (headline/vantaggi/tagline) è solo     */
+/* desktop. Le due varianti di contenuto convivono nel markup, alternate   */
+/* via .mkt-auth__panel-desktop-only / .mkt-auth__panel-mobile-only.       */
 /* ---------------------------------------------------------------------- */
 .mkt-auth {
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   background: var(--stone-100);
   width: 100%;
   overflow-x: hidden;
 }
+@media (min-width: 900px) {
+  .mkt-auth { flex-direction: row; }
+}
+
 .mkt-auth__panel {
-  flex: 1.05;
   position: relative;
   overflow: hidden;
-  display: none;
+  flex-shrink: 0;
+  height: 240px;
 }
+.mkt-auth__panel--compact { height: 190px; }
+@media (min-width: 900px) {
+  .mkt-auth__panel { height: auto; flex: 1.05; }
+  .mkt-auth__panel--compact { height: auto; }
+}
+
 .mkt-auth__panel img {
   position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
 }
 .mkt-auth__panel-overlay {
   position: absolute; inset: 0;
-  background: linear-gradient(155deg, rgba(15, 51, 43, .88) 0%, rgba(18, 63, 53, .78) 45%, rgba(29, 87, 75, .42) 100%);
+  background: linear-gradient(180deg, rgba(15, 51, 43, .84) 0%, rgba(18, 63, 53, .68) 62%, rgba(255, 255, 255, 0) 100%);
 }
+@media (min-width: 900px) {
+  .mkt-auth__panel-overlay {
+    background: linear-gradient(155deg, rgba(15, 51, 43, .88) 0%, rgba(18, 63, 53, .78) 45%, rgba(29, 87, 75, .42) 100%);
+  }
+}
+
 .mkt-auth__panel-content {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  height: 100%;
-  padding: 3.5rem 4rem;
-  box-sizing: border-box;
+  padding: 44px 28px 0;
 }
-.mkt-auth__panel-content img.mkt-logo { height: 56px; width: auto; align-self: flex-start; }
+@media (min-width: 900px) {
+  .mkt-auth__panel-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    padding: 56px 64px;
+    box-sizing: border-box;
+  }
+}
+
+.mkt-auth__panel-content img.mkt-logo { height: 44px; width: auto; margin-bottom: 26px; display: block; }
+.mkt-auth__panel--compact img.mkt-logo { height: 40px; }
+@media (min-width: 900px) {
+  .mkt-auth__panel-content img.mkt-logo { height: 62px; margin-bottom: 0; align-self: flex-start; }
+}
+
+.mkt-auth__panel-mobile-only { display: block; }
+.mkt-auth__panel-desktop-only { display: none; }
+@media (min-width: 900px) {
+  .mkt-auth__panel-mobile-only { display: none; }
+  .mkt-auth__panel-desktop-only { display: block; }
+}
+
+.mkt-auth__mobile-title {
+  font-size: 26px; font-weight: var(--fw-extrabold); letter-spacing: var(--tracking-tight);
+  line-height: 1.2; color: var(--text-inverse);
+}
+.mkt-auth__panel--compact .mkt-auth__mobile-title { font-size: 24px; }
+
 .mkt-auth__eyebrow {
-  font-size: var(--text-sm); font-weight: var(--fw-extrabold); letter-spacing: var(--tracking-eyebrow);
-  color: var(--green-200); margin-bottom: 1.1rem;
+  font-size: var(--text-xs); font-weight: var(--fw-extrabold); letter-spacing: var(--tracking-eyebrow);
+  color: var(--green-200); margin-bottom: 10px;
 }
+@media (min-width: 900px) {
+  .mkt-auth__eyebrow { font-size: var(--text-sm); margin-bottom: 18px; }
+}
+
 .mkt-auth__title {
-  margin: 0 0 1.25rem; font-size: 2.6rem; font-weight: var(--fw-extrabold);
-  letter-spacing: var(--tracking-tight); line-height: 1.1; color: var(--text-inverse); max-width: 26rem;
+  margin: 0 0 20px; font-size: 52px; font-weight: var(--fw-extrabold);
+  letter-spacing: var(--tracking-tight); line-height: 1.1; color: var(--text-inverse); max-width: 520px;
 }
-.mkt-auth__lead { margin: 0 0 2rem; font-size: var(--text-md); line-height: 1.6; color: var(--green-100); max-width: 28rem; }
-.mkt-auth__benefits { display: flex; flex-direction: column; gap: 1rem; }
-.mkt-auth__benefit { display: flex; align-items: center; gap: 0.85rem; font-size: var(--text-base); color: var(--green-50); }
+.mkt-auth__lead { margin: 0 0 40px; font-size: var(--text-md); line-height: 1.6; color: var(--green-100); max-width: 490px; }
+.mkt-auth__benefits { display: flex; flex-direction: column; gap: 16px; }
+.mkt-auth__benefit { display: flex; align-items: center; gap: 14px; font-size: var(--text-base); color: var(--green-50); }
 .mkt-auth__benefit-icon {
   width: 28px; height: 28px; border-radius: var(--radius-pill); background: rgba(255, 255, 255, .14);
   display: inline-flex; align-items: center; justify-content: center; flex: 0 0 28px;
@@ -374,33 +424,59 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 2.5rem 1.75rem;
+  padding: 26px 28px 30px;
   box-sizing: border-box;
-  max-width: 34rem;
+  /* Il mockup non pone alcun tetto (la colonna form è "1fr" di una griglia
+     1.05fr/1fr a 1440px totali, ≈700px): 48rem è solo un limite di
+     leggibilità per monitor molto ultra-wide, abbastanza largo da non
+     forzare mai a capo la riga checkbox/link a risoluzioni desktop reali
+     (34rem/544px lo faceva). */
+  max-width: 48rem;
   margin: 0 auto;
   width: 100%;
 }
+@media (min-width: 900px) {
+  .mkt-auth__form { padding: 0 92px; }
+}
 .mkt-auth__form-eyebrow {
   font-size: var(--text-sm); font-weight: var(--fw-extrabold); letter-spacing: var(--tracking-eyebrow);
-  color: var(--text-brand); margin-bottom: 0.9rem;
+  color: var(--text-brand); margin-bottom: 14px;
 }
-.mkt-auth__form-title { margin: 0 0 0.6rem; font-size: 2rem; font-weight: var(--fw-extrabold); letter-spacing: var(--tracking-tight); }
-.mkt-auth__form-lead { margin: 0 0 1.75rem; font-size: var(--text-base); line-height: 1.6; color: var(--text-body); }
+.mkt-auth__form-title { margin: 0 0 10px; font-size: 38px; font-weight: var(--fw-extrabold); letter-spacing: var(--tracking-tight); line-height: 1.15; }
+.mkt-auth__form-lead { margin: 0 0 34px; font-size: var(--text-base); line-height: 1.6; color: var(--text-body); }
 
-.mkt-auth__row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin: 0.9rem 0 1.4rem; flex-wrap: wrap; }
-.mkt-auth__remember { display: flex; align-items: center; gap: 0.6rem; font-size: var(--text-base); color: var(--text-strong); cursor: pointer; }
+.mkt-auth__row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin: 0 0 28px; flex-wrap: wrap; }
+.mkt-auth__remember { display: flex; align-items: center; gap: 10px; font-size: var(--text-base); color: var(--text-strong); cursor: pointer; }
 .mkt-auth__remember input { width: 17px; height: 17px; accent-color: var(--green-600); cursor: pointer; }
 
-.mkt-auth__footer-note { margin-top: 1.75rem; font-size: var(--text-base); color: var(--text-body); line-height: 1.6; }
+.mkt-auth__footer-note { margin-top: 34px; font-size: var(--text-base); color: var(--text-body); line-height: 1.6; }
 .mkt-auth__footer-note a { font-weight: var(--fw-bold); color: var(--text-brand); }
 
 .mkt-auth__step-icon {
   width: 60px; height: 60px; border-radius: var(--radius-pill); background: var(--green-50);
-  border: 2px solid var(--green-200); display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem;
+  border: 2px solid var(--green-200); display: flex; align-items: center; justify-content: center; margin-bottom: 24px;
 }
 .mkt-auth__info-box {
   background: var(--surface-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-card);
-  padding: 1.5rem 1.75rem; font-size: var(--text-base); line-height: 1.9; color: var(--text-body); margin-bottom: 1.9rem;
+  padding: 24px 28px; font-size: var(--text-base); line-height: 1.9; color: var(--text-body); margin-bottom: 30px;
+}
+
+/* Indicatore di step del recupero password (1 · Richiesta — 2 · Email inviata — 3 · Nuova
+   password): "on" = step corrente (verde pieno), "done" = step superato (spunta, contorno
+   verde chiaro), stato neutro = non ancora raggiunto (grigio stone). */
+.mkt-auth__steps { display: flex; align-items: center; gap: 10px; margin-bottom: 32px; }
+.mkt-auth__step-dot {
+  width: 26px; height: 26px; border-radius: var(--radius-pill); display: inline-flex; align-items: center;
+  justify-content: center; font-size: var(--text-xs); font-weight: var(--fw-extrabold); flex-shrink: 0;
+  background: var(--stone-200); color: var(--text-muted);
+}
+.mkt-auth__step-dot--on { background: var(--green-600); color: #fff; }
+.mkt-auth__step-dot--done { background: var(--green-50); color: var(--text-brand); border: 1px solid var(--green-200); }
+.mkt-auth__step-label { font-size: var(--text-sm); font-weight: var(--fw-bold); color: var(--text-muted); }
+.mkt-auth__step-label--active { color: var(--text-brand); }
+.mkt-auth__step-sep { width: 22px; border-top: 2px solid var(--border-subtle); }
+@media (max-width: 560px) {
+  .mkt-auth__step-label { display: none; }
 }
 
 .mkt-strength { display: flex; align-items: center; gap: 0.75rem; margin: 0.75rem 0 1.25rem; }
@@ -421,7 +497,3 @@
 .mkt-rules__dot--ok { background: var(--green-50); color: var(--text-brand); border-color: var(--green-200); }
 .mkt-rules__text--ok { color: var(--text-strong); }
 .mkt-rules__text { color: var(--text-muted); }
-
-@media (min-width: 900px) {
-  .mkt-auth__panel { display: block; }
-}
