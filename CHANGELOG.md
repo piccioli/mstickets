@@ -5,6 +5,49 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 Il formato è basato su [Keep a Changelog](https://keepachangelog.com/it/1.1.0/),
 e il progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.2.0] - 2026-07-26
+
+**Fase 1 — Ticketing core** (PRD-ORCHESTRATOR-V2.md, §14) e prima infrastruttura di **CD/CI verso UAT**.
+
+### Aggiunto
+
+- Macchina a stati dichiarativa del ticket (`TicketStateMachine`), con attori/guard/effetti tabellari
+  (§6.1.3) — nessun `if` sparso per le transizioni di stato.
+- Regole di validazione di dominio come `ValidationRule` esplicite (A3), non eccezioni generiche.
+- Action di dominio (`CreateTicket`, `ChangeTicketStatus`, `AssignTicket`, ...) con eventi, `ticket_logs`
+  e demozione automatica al singolo ticket "in lavorazione" per assegnatario (§6.1.4).
+- Propagazione esplicita dello stato ai ticket figli (`ApplyStatusToChildren`, decisione Q5).
+- Regole di record-ownership nella `TicketPolicy` (livello 2, §9.5): viste per ruolo/rapporto col ticket.
+- Conversazione del ticket (`ticket_messages`), sanitizzazione HTML, regola T7 di riapertura automatica.
+- Allegati sui messaggi con disco privato dedicato, sanitizzazione SVG, download autorizzato (§9.6/§17.2).
+- Tracciamento visualizzazioni (`ticket_views`) e calcolo ore lavorate (`WorkedTimeCalculator`, §6.2.2,
+  decisione Q15).
+- `TicketResource` Filament completo: campi, viste come query object, filtri, azioni di transizione
+  dinamiche, vista di lavoro essenziale (`WorkBoard`) e landing per ruolo.
+- Verifica end-to-end di Fase 1 (US-114): ciclo di vita completo del ticket con Action reali in sequenza.
+- Processo di collaudo obbligatorio per ogni fase futura: manifest di tracciabilità
+  (`docs/collaudo/fase-*.php`) verificato automaticamente in CI, comando `collaudo:generate`, manuale
+  operativo dettagliato in stile ISO/IEC/IEEE 29119 per Fase 0 e Fase 1 (130 casi di test).
+- Ambiente UAT pubblico su infrastruttura condivisa (msuat): `https://ticket-uat.montagnaservizi.com`
+  (app, FrankenPHP) e `https://mailpit-ticket-uat.montagnaservizi.com` (Mailpit, Basic Auth), con
+  certificati Let's Encrypt reali, `UatSeeder` dedicato eseguito ad ogni deploy.
+- Pipeline CD (`deploy-uat.yml`): build+push immagine su GHCR e deploy via chiave SSH dedicata con
+  `command=` forzato, attivata automaticamente al push su `develop`.
+
+### Corretto
+
+- CI: build degli asset front-end mancante prima di Pest (`ViteManifestNotFoundException` su ogni test
+  che renderizza una vera pagina Filament).
+- Health check ereditato dall'immagine base FrankenPHP che controllava una porta amministrativa mai
+  esposta, causando un falso stato "unhealthy" in produzione UAT.
+
+### Verificato
+
+- Primo deploy end-to-end reale su UAT tramite la pipeline CD: build, push, deploy via SSH, migrazione e
+  seed, entrambi gli endpoint pubblici raggiungibili con certificato valido.
+
+[0.2.0]: https://github.com/piccioli/mstickets/releases/tag/v0.2.0
+
 ## [0.1.0] - 2026-07-26
 
 Prima release: **Fase 0 — Fondazioni** della riscrittura di Orchestrator (PRD-ORCHESTRATOR-V2.md, §14).
