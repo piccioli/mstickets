@@ -362,7 +362,7 @@
   .mkt-auth__panel--compact { height: auto; }
 }
 
-.mkt-auth__panel img {
+.mkt-auth__panel > img {
   position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
 }
 .mkt-auth__panel-overlay {
@@ -393,7 +393,7 @@
 .mkt-auth__panel-content img.mkt-logo { height: 44px; width: auto; margin-bottom: 26px; display: block; }
 .mkt-auth__panel--compact img.mkt-logo { height: 40px; }
 @media (min-width: 900px) {
-  .mkt-auth__panel-content img.mkt-logo { height: 62px; margin-bottom: 0; align-self: flex-start; }
+  .mkt-auth__panel-content img.mkt-logo { height: 62px; margin-bottom: 48px; align-self: flex-start; }
 }
 
 .mkt-auth__panel-mobile-only { display: block; }
