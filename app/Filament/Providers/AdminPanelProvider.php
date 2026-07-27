@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Filament\Providers;
 
+use App\Filament\Auth\Pages\Login;
+use App\Filament\Auth\Pages\RequestPasswordReset;
+use App\Filament\Auth\Pages\ResetPassword;
 use App\Filament\Pages\Dashboard;
 use App\Filament\Pages\WorkBoard;
 use App\Support\DesignTokens;
@@ -30,7 +33,8 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->login()
+            ->login(Login::class)
+            ->passwordReset(RequestPasswordReset::class, ResetPassword::class)
             ->brandName('Montagna Servizi')
             ->brandLogo(asset('images/branding/montagna-servizi-logo.png'))
             ->darkModeBrandLogo(asset('images/branding/montagna-servizi-logo-white.png'))
