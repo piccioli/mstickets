@@ -5,6 +5,32 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 Il formato è basato su [Keep a Changelog](https://keepachangelog.com/it/1.1.0/),
 e il progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.3.0] - 2026-07-27
+
+**Landing page, login e recupero password** con l'identità visiva pubblica "Montagna Servizi"
+(verde pino/Manrope), distinta dal tema del pannello (teal/Nunito Sans, invariato).
+
+### Aggiunto
+
+- Landing page pubblica su `/`: identità visiva Montagna Servizi, una sola call to action verso il
+  login del pannello; un utente già autenticato viene rimandato direttamente alla dashboard.
+- Pagina di login del pannello (`/admin/login`) con il design fornito dal committente (layout split
+  desktop/mobile, foto/gradiente, vantaggi), autenticazione nativa Filament invariata (rate
+  limiting, remember-me, eventi).
+- Flusso reale di recupero password (richiesta → email via Mailpit → nuova password), con le stesse
+  regole reali (min 8 caratteri, maiuscola, numero) riflesse nell'indicatore di forza visivo.
+- `lang/it.json`: traduzioni italiane delle stringhe core di Laravel usate dalla notifica di reset
+  password (assenti di default nel framework).
+- Sezione di collaudo Fase 1A (`docs/collaudo/04-fase-1a.md`, manifest dedicato
+  `fase-1a.php`): 16 nuovi casi di test, stessa struttura rigorosa di Fase 0/Fase 1. Documento
+  PDF completo aggiornato (146 test totali, 27 argomenti).
+
+### Corretto
+
+- `APP_LOCALE` non era mai stato impostato esplicitamente (default Laravel `en`): messaggi di
+  errore nativi e email di sistema risultavano in inglese nonostante il progetto sia interamente in
+  italiano.
+
 ## [0.2.0] - 2026-07-26
 
 **Fase 1 — Ticketing core** (PRD-ORCHESTRATOR-V2.md, §14) e prima infrastruttura di **CD/CI verso UAT**.
@@ -46,6 +72,7 @@ e il progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 - Primo deploy end-to-end reale su UAT tramite la pipeline CD: build, push, deploy via SSH, migrazione e
   seed, entrambi gli endpoint pubblici raggiungibili con certificato valido.
 
+[0.3.0]: https://github.com/piccioli/mstickets/releases/tag/v0.3.0
 [0.2.0]: https://github.com/piccioli/mstickets/releases/tag/v0.2.0
 
 ## [0.1.0] - 2026-07-26
