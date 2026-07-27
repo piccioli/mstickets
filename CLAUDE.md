@@ -267,6 +267,28 @@ Lo sviluppo di scaffold è stato verificato con PHP 8.5 locale (compatibile con 
 - **Un log identificato solo da `to_status` non è univoco quando lo stesso stato di destinazione viene raggiunto più volte nello stesso test** (es. `to_status = todo` sia dalla transizione ordinaria `assigned → todo` sia da una demozione `progress → todo` successiva): filtrare sempre anche su `from_status` prima di uno `->sole()`, mai un `->latest(...)->sole()` (`sole()` conta l'intero risultato della query, l'ordinamento non lo riduce a una riga).
 - **Due livelli di difesa distinti contro una transizione/contesto manipolato, da testare separatamente**: (1) Filament risolve `$data` di un'action dallo **stato dello schema dichiarato**, non dall'array grezzo — un campo iniettato via `setActionData()` ma assente dallo schema (es. `assignee_id` quando l'attore si auto-assegna, US-110) viene ignorato, non genera un errore; (2) `TicketStateMachine::authorize()`/i guard degli attori (es. `AutoAssigningDeveloper::authorize()`, US-101) restano comunque la difesa "vera", verificabile chiamando `ChangeTicketStatus::run()` direttamente con un `context` impersonato, indipendentemente da qualunque comportamento di Filament. Un test che assume che (1) da solo basti a dimostrare la sicurezza è un test debole: verificare sempre anche (2).
 
+## Pixel-perfect login/recupero password (ciclo `ralph/login-design-pixel-fixes`, US-004+)
+
+- **Verifica visiva reale disponibile, non solo `curl`**: su questa macchina è installato `Google Chrome.app`
+  e la sua modalità headless CLI funziona per uno screenshot vero (non serve un tool MCP dedicato):
+  `"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --disable-gpu --no-sandbox --screenshot=/tmp/xyz.png --window-size=1440,1024 "http://127.0.0.1:PORT/percorso"`,
+  poi ispezionare il PNG con lo strumento Read. Usare questo (con `php artisan serve` +
+  `SESSION_DRIVER=array CACHE_STORE=array QUEUE_CONNECTION=sync`, vedi nota US-002 in progress.txt) invece
+  di fermarsi a "nessuno strumento di screenshot/browser disponibile in questa sessione" — quella nota nelle
+  story precedenti (US-001/002/003) non è più vera, verificarlo di nuovo prima di scrivere la stessa
+  limitazione in una story futura.
+- **Pipeline font Manrope (US-004) verificata end-to-end e risultata già corretta, nessun bug reale
+  trovato**: `vite.config.js` dichiara `bunny('Manrope', {weights:[400,500,600,700,800]})`,
+  `public/build/fonts-manifest.json`/`fonts-manifest.dev.json` contengono i relativi `@font-face` +
+  preload, `@fonts('manrope')` in `filament/auth/layout.blade.php` li inietta correttamente nell'head, e
+  ogni selettore CSS che ne ha bisogno dichiara `font-family: var(--mkt-font-sans)` esplicitamente —
+  incluso `.mkt-field input` con `!important` perché gli elementi form nativi (`input`/`button`/`select`)
+  NON ereditano il font dagli antenati per default nello user-agent stylesheet del browser: se una story
+  futura introduce un nuovo elemento di form/bottone che deve usare Manrope, replicare questo pattern
+  (dichiarazione esplicita, `!important` solo se realmente necessario dopo aver verificato in DevTools che
+  serve). Regression guard: `tests/Feature/Http/AuthFontLoadingTest.php` (asserzioni HTTP sul markup
+  `@font-face`/preload della pagina di login, stesso pattern di `MarketingAssetsSeparationTest.php`).
+
 ## Processo di collaudo (obbligatorio per ogni fase)
 
 Ogni fase completata (Fase 2 in poi) deve produrre, prima di essere considerata chiusa:
