@@ -288,6 +288,18 @@ Lo sviluppo di scaffold è stato verificato con PHP 8.5 locale (compatibile con 
   (dichiarazione esplicita, `!important` solo se realmente necessario dopo aver verificato in DevTools che
   serve). Regression guard: `tests/Feature/Http/AuthFontLoadingTest.php` (asserzioni HTTP sul markup
   `@font-face`/preload della pagina di login, stesso pattern di `MarketingAssetsSeparationTest.php`).
+- **Gotcha selettore discendente vs figlio diretto in `components/auth/panel.blade.php` (US-005)**:
+  `.mkt-auth__panel img` (pensato solo per la foto di sfondo full-bleed, figlio diretto di
+  `.mkt-auth__panel`) intercettava per errore anche `img.mkt-logo`, annidato più a fondo dentro
+  `.mkt-auth__panel-content`, applicandogli `position: absolute; inset: 0` e togliendolo dal flusso —
+  qualunque `margin`/spaziatura sul logo diventava ininfluente, indipendentemente dal valore. Fix:
+  combinatore di figlio diretto (`.mkt-auth__panel > img`). Se una story futura tocca questo
+  componente e un elemento non risponde a `margin`/spacing nonostante il CSS compilato sia corretto
+  (verificato via grep), controllare prima se ha ereditato `position: absolute/fixed` da un selettore
+  discendente troppo generico scritto per un altro elemento — non solo il valore della proprietà.
+  Tecnica di diagnosi utile: riprodurre in un file HTML statico isolato (fuori da Laravel/Livewire)
+  con la stessa CSS compilata, per escludere interferenze di Alpine/Livewire. Regression guard:
+  `tests/Unit/AuthHeroLogoSpacingTest.php`.
 
 ## Processo di collaudo (obbligatorio per ogni fase)
 
