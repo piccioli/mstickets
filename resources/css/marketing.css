@@ -209,7 +209,7 @@
   color: var(--text-strong);
 }
 .mkt-field .fi-input-wrp {
-  border-radius: var(--radius-sm) !important;
+  border-radius: var(--radius-md) !important;
   border: 1.5px solid var(--border-default) !important;
   box-shadow: none !important;
 }
