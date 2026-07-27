@@ -300,6 +300,15 @@ Lo sviluppo di scaffold è stato verificato con PHP 8.5 locale (compatibile con 
   Tecnica di diagnosi utile: riprodurre in un file HTML statico isolato (fuori da Laravel/Livewire)
   con la stessa CSS compilata, per escludere interferenze di Alpine/Livewire. Regression guard:
   `tests/Unit/AuthHeroLogoSpacingTest.php`.
+- **Misurare un dettaglio geometrico del mockup quando "a occhio" non basta a scegliere tra due token
+  vicini (US-006)**: per confrontare un border-radius/spacing del mockup PNG
+  (`docs/features/login-design-pixel-fixes/reference-design.png`) con l'implementazione, uno script
+  Python veloce con PIL+numpy è più affidabile della sola ispezione visiva: crop della zona
+  d'interesse, mask su un range di grigio per isolare il bordo dell'elemento, poi ricerca della riga/
+  colonna in cui la coordinata minima si stabilizza per stimare il raggio dell'arco dell'angolo. Non
+  serve conoscere lo scale factor esatto dello screenshot (Figma/design tool esportano a risoluzioni
+  arbitrarie): basta la proporzione relativa fra il raggio misurato e le dimensioni dell'elemento
+  (es. altezza dell'input) per capire quale token CSS esistente è il più vicino.
 
 ## Processo di collaudo (obbligatorio per ogni fase)
 
