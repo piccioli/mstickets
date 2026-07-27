@@ -54,6 +54,9 @@ jobs:
       - name: Verifica manifest di collaudo
         run: php artisan collaudo:verify-manifest 0-1
 
+      - name: Verifica manifest di collaudo (Fase 1A)
+        run: php artisan collaudo:verify-manifest 1a
+
       # Quando la Fase 2 introduce i comandi v1:import/v1:validate, aggiungere qui
       # uno step dedicato "ETL validate" (php artisan v1:validate) che gira dopo
       # Pest e prima del build Docker. Non esiste ancora in questa fase (Fase 0).

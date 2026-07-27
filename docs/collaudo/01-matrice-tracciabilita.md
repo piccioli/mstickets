@@ -2,29 +2,30 @@
 
 > Torna a [`README.md`](README.md) · Istruzioni generali: [`00-istruzioni-generali.md`](00-istruzioni-generali.md)
 
-Riepilogo dei 130 casi di test (56 di Fase 0, 74 di Fase 1). Ogni riga rimanda al caso di test dettagliato in
-[`02-fase-0.md`](02-fase-0.md) o [`03-fase-1.md`](03-fase-1.md) (cercare l'ID con Ctrl+F: ogni test è un titolo
-`### [ID] — ...` in quei file).
+Riepilogo dei 146 casi di test (56 di Fase 0, 74 di Fase 1, 16 di Fase 1A). Ogni riga rimanda al caso di test
+dettagliato in [`02-fase-0.md`](02-fase-0.md), [`03-fase-1.md`](03-fase-1.md) o [`04-fase-1a.md`](04-fase-1a.md)
+(cercare l'ID con Ctrl+F: ogni test è un titolo `### [ID] — ...` in quei file).
 
 ## Riepilogo per modalità di esecuzione
 
 | Modalità | Numero di test |
 |---|---|
 | AUTOMATICO | 22 |
-| MANUALE UI | 35 |
-| MISTO | 43 |
-| TECNICO CLI | 17 |
+| MANUALE UI | 42 |
+| MANUALE UI + MAILPIT | 2 |
+| MISTO | 47 |
+| TECNICO CLI | 20 |
 | TECNICO DATABASE | 13 |
-| **Totale** | **130** |
+| **Totale** | **146** |
 
 ## Riepilogo per stato di redazione
 
 | Stato | Numero di test |
 |---|---|
-| COMPLETO | 118 |
+| COMPLETO | 134 |
 | DA VERIFICARE CON IL PRODUCT OWNER | 11 |
 | NON RIPRODUCIBILE IN UAT | 1 |
-| **Totale** | **130** |
+| **Totale** | **146** |
 
 ## Tabella completa
 
@@ -160,3 +161,19 @@ Riepilogo dei 130 casi di test (56 di Fase 0, 74 di Fase 1). Ogni riga rimanda a
 | F1-72 | Verifica end-to-end di Fase 1 | Le ore lavorate calcolate end-to-end su un intero ciclo di vita del ticket sono coerenti con i cambi di stato reali | MISTO | Critica | Admin (creazione/assegnazione) + Developer (lavorazione) + Manager (collaudo interno, come tester) | `tests/Feature/Domain/Ticketing/TicketLifecycleEndToEndTest.php::the main path takes a ticket from new to done through every state with coherent worked minutes` (con tempo simulato: asserisce 8 log totali di cui 7 `status_changed`, `worked_minutes` = 120 su un unico `ticket_work_log`). | COMPLETO |
 | F1-73 | Verifica end-to-end di Fase 1 | Manomettere il contesto di una transizione con auto-assegnazione non permette di assegnare il ticket a un altro utente | MISTO | Critica | Developer (per il percorso UI onesto) + Amministratore di sistema (per il tentativo tecnico di bypass) | `tests/Feature/Domain/Ticketing/TicketLifecycleEndToEndTest.php::the state machine rejects an impersonated self-assignment context regardless of how it reaches ChangeTicketStatus` (livello B); test correlato nello stesso file, `tampering with the hidden assignee_id of a self-assigning transition action still self-assigns, never the injected user` (livello A, verifica che il campo non esista nello schema del modale). | COMPLETO |
 | F1-74 | Verifica end-to-end di Fase 1 | Una transizione vietata tentata direttamente contro l'azione di cambio stato viene rifiutata e non scrive nulla | MISTO | Critica | Admin (per il percorso UI onesto) + Amministratore di sistema (per il tentativo tecnico) | `tests/Feature/Domain/Ticketing/TicketLifecycleEndToEndTest.php::a forbidden transition attempted directly against the ChangeTicketStatus action is rejected and writes nothing`. | COMPLETO |
+| F1A-01 | Landing pubblica | La landing "/" è raggiungibile da un visitatore anonimo con una sola CTA | MANUALE UI | Alta | Anonimo | `tests/Feature/Http/LandingControllerTest.php` — `un visitatore anonimo vede la landing pubblica`. | COMPLETO |
+| F1A-02 | Landing pubblica | Un utente con sessione attiva che visita "/" viene rimandato alla dashboard | MANUALE UI | Alta | Developer | `tests/Feature/Http/LandingControllerTest.php` — `un utente con sessione attiva viene rimandato alla dashboard del pannello`. | COMPLETO |
+| F1A-03 | Login | Aspetto della pagina di login conforme al design Montagna Servizi | MANUALE UI | Alta | Anonimo | `tests/Feature/Filament/Auth/LoginTest.php` — `la pagina di login renderizza il layout custom` (e `tests/Feature/Http/MarketingAssetsSeparationTest.php::il login carica il css marketing, non il tema teal del pannello`). | COMPLETO |
+| F1A-04 | Login | Credenziali corrette autenticano e portano alla dashboard | MANUALE UI | Critica | Developer | `tests/Feature/Filament/Auth/LoginTest.php` — `credenziali corrette autenticano e reindirizzano alla dashboard`. | COMPLETO |
+| F1A-05 | Login | Credenziali errate mostrano un messaggio di errore e non autenticano | MANUALE UI | Alta | Anonimo | `tests/Feature/Filament/Auth/LoginTest.php` — `credenziali errate mostrano un errore e non autenticano`. | COMPLETO |
+| F1A-06 | Login | Il toggle "Mostra/Nascondi password" funziona | MANUALE UI | Media | Anonimo | `tests/Feature/Filament/Auth/LoginTest.php` — `la vista contiene il toggle Alpine per mostrare/nascondere la password (nessuna reimplementazione JS del campo)`. | COMPLETO |
+| F1A-07 | Login | "Salva per le prossime sessioni" mantiene l'accesso dopo la chiusura del browser | MISTO | Media | Developer | `tests/Feature/Filament/Auth/LoginTest.php` — `"salva per le prossime sessioni" valorizza il remember token e mantiene la sessione`. | COMPLETO |
+| F1A-08 | Login | Dopo 5 tentativi di login falliti, il sesto viene bloccato temporaneamente | TECNICO CLI | Bassa | Tecnico | `tests/Feature/Filament/Auth/LoginTest.php` — `il sesto tentativo di login consecutivo viene bloccato dal rate limiting nativo`. | COMPLETO |
+| F1A-09 | Recupero password | Richiesta di reset con un'email registrata invia il link ed è visibile su Mailpit | MANUALE UI + MAILPIT | Critica | Anonimo | `tests/Feature/Filament/Auth/PasswordResetTest.php` — `richiedere il reset con una email registrata invia la notifica e mostra il pannello "controlla la casella"`. | COMPLETO |
+| F1A-10 | Recupero password | Richiesta di reset con un'email inesistente non rivela l'assenza dell'utente | MANUALE UI + MAILPIT | Alta | Anonimo | `tests/Feature/Filament/Auth/PasswordResetTest.php` — `richiedere il reset con una email inesistente non invia notifiche ma non rivela l'assenza dell'utente`. | COMPLETO |
+| F1A-11 | Recupero password | "Invia di nuovo" immediato è bloccato dal throttling nativo (60 secondi) | MISTO | Media | Anonimo | `tests/Feature/Filament/Auth/PasswordResetTest.php` — `"invia di nuovo" immediato è bloccato dal throttling nativo del broker password (60s)` (e `"invia di nuovo" dopo il throttle del broker invia davvero un secondo link`). | COMPLETO |
+| F1A-12 | Recupero password | Impostare una nuova password con un token valido, rispettando le regole reali | MISTO | Critica | Anonimo | `tests/Feature/Filament/Auth/PasswordResetTest.php` — `un token valido permette di impostare una nuova password rispettando le regole reali`. | COMPLETO |
+| F1A-13 | Recupero password | Una password che non rispetta le regole reali viene rifiutata | MANUALE UI | Alta | Anonimo | `tests/Feature/Filament/Auth/PasswordResetTest.php` — `una password che non rispetta le regole reali (min 8, maiuscola, numero) viene rifiutata`. | COMPLETO |
+| F1A-14 | Recupero password | Un link di reset già usato o inesistente viene rifiutato | MISTO | Alta | Anonimo | `tests/Feature/Filament/Auth/PasswordResetTest.php` — `un token inesistente o già consumato viene rifiutato con una notifica nativa, nessun reset silenzioso`. | COMPLETO |
+| F1A-15 | Recupero password | Un link di reset scaduto (oltre 60 minuti) viene rifiutato | TECNICO CLI | Bassa | Tecnico | `tests/Feature/Filament/Auth/PasswordResetTest.php` — `un token scaduto oltre i 60 minuti configurati viene rifiutato`. | COMPLETO |
+| F1A-16 | Identità visiva e separazione dai temi | Le pagine pubbliche usano il design system "marketing", il pannello interno resta sul tema teal | TECNICO CLI | Media | Tecnico | `tests/Feature/Http/MarketingAssetsSeparationTest.php` — `la landing pubblica carica il css marketing, non il tema teal del pannello` (e le altre 2 varianti nello stesso file). | COMPLETO |

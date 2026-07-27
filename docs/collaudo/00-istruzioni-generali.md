@@ -2,16 +2,18 @@
 
 ## 1. Titolo, versione, data e stato del documento
 
-- **Titolo**: Documento di collaudo — Fase 0 (Fondazioni) + Fase 1 (Ticketing core)
-- **Versione**: 2.0
+- **Titolo**: Documento di collaudo — Fase 0 (Fondazioni) + Fase 1 (Ticketing core) + Fase 1A (Landing, Login, Recupero password)
+- **Versione**: 2.1
 
   La versione 1 era la matrice sintetica preesistente (`docs/collaudo/fase-0-1.php`, manifest di
   tracciabilità sorgente, più il PDF generato a partire da essa dal comando `php artisan
-  collaudo:generate`). Questa versione 2.0 non sostituisce quel manifest — resta la fonte di
-  tracciabilità verso i test automatici — ma lo affianca con un manuale operativo dettagliato,
-  pensato per essere eseguito passo per passo da un tester umano, con campi di consuntivazione,
-  glossario, criteri di sospensione/superamento e procedura di segnalazione anomalie.
-- **Data di stesura**: 26 luglio 2026
+  collaudo:generate`). La versione 2.0 ha affiancato a quel manifest un manuale operativo
+  dettagliato per Fase 0/Fase 1, pensato per essere eseguito passo per passo da un tester umano,
+  con campi di consuntivazione, glossario, criteri di sospensione/superamento e procedura di
+  segnalazione anomalie. La versione 2.1 aggiunge la **Fase 1A** (addendum contenuto, non una nuova
+  fase del roadmap PRD §14): landing page pubblica, login e recupero password con la nuova identità
+  visiva "Montagna Servizi" — manifest dedicato `docs/collaudo/fase-1a.php`, 16 nuovi test.
+- **Data di stesura**: 26 luglio 2026 (v2.0), 27 luglio 2026 (v2.1)
 - **Data di pubblicazione ufficiale**: DA VERIFICARE CON IL PRODUCT OWNER
 - **Stato**: Bozza per revisione
 
@@ -22,13 +24,14 @@ requisiti funzionali e le regole di dominio descritti nel PRD di Orchestrator v2
 collaudo eseguibile sia da personale funzionale (che non deve conoscere il codice) sia da personale
 tecnico (che verifica anche a livello di terminale, database e suite di test automatica).
 
-Il collaudo copre 130 casi di test, organizzati in 23 argomenti, tracciati uno a uno nel manifest
-`docs/collaudo/fase-0-1.php` verso un test automatico realmente esistente nel repository.
+Il collaudo copre 146 casi di test, organizzati in 27 argomenti, tracciati uno a uno nei manifest
+`docs/collaudo/fase-0-1.php` (Fase 0/Fase 1) e `docs/collaudo/fase-1a.php` (Fase 1A) verso un test
+automatico realmente esistente nel repository.
 
 ## 3. Ambito incluso
 
-Il collaudo copre esattamente i 23 argomenti seguenti (titoli letterali dal manifest di
-tracciabilità), per un totale di 130 test.
+Il collaudo copre esattamente i 27 argomenti seguenti (titoli letterali dai manifest di
+tracciabilità), per un totale di 146 test.
 
 **Fase 0 — Fondazioni** (56 test, F0-01…F0-56):
 
@@ -63,8 +66,17 @@ tracciabilità), per un totale di 130 test.
 | 22 | Vista di lavoro e landing per ruolo | 3 (F1-69…F1-71) |
 | 23 | Verifica end-to-end di Fase 1 | 3 (F1-72…F1-74) |
 
+**Fase 1A — Landing, Login, Recupero password** (16 test, F1A-01…F1A-16):
+
+| # | Argomento | Test |
+|---|---|---|
+| 24 | Landing pubblica | 2 (F1A-01…F1A-02) |
+| 25 | Login | 6 (F1A-03…F1A-08) |
+| 26 | Recupero password | 7 (F1A-09…F1A-15) |
+| 27 | Identità visiva e separazione dai temi | 1 (F1A-16) |
+
 Il dettaglio di ciascun test (descrizione, passi, esito atteso, campi di consuntivazione) è nei
-file `02-fase-0.md` e `03-fase-1.md` del pacchetto.
+file `02-fase-0.md`, `03-fase-1.md` e `04-fase-1a.md` del pacchetto.
 
 ## 4. Ambito escluso
 
@@ -153,7 +165,7 @@ Sono esplicitamente **fuori scopo** di questa release e di questo collaudo:
   test automatica (Pest).
 - **Product Owner**: approva le classificazioni segnalate come "DA VERIFICARE CON IL PRODUCT
   OWNER" in questo documento e nel resto del pacchetto, e firma il verbale conclusivo di collaudo
-  (`05-verbale-collaudo.md`).
+  (`06-verbale-collaudo.md`).
 
 ## 8. Ambiente UAT
 
@@ -189,13 +201,15 @@ ruoli oltre a questi cinque.
 
 URL: `https://mailpit-ticket-uat.montagnaservizi.com`.
 
-In questa release **nessuno dei 130 test di Fase 0/Fase 1 richiede l'uso di Mailpit**: il
-sottosistema email reale (invio/ricezione) è fuori scopo (Fase 3, vedi punto 4) e ogni messaggio di
-conversazione del ticket viaggia sempre sul canale "web", mai su un canale email reale. Nessun test
-di questo pacchetto è quindi classificato come "MANUALE UI + MAILPIT".
+Nessuno dei 130 test di Fase 0/Fase 1 richiede l'uso di Mailpit: il sottosistema email reale
+(invio/ricezione della conversazione del ticket) è fuori scopo (Fase 3, vedi punto 4) e ogni
+messaggio di conversazione del ticket viaggia sempre sul canale "web", mai su un canale email
+reale.
 
-L'URL è riportato qui solo come riferimento, disponibile per le fasi future in cui il sottosistema
-email sarà effettivamente costruito e verrà integrato nel collaudo.
+La **Fase 1A** introduce il primo uso reale di Mailpit in questo pacchetto: il flusso di recupero
+password invia una email reale (F1A-09, F1A-10, F1A-11), verificabile in UAT esattamente su questo
+URL. Le credenziali di accesso HTTP Basic Auth a Mailpit sono fornite separatamente dal committente
+(non riportate in questo documento pubblico).
 
 ## 11. Browser e dispositivi supportati
 
@@ -306,7 +320,7 @@ manualmente.
 
 ## 17. Criteri generali di superamento
 
-Il collaudo nel suo complesso è considerato superato se, al termine dell'esecuzione dei 130 test:
+Il collaudo nel suo complesso è considerato superato se, al termine dell'esecuzione dei 146 test:
 
 - Non è aperta alcuna anomalia classificata come Critica.
 - Almeno il 95% dei test applicabili (esclusi quelli classificati NOT APPLICABLE) è in stato PASS.
@@ -340,5 +354,5 @@ Alla rilevazione di uno scostamento tra comportamento atteso e osservato durante
 7. **Stato**: una delle quattro fasi Aperta → In analisi → Risolta → Chiusa, aggiornata man mano che
    l'anomalia viene lavorata.
 
-Ogni anomalia va registrata nel registro degli esiti (`04-registro-esiti.md`) e richiamata nel
-verbale conclusivo di collaudo (`05-verbale-collaudo.md`).
+Ogni anomalia va registrata nel registro degli esiti (`05-registro-esiti.md`) e richiamata nel
+verbale conclusivo di collaudo (`06-verbale-collaudo.md`).

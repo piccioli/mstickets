@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Illustrazione stilizzata di un paesaggio alpino">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#dcebe6"></stop>
+      <stop offset="0.55" stop-color="#bcd6cd"></stop>
+      <stop offset="1" stop-color="#9cbfb4"></stop>
+    </linearGradient>
+    <linearGradient id="r1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7fb0a3"></stop><stop offset="1" stop-color="#6aa093"></stop></linearGradient>
+    <linearGradient id="r2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a8c7c"></stop><stop offset="1" stop-color="#3a7869"></stop></linearGradient>
+    <linearGradient id="r3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a6e5f"></stop><stop offset="1" stop-color="#1d574b"></stop></linearGradient>
+    <linearGradient id="r4" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#164a3f"></stop><stop offset="1" stop-color="#0f332b"></stop></linearGradient>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#sky)"></rect>
+  <circle cx="1230" cy="230" r="70" fill="#f3f7f4" opacity="0.85"></circle>
+  <path d="M0 430 L250 300 L470 420 L700 250 L980 430 L1230 300 L1450 420 L1600 350 L1600 1000 L0 1000 Z" fill="url(#r1)"></path>
+  <path d="M0 560 L210 470 L430 560 L640 420 L900 560 L1130 450 L1370 560 L1600 500 L1600 1000 L0 1000 Z" fill="url(#r2)" opacity="0.96"></path>
+  <path d="M0 700 L260 590 L520 700 L760 560 L1020 710 L1280 600 L1520 710 L1600 670 L1600 1000 L0 1000 Z" fill="url(#r3)"></path>
+  <path d="M0 850 L300 760 L560 860 L820 730 L1120 870 L1380 780 L1600 860 L1600 1000 L0 1000 Z" fill="url(#r4)"></path>
+  <g fill="#f3f7f4" opacity="0.9">
+    <path d="M700 250 L742 285 L714 288 L760 322 L640 322 Z"></path>
+    <path d="M760 560 L800 592 L778 595 L818 622 L706 622 Z"></path>
+  </g>
+  <g stroke="#dcebe6" stroke-width="7" opacity="0.28" fill="none">
+    <path d="M120 620 C 400 560, 520 700, 780 640 S 1200 640, 1500 690"></path>
+  </g>
+</svg>

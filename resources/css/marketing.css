@@ -1,0 +1,427 @@
+/*
+ * Montagna Servizi — design system "pubblico" (landing "/", login, recupero password).
+ * Estratto da Claude Design, progetto b41c13f4-8321-4716-be35-295d0bdd9d1e, bundle
+ * "montagna-servizi-design-system-5cc04e95-...". Fonte di verità:
+ * docs/features/landing-login-recupero-password-v0.3.0/design-reference.md.
+ *
+ * Deliberatamente SEPARATO da resources/css/theme.css (design system del pannello Filament,
+ * teal/Nunito Sans, US-004/US-005): sono due identità visive distinte per scelta del
+ * committente (pubblico/marketing vs. applicativo interno), non un'incoerenza da unificare.
+ * Caricato SOLO sulle 4 view pubbliche — mai insieme a theme.css.
+ */
+
+:root {
+  /* ---- Pine green scale (brand) ---- */
+  --green-900: #0F332B;
+  --green-800: #123F35;
+  --green-700: #164A3F;
+  --green-600: #1D574B;
+  --green-500: #2A6E5F;
+  --green-400: #4A8C7C;
+  --green-300: #7FB0A3;
+  --green-200: #B9D4CC;
+  --green-100: #E3EFEB;
+  --green-50: #F1F7F5;
+
+  /* ---- Larch accent ---- */
+  --larch-700: #A9611E;
+  --larch-600: #C77E2A;
+  --larch-500: #E0963B;
+  --larch-200: #F3D9B4;
+  --larch-100: #F8ECD9;
+
+  /* ---- Stone neutrals ---- */
+  --stone-900: #1C201E;
+  --stone-800: #2E3532;
+  --stone-700: #454E4A;
+  --stone-600: #5E6863;
+  --stone-500: #7C857F;
+  --stone-400: #A7AEA9;
+  --stone-300: #CBD1CD;
+  --stone-200: #E4E8E5;
+  --stone-100: #F1F4F2;
+  --stone-50: #F8FAF9;
+  --white: #FFFFFF;
+
+  /* ---- Semantico raw ---- */
+  --success-600: #2A6E5F;
+  --success-100: #E3EFEB;
+  --warning-600: #C77E2A;
+  --warning-100: #F8ECD9;
+  --danger-600: #C0473B;
+  --danger-100: #F7E6E3;
+  --info-600: #3B7AA0;
+  --info-100: #E4EEF4;
+
+  /* ---- Alias semantici ---- */
+  --text-strong: var(--stone-900);
+  --text-body: var(--stone-700);
+  --text-muted: var(--stone-500);
+  --text-brand: var(--green-600);
+  --text-inverse: var(--white);
+  --text-on-brand: var(--white);
+
+  --surface-page: var(--white);
+  --surface-subtle: var(--green-50);
+  --surface-card: var(--white);
+  --surface-brand: var(--green-600);
+  --surface-inverse: var(--green-900);
+
+  --border-subtle: var(--stone-200);
+  --border-default: var(--stone-300);
+  --border-strong: var(--green-600);
+
+  --focus-ring: var(--green-400);
+
+  /* ---- Tipografia ---- */
+  --mkt-font-sans: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  --fw-extrabold: 800;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-md: 1.125rem;
+  --text-lg: 1.375rem;
+  --text-xl: 1.75rem;
+  --text-2xl: 2.25rem;
+  --text-3xl: 3rem;
+  --text-4xl: 3.75rem;
+  --leading-tight: 1.08;
+  --leading-snug: 1.2;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.65;
+  --tracking-tight: -0.02em;
+  --tracking-snug: -0.01em;
+  --tracking-eyebrow: 0.12em;
+
+  /* ---- Spaziatura / layout ---- */
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-24: 6rem;
+  --container-max: 1200px;
+  --gutter: clamp(1.25rem, 4vw, 3rem);
+
+  /* ---- Effetti ---- */
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-card: 20px;
+  --radius-pill: 999px;
+  --shadow-xs: 0 1px 2px rgba(15, 51, 43, 0.06);
+  --shadow-sm: 0 2px 8px rgba(15, 51, 43, 0.07);
+  --shadow-md: 0 8px 24px rgba(15, 51, 43, 0.09);
+  --shadow-focus: 0 0 0 3px rgba(74, 140, 124, 0.45);
+  --dur-base: 220ms;
+  --ease-standard: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.mkt {
+  font-family: var(--mkt-font-sans);
+  color: var(--text-body);
+  background: var(--surface-page);
+  line-height: var(--leading-normal);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+.mkt h1, .mkt h2, .mkt h3 {
+  font-family: var(--mkt-font-sans);
+  color: var(--text-strong);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+  margin: 0;
+}
+
+.mkt :focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+  border-radius: var(--radius-sm);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Button — varianti primary/outline/link, taglia lg (unica usata qui)    */
+/* ---------------------------------------------------------------------- */
+.mkt-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  font-family: var(--mkt-font-sans);
+  font-weight: var(--fw-bold);
+  font-size: var(--text-md);
+  letter-spacing: var(--tracking-snug);
+  line-height: 1;
+  padding: 1rem 1.9rem;
+  border-radius: var(--radius-pill);
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform var(--dur-base) var(--ease-standard),
+    background var(--dur-base) var(--ease-standard),
+    box-shadow var(--dur-base) var(--ease-standard),
+    border-color var(--dur-base) var(--ease-standard);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mkt-btn:active { transform: translateY(1px); }
+
+.mkt-btn--full { display: flex; width: 100%; }
+
+.mkt-btn--primary {
+  background: var(--surface-brand);
+  color: var(--text-on-brand);
+  border: 1px solid var(--surface-brand);
+  box-shadow: var(--shadow-xs);
+}
+.mkt-btn--primary:hover { background: var(--green-700); border-color: var(--green-700); box-shadow: var(--shadow-sm); }
+.mkt-btn--primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.mkt-btn--outline {
+  background: transparent;
+  color: var(--text-brand);
+  border: 1.5px solid var(--border-strong);
+}
+.mkt-btn--outline:hover { background: var(--green-50); }
+
+.mkt-btn--link {
+  background: transparent;
+  color: var(--text-brand);
+  border: none;
+  padding: 0;
+  box-shadow: none;
+  font-size: var(--text-sm);
+}
+.mkt-btn--link > span { border-bottom: 2px solid currentColor; padding-bottom: 1px; }
+.mkt-btn--link:hover { color: var(--green-700); }
+
+/* ---------------------------------------------------------------------- */
+/* Input — coerente con i campi renderizzati dal form Filament nativo     */
+/* ---------------------------------------------------------------------- */
+.mkt-field { display: flex; flex-direction: column; gap: 0.4rem; width: 100%; }
+.mkt-field label {
+  font-size: var(--text-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--text-strong);
+}
+.mkt-field .fi-input-wrp {
+  border-radius: var(--radius-sm) !important;
+  border: 1.5px solid var(--border-default) !important;
+  box-shadow: none !important;
+}
+.mkt-field .fi-input-wrp:focus-within {
+  border-color: var(--green-500) !important;
+  box-shadow: var(--shadow-focus) !important;
+}
+.mkt-field input {
+  font-family: var(--mkt-font-sans) !important;
+  font-size: var(--text-base) !important;
+  color: var(--text-strong) !important;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Navbar                                                                  */
+/* ---------------------------------------------------------------------- */
+.mkt-navbar {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: saturate(180%) blur(8px);
+  border-bottom: 1px solid var(--border-subtle);
+  position: relative;
+  z-index: 50;
+}
+.mkt-navbar__inner {
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: 0.9rem var(--gutter);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+}
+.mkt-navbar img { height: 40px; width: auto; display: block; }
+
+/* ---------------------------------------------------------------------- */
+/* Hero (landing)                                                          */
+/* ---------------------------------------------------------------------- */
+.mkt-hero {
+  position: relative;
+  min-height: 74vh;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  background: var(--green-900);
+}
+.mkt-hero img.mkt-hero__bg {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+}
+.mkt-hero__overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(15, 51, 43, 0.35) 0%, rgba(15, 51, 43, 0.15) 40%, rgba(15, 51, 43, 0.78) 100%);
+}
+.mkt-hero__content {
+  position: relative;
+  width: 100%;
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: var(--space-24) var(--gutter) var(--space-16);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1.25rem;
+}
+.mkt-hero__eyebrow {
+  font-size: var(--text-sm);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--green-200);
+}
+.mkt-hero__title {
+  color: #fff;
+  font-size: clamp(2.25rem, 5vw, var(--text-4xl));
+  font-weight: var(--fw-extrabold);
+  max-width: 18ch;
+}
+.mkt-hero__subtitle {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: var(--text-md);
+  line-height: var(--leading-relaxed);
+  max-width: 52ch;
+  margin: 0;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Footer                                                                  */
+/* ---------------------------------------------------------------------- */
+.mkt-footer { background: var(--surface-inverse); color: #fff; }
+.mkt-footer__inner {
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: var(--space-16) var(--gutter) var(--space-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.mkt-footer a { color: rgba(255, 255, 255, 0.78); text-decoration: none; font-size: var(--text-base); }
+.mkt-footer a:hover { color: #fff; }
+.mkt-footer__legal {
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: var(--space-6) var(--gutter);
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between;
+  font-size: var(--text-sm); color: rgba(255, 255, 255, 0.6);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Login / recupero password — layout split                               */
+/* ---------------------------------------------------------------------- */
+.mkt-auth {
+  min-height: 100vh;
+  display: flex;
+  background: var(--stone-100);
+  width: 100%;
+  overflow-x: hidden;
+}
+.mkt-auth__panel {
+  flex: 1.05;
+  position: relative;
+  overflow: hidden;
+  display: none;
+}
+.mkt-auth__panel img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+}
+.mkt-auth__panel-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(155deg, rgba(15, 51, 43, .88) 0%, rgba(18, 63, 53, .78) 45%, rgba(29, 87, 75, .42) 100%);
+}
+.mkt-auth__panel-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  padding: 3.5rem 4rem;
+  box-sizing: border-box;
+}
+.mkt-auth__panel-content img.mkt-logo { height: 56px; width: auto; align-self: flex-start; }
+.mkt-auth__eyebrow {
+  font-size: var(--text-sm); font-weight: var(--fw-extrabold); letter-spacing: var(--tracking-eyebrow);
+  color: var(--green-200); margin-bottom: 1.1rem;
+}
+.mkt-auth__title {
+  margin: 0 0 1.25rem; font-size: 2.6rem; font-weight: var(--fw-extrabold);
+  letter-spacing: var(--tracking-tight); line-height: 1.1; color: var(--text-inverse); max-width: 26rem;
+}
+.mkt-auth__lead { margin: 0 0 2rem; font-size: var(--text-md); line-height: 1.6; color: var(--green-100); max-width: 28rem; }
+.mkt-auth__benefits { display: flex; flex-direction: column; gap: 1rem; }
+.mkt-auth__benefit { display: flex; align-items: center; gap: 0.85rem; font-size: var(--text-base); color: var(--green-50); }
+.mkt-auth__benefit-icon {
+  width: 28px; height: 28px; border-radius: var(--radius-pill); background: rgba(255, 255, 255, .14);
+  display: inline-flex; align-items: center; justify-content: center; flex: 0 0 28px;
+}
+.mkt-auth__tagline { font-size: var(--text-sm); color: var(--green-300); }
+
+.mkt-auth__form {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 2.5rem 1.75rem;
+  box-sizing: border-box;
+  max-width: 34rem;
+  margin: 0 auto;
+  width: 100%;
+}
+.mkt-auth__form-eyebrow {
+  font-size: var(--text-sm); font-weight: var(--fw-extrabold); letter-spacing: var(--tracking-eyebrow);
+  color: var(--text-brand); margin-bottom: 0.9rem;
+}
+.mkt-auth__form-title { margin: 0 0 0.6rem; font-size: 2rem; font-weight: var(--fw-extrabold); letter-spacing: var(--tracking-tight); }
+.mkt-auth__form-lead { margin: 0 0 1.75rem; font-size: var(--text-base); line-height: 1.6; color: var(--text-body); }
+
+.mkt-auth__row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin: 0.9rem 0 1.4rem; flex-wrap: wrap; }
+.mkt-auth__remember { display: flex; align-items: center; gap: 0.6rem; font-size: var(--text-base); color: var(--text-strong); cursor: pointer; }
+.mkt-auth__remember input { width: 17px; height: 17px; accent-color: var(--green-600); cursor: pointer; }
+
+.mkt-auth__footer-note { margin-top: 1.75rem; font-size: var(--text-base); color: var(--text-body); line-height: 1.6; }
+.mkt-auth__footer-note a { font-weight: var(--fw-bold); color: var(--text-brand); }
+
+.mkt-auth__step-icon {
+  width: 60px; height: 60px; border-radius: var(--radius-pill); background: var(--green-50);
+  border: 2px solid var(--green-200); display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem;
+}
+.mkt-auth__info-box {
+  background: var(--surface-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-card);
+  padding: 1.5rem 1.75rem; font-size: var(--text-base); line-height: 1.9; color: var(--text-body); margin-bottom: 1.9rem;
+}
+
+.mkt-strength { display: flex; align-items: center; gap: 0.75rem; margin: 0.75rem 0 1.25rem; }
+.mkt-strength__bars { flex: 1; display: flex; gap: 5px; }
+.mkt-strength__bar { height: 6px; flex: 1; border-radius: var(--radius-pill); background: var(--stone-200); }
+.mkt-strength__bar--weak { background: var(--danger-600); }
+.mkt-strength__bar--medium { background: var(--larch-600); }
+.mkt-strength__bar--strong { background: var(--green-600); }
+.mkt-strength__label { font-size: var(--text-sm); font-weight: var(--fw-bold); min-width: 66px; text-align: right; color: var(--text-muted); }
+
+.mkt-rules { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1.6rem; }
+.mkt-rules__item { display: flex; align-items: center; gap: 0.6rem; font-size: var(--text-base); }
+.mkt-rules__dot {
+  width: 20px; height: 20px; border-radius: var(--radius-pill); display: inline-flex; align-items: center;
+  justify-content: center; font-size: 11px; font-weight: var(--fw-extrabold);
+  background: var(--stone-100); color: var(--text-muted); border: 1px solid var(--border-subtle);
+}
+.mkt-rules__dot--ok { background: var(--green-50); color: var(--text-brand); border-color: var(--green-200); }
+.mkt-rules__text--ok { color: var(--text-strong); }
+.mkt-rules__text { color: var(--text-muted); }
+
+@media (min-width: 900px) {
+  .mkt-auth__panel { display: block; }
+}

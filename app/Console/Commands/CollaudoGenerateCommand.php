@@ -17,8 +17,9 @@ final class CollaudoGenerateCommand extends Command
 
     /**
      * File del manuale operativo dettagliato (§ collaudo v2), nell'ordine in cui compaiono nel PDF.
-     * Convenzione fissa per ora (non parametrizzata su {fase}): introdotta per la Fase 0-1, non
-     * ancora generalizzata alle fasi future — quando servirà, andrà rivista qui.
+     * Convenzione fissa per ora (non parametrizzata su {fase}): introdotta per la Fase 0-1, estesa
+     * in v0.3.0 con la Fase 1A senza cambiare l'argomento CLI (resta `0-1`) — quando una fase futura
+     * richiederà una convenzione diversa, andrà rivista qui.
      *
      * @var list<array{file: string, titolo: string}>
      */
@@ -28,8 +29,9 @@ final class CollaudoGenerateCommand extends Command
         ['file' => '01-matrice-tracciabilita.md', 'titolo' => 'Matrice di tracciabilità'],
         ['file' => '02-fase-0.md', 'titolo' => 'Fase 0 (Fondazioni) — Casi di test dettagliati'],
         ['file' => '03-fase-1.md', 'titolo' => 'Fase 1 (Ticketing core) — Casi di test dettagliati'],
-        ['file' => '04-registro-esiti.md', 'titolo' => 'Registro degli esiti'],
-        ['file' => '05-verbale-collaudo.md', 'titolo' => 'Verbale conclusivo di collaudo'],
+        ['file' => '04-fase-1a.md', 'titolo' => 'Fase 1A (Landing, Login, Recupero password) — Casi di test dettagliati'],
+        ['file' => '05-registro-esiti.md', 'titolo' => 'Registro degli esiti'],
+        ['file' => '06-verbale-collaudo.md', 'titolo' => 'Verbale conclusivo di collaudo'],
     ];
 
     public function handle(): int
@@ -91,7 +93,7 @@ final class CollaudoGenerateCommand extends Command
         );
 
         $pdf = Pdf::loadView('pdf.collaudo-dettagliato', [
-            'titolo' => 'Fase 0 (Fondazioni) + Fase 1 (Ticketing core)',
+            'titolo' => 'Fase 0 (Fondazioni) + Fase 1 (Ticketing core) + Fase 1A (Landing, Login, Recupero password)',
             'generatedAt' => now()->translatedFormat('d/m/Y H:i'),
             'sections' => $sections,
         ]);

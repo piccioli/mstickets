@@ -4,8 +4,8 @@
 
 Tabella da compilare durante il collaudo, una riga per test. Il campo "Esito" accetta solo uno tra
 `PASS`, `FAIL`, `BLOCKED`, `NOT APPLICABLE` (vedi §17 di `00-istruzioni-generali.md` per i criteri generali
-e la sezione "Criterio di superamento" di ciascun test in `02-fase-0.md`/`03-fase-1.md` per il criterio
-specifico). Il campo "Anomalia" riporta l'ID assegnato secondo §19 di `00-istruzioni-generali.md` (es. `AN-001`),
+e la sezione "Criterio di superamento" di ciascun test in `02-fase-0.md`/`03-fase-1.md`/`04-fase-1a.md` per il
+criterio specifico). Il campo "Anomalia" riporta l'ID assegnato secondo §19 di `00-istruzioni-generali.md` (es. `AN-001`),
 lasciare vuoto se non ci sono anomalie da segnalare per quel test.
 
 ## Fase 0 (Fondazioni) — 56 test
@@ -148,9 +148,30 @@ lasciare vuoto se non ci sono anomalie da segnalare per quel test.
 | F1-73 | Manomettere il contesto di una transizione con auto-assegnazione non permette di assegnare il ticket a un altro utente |  |  |  |  |  |  |  |
 | F1-74 | Una transizione vietata tentata direttamente contro l'azione di cambio stato viene rifiutata e non scrive nulla |  |  |  |  |  |  |  |
 
+## Fase 1A (Landing, Login, Recupero password) — 16 test
+
+| ID | Titolo | Esito | Tester | Data | Versione | Evidenza | Anomalia | Note |
+|---|---|---|---|---|---|---|---|---|
+| F1A-01 | La landing "/" è raggiungibile da un visitatore anonimo con una sola CTA |  |  |  |  |  |  |  |
+| F1A-02 | Un utente con sessione attiva che visita "/" viene rimandato alla dashboard |  |  |  |  |  |  |  |
+| F1A-03 | Aspetto della pagina di login conforme al design Montagna Servizi |  |  |  |  |  |  |  |
+| F1A-04 | Credenziali corrette autenticano e portano alla dashboard |  |  |  |  |  |  |  |
+| F1A-05 | Credenziali errate mostrano un messaggio di errore e non autenticano |  |  |  |  |  |  |  |
+| F1A-06 | Il toggle "Mostra/Nascondi password" funziona |  |  |  |  |  |  |  |
+| F1A-07 | "Salva per le prossime sessioni" mantiene l'accesso dopo la chiusura del browser |  |  |  |  |  |  |  |
+| F1A-08 | Dopo 5 tentativi di login falliti, il sesto viene bloccato temporaneamente |  |  |  |  |  |  |  |
+| F1A-09 | Richiesta di reset con un'email registrata invia il link ed è visibile su Mailpit |  |  |  |  |  |  |  |
+| F1A-10 | Richiesta di reset con un'email inesistente non rivela l'assenza dell'utente |  |  |  |  |  |  |  |
+| F1A-11 | "Invia di nuovo" immediato è bloccato dal throttling nativo (60 secondi) |  |  |  |  |  |  |  |
+| F1A-12 | Impostare una nuova password con un token valido, rispettando le regole reali |  |  |  |  |  |  |  |
+| F1A-13 | Una password che non rispetta le regole reali viene rifiutata |  |  |  |  |  |  |  |
+| F1A-14 | Un link di reset già usato o inesistente viene rifiutato |  |  |  |  |  |  |  |
+| F1A-15 | Un link di reset scaduto (oltre 60 minuti) viene rifiutato |  |  |  |  |  |  |  |
+| F1A-16 | Le pagine pubbliche usano il design system "marketing", il pannello interno resta sul tema teal |  |  |  |  |  |  |  |
+
 ## Riepilogo aggregato (da compilare a collaudo concluso)
 
 | Totale test | PASS | FAIL | BLOCKED | NOT APPLICABLE |
 |---|---|---|---|---|
-| 130 |  |  |  |  |
+| 146 |  |  |  |  |
 

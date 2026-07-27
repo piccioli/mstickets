@@ -4,8 +4,22 @@ declare(strict_types=1);
 
 use App\Support\Collaudo\CollaudoTestReference;
 
-it('ogni riferimento test_automatico nel manifest esiste davvero nel codice', function () {
-    $manifest = require base_path('docs/collaudo/fase-0-1.php');
+it('ogni riferimento test_automatico nel manifest fase-0-1 esiste davvero nel codice', function () {
+    assertManifestReferencesResolve(base_path('docs/collaudo/fase-0-1.php'));
+});
+
+it('ogni riferimento test_automatico nel manifest fase-1a esiste davvero nel codice', function () {
+    assertManifestReferencesResolve(base_path('docs/collaudo/fase-1a.php'));
+});
+
+/**
+ * Riusata dai due manifest attivi (fase-0-1.php, fase-1a.php): estrarre in una funzione evita di
+ * duplicare il doppio controllo (esistenza file + presenza della descrizione citata) quando una
+ * fase futura introdurrà un terzo manifest.
+ */
+function assertManifestReferencesResolve(string $manifestPath): void
+{
+    $manifest = require $manifestPath;
 
     foreach ($manifest['topics'] as $topic) {
         foreach ($topic['test'] as $test) {
@@ -23,4 +37,4 @@ it('ogni riferimento test_automatico nel manifest esiste davvero nel codice', fu
             );
         }
     }
-});
+}
