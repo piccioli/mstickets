@@ -22,8 +22,9 @@
         pw2: '',
         get len() { return this.pw1.length >= 8 },
         get upper() { return /[A-Z]/.test(this.pw1) },
+        get lower() { return /[a-z]/.test(this.pw1) },
         get num() { return /[0-9]/.test(this.pw1) },
-        get score() { return (this.len ? 1 : 0) + (this.upper ? 1 : 0) + (this.num ? 1 : 0) },
+        get score() { return (this.len ? 1 : 0) + (this.upper ? 1 : 0) + (this.lower ? 1 : 0) + (this.num ? 1 : 0) },
         get mismatch() { return this.pw2.length > 0 && this.pw1 !== this.pw2 },
     }">
         <div class="mkt-auth__form-eyebrow">Nuova password</div>
@@ -49,11 +50,11 @@
 
             <div class="mkt-strength">
                 <div class="mkt-strength__bars">
-                    <span class="mkt-strength__bar" :class="score >= 1 ? (score === 1 ? 'mkt-strength__bar--weak' : score === 2 ? 'mkt-strength__bar--medium' : 'mkt-strength__bar--strong') : ''"></span>
-                    <span class="mkt-strength__bar" :class="score >= 2 ? (score === 2 ? 'mkt-strength__bar--medium' : 'mkt-strength__bar--strong') : ''"></span>
-                    <span class="mkt-strength__bar" :class="score >= 3 ? 'mkt-strength__bar--strong' : ''"></span>
+                    <span class="mkt-strength__bar" :class="score >= 1 ? (score <= 1 ? 'mkt-strength__bar--weak' : score <= 3 ? 'mkt-strength__bar--medium' : 'mkt-strength__bar--strong') : ''"></span>
+                    <span class="mkt-strength__bar" :class="score >= 2 ? (score <= 3 ? 'mkt-strength__bar--medium' : 'mkt-strength__bar--strong') : ''"></span>
+                    <span class="mkt-strength__bar" :class="score >= 4 ? 'mkt-strength__bar--strong' : ''"></span>
                 </div>
-                <span class="mkt-strength__label" x-text="!pw1 ? 'Sicurezza' : (score <= 1 ? 'Debole' : score === 2 ? 'Media' : 'Sicura')"></span>
+                <span class="mkt-strength__label" x-text="!pw1 ? 'Sicurezza' : (score <= 1 ? 'Debole' : score <= 3 ? 'Media' : 'Sicura')"></span>
             </div>
 
             @error('password')
@@ -89,6 +90,10 @@
                 <div class="mkt-rules__item">
                     <span class="mkt-rules__dot" :class="upper && 'mkt-rules__dot--ok'" x-text="upper ? '✓' : '·'"></span>
                     <span :class="upper ? 'mkt-rules__text--ok' : 'mkt-rules__text'">Una lettera maiuscola</span>
+                </div>
+                <div class="mkt-rules__item">
+                    <span class="mkt-rules__dot" :class="lower && 'mkt-rules__dot--ok'" x-text="lower ? '✓' : '·'"></span>
+                    <span :class="lower ? 'mkt-rules__text--ok' : 'mkt-rules__text'">Una lettera minuscola</span>
                 </div>
                 <div class="mkt-rules__item">
                     <span class="mkt-rules__dot" :class="num && 'mkt-rules__dot--ok'" x-text="num ? '✓' : '·'"></span>

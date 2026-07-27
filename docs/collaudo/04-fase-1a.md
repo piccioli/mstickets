@@ -775,7 +775,7 @@ Nessuno.
 ### F1A-12 — Impostare una nuova password con un token valido, rispettando le regole reali
 
 **Obiettivo**
-Verificare che, seguendo un link di reset valido, sia possibile impostare una nuova password che rispetti le regole reali (8+ caratteri, almeno una maiuscola, almeno un numero — coerenti con l'indicatore di forza visivo mostrato in pagina) e che dopo il salvataggio sia possibile accedere con la nuova password.
+Verificare che, seguendo un link di reset valido, sia possibile impostare una nuova password che rispetti le regole reali (8+ caratteri, almeno una maiuscola, almeno una minuscola, almeno un numero — coerenti con l'indicatore di forza visivo mostrato in pagina) e che dopo il salvataggio sia possibile accedere con la nuova password.
 
 **Riferimenti**
 - Requisito: PRD v0.3.0 §6.2 (nota tecnica su `Password::defaults()`).
@@ -796,7 +796,7 @@ Anonimo (segue un link email) + verifica successiva come utente
 - Un link di reset valido appena ricevuto (F1A-09).
 
 **Dati di test**
-- Nuova password: `CollaudoF1A12` (rispetta le 3 regole: 8+ caratteri, maiuscola, numero).
+- Nuova password: `CollaudoF1A12` (rispetta le 4 regole: 8+ caratteri, maiuscola, minuscola, numero).
 
 **Stato iniziale**
 Link di reset non ancora utilizzato.
@@ -806,7 +806,7 @@ Link di reset non ancora utilizzato.
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
 | 1 | Apri il link ricevuto via email | — | Pagina "Imposta una nuova password", campi vuoti, barra di forza su "Sicurezza" (grigia) |
-| 2 | Digita la nuova password nel primo campo | `CollaudoF1A12` | La barra di forza diventa verde ("Sicura"); tutte le 3 voci della checklist (8+ caratteri, maiuscola, numero) mostrano il segno di spunta |
+| 2 | Digita la nuova password nel primo campo | `CollaudoF1A12` | La barra di forza diventa verde ("Sicura"); tutte le 4 voci della checklist (8+ caratteri, maiuscola, minuscola, numero) mostrano il segno di spunta |
 | 3 | Digita la stessa password nel campo di conferma | `CollaudoF1A12` | Nessun messaggio di mancata corrispondenza |
 | 4 | Clicca "Salva la nuova password" | — | Notifica di successo; redirect alla pagina di login |
 | 5 | Accedi con l'email e la nuova password | `developer@orchestrator.local` / `CollaudoF1A12` | Login riuscito |
@@ -847,7 +847,7 @@ Se necessario per continuare il collaudo con la password originale nota, effettu
 ### F1A-13 — Una password che non rispetta le regole reali viene rifiutata
 
 **Obiettivo**
-Verificare che una password che non rispetta almeno una delle 3 regole reali (8+ caratteri, maiuscola, numero) venga rifiutata dal server con un messaggio d'errore, anche se l'utente ignora l'indicatore visivo e tenta comunque l'invio.
+Verificare che una password che non rispetta almeno una delle 4 regole reali (8+ caratteri, maiuscola, minuscola, numero) venga rifiutata dal server con un messaggio d'errore, anche se l'utente ignora l'indicatore visivo e tenta comunque l'invio.
 
 **Riferimenti**
 - Requisito: PRD v0.3.0 §6.2.
@@ -868,7 +868,7 @@ Anonimo
 - Un link di reset valido (richiederne uno nuovo, F1A-09).
 
 **Dati di test**
-- Password non valida: `tuttominuscolo` (nessuna maiuscola, nessun numero — ma 14 caratteri, quindi la sola regola "8+ caratteri" risulterebbe soddisfatta: verifica che vengano segnalate correttamente solo le regole realmente non rispettate).
+- Password non valida: `tuttominuscolo` (nessuna maiuscola, nessun numero — ma 14 caratteri e tutta minuscola, quindi le regole "8+ caratteri" e "una lettera minuscola" risulterebbero soddisfatte: verifica che vengano segnalate correttamente solo le regole realmente non rispettate).
 
 **Stato iniziale**
 Link di reset non ancora utilizzato.
@@ -877,7 +877,7 @@ Link di reset non ancora utilizzato.
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Apri il link di reset, digita la password non valida in entrambi i campi | `tuttominuscolo` | La checklist mostra "Almeno 8 caratteri" spuntato, "Una lettera maiuscola" e "Almeno un numero" NON spuntati; barra di forza su "Media" o "Debole" |
+| 1 | Apri il link di reset, digita la password non valida in entrambi i campi | `tuttominuscolo` | La checklist mostra "Almeno 8 caratteri" e "Una lettera minuscola" spuntati, "Una lettera maiuscola" e "Almeno un numero" NON spuntati; barra di forza su "Media" o "Debole" |
 | 2 | Clicca comunque "Salva la nuova password" | — | Il salvataggio viene rifiutato dal server con un messaggio d'errore sotto il campo password |
 
 **Risultato finale atteso**

@@ -16,6 +16,7 @@
          (Livewire + Alpine, nessuna dipendenza CSS) e il componente Notifications per le
          notifiche native (es. throttling dopo tentativi falliti). --}}
     @vite(['resources/css/marketing.css'])
+    @fonts('manrope')
 </head>
 <body class="mkt">
     {{ $slot }}

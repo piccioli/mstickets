@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Montagna Servizi — Piattaforma Servizi CAI</title>
     @vite(['resources/css/marketing.css'])
+    @fonts('manrope')
 </head>
 <body class="mkt">
     <header class="mkt-navbar">
