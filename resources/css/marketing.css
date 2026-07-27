@@ -205,7 +205,7 @@
 .mkt-field { display: flex; flex-direction: column; gap: 0.4rem; width: 100%; }
 .mkt-field label {
   font-size: var(--text-sm);
-  font-weight: var(--fw-semibold);
+  font-weight: var(--fw-bold);
   color: var(--text-strong);
 }
 .mkt-field .fi-input-wrp {
