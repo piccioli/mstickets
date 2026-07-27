@@ -468,6 +468,72 @@
 .mkt-auth__footer-note { margin-top: 34px; font-size: var(--text-base); color: var(--text-body); line-height: 1.6; }
 .mkt-auth__footer-note a { font-weight: var(--fw-bold); color: var(--text-brand); }
 
+/* Separatore "oppure" tra il login primario e l'accesso account CAI (disattivato) */
+.mkt-auth__divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 24px 0;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+.mkt-auth__divider::before,
+.mkt-auth__divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-subtle);
+}
+
+/* Bottone "Accedi con l'account CAI": stile outline esistente ma reso visivamente
+   disattivato (palette --stone-*, cursor not-allowed) — resta un elemento reale
+   cliccabile/raggiungibile da tastiera (niente attributo HTML disabled), solo
+   aria-disabled per gli screen reader. */
+.mkt-btn--outline.mkt-auth__cai-btn {
+  color: var(--stone-500);
+  border-color: var(--stone-300);
+  cursor: not-allowed;
+}
+.mkt-btn--outline.mkt-auth__cai-btn:hover { background: transparent; }
+
+/* Modale informativa "Funzionalità non disponibile" (Alpine inline, nessuna libreria di
+   dialog di terze parti). */
+.mkt-auth__cai-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.mkt-auth__cai-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(28, 32, 30, 0.55);
+}
+.mkt-auth__cai-modal-dialog {
+  position: relative;
+  background: var(--surface-card);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-md);
+  padding: 32px;
+  max-width: 26rem;
+  width: 100%;
+}
+.mkt-auth__cai-modal-title {
+  margin: 0 0 14px;
+  font-size: var(--text-md);
+  font-weight: var(--fw-extrabold);
+  color: var(--text-strong);
+}
+.mkt-auth__cai-modal-body {
+  margin: 0 0 26px;
+  font-size: var(--text-base);
+  line-height: 1.6;
+  color: var(--text-body);
+}
+
 .mkt-auth__step-icon {
   width: 60px; height: 60px; border-radius: var(--radius-pill); background: var(--green-50);
   border: 2px solid var(--green-200); display: flex; align-items: center; justify-content: center; margin-bottom: 24px;

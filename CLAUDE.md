@@ -309,6 +309,27 @@ Lo sviluppo di scaffold è stato verificato con PHP 8.5 locale (compatibile con 
   serve conoscere lo scale factor esatto dello screenshot (Figma/design tool esportano a risoluzioni
   arbitrarie): basta la proporzione relativa fra il raggio misurato e le dimensioni dell'elemento
   (es. altezza dell'input) per capire quale token CSS esistente è il più vicino.
+- **Gotcha `Livewire::test(...)->assertSeeText($value)` (US-009)**: a differenza di `assertSeeHtml()`,
+  `assertSeeText()` ha `$escape = true` come default e passa il valore atteso per `e()` (HTML-encode)
+  prima di confrontarlo col markup renderizzato — un apostrofo dritto (`'`) nell'asserzione diventa
+  `&#039;` e non matcha più testo Blade statico (non passato da `{{ }}`), che nel markup resta un
+  apostrofo letterale non incodificato. Se un'asserzione `assertSeeText()` su una stringa con
+  apostrofo/`&`/`<`/`>` fallisce in modo apparentemente incomprensibile (il messaggio di errore mostra
+  il valore atteso già con l'entità HTML), passare `false` come secondo argomento
+  (`assertSeeText("...l'account...", false)`), esattamente come già si fa con `assertSee($value, false)`.
+- **Il plugin Alpine `@alpinejs/focus` (direttiva `x-trap`) è già caricato globalmente su tutte le pagine
+  Filament** (incluse le view custom come `filament/auth/login.blade.php`, che include
+  `@filamentScripts(withCore: true)`), perché i modali nativi di Filament lo usano internamente
+  (`vendor/filament/support/resources/views/components/modal/index.blade.php`). Per una modale Alpine
+  inline "fatta a mano" (niente componente Filament, per rispettare un AC che vieta librerie di dialog
+  di terze parti) si può quindi usare `x-trap.noscroll="apertaBool"` senza caricare nulla in più: la
+  direttiva intrappola il focus e lo ripristina automaticamente sull'elemento che aveva il focus prima
+  dell'apertura quando l'espressione torna `false` — non serve reimplementare a mano il ripristino del
+  focus (va comunque bene farlo esplicitamente in aggiunta, per robustezza, come in
+  `resources/views/filament/auth/login.blade.php`). Nessun rule CSS globale per `[x-cloak]` risulta
+  definita nei bundle di questo progetto: per una modale con `x-show`, impostare `style="display: none;"`
+  inline sull'elemento invece di affidarsi a `x-cloak`, altrimenti c'è un breve flash del contenuto prima
+  che Alpine si inizializzi.
 
 ## Processo di collaudo (obbligatorio per ogni fase)
 

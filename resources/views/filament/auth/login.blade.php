@@ -90,6 +90,53 @@
         </button>
     </form>
 
+    <div class="mkt-auth__divider"><span>oppure</span></div>
+
+    <div x-data="{ caiInfoOpen: false }">
+        <button
+            type="button"
+            x-ref="caiInfoTrigger"
+            class="mkt-btn mkt-btn--outline mkt-btn--full mkt-auth__cai-btn"
+            aria-disabled="true"
+            @click="caiInfoOpen = true"
+        >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m2 6 10 7 10-7"></path></svg>
+            Accedi con l'account CAI
+        </button>
+
+        <div
+            x-show="caiInfoOpen"
+            style="display: none;"
+            class="mkt-auth__cai-modal"
+            @keydown.escape.window="if (caiInfoOpen) { caiInfoOpen = false; $nextTick(() => $refs.caiInfoTrigger.focus()); }"
+        >
+            <div
+                class="mkt-auth__cai-modal-backdrop"
+                @click="caiInfoOpen = false; $nextTick(() => $refs.caiInfoTrigger.focus())"
+            ></div>
+            <div
+                class="mkt-auth__cai-modal-dialog"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="cai-info-title"
+                x-trap.noscroll="caiInfoOpen"
+            >
+                <h2 id="cai-info-title" class="mkt-auth__cai-modal-title">Funzionalità non disponibile</h2>
+                <p class="mkt-auth__cai-modal-body">
+                    L'accesso con l'account CAI non è ancora disponibile. Continua ad utilizzare email e
+                    password per accedere.
+                </p>
+                <button
+                    type="button"
+                    class="mkt-btn mkt-btn--primary"
+                    @click="caiInfoOpen = false; $nextTick(() => $refs.caiInfoTrigger.focus())"
+                >
+                    Chiudi
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div class="mkt-auth__footer-note">
         La tua Sezione non ha ancora un accesso?
         <a href="https://www.montagnaservizi.com/contatti" target="_blank">Contattaci →</a>
