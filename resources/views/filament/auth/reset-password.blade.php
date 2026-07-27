@@ -1,11 +1,15 @@
 <div class="mkt-auth">
-    <div class="mkt-auth__panel">
+    <div class="mkt-auth__panel mkt-auth__panel--compact">
         <img src="{{ asset('images/marketing/hero-alpine.svg') }}" alt="">
         <div class="mkt-auth__panel-overlay"></div>
         <div class="mkt-auth__panel-content">
             <img src="{{ asset('images/branding/montagna-servizi-logo-white.png') }}" alt="Montagna Servizi" class="mkt-logo">
 
-            <div>
+            <div class="mkt-auth__panel-mobile-only">
+                <div class="mkt-auth__mobile-title">Nuova password</div>
+            </div>
+
+            <div class="mkt-auth__panel-desktop-only">
                 <div class="mkt-auth__eyebrow">Accesso sicuro</div>
                 <h1 class="mkt-auth__title">Ti rimettiamo in cammino in pochi passaggi.</h1>
                 <p class="mkt-auth__lead">
@@ -13,7 +17,7 @@
                 </p>
             </div>
 
-            <div class="mkt-auth__tagline">Serve aiuto? Ti rispondiamo entro 48 ore.</div>
+            <div class="mkt-auth__tagline mkt-auth__panel-desktop-only">Serve aiuto? Ti rispondiamo entro 48 ore.</div>
         </div>
     </div>
 
@@ -27,6 +31,17 @@
         get score() { return (this.len ? 1 : 0) + (this.upper ? 1 : 0) + (this.lower ? 1 : 0) + (this.num ? 1 : 0) },
         get mismatch() { return this.pw2.length > 0 && this.pw1 !== this.pw2 },
     }">
+        <div class="mkt-auth__steps">
+            @foreach (['Richiesta', 'Email inviata', 'Nuova password'] as $i => $label)
+                @php $n = $i + 1; @endphp
+                <span class="mkt-auth__step-dot @if($n === 3) mkt-auth__step-dot--on @else mkt-auth__step-dot--done @endif">{{ $n === 3 ? 3 : '✓' }}</span>
+                <span class="mkt-auth__step-label @if($n === 3) mkt-auth__step-label--active @endif">{{ $label }}</span>
+                @unless ($n === 3)
+                    <span class="mkt-auth__step-sep"></span>
+                @endunless
+            @endforeach
+        </div>
+
         <div class="mkt-auth__form-eyebrow">Nuova password</div>
         <h2 class="mkt-auth__form-title">Imposta una nuova password</h2>
         <p class="mkt-auth__form-lead">Scegli una password sicura: la userai per tutti i servizi della piattaforma.</p>

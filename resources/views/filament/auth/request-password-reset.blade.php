@@ -1,11 +1,15 @@
 <div class="mkt-auth">
-    <div class="mkt-auth__panel">
+    <div class="mkt-auth__panel mkt-auth__panel--compact">
         <img src="{{ asset('images/marketing/hero-alpine.svg') }}" alt="">
         <div class="mkt-auth__panel-overlay"></div>
         <div class="mkt-auth__panel-content">
             <img src="{{ asset('images/branding/montagna-servizi-logo-white.png') }}" alt="Montagna Servizi" class="mkt-logo">
 
-            <div>
+            <div class="mkt-auth__panel-mobile-only">
+                <div class="mkt-auth__mobile-title">{{ $linkSent ? 'Controlla la casella' : 'Recupera password' }}</div>
+            </div>
+
+            <div class="mkt-auth__panel-desktop-only">
                 <div class="mkt-auth__eyebrow">Accesso sicuro</div>
                 <h1 class="mkt-auth__title">Ti rimettiamo in cammino in pochi passaggi.</h1>
                 <p class="mkt-auth__lead">
@@ -14,11 +18,29 @@
                 </p>
             </div>
 
-            <div class="mkt-auth__tagline">Serve aiuto? Ti rispondiamo entro 48 ore.</div>
+            <div class="mkt-auth__tagline mkt-auth__panel-desktop-only">Serve aiuto? Ti rispondiamo entro 48 ore.</div>
         </div>
     </div>
 
     <div class="mkt-auth__form">
+        <div class="mkt-auth__steps">
+            @php
+                $rpStep = $linkSent ? 2 : 1;
+            @endphp
+            @foreach (['Richiesta', 'Email inviata', 'Nuova password'] as $i => $label)
+                @php
+                    $n = $i + 1;
+                    $done = $rpStep > $n;
+                    $on = $rpStep === $n;
+                @endphp
+                <span class="mkt-auth__step-dot @if($on) mkt-auth__step-dot--on @elseif($done) mkt-auth__step-dot--done @endif">{{ $done ? '✓' : $n }}</span>
+                <span class="mkt-auth__step-label @if($on) mkt-auth__step-label--active @endif">{{ $label }}</span>
+                @unless ($n === 3)
+                    <span class="mkt-auth__step-sep"></span>
+                @endunless
+            @endforeach
+        </div>
+
         @if (! $linkSent)
             <div class="mkt-auth__form-eyebrow">Recupera password</div>
             <h2 class="mkt-auth__form-title">Hai dimenticato la password?</h2>
@@ -42,6 +64,7 @@
                             style="flex: 1; border: none; outline: none; background: transparent; padding: 0.6rem 0; font: inherit;"
                         >
                     </div>
+                    <span style="font-size: var(--text-sm); color: var(--text-muted);">Usa l'indirizzo con cui sei registrato alla piattaforma.</span>
                 </div>
 
                 <button type="submit" class="mkt-btn mkt-btn--primary mkt-btn--full" wire:loading.attr="disabled" wire:target="request">
