@@ -1,9 +1,10 @@
 # Verbale conclusivo di collaudo
 
-> Torna a [`README.md`](README.md) · Registro degli esiti: [`04-registro-esiti.md`](04-registro-esiti.md)
+> Torna a [`README.md`](README.md) · Registro degli esiti: [`05-registro-esiti.md`](05-registro-esiti.md)
 
-Modello da compilare al termine dell'esecuzione di tutti i test di [`02-fase-0.md`](02-fase-0.md) e
-[`03-fase-1.md`](03-fase-1.md), con i dati aggregati da [`04-registro-esiti.md`](04-registro-esiti.md).
+Modello da compilare al termine dell'esecuzione di tutti i test di [`02-fase-0.md`](02-fase-0.md),
+[`03-fase-1.md`](03-fase-1.md) e [`04-fase-1a.md`](04-fase-1a.md), con i dati aggregati da
+[`05-registro-esiti.md`](05-registro-esiti.md).
 
 ---
 
@@ -15,7 +16,7 @@ Modello da compilare al termine dell'esecuzione di tutti i test di [`02-fase-0.m
 | Versione sottoposta a collaudo | |
 | Ambiente | UAT — `https://ticket-uat.montagnaservizi.com` |
 | Periodo di esecuzione | dal _______ al _______ |
-| Numero totale dei test | 130 (56 Fase 0 + 74 Fase 1) |
+| Numero totale dei test | 146 (56 Fase 0 + 74 Fase 1 + 16 Fase 1A) |
 
 ## Esiti aggregati
 
@@ -25,7 +26,7 @@ Modello da compilare al termine dell'esecuzione di tutti i test di [`02-fase-0.m
 | FAIL | | |
 | BLOCKED | | |
 | NOT APPLICABLE | | |
-| **Totale** | **130** | **100%** |
+| **Totale** | **146** | **100%** |
 
 ## Elenco delle anomalie aperte
 

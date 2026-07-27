@@ -11,7 +11,7 @@ it('genera la versione dettagliata del pdf quando i file del manuale operativo e
 
     $contents = file_get_contents($path);
     expect($contents)->toStartWith('%PDF');
-    // Il manuale dettagliato (istruzioni + matrice + 130 test + registro + verbale) produce un
+    // Il manuale dettagliato (istruzioni + matrice + 146 test + registro + verbale) produce un
     // PDF sensibilmente più grande della versione leggera basata solo sul manifest: usato come
     // verifica indiretta che tutte le sezioni siano state incluse, non solo la copertina.
     expect(strlen($contents))->toBeGreaterThan(200_000);
