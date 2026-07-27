@@ -417,7 +417,9 @@
   .mkt-auth__eyebrow { font-size: var(--text-sm); margin-bottom: 18px; }
 }
 
-.mkt-auth__title {
+/* Specificità .mkt-auth .mkt-auth__title (0,2,0) necessaria per vincere .mkt h1 (0,1,1, riga 133),
+ * che altrimenti sovrascrive il colore chiaro previsto sul titolo hero (sfondo verde scuro). */
+.mkt-auth .mkt-auth__title {
   margin: 0 0 20px; font-size: 52px; font-weight: var(--fw-extrabold);
   letter-spacing: var(--tracking-tight); line-height: 1.1; color: var(--text-inverse); max-width: 520px;
 }
