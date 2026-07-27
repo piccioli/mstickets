@@ -329,13 +329,25 @@
 .mkt-auth {
   min-height: 100vh;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   background: var(--stone-100);
   width: 100%;
+  box-sizing: border-box;
+  padding: var(--gutter);
   overflow-x: hidden;
 }
+
+.mkt-auth__card {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
 @media (min-width: 900px) {
-  .mkt-auth { flex-direction: row; }
+  .mkt-auth__card { flex-direction: row; }
 }
 
 .mkt-auth__panel {
@@ -426,6 +438,7 @@
   justify-content: center;
   padding: 26px 28px 30px;
   box-sizing: border-box;
+  background: var(--surface-card);
   /* Il mockup non pone alcun tetto (la colonna form è "1fr" di una griglia
      1.05fr/1fr a 1440px totali, ≈700px): 48rem è solo un limite di
      leggibilità per monitor molto ultra-wide, abbastanza largo da non
