@@ -343,3 +343,58 @@ Ogni fase completata (Fase 2 in poi) deve produrre, prima di essere considerata 
    `UatSeeder` (o il suo successore quando arriverà l'ETL reale in Fase 2+) gira ad ogni deploy.
 4. Se un test del collaudo fallisce durante una sessione di collaudo reale, il test automatico
    corrispondente (dal manifest) va rivisto: non copriva il caso reale che ha fatto fallire il collaudo.
+
+## Generazione PDF di collaudo via pdfLaTeX (v0.3.2, sostituisce dompdf)
+
+- `collaudo:generate` (comando sopra) non usa più `dompdf` (HTML→PDF, mai stato in grado di riprodurre
+  fedelmente la carta intestata Montagna Servizi): la Parte 1 e il PDF dettagliato sono ora compilati con
+  `pdflatex` reale, via `App\Support\Latex\LatexPdfCompiler` su un template Blade (`*.tex.blade.php`,
+  richiede `View::addExtension` registrato) che estende la classe vendorizzata `resources/latex/montagnaservizi.cls`.
+  `App\Support\Latex\LatexEscaper` sanitizza ogni valore interpolato (mai un `{{ }}`/`{{{ }}}` Blade nudo
+  su un campo LaTeX: corrompe l'output — serve `{!! !!}` + una graffa letterale extra per gli argomenti di
+  macro), `App\Support\Latex\MarkdownToLatexConverter` converte i manuali markdown (`docs/collaudo/*.md`)
+  nel corpo del PDF dettagliato.
+- **`pdflatex`/`pdftotext` esistono SOLO nell'immagine Docker di sviluppo (`docker/php/Dockerfile`,
+  `FROM php:8.4-fpm-alpine`), mai in `docker/uat/Dockerfile`**: quest'ultimo è una build multi-stage
+  completamente separata basata su FrankenPHP per l'ambiente UAT/produzione, dove `collaudo:generate`
+  (un comando manuale lanciato da uno sviluppatore per produrre il PDF da allegare al collaudo, non
+  qualcosa che gira mai in un deploy automatico o in una request applicativa) non viene mai eseguito —
+  installare ~500MB di TeX Live lì sarebbe puro peso morto sull'immagine di produzione. Se in futuro
+  emergesse un bisogno reale di generare questo PDF anche da UAT, valutarlo esplicitamente allora (con
+  relativo aumento di dimensione immagine/tempi di build), non aggiungerlo preventivamente.
+- **Pacchetti Alpine esatti (verificati con una build reale, non a tentativi)**, aggiunti alla riga
+  esistente `apk add --no-cache` del Dockerfile (insieme a `postgresql-dev`/`libzip-dev`/ecc., mai una
+  seconda riga `apk add` separata): `texlive texmf-dist-latex texmf-dist-latexrecommended
+  texmf-dist-latexextra texmf-dist-fontsrecommended texmf-dist-fontsextra texmf-dist-langitalian
+  texmf-dist-plaingeneric texmf-dist-pictures poppler-utils`. `texmf-dist-langitalian` serve per la
+  sillabazione/i pacchetti in italiano usati dalla classe; `poppler-utils` fornisce `pdftotext`, usato
+  SOLO dai test automatici per verificare il testo renderizzato nel PDF (mai a runtime dall'applicazione).
+  Verifica minima dopo un `docker compose build app`: `docker compose run --rm app pdflatex --version` e
+  `docker compose run --rm app pdftotext -v` devono rispondere con la versione installata.
+- **Bug reali trovati e corretti durante l'introduzione di questa pipeline** (riferimento: ledger
+  `.superpowers/sdd/2026-07-30-collaudo-pdf-latex/progress.md`, task 1-6 di questo piano):
+  - `montagnaservizi.cls` (classe vendorizzata, 3 bug distinti tutti riconducibili allo stesso vincolo):
+    `tabularx` legge il proprio contenuto **verbatim** e non tollera un `\newenvironment` che lo avvolga —
+    ha rotto sia `mstabella` (storico revisioni/presenze/azioni/voci) sia, più tardi, `mdtabella` (nuova
+    tabella per il PDF dettagliato, introdotta al Task 6): `xltabular` (la variante multi-pagina di
+    `tabularx`, usata da `mdtabella`) eredita esattamente lo stesso vincolo, non è un bug indipendente.
+    Il terzo bug in `\firme` era invece un `\dimexpr` calcolato dentro una `minipage` che non si
+    espandeva correttamente nel contesto della classe — fix distinto dal problema `tabularx`.
+    Aggiunto anche `\usepackage{amssymb}` (mancante: senza, il simbolo bullet di `itemize` non è
+    definito e `pdflatex` fallisce in modo fatale, non con un semplice warning).
+  - `MarkdownToLatexConverter` (converte i manuali `docs/collaudo/*.md` in corpo LaTeX): 4 bug reali,
+    tutti emersi SOLO compilando i file reali del progetto (mai riprodotti da test sintetici scritti a
+    priori) — marker di placeholder annidato che trapelava nell'output per link stile `[x.md](x.md)`;
+    un blocco "etichetta in grassetto" che appiattiva una lista puntata subito successiva senza riga
+    vuota; elenchi con wrap manuale a 70-100 caratteri (righe multiple per voce) spezzati in `\item`
+    spuri; un paragrafo interrotto da una lista che veniva fuso in un unico blocco. Più un quinto bug,
+    non nel converter ma scoperto dallo stesso sweep sui file reali: una pipe `|` non escapata in una
+    cella di tabella markdown mandava `pdflatex` in errore fatale (fix in `normalizeRowCells`).
+  - `LatexEscaper`: mappa Unicode incompleta — mancavano le entità `✓`/`−`/`≥`/`≤` usate nei manuali di
+    collaudo reali, causavano caratteri mancanti/corrotti nel PDF finché non riprodotti compilando i
+    file reali (non coperti dai casi di test scritti prima di quel punto).
+  - Nessuno di questi bug era prevedibile da un'ispezione statica del codice: sono emersi tutti
+    compilando davvero `pdflatex` contro contenuto reale (gli 8 file `docs/collaudo/*.md` fino a 302KB) —
+    se una futura modifica a questa pipeline sembra "ovviamente corretta" ma tocca `montagnaservizi.cls`/
+    `MarkdownToLatexConverter`/`LatexEscaper`, ripetere una compilazione reale end-to-end
+    (`collaudo:generate`) prima di considerarla verificata, non fidarsi della sola suite di unit test.

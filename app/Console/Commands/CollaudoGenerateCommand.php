@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Support\Collaudo\CollaudoTestReference;
+use App\Support\Latex\LatexEscaper;
+use App\Support\Latex\LatexPdfCompiler;
+use App\Support\Latex\MarkdownToLatexConverter;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 final class CollaudoGenerateCommand extends Command
 {
@@ -72,51 +75,55 @@ final class CollaudoGenerateCommand extends Command
     }
 
     /**
-     * Rende in un unico PDF il manuale operativo dettagliato (README + istruzioni generali +
+     * Rende in un unico PDF LaTeX il manuale operativo dettagliato (README + istruzioni generali +
      * matrice + casi di test di Fase 0/1 + registro esiti + verbale), convertendo ciascun file
-     * Markdown in HTML (`Str::markdown`, GitHub-Flavored: tabelle incluse) e separando le sezioni
-     * con un'interruzione di pagina.
+     * Markdown in LaTeX (`MarkdownToLatexConverter`) e separando le sezioni con un'interruzione di
+     * pagina. Ogni file diventa una `\section{}` (voce reale nell'indice generato da `\indicedoc`),
+     * quindi il proprio h1 interno va rimosso prima della conversione (`stripOwnTitle`) per non
+     * duplicare il titolo.
      */
     public function buildDetailedPdf(string $fase): string
     {
         $sections = array_map(
             static fn (array $entry): array => [
-                'titolo' => $entry['titolo'],
-                'html' => Str::markdown(
-                    self::separateBoldLabelsIntoOwnParagraph(
-                        file_get_contents(base_path("docs/collaudo/{$entry['file']}")),
-                    ),
-                    ['html_input' => 'strip', 'allow_unsafe_links' => false],
+                'titolo' => LatexEscaper::escape($entry['titolo']),
+                'latex' => (new MarkdownToLatexConverter)->convert(
+                    self::stripOwnTitle(file_get_contents(base_path("docs/collaudo/{$entry['file']}"))),
                 ),
             ],
             self::DETAILED_FILES,
         );
 
-        $pdf = Pdf::loadView('pdf.collaudo-dettagliato', [
-            'titolo' => 'Fase 0 (Fondazioni) + Fase 1 (Ticketing core) + Fase 1A (Landing, Login, Recupero password)',
-            'generatedAt' => now()->translatedFormat('d/m/Y H:i'),
+        $tex = view('latex.collaudo-dettagliato', [
+            'titolo' => LatexEscaper::escape(
+                'Fase 0 (Fondazioni) + Fase 1 (Ticketing core) + Fase 1A (Landing, Login, Recupero password)',
+            ),
             'sections' => $sections,
-        ]);
+        ])->render();
+
+        $pdfPath = app(LatexPdfCompiler::class)->compile($tex);
 
         $filename = sprintf('collaudo-dettagliato-fase-%s-%s.pdf', $fase, now()->format('Ymd-His'));
         $disk = Storage::build(['driver' => 'local', 'root' => storage_path('app')]);
-        $disk->put("collaudo/{$filename}", $pdf->output());
+        $disk->put("collaudo/{$filename}", file_get_contents($pdfPath));
+        File::delete($pdfPath);
 
         return storage_path("app/collaudo/{$filename}");
     }
 
     /**
-     * I casi di test (§ template di collaudo) separano l'etichetta in grassetto dal contenuto con
-     * un solo a-capo (`**Obiettivo**\nTesto...`), non una riga vuota. CommonMark tratta un singolo
-     * a-capo come un semplice spazio nello stesso paragrafo, fondendo visivamente etichetta e
-     * testo. Questo inserisce una riga vuota reale SOLO dopo una riga che è per intero
-     * `**Etichetta**` (mai dentro una frase con grassetto inline), lasciando invariati i paragrafi
-     * discorsivi genuinamente spezzati su più righe sorgente per leggibilità (che devono continuare
-     * a fluire come un unico paragrafo, non riga per riga).
+     * Ogni file di docs/collaudo/ apre con un h1 (`# Titolo...`) che duplica il titolo già
+     * mostrato nell'indice del documento combinato (colonna "titolo" di DETAILED_FILES): senza
+     * questa rimozione, il PDF LaTeX mostrerebbe lo stesso titolo due volte consecutive (una volta
+     * come \section{} dell'indice generale, una volta come \section{} convertito dal primo h1 del
+     * file). dompdf/HTML non aveva questo problema perché l'h1 diventava semplicemente un
+     * sottotitolo visivo dentro la sezione, mai un ingresso nell'indice — qui invece ogni
+     * \section{} genera una voce di indice reale (\indicedoc), quindi il duplicato sarebbe
+     * visibile due volte anche lì.
      */
-    private static function separateBoldLabelsIntoOwnParagraph(string $markdown): string
+    private static function stripOwnTitle(string $markdown): string
     {
-        return (string) preg_replace('/^(\*\*[^\n*]+\*\*)\n(?!\n)/m', "$1\n\n", $markdown);
+        return (string) preg_replace('/^# .+\n+/', '', $markdown, limit: 1);
     }
 
     /**
@@ -124,10 +131,66 @@ final class CollaudoGenerateCommand extends Command
      */
     public function buildPdf(string $fase, array $manifest): string
     {
-        $pdf = Pdf::loadView('pdf.collaudo', ['manifest' => $manifest]);
+        $credenziali = array_map(
+            static fn (array $cred): array => [
+                'ruolo' => LatexEscaper::escape($cred['ruolo']),
+                'email' => LatexEscaper::escape($cred['email']),
+                'password' => LatexEscaper::escape($cred['password']),
+            ],
+            $manifest['parte_1']['credenziali'],
+        );
+
+        $topics = array_map(
+            static fn (array $topic): array => [
+                'titolo' => LatexEscaper::escape($topic['titolo']),
+                'test' => array_map(
+                    static fn (array $test): array => [
+                        'id' => LatexEscaper::escape($test['id']),
+                        'descrizione' => LatexEscaper::escape($test['descrizione']),
+                        // Solo il percorso del file (mai la descrizione dopo '::'), stesso
+                        // comportamento della vecchia vista dompdf rimossa nel Task 4: la
+                        // colonna "Test automatico" resterebbe altrimenti troppo larga/
+                        // ridondante con la colonna "Descrizione" già presente.
+                        //
+                        // \allowbreak{} dopo ogni '/' (inserito DOPO l'escape, mai prima:
+                        // LatexEscaper::escape() non tocca '/', quindi l'ordine non fa
+                        // differenza per quel carattere, ma un \allowbreak letterale
+                        // inserito PRIMA verrebbe altrimenti mangiato dall'escape del
+                        // backslash che lo precede) — verificato end-to-end compilando
+                        // davvero un manifest reale (fix v0.3.2): senza, \texttt{} in una
+                        // colonna p{} di larghezza fissa non ha alcun punto di interruzione
+                        // (un percorso è una singola "parola" senza spazi per l'algoritmo di
+                        // wrap dei paragrafi), quindi un percorso più lungo della colonna
+                        // (es. "tests/Feature/Filament/Auth/PasswordResetTest.php") non va a
+                        // capo ma sborda oltre il margine della cella, con l'effetto
+                        // osservato di caratteri di coda persi/sovrapposti nell'estrazione
+                        // testo del PDF risultante.
+                        'test_automatico' => str_replace(
+                            '/',
+                            '/\allowbreak{}',
+                            LatexEscaper::escape(CollaudoTestReference::file($test['test_automatico'])),
+                        ),
+                    ],
+                    $topic['test'],
+                ),
+            ],
+            $manifest['topics'],
+        );
+
+        $tex = view('latex.collaudo', [
+            'titolo' => LatexEscaper::escape($manifest['titolo']),
+            'appUrl' => LatexEscaper::escape($manifest['parte_1']['app_url']),
+            'mailpitUrl' => LatexEscaper::escape($manifest['parte_1']['mailpit_url']),
+            'credenziali' => $credenziali,
+            'topics' => $topics,
+        ])->render();
+
+        $pdfPath = app(LatexPdfCompiler::class)->compile($tex);
+
         $filename = sprintf('collaudo-fase-%s-%s.pdf', $fase, now()->format('Ymd-His'));
         $disk = Storage::build(['driver' => 'local', 'root' => storage_path('app')]);
-        $disk->put("collaudo/{$filename}", $pdf->output());
+        $disk->put("collaudo/{$filename}", file_get_contents($pdfPath));
+        File::delete($pdfPath);
 
         return storage_path("app/collaudo/{$filename}");
     }

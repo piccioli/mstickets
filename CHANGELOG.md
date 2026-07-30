@@ -5,6 +5,32 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 Il formato è basato su [Keep a Changelog](https://keepachangelog.com/it/1.1.0/),
 e il progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.3.2] - 2026-07-30
+
+**Motore PDF di collaudo su LaTeX**, in sostituzione di dompdf/HTML, con la carta
+intestata ufficiale Montagna Servizi (classe `montagnaservizi.cls`).
+
+### Aggiunto
+
+- `App\Support\Latex\{LatexEscaper,LatexPdfCompiler,MarkdownToLatexConverter}`: motore di
+  generazione PDF via pdfLaTeX (TeX Live), con compilazione multi-passata a convergenza
+  sul conteggio pagine e gestione errori con log di compilazione.
+- Classe LaTeX brandizzata `resources/latex/montagnaservizi.cls` (copertina, tabelle,
+  box nota/attenzione/requisito, elenchi numerati a fasi, firme, tabelle multi-pagina) —
+  importata da un progetto Claude Design dedicato e corretta (6 costrutti non
+  compilavano nella versione originale, vedi CLAUDE.md per i dettagli).
+- TeX Live nell'immagine Docker di sviluppo (`docker/php/Dockerfile`) e in CI — non in
+  produzione/UAT, dove `collaudo:generate` non viene mai eseguito.
+
+### Rimosso
+
+- Dipendenza `barryvdh/laravel-dompdf`, non più usata da nessuna parte dell'applicazione.
+
+### Modificato
+
+- Sia il PDF di collaudo sintetico sia quello dettagliato sono ora generati da sorgente
+  LaTeX invece che da viste Blade/HTML renderizzate con dompdf.
+
 ## [0.3.1] - 2026-07-30
 
 **Rifiniture pixel-perfect di login e recupero password** rispetto al mockup del committente, a
