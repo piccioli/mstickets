@@ -267,6 +267,70 @@ Lo sviluppo di scaffold è stato verificato con PHP 8.5 locale (compatibile con 
 - **Un log identificato solo da `to_status` non è univoco quando lo stesso stato di destinazione viene raggiunto più volte nello stesso test** (es. `to_status = todo` sia dalla transizione ordinaria `assigned → todo` sia da una demozione `progress → todo` successiva): filtrare sempre anche su `from_status` prima di uno `->sole()`, mai un `->latest(...)->sole()` (`sole()` conta l'intero risultato della query, l'ordinamento non lo riduce a una riga).
 - **Due livelli di difesa distinti contro una transizione/contesto manipolato, da testare separatamente**: (1) Filament risolve `$data` di un'action dallo **stato dello schema dichiarato**, non dall'array grezzo — un campo iniettato via `setActionData()` ma assente dallo schema (es. `assignee_id` quando l'attore si auto-assegna, US-110) viene ignorato, non genera un errore; (2) `TicketStateMachine::authorize()`/i guard degli attori (es. `AutoAssigningDeveloper::authorize()`, US-101) restano comunque la difesa "vera", verificabile chiamando `ChangeTicketStatus::run()` direttamente con un `context` impersonato, indipendentemente da qualunque comportamento di Filament. Un test che assume che (1) da solo basti a dimostrare la sicurezza è un test debole: verificare sempre anche (2).
 
+## Pixel-perfect login/recupero password (ciclo `ralph/login-design-pixel-fixes`, US-004+)
+
+- **Verifica visiva reale disponibile, non solo `curl`**: su questa macchina è installato `Google Chrome.app`
+  e la sua modalità headless CLI funziona per uno screenshot vero (non serve un tool MCP dedicato):
+  `"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --disable-gpu --no-sandbox --screenshot=/tmp/xyz.png --window-size=1440,1024 "http://127.0.0.1:PORT/percorso"`,
+  poi ispezionare il PNG con lo strumento Read. Usare questo (con `php artisan serve` +
+  `SESSION_DRIVER=array CACHE_STORE=array QUEUE_CONNECTION=sync`, vedi nota US-002 in progress.txt) invece
+  di fermarsi a "nessuno strumento di screenshot/browser disponibile in questa sessione" — quella nota nelle
+  story precedenti (US-001/002/003) non è più vera, verificarlo di nuovo prima di scrivere la stessa
+  limitazione in una story futura.
+- **Pipeline font Manrope (US-004) verificata end-to-end e risultata già corretta, nessun bug reale
+  trovato**: `vite.config.js` dichiara `bunny('Manrope', {weights:[400,500,600,700,800]})`,
+  `public/build/fonts-manifest.json`/`fonts-manifest.dev.json` contengono i relativi `@font-face` +
+  preload, `@fonts('manrope')` in `filament/auth/layout.blade.php` li inietta correttamente nell'head, e
+  ogni selettore CSS che ne ha bisogno dichiara `font-family: var(--mkt-font-sans)` esplicitamente —
+  incluso `.mkt-field input` con `!important` perché gli elementi form nativi (`input`/`button`/`select`)
+  NON ereditano il font dagli antenati per default nello user-agent stylesheet del browser: se una story
+  futura introduce un nuovo elemento di form/bottone che deve usare Manrope, replicare questo pattern
+  (dichiarazione esplicita, `!important` solo se realmente necessario dopo aver verificato in DevTools che
+  serve). Regression guard: `tests/Feature/Http/AuthFontLoadingTest.php` (asserzioni HTTP sul markup
+  `@font-face`/preload della pagina di login, stesso pattern di `MarketingAssetsSeparationTest.php`).
+- **Gotcha selettore discendente vs figlio diretto in `components/auth/panel.blade.php` (US-005)**:
+  `.mkt-auth__panel img` (pensato solo per la foto di sfondo full-bleed, figlio diretto di
+  `.mkt-auth__panel`) intercettava per errore anche `img.mkt-logo`, annidato più a fondo dentro
+  `.mkt-auth__panel-content`, applicandogli `position: absolute; inset: 0` e togliendolo dal flusso —
+  qualunque `margin`/spaziatura sul logo diventava ininfluente, indipendentemente dal valore. Fix:
+  combinatore di figlio diretto (`.mkt-auth__panel > img`). Se una story futura tocca questo
+  componente e un elemento non risponde a `margin`/spacing nonostante il CSS compilato sia corretto
+  (verificato via grep), controllare prima se ha ereditato `position: absolute/fixed` da un selettore
+  discendente troppo generico scritto per un altro elemento — non solo il valore della proprietà.
+  Tecnica di diagnosi utile: riprodurre in un file HTML statico isolato (fuori da Laravel/Livewire)
+  con la stessa CSS compilata, per escludere interferenze di Alpine/Livewire. Regression guard:
+  `tests/Unit/AuthHeroLogoSpacingTest.php`.
+- **Misurare un dettaglio geometrico del mockup quando "a occhio" non basta a scegliere tra due token
+  vicini (US-006)**: per confrontare un border-radius/spacing del mockup PNG
+  (`docs/features/login-design-pixel-fixes/reference-design.png`) con l'implementazione, uno script
+  Python veloce con PIL+numpy è più affidabile della sola ispezione visiva: crop della zona
+  d'interesse, mask su un range di grigio per isolare il bordo dell'elemento, poi ricerca della riga/
+  colonna in cui la coordinata minima si stabilizza per stimare il raggio dell'arco dell'angolo. Non
+  serve conoscere lo scale factor esatto dello screenshot (Figma/design tool esportano a risoluzioni
+  arbitrarie): basta la proporzione relativa fra il raggio misurato e le dimensioni dell'elemento
+  (es. altezza dell'input) per capire quale token CSS esistente è il più vicino.
+- **Gotcha `Livewire::test(...)->assertSeeText($value)` (US-009)**: a differenza di `assertSeeHtml()`,
+  `assertSeeText()` ha `$escape = true` come default e passa il valore atteso per `e()` (HTML-encode)
+  prima di confrontarlo col markup renderizzato — un apostrofo dritto (`'`) nell'asserzione diventa
+  `&#039;` e non matcha più testo Blade statico (non passato da `{{ }}`), che nel markup resta un
+  apostrofo letterale non incodificato. Se un'asserzione `assertSeeText()` su una stringa con
+  apostrofo/`&`/`<`/`>` fallisce in modo apparentemente incomprensibile (il messaggio di errore mostra
+  il valore atteso già con l'entità HTML), passare `false` come secondo argomento
+  (`assertSeeText("...l'account...", false)`), esattamente come già si fa con `assertSee($value, false)`.
+- **Il plugin Alpine `@alpinejs/focus` (direttiva `x-trap`) è già caricato globalmente su tutte le pagine
+  Filament** (incluse le view custom come `filament/auth/login.blade.php`, che include
+  `@filamentScripts(withCore: true)`), perché i modali nativi di Filament lo usano internamente
+  (`vendor/filament/support/resources/views/components/modal/index.blade.php`). Per una modale Alpine
+  inline "fatta a mano" (niente componente Filament, per rispettare un AC che vieta librerie di dialog
+  di terze parti) si può quindi usare `x-trap.noscroll="apertaBool"` senza caricare nulla in più: la
+  direttiva intrappola il focus e lo ripristina automaticamente sull'elemento che aveva il focus prima
+  dell'apertura quando l'espressione torna `false` — non serve reimplementare a mano il ripristino del
+  focus (va comunque bene farlo esplicitamente in aggiunta, per robustezza, come in
+  `resources/views/filament/auth/login.blade.php`). Nessun rule CSS globale per `[x-cloak]` risulta
+  definita nei bundle di questo progetto: per una modale con `x-show`, impostare `style="display: none;"`
+  inline sull'elemento invece di affidarsi a `x-cloak`, altrimenti c'è un breve flash del contenuto prima
+  che Alpine si inizializzi.
+
 ## Processo di collaudo (obbligatorio per ogni fase)
 
 Ogni fase completata (Fase 2 in poi) deve produrre, prima di essere considerata chiusa:

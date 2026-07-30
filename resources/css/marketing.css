@@ -205,11 +205,11 @@
 .mkt-field { display: flex; flex-direction: column; gap: 0.4rem; width: 100%; }
 .mkt-field label {
   font-size: var(--text-sm);
-  font-weight: var(--fw-semibold);
+  font-weight: var(--fw-bold);
   color: var(--text-strong);
 }
 .mkt-field .fi-input-wrp {
-  border-radius: var(--radius-sm) !important;
+  border-radius: var(--radius-md) !important;
   border: 1.5px solid var(--border-default) !important;
   box-shadow: none !important;
 }
@@ -329,13 +329,25 @@
 .mkt-auth {
   min-height: 100vh;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   background: var(--stone-100);
   width: 100%;
+  box-sizing: border-box;
+  padding: var(--gutter);
   overflow-x: hidden;
 }
+
+.mkt-auth__card {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
 @media (min-width: 900px) {
-  .mkt-auth { flex-direction: row; }
+  .mkt-auth__card { flex-direction: row; }
 }
 
 .mkt-auth__panel {
@@ -350,7 +362,7 @@
   .mkt-auth__panel--compact { height: auto; }
 }
 
-.mkt-auth__panel img {
+.mkt-auth__panel > img {
   position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
 }
 .mkt-auth__panel-overlay {
@@ -381,7 +393,7 @@
 .mkt-auth__panel-content img.mkt-logo { height: 44px; width: auto; margin-bottom: 26px; display: block; }
 .mkt-auth__panel--compact img.mkt-logo { height: 40px; }
 @media (min-width: 900px) {
-  .mkt-auth__panel-content img.mkt-logo { height: 62px; margin-bottom: 0; align-self: flex-start; }
+  .mkt-auth__panel-content img.mkt-logo { height: 62px; margin-bottom: 48px; align-self: flex-start; }
 }
 
 .mkt-auth__panel-mobile-only { display: block; }
@@ -405,7 +417,9 @@
   .mkt-auth__eyebrow { font-size: var(--text-sm); margin-bottom: 18px; }
 }
 
-.mkt-auth__title {
+/* Specificità .mkt-auth .mkt-auth__title (0,2,0) necessaria per vincere .mkt h1 (0,1,1, riga 133),
+ * che altrimenti sovrascrive il colore chiaro previsto sul titolo hero (sfondo verde scuro). */
+.mkt-auth .mkt-auth__title {
   margin: 0 0 20px; font-size: 52px; font-weight: var(--fw-extrabold);
   letter-spacing: var(--tracking-tight); line-height: 1.1; color: var(--text-inverse); max-width: 520px;
 }
@@ -426,6 +440,7 @@
   justify-content: center;
   padding: 26px 28px 30px;
   box-sizing: border-box;
+  background: var(--surface-card);
   /* Il mockup non pone alcun tetto (la colonna form è "1fr" di una griglia
      1.05fr/1fr a 1440px totali, ≈700px): 48rem è solo un limite di
      leggibilità per monitor molto ultra-wide, abbastanza largo da non
@@ -440,6 +455,7 @@
 }
 .mkt-auth__form-eyebrow {
   font-size: var(--text-sm); font-weight: var(--fw-extrabold); letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
   color: var(--text-brand); margin-bottom: 14px;
 }
 .mkt-auth__form-title { margin: 0 0 10px; font-size: 38px; font-weight: var(--fw-extrabold); letter-spacing: var(--tracking-tight); line-height: 1.15; }
@@ -451,6 +467,72 @@
 
 .mkt-auth__footer-note { margin-top: 34px; font-size: var(--text-base); color: var(--text-body); line-height: 1.6; }
 .mkt-auth__footer-note a { font-weight: var(--fw-bold); color: var(--text-brand); }
+
+/* Separatore "oppure" tra il login primario e l'accesso account CAI (disattivato) */
+.mkt-auth__divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 24px 0;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+.mkt-auth__divider::before,
+.mkt-auth__divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-subtle);
+}
+
+/* Bottone "Accedi con l'account CAI": stile outline esistente ma reso visivamente
+   disattivato (palette --stone-*, cursor not-allowed) — resta un elemento reale
+   cliccabile/raggiungibile da tastiera (niente attributo HTML disabled), solo
+   aria-disabled per gli screen reader. */
+.mkt-btn--outline.mkt-auth__cai-btn {
+  color: var(--stone-500);
+  border-color: var(--stone-300);
+  cursor: not-allowed;
+}
+.mkt-btn--outline.mkt-auth__cai-btn:hover { background: transparent; }
+
+/* Modale informativa "Funzionalità non disponibile" (Alpine inline, nessuna libreria di
+   dialog di terze parti). */
+.mkt-auth__cai-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.mkt-auth__cai-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(28, 32, 30, 0.55);
+}
+.mkt-auth__cai-modal-dialog {
+  position: relative;
+  background: var(--surface-card);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-md);
+  padding: 32px;
+  max-width: 26rem;
+  width: 100%;
+}
+.mkt-auth__cai-modal-title {
+  margin: 0 0 14px;
+  font-size: var(--text-md);
+  font-weight: var(--fw-extrabold);
+  color: var(--text-strong);
+}
+.mkt-auth__cai-modal-body {
+  margin: 0 0 26px;
+  font-size: var(--text-base);
+  line-height: 1.6;
+  color: var(--text-body);
+}
 
 .mkt-auth__step-icon {
   width: 60px; height: 60px; border-radius: var(--radius-pill); background: var(--green-50);
