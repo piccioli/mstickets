@@ -111,6 +111,30 @@ it('converts a pipe table into a mdtabella with escaped cell content', function 
     expect($out)->toContain('100\% ok');
 });
 
+it('merges an unescaped literal pipe inside the last cell back into that cell instead of producing a ragged row', function () {
+    // Bug reale trovato nel sweep di Task 6 (Step 6): docs/collaudo/03-fase-1.md
+    // (F1-27) ha una cella di risultato atteso con un "|" letterale NON
+    // sfuggito ("pagina di errore \"403 | Questa azione non è
+    // autorizzata.\""). splitRow() (split ingenuo su "|") produceva quindi
+    // una riga a 5 colonne contro un header a 4 — \mdtabella (tabularx a
+    // preambolo fisso) falliva la compilazione dell'INTERO documento con
+    // "Extra alignment tab has been changed to \cr" (fatale, nessun PDF).
+    $markdown = <<<'MD'
+    | Passo | Azione | Risultato |
+    |------:|--------|-----------|
+    | 1 | naviga | pagina di errore "403 | non autorizzato" |
+    MD;
+
+    $out = (new MarkdownToLatexConverter)->convert($markdown);
+
+    expect($out)->toContain('pagina di errore "403 | non autorizzato"');
+    // Tre "&" (2 separatori di colonna nell'header + 2 nel corpo, una riga
+    // a 3 colonne): se la riga fosse rimasta a 4 celle spurie, questo
+    // conteggio fallirebbe silenziosamente in un unit test (a differenza
+    // del crash reale, che si manifesta solo in pdflatex).
+    expect(substr_count($out, ' & '))->toBe(4);
+});
+
 it('right-aligns a table column marked with --: in the header separator', function () {
     $markdown = <<<'MD'
     | A | B |
@@ -169,6 +193,31 @@ it('joins a hard-wrapped bullet item spanning multiple physical lines, including
         "\\begin{itemize}\n".
         "\\item Accesso al database (locale: \\texttt{docker compose exec db psql -U utente database}; per l'ambiente UAT vedi le note).\n".
         '\item Secondo elemento, su una sola riga.'."\n".
+        '\end{itemize}'
+    );
+});
+
+it('converts a bullet list that interrupts a paragraph without a blank line separator', function () {
+    // Bug reale trovato nel sweep di Task 6 (Step 6) passando gli 8 file
+    // reali di docs/collaudo/ attraverso il convertitore:
+    // docs/collaudo/00-istruzioni-generali.md ha un paragrafo che finisce
+    // con "... 16 nuovi test." seguito, SENZA riga vuota, da tre righe "- ".
+    // Poiché il blocco (delimitato solo da righe vuote) inizia con testo
+    // piano, prima di questo fix l'INTERO blocco — paragrafo incluso i
+    // trattini dell'elenco — veniva reso come un unico paragrafo, lasciando
+    // "- **Data di stesura**..." come testo letterale invece che come
+    // \item di un \begin{itemize}.
+    $out = (new MarkdownToLatexConverter)->convert(
+        "Primo paragrafo che introduce un elenco:\n".
+        "- primo elemento\n".
+        '- secondo elemento'
+    );
+
+    expect($out)->toBe(
+        "Primo paragrafo che introduce un elenco:\n\n".
+        "\\begin{itemize}\n".
+        "\\item primo elemento\n".
+        '\item secondo elemento'."\n".
         '\end{itemize}'
     );
 });

@@ -53,6 +53,15 @@
 \RequirePackage{lastpage}
 \RequirePackage{titlesec}
 \RequirePackage{enumitem}
+% amssymb: fornisce \blacktriangleright, usato più sotto come simbolo del
+% primo livello di itemize (§ "Elenchi brandizzati"). Bug trovato nel Task 6
+% (v0.3.2): nessun documento fino a questo task aveva mai reso un
+% \begin{itemize} reale (i template precedenti usavano solo \begin{enumerate}
+% per l'indice degli argomenti), quindi la compilazione falliva sempre con
+% "Undefined control sequence" appena un documento — qui il manuale di
+% collaudo dettagliato, che converte gli elenchi puntati Markdown in
+% itemize — includeva anche un solo elenco puntato.
+\RequirePackage{amssymb}
 \RequirePackage{array}
 \RequirePackage{tabularx}
 \RequirePackage{longtable}

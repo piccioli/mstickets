@@ -81,7 +81,41 @@ final class MarkdownToLatexConverter
             return $label.'\par'."\n".$rest;
         }
 
+        // Un paragrafo può essere seguito, SENZA riga vuota di separazione,
+        // da un elenco/tabella/blocco di codice che lo "interrompe" (pattern
+        // CommonMark legittimo: `preg_split('/\n{2,}/', ...)` a monte non
+        // spezza questo caso in due blocchi separati, perché non c'è alcuna
+        // riga vuota tra le due parti). Occorrenze reali confermate in
+        // docs/collaudo/00-istruzioni-generali.md ("... 16 nuovi test.\n-
+        // **Data di stesura**...") e 03-fase-1.md ("Note aggiuntive sulla
+        // matrice...:\n- \"Completato\"...", "Tre ticket seed...:\n- Indice
+        // `i=10`..."): senza questo scorrimento, l'INTERO blocco (paragrafo +
+        // righe "- ..." dell'elenco) cadeva nel fallback sottostante e
+        // veniva reso come unico paragrafo piano, con i trattini dell'elenco
+        // lasciati come testo letterale invece che come `\item`. Si cerca la
+        // prima riga (dopo la prima) che avvia un altro tipo di blocco, si
+        // rende la parte precedente come paragrafo e si delega il resto a
+        // una nuova chiamata di convertBlock() (che risolve da sé il tipo
+        // corretto, stesso principio già usato per il caso "**Etichetta**").
+        foreach ($lines as $index => $line) {
+            if ($index === 0) {
+                continue;
+            }
+
+            if ($this->startsNewBlockType($line)) {
+                $paragraph = $this->inline(trim(implode("\n", array_slice($lines, 0, $index))));
+                $rest = $this->convertBlock(implode("\n", array_slice($lines, $index)));
+
+                return $paragraph."\n\n".$rest;
+            }
+        }
+
         return $this->inline(trim($block));
+    }
+
+    private function startsNewBlockType(string $line): bool
+    {
+        return (bool) preg_match('/^(#{1,6} |```|> |- |\d+\. |\|)/', $line);
     }
 
     /**
@@ -214,15 +248,57 @@ final class MarkdownToLatexConverter
             $header,
         ));
 
+        $expectedCells = count($header);
         $bodyLatex = implode("\n", array_map(
             fn (string $row): string => implode(' & ', array_map(
                 fn (string $cell): string => $this->inline($cell),
-                $this->splitRow($row),
+                $this->normalizeRowCells($this->splitRow($row), $expectedCells),
             )).' \\\\',
             $bodyRows,
         ));
 
         return "\\mdtabella{{$colSpec}}{{$headerCells}}{%\n{$bodyLatex}\n}";
+    }
+
+    /**
+     * Adatta una riga già spezzata da splitRow() al numero di colonne
+     * dichiarato dall'header, riparando righe "sfilacciate" invece di far
+     * fallire l'intera compilazione. Occorrenza reale in
+     * docs/collaudo/03-fase-1.md (F1-27, tabella "Procedura di esecuzione"):
+     * una cella di risultato atteso contiene un `|` letterale NON
+     * sfuggito ("pagina di errore \"403 | Questa azione non è
+     * autorizzata.\""), che splitRow() (split ingenuo su `|`, stesso
+     * comportamento richiesto dalla spec GFM per le tabelle: un `|` in una
+     * cella andrebbe scritto `\|`) spezza in due celle spurie, producendo
+     * una riga a 5 colonne contro un header a 4. Il vecchio renderer HTML
+     * (dompdf/CommonMark) tollerava silenziosamente questo contenuto
+     * "sporco" (un `<td>` di troppo, riga larga ma nessun crash); `\mdtabella` invece è
+     * una tabularx a preambolo di colonne fisso: un `&` di troppo o
+     * mancante è un errore FATALE di pdflatex ("Extra alignment tab has
+     * been changed to \cr", nessun PDF prodotto per l'intero documento
+     * combinato). Le celle in eccesso vengono riunite nell'ultima cella
+     * attesa (rijoin con " | ", per restituire il testo originale il più
+     * fedelmente possibile); le celle mancanti (riga troppo corta, mai
+     * osservato nel corpus reale ma difensivo per lo stesso principio)
+     * vengono riempite con celle vuote.
+     *
+     * @param  list<string>  $cells
+     * @return list<string>
+     */
+    private function normalizeRowCells(array $cells, int $expectedCount): array
+    {
+        if (count($cells) === $expectedCount) {
+            return $cells;
+        }
+
+        if (count($cells) < $expectedCount) {
+            return array_pad($cells, $expectedCount, '');
+        }
+
+        $head = array_slice($cells, 0, $expectedCount - 1);
+        $tail = implode(' | ', array_slice($cells, $expectedCount - 1));
+
+        return [...$head, $tail];
     }
 
     /**

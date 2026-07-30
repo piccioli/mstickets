@@ -6,11 +6,10 @@ namespace App\Console\Commands;
 
 use App\Support\Latex\LatexEscaper;
 use App\Support\Latex\LatexPdfCompiler;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Support\Latex\MarkdownToLatexConverter;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 final class CollaudoGenerateCommand extends Command
 {
@@ -75,51 +74,55 @@ final class CollaudoGenerateCommand extends Command
     }
 
     /**
-     * Rende in un unico PDF il manuale operativo dettagliato (README + istruzioni generali +
+     * Rende in un unico PDF LaTeX il manuale operativo dettagliato (README + istruzioni generali +
      * matrice + casi di test di Fase 0/1 + registro esiti + verbale), convertendo ciascun file
-     * Markdown in HTML (`Str::markdown`, GitHub-Flavored: tabelle incluse) e separando le sezioni
-     * con un'interruzione di pagina.
+     * Markdown in LaTeX (`MarkdownToLatexConverter`) e separando le sezioni con un'interruzione di
+     * pagina. Ogni file diventa una `\section{}` (voce reale nell'indice generato da `\indicedoc`),
+     * quindi il proprio h1 interno va rimosso prima della conversione (`stripOwnTitle`) per non
+     * duplicare il titolo.
      */
     public function buildDetailedPdf(string $fase): string
     {
         $sections = array_map(
             static fn (array $entry): array => [
-                'titolo' => $entry['titolo'],
-                'html' => Str::markdown(
-                    self::separateBoldLabelsIntoOwnParagraph(
-                        file_get_contents(base_path("docs/collaudo/{$entry['file']}")),
-                    ),
-                    ['html_input' => 'strip', 'allow_unsafe_links' => false],
+                'titolo' => LatexEscaper::escape($entry['titolo']),
+                'latex' => (new MarkdownToLatexConverter)->convert(
+                    self::stripOwnTitle(file_get_contents(base_path("docs/collaudo/{$entry['file']}"))),
                 ),
             ],
             self::DETAILED_FILES,
         );
 
-        $pdf = Pdf::loadView('pdf.collaudo-dettagliato', [
-            'titolo' => 'Fase 0 (Fondazioni) + Fase 1 (Ticketing core) + Fase 1A (Landing, Login, Recupero password)',
-            'generatedAt' => now()->translatedFormat('d/m/Y H:i'),
+        $tex = view('latex.collaudo-dettagliato', [
+            'titolo' => LatexEscaper::escape(
+                'Fase 0 (Fondazioni) + Fase 1 (Ticketing core) + Fase 1A (Landing, Login, Recupero password)',
+            ),
             'sections' => $sections,
-        ]);
+        ])->render();
+
+        $pdfPath = app(LatexPdfCompiler::class)->compile($tex);
 
         $filename = sprintf('collaudo-dettagliato-fase-%s-%s.pdf', $fase, now()->format('Ymd-His'));
         $disk = Storage::build(['driver' => 'local', 'root' => storage_path('app')]);
-        $disk->put("collaudo/{$filename}", $pdf->output());
+        $disk->put("collaudo/{$filename}", file_get_contents($pdfPath));
+        File::delete($pdfPath);
 
         return storage_path("app/collaudo/{$filename}");
     }
 
     /**
-     * I casi di test (§ template di collaudo) separano l'etichetta in grassetto dal contenuto con
-     * un solo a-capo (`**Obiettivo**\nTesto...`), non una riga vuota. CommonMark tratta un singolo
-     * a-capo come un semplice spazio nello stesso paragrafo, fondendo visivamente etichetta e
-     * testo. Questo inserisce una riga vuota reale SOLO dopo una riga che è per intero
-     * `**Etichetta**` (mai dentro una frase con grassetto inline), lasciando invariati i paragrafi
-     * discorsivi genuinamente spezzati su più righe sorgente per leggibilità (che devono continuare
-     * a fluire come un unico paragrafo, non riga per riga).
+     * Ogni file di docs/collaudo/ apre con un h1 (`# Titolo...`) che duplica il titolo già
+     * mostrato nell'indice del documento combinato (colonna "titolo" di DETAILED_FILES): senza
+     * questa rimozione, il PDF LaTeX mostrerebbe lo stesso titolo due volte consecutive (una volta
+     * come \section{} dell'indice generale, una volta come \section{} convertito dal primo h1 del
+     * file). dompdf/HTML non aveva questo problema perché l'h1 diventava semplicemente un
+     * sottotitolo visivo dentro la sezione, mai un ingresso nell'indice — qui invece ogni
+     * \section{} genera una voce di indice reale (\indicedoc), quindi il duplicato sarebbe
+     * visibile due volte anche lì.
      */
-    private static function separateBoldLabelsIntoOwnParagraph(string $markdown): string
+    private static function stripOwnTitle(string $markdown): string
     {
-        return (string) preg_replace('/^(\*\*[^\n*]+\*\*)\n(?!\n)/m', "$1\n\n", $markdown);
+        return (string) preg_replace('/^# .+\n+/', '', $markdown, limit: 1);
     }
 
     /**
