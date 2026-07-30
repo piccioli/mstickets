@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Support\Latex;
 
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Process;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -39,7 +40,14 @@ final class LatexPdfCompiler
      * perché i numeri di pagina dell'indice passano da 2 a 3 cifre a metà
      * documento, cambiando gli a-capo — e una 2ª passata da sola compila
      * comunque su riferimenti/indice ormai disallineati rispetto al
-     * documento reale.
+     * documento reale. Se il tetto viene raggiunto SENZA che il conteggio si
+     * sia stabilizzato (o se pdflatex non riporta più un conteggio
+     * leggibile), il metodo restituisce comunque il PDF dell'ultima passata
+     * (non lancia mai un'eccezione per questo) ma scrive un
+     * `Log::warning(...)` — così un futuro documento troppo grande per
+     * convergere in self::MAX_PASSES passate non fallisce silenziosamente
+     * con lo stesso tipo di footer/indice sbagliato che questo fix ha
+     * riprodotto e corretto.
      *
      * La directory di lavoro viene sempre rimossa prima del ritorno, sia in
      * caso di successo sia in caso di errore — inclusi eventuali errori
@@ -94,6 +102,28 @@ final class LatexPdfCompiler
                 $previousPageCount = $pageCount;
                 $pageCount = $this->runPdflatex($workDir);
                 $pass++;
+            }
+
+            // Il loop sopra esce per tre motivi possibili: (1) convergenza
+            // reale (pageCount === previousPageCount, il caso comune); (2)
+            // nessun segnale di convergenza disponibile (pageCount === null,
+            // vedi parsePageCount()); (3) tetto self::MAX_PASSES raggiunto
+            // MENTRE il conteggio pagine stava ancora cambiando. (2) e (3)
+            // sono entrambi "non ho la certezza che il PDF finale sia
+            // corretto" — esattamente la categoria di difetto (footer/indice
+            // con numeri di pagina sbagliati) che questo fix ha appena
+            // riprodotto e corretto sul documento reale di 488 pagine:
+            // restituire comunque il PDF (mai bloccare la generazione), ma
+            // loggare un warning per rendere il caso osservabile invece di
+            // silenzioso — un futuro documento anche più grande di questo
+            // potrebbe non convergere nemmeno in 5 passate.
+            if ($pageCount === null || $pageCount !== $previousPageCount) {
+                Log::warning('pdflatex: conteggio pagine non convergente dopo il numero massimo di passate', [
+                    'work_dir' => $workDir,
+                    'passes' => $pass,
+                    'previous_page_count' => $previousPageCount,
+                    'last_page_count' => $pageCount,
+                ]);
             }
         } catch (RuntimeException $e) {
             File::deleteDirectory($workDir);

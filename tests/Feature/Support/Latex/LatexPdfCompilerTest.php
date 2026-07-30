@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Support\Latex\LatexPdfCompiler;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Process;
 
 it('compiles a minimal valid latex document into a real pdf', function () {
@@ -129,4 +130,95 @@ it('keeps recompiling until the reported page count stabilises across passes', f
 
     expect($pdfinfo->successful())->toBeTrue();
     expect($pdfinfo->output())->toMatch('/Pages:\s+3\b/');
+});
+
+it('logs a warning and still returns a pdf when the page count never stabilises within the pass cap', function () {
+    // Finding del reviewer sul fix precedente (task-10-fix-report.md): se il
+    // conteggio pagine non si stabilizza MAI entro self::MAX_PASSES passate
+    // (documento patologico, o semplicemente più grande/complesso di
+    // qualunque cosa vista finora), compile() tornava comunque il PDF
+    // dell'ultima passata SENZA alcun segnale — esattamente la stessa classe
+    // di difetto (footer/indice con numeri di pagina sbagliati) che il fix
+    // precedente ha riprodotto e corretto sul documento reale di 488 pagine,
+    // solo spostata "un tetto più in là": un futuro documento ancora più
+    // grande di 488 pagine potrebbe non convergere nemmeno in 5 passate, e
+    // andrebbe scoperto solo da un'altra ispezione manuale pagina-per-pagina
+    // del PDF, come è già successo una volta. Il documento sintetico qui
+    // sotto riusa la stessa tecnica basata su "pagecount.txt" del test sopra,
+    // ma SENZA alcun tetto sulle pagine extra: il conteggio pagine cresce di
+    // 1 a ogni passata (1, 2, 3, 4, 5, ...) e non si stabilizza mai entro le
+    // 5 passate massime — verificato manualmente compilando lo stesso
+    // sorgente 6 volte di fila nella stessa directory (sequenza osservata:
+    // 1, 2, 3, 4, 5, poi un'anomalia dell'\ifcase alla 6ª, irrilevante perché
+    // compile() non arriva mai a una 6ª passata).
+    Log::spy();
+
+    $tex = <<<'TEX'
+    \documentclass{article}
+    \newread\prevfile
+    \newwrite\outfile
+    \newcommand{\prevval}{0}
+    \newcounter{extra}
+
+    \IfFileExists{pagecount.txt}{%
+    \openin\prevfile=pagecount.txt
+    \read\prevfile to \prevvalread
+    \closein\prevfile
+    \renewcommand{\prevval}{\prevvalread}
+    }{}
+
+    \setcounter{extra}{\prevval}
+
+    \begin{document}
+    Pagina base.
+
+    \ifcase\value{extra}
+    \or
+    \newpage
+    Pagina extra uno.
+    \or
+    \newpage
+    Pagina extra uno.
+    \newpage
+    Pagina extra due.
+    \or
+    \newpage
+    Pagina extra uno.
+    \newpage
+    Pagina extra due.
+    \newpage
+    Pagina extra tre.
+    \or
+    \newpage
+    Pagina extra uno.
+    \newpage
+    Pagina extra due.
+    \newpage
+    Pagina extra tre.
+    \newpage
+    Pagina extra quattro.
+    \fi
+
+    \immediate\openout\outfile=pagecount.txt
+    \immediate\write\outfile{\number\numexpr\value{extra}+1\relax}
+    \immediate\closeout\outfile
+    \end{document}
+    TEX;
+
+    $path = app(LatexPdfCompiler::class)->compile($tex);
+
+    expect($path)->toBeFile();
+    expect(file_get_contents($path))->toStartWith('%PDF');
+
+    $pdfinfo = Process::run(['pdfinfo', $path]);
+    expect($pdfinfo->successful())->toBeTrue();
+    expect($pdfinfo->output())->toMatch('/Pages:\s+5\b/');
+
+    Log::shouldHaveReceived('warning')
+        ->once()
+        ->withArgs(fn (string $message, array $context): bool => str_contains($message, 'non convergente')
+            && $context['passes'] === 5
+            && $context['previous_page_count'] === 4
+            && $context['last_page_count'] === 5
+        );
 });

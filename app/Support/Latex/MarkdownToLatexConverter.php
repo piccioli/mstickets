@@ -144,6 +144,18 @@ final class MarkdownToLatexConverter
                 continue;
             }
 
+            // Limite noto: la PRIMA riga (dopo l'apertura) che si riduce a
+            // ``` esatto viene presa come chiusura del fence, quindi un
+            // contenuto di listato che include a sua volta una riga ``` a sé
+            // stante (es. un frammento markdown/output di shell annidato
+            // incollato dentro il blocco) verrebbe scambiato per la
+            // chiusura. Non presente in nessuno degli 8 file reali di
+            // docs/collaudo/*.md ad oggi, e non peggiore dell'assunzione
+            // pre-fix (che considerava chiusura solo l'ultima riga del
+            // blocco): se un caso reale emergesse, va gestito distinguendo
+            // un fence annidato (che richiederebbe un delimitatore più
+            // lungo, es. ` ```` `, come previsto da CommonMark) prima di
+            // considerarlo un fence di chiusura.
             if (trim($line) === '```') {
                 $closingIndex = $index;
 
