@@ -47,7 +47,7 @@ final class MarkdownToLatexConverter
             return $this->convertBlockquote($lines);
         }
 
-        if (preg_match('/^- \[ \] /', $first)) {
+        if (preg_match('/^- \[[ xX]\] /', $first)) {
             return $this->convertCheckboxList($lines);
         }
 
@@ -207,19 +207,50 @@ final class MarkdownToLatexConverter
     }
 
     /**
+     * Riconosce sia `- [ ]` (non spuntato) sia `- [x]`/`- [X]` (spuntato):
+     * un umano che compila a mano il modulo a checkbox di
+     * `docs/collaudo/06-verbale-collaudo.md` scrive plausibilmente `[x]`, non
+     * solo `[ ]`. Prima di questo fix solo `- [ ] ` era riconosciuto dal
+     * dispatch in convertBlock(): una riga `- [x] ...` (spuntata) cadeva in
+     * convertBulletList(), che la rendeva come `\item [x] testo` — LaTeX
+     * interpreta `[...]` subito dopo `\item` come il suo argomento
+     * opzionale (l'etichetta custom dell'item), non come testo letterale,
+     * corrompendo la riga. Peggio ancora: se `- [x]` era la PRIMA riga di un
+     * blocco con altri `- [ ]` fratelli, l'INTERO blocco saltava
+     * convertCheckboxList() (il dispatch guarda solo la prima riga), quindi
+     * nessuno dei fratelli riceveva il trattamento `$\square$`.
+     *
      * @param  list<string>  $lines
      */
     private function convertCheckboxList(array $lines): string
     {
         $items = array_map(
-            fn (string $l): string => '\item $\square$ '.$this->inline(preg_replace('/^- \[ \] /', '', $l)),
-            $this->groupListLines($lines, '/^- \[ \] /'),
+            function (string $l): string {
+                $checked = (bool) preg_match('/^- \[[xX]\] /', $l);
+                $text = (string) preg_replace('/^- \[[ xX]\] /', '', $l);
+                $symbol = $checked ? '$\boxtimes$' : '$\square$';
+
+                return '\item '.$symbol.' '.$this->inline($text);
+            },
+            $this->groupListLines($lines, '/^- \[[ xX]\] /'),
         );
 
         return "\\begin{itemize}\n".implode("\n", $items)."\n\\end{itemize}";
     }
 
     /**
+     * Un `\item ` "nudo" seguito da un testo che inizia con `[` (es. un
+     * bullet letterale `- [nota] testo`, non un checkbox — quello è
+     * intercettato prima da convertCheckboxList()) viene interpretato da
+     * LaTeX come `\item[nota] testo`: la parentesi diventa l'argomento
+     * opzionale (etichetta custom) dell'item invece che testo letterale, e
+     * "testo" (senza "[nota]") diventa il contenuto reale — corruzione
+     * silenziosa, non un errore di compilazione. `\item{}` (un argomento
+     * opzionale vuoto esplicito) prima del testo impedisce a LaTeX di
+     * cercare ulteriormente un `[...]`, senza cambiare la resa per il caso
+     * comune (testo che non inizia con `[`), per cui si continua a emettere
+     * `\item ` semplice.
+     *
      * @param  list<string>  $lines
      */
     private function convertBulletList(array $lines): string
@@ -228,8 +259,9 @@ final class MarkdownToLatexConverter
             function (string $line): string {
                 $indented = (bool) preg_match('/^\s{2,}- /', $line);
                 $text = preg_replace('/^\s*- /', '', $line);
+                $itemCommand = str_starts_with($text, '[') ? '\item{}' : '\item';
 
-                return ($indented ? '  ' : '').'\item '.$this->inline($text);
+                return ($indented ? '  ' : '').$itemCommand.' '.$this->inline($text);
             },
             $this->groupListLines($lines, '/^\s*- /'),
         );
@@ -288,11 +320,27 @@ final class MarkdownToLatexConverter
     }
 
     /**
+     * Un blocco che inizia con `|` ma non ha almeno due righe non vuote
+     * (intestazione + separatore `|---|---|`) non è davvero una tabella
+     * GFM valida — può capitare in un file `docs/collaudo/*.md` modificato a
+     * mano (es. una riga isolata che inizia per errore con `|`). Prima di
+     * questo fix, `$rows[1]` (il separatore) veniva letto senza verificarne
+     * l'esistenza: con meno di due righe, `splitRow(null)` produceva un
+     * `TypeError` opaco che interrompeva la compilazione dell'INTERO
+     * documento combinato, senza alcuna indicazione di quale file/riga
+     * l'avesse causato. Qui si ripiega sullo stesso fallback usato da
+     * convertBlock() per contenuto non riconosciuto: un paragrafo semplice.
+     *
      * @param  list<string>  $lines
      */
     private function convertTable(array $lines): string
     {
         $rows = array_values(array_filter($lines, static fn (string $l): bool => trim($l) !== ''));
+
+        if (count($rows) < 2) {
+            return $this->inline(trim(implode("\n", $lines)));
+        }
+
         $header = $this->splitRow($rows[0]);
         $separator = $this->splitRow($rows[1]);
         $bodyRows = array_slice($rows, 2);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Support\Collaudo\CollaudoTestReference;
 use App\Support\Latex\LatexEscaper;
 use App\Support\Latex\LatexPdfCompiler;
 use App\Support\Latex\MarkdownToLatexConverter;
@@ -142,7 +143,36 @@ final class CollaudoGenerateCommand extends Command
         $topics = array_map(
             static fn (array $topic): array => [
                 'titolo' => LatexEscaper::escape($topic['titolo']),
-                'test' => $topic['test'],
+                'test' => array_map(
+                    static fn (array $test): array => [
+                        'id' => LatexEscaper::escape($test['id']),
+                        'descrizione' => LatexEscaper::escape($test['descrizione']),
+                        // Solo il percorso del file (mai la descrizione dopo '::'), stesso
+                        // comportamento della vecchia vista dompdf rimossa nel Task 4: la
+                        // colonna "Test automatico" resterebbe altrimenti troppo larga/
+                        // ridondante con la colonna "Descrizione" già presente.
+                        //
+                        // \allowbreak{} dopo ogni '/' (inserito DOPO l'escape, mai prima:
+                        // LatexEscaper::escape() non tocca '/', quindi l'ordine non fa
+                        // differenza per quel carattere, ma un \allowbreak letterale
+                        // inserito PRIMA verrebbe altrimenti mangiato dall'escape del
+                        // backslash che lo precede) — verificato end-to-end compilando
+                        // davvero un manifest reale (fix v0.3.2): senza, \texttt{} in una
+                        // colonna p{} di larghezza fissa non ha alcun punto di interruzione
+                        // (un percorso è una singola "parola" senza spazi per l'algoritmo di
+                        // wrap dei paragrafi), quindi un percorso più lungo della colonna
+                        // (es. "tests/Feature/Filament/Auth/PasswordResetTest.php") non va a
+                        // capo ma sborda oltre il margine della cella, con l'effetto
+                        // osservato di caratteri di coda persi/sovrapposti nell'estrazione
+                        // testo del PDF risultante.
+                        'test_automatico' => str_replace(
+                            '/',
+                            '/\allowbreak{}',
+                            LatexEscaper::escape(CollaudoTestReference::file($test['test_automatico'])),
+                        ),
+                    ],
+                    $topic['test'],
+                ),
             ],
             $manifest['topics'],
         );

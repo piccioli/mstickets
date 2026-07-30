@@ -118,8 +118,11 @@ final class LatexPdfCompiler
             // silenzioso — un futuro documento anche più grande di questo
             // potrebbe non convergere nemmeno in 5 passate.
             if ($pageCount === null || $pageCount !== $previousPageCount) {
+                // Niente `work_dir` nel contesto: la directory di lavoro viene sempre
+                // rimossa prima che compile() ritorni (vedi sopra), quindi chi legge
+                // questo log in un secondo momento troverebbe comunque un path già
+                // sparito — un campo di debug inutile invece che utile (fix v0.3.2).
                 Log::warning('pdflatex: conteggio pagine non convergente dopo il numero massimo di passate', [
-                    'work_dir' => $workDir,
                     'passes' => $pass,
                     'previous_page_count' => $previousPageCount,
                     'last_page_count' => $pageCount,

@@ -51,12 +51,16 @@ Per ogni test fallito, annotare l'ID del test (es. F1-03), una descrizione di
 cosa è successo invece del comportamento atteso, e se possibile uno
 screenshot.
 
-\subsection*{Indice degli argomenti}
+\section*{Parte 2 --- Test da eseguire}
 
-\begin{enumerate}
 @foreach ($topics as $topic)
-  \item {!! $topic['titolo'] !!} ({{ count($topic['test']) }} test)
+\subsection*{{!! $topic['titolo'] !!}}
+
+\mdtabella{@{}p{16mm}Xp{50mm}@{}}{\thc{ID} & \thc{Descrizione} & \thc{Test automatico}}{%
+@foreach ($topic['test'] as $test)
+\texttt{{!! $test['id'] !!}} & {!! $test['descrizione'] !!} & \texttt{{!! $test['test_automatico'] !!}} \\
 @endforeach
-\end{enumerate}
+}
+@endforeach
 
 \end{document}

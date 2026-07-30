@@ -13,8 +13,8 @@ intestata ufficiale Montagna Servizi (classe `montagnaservizi.cls`).
 ### Aggiunto
 
 - `App\Support\Latex\{LatexEscaper,LatexPdfCompiler,MarkdownToLatexConverter}`: motore di
-  generazione PDF via pdfLaTeX (TeX Live), con compilazione doppia e gestione errori con
-  log di compilazione.
+  generazione PDF via pdfLaTeX (TeX Live), con compilazione multi-passata a convergenza
+  sul conteggio pagine e gestione errori con log di compilazione.
 - Classe LaTeX brandizzata `resources/latex/montagnaservizi.cls` (copertina, tabelle,
   box nota/attenzione/requisito, elenchi numerati a fasi, firme, tabelle multi-pagina) —
   importata da un progetto Claude Design dedicato e corretta (6 costrutti non

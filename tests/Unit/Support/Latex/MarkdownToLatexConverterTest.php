@@ -59,6 +59,38 @@ it('converts a checkbox list using square symbols', function () {
     expect($out)->toContain('$\square$ Collaudo non superato');
 });
 
+it('converts a checked checkbox item to a filled box symbol, without corrupting sibling unchecked items', function () {
+    // Bug reale (finding Minor della review finale): solo "- [ ] " era riconosciuto dal
+    // dispatch in convertBlock(); "- [x] " cadeva in convertBulletList(), che l'avrebbe
+    // renderizzata come "\item [x] testo" (LaTeX legge "[x]" come argomento opzionale di
+    // \item, corrompendo la riga). Il caso qui è pure il PEGGIORE dei due: la riga
+    // spuntata è la PRIMA del blocco, quindi prima del fix l'INTERO blocco (inclusi i
+    // fratelli "- [ ]") saltava convertCheckboxList().
+    $out = (new MarkdownToLatexConverter)->convert(
+        "- [x] Collaudo superato\n- [ ] Collaudo non superato\n- [X] Altro spuntato\n"
+    );
+
+    expect($out)->toContain('\begin{itemize}');
+    expect($out)->toContain('$\boxtimes$ Collaudo superato');
+    expect($out)->toContain('$\square$ Collaudo non superato');
+    expect($out)->toContain('$\boxtimes$ Altro spuntato');
+    expect($out)->not->toContain('\item[');
+    expect($out)->not->toContain('\item [x]');
+    expect($out)->not->toContain('\item [X]');
+});
+
+it('does not let a bullet item whose text starts with a literal bracket corrupt the item command', function () {
+    // Stesso principio del checkbox sopra ma per un bullet ordinario: "- [nota] testo"
+    // non è sintassi checkbox (il contenuto tra parentesi non è " "/"x"/"X"), quindi cade
+    // in convertBulletList(). Un "\item " nudo seguito da "[nota]" verrebbe letto da LaTeX
+    // come "\item[nota]" (etichetta custom), perdendo "[nota]" dal testo reso — serve
+    // "\item{}" (argomento opzionale vuoto esplicito) prima del testo.
+    $out = (new MarkdownToLatexConverter)->convert('- [nota] testo che segue');
+
+    expect($out)->toContain('\item{} [nota] testo che segue');
+    expect($out)->not->toContain('\item [nota]');
+});
+
 it('converts a blockquote to a quote environment, dropping internal markdown links', function () {
     $out = (new MarkdownToLatexConverter)->convert(
         "> Torna a [`README.md`](README.md) · vedi [`00-istruzioni.md`](00-istruzioni.md)\n"
@@ -133,6 +165,20 @@ it('merges an unescaped literal pipe inside the last cell back into that cell in
     // conteggio fallirebbe silenziosamente in un unit test (a differenza
     // del crash reale, che si manifesta solo in pdflatex).
     expect(substr_count($out, ' & '))->toBe(4);
+});
+
+it('falls back to a plain paragraph instead of crashing on a malformed table block with fewer than 2 lines', function () {
+    // Finding Importante della review finale: convertTable() leggeva $rows[1] (la riga
+    // di separatore) senza verificarne l'esistenza. Un blocco che inizia con "|" ma ha
+    // meno di 2 righe non vuote (es. una riga isolata scritta a mano per errore in un
+    // docs/collaudo/*.md) produceva un TypeError opaco ("splitRow(): Argument #1 ($row)
+    // must be of type string, null given") che interrompeva la compilazione dell'INTERO
+    // documento combinato, senza indicare quale file/riga l'avesse causato.
+    $out = (new MarkdownToLatexConverter)->convert('| testo isolato senza separatore');
+
+    expect($out)->not->toBe('');
+    expect($out)->not->toContain('\mdtabella');
+    expect($out)->toContain('testo isolato senza separatore');
 });
 
 it('right-aligns a table column marked with --: in the header separator', function () {
