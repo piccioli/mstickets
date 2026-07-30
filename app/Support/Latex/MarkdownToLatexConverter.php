@@ -64,8 +64,19 @@ final class MarkdownToLatexConverter
         }
 
         if (preg_match('/^\*\*[^*\n]+\*\*$/', $first) && count($lines) > 1) {
+            // Il "resto" del blocco non è sempre un paragrafo semplice: nei
+            // file reali (es. docs/collaudo/02-fase-0.md) un'etichetta come
+            // "**Riferimenti**"/"**Prerequisiti**"/"**Evidenze da
+            // acquisire**" è spesso seguita, SENZA riga vuota, da un elenco
+            // puntato (o, in altri punti, da una tabella). Trattare
+            // incondizionatamente il resto come testo piano lo appiattirebbe
+            // in un unico paragrafo con i trattini "- " residui come testo
+            // letterale, perdendo la struttura dell'elenco. Delegare a
+            // convertBlock() ricorsivamente sul resto fa risolvere il tipo di
+            // blocco corretto (lista, tabella, o paragrafo semplice) con la
+            // stessa logica di dispatch già usata per l'intero documento.
             $label = $this->inline($first);
-            $rest = $this->inline(implode(' ', array_slice($lines, 1)));
+            $rest = $this->convertBlock(implode("\n", array_slice($lines, 1)));
 
             return $label.'\par'."\n".$rest;
         }
@@ -106,7 +117,7 @@ final class MarkdownToLatexConverter
     {
         $items = array_map(
             fn (string $l): string => '\item $\square$ '.$this->inline(preg_replace('/^- \[ \] /', '', $l)),
-            $lines,
+            $this->groupListLines($lines, '/^- \[ \] /'),
         );
 
         return "\\begin{itemize}\n".implode("\n", $items)."\n\\end{itemize}";
@@ -117,12 +128,15 @@ final class MarkdownToLatexConverter
      */
     private function convertBulletList(array $lines): string
     {
-        $items = [];
-        foreach ($lines as $line) {
-            $indented = (bool) preg_match('/^\s{2,}- /', $line);
-            $text = preg_replace('/^\s*- /', '', $line);
-            $items[] = ($indented ? '  ' : '').'\item '.$this->inline($text);
-        }
+        $items = array_map(
+            function (string $line): string {
+                $indented = (bool) preg_match('/^\s{2,}- /', $line);
+                $text = preg_replace('/^\s*- /', '', $line);
+
+                return ($indented ? '  ' : '').'\item '.$this->inline($text);
+            },
+            $this->groupListLines($lines, '/^\s*- /'),
+        );
 
         return "\\begin{itemize}\n".implode("\n", $items)."\n\\end{itemize}";
     }
@@ -134,10 +148,47 @@ final class MarkdownToLatexConverter
     {
         $items = array_map(
             fn (string $l): string => '\item '.$this->inline(preg_replace('/^\d+\. /', '', $l)),
-            $lines,
+            $this->groupListLines($lines, '/^\d+\. /'),
         );
 
         return "\\begin{enumerate}\n".implode("\n", $items)."\n\\end{enumerate}";
+    }
+
+    /**
+     * Raggruppa le righe fisiche di un elenco in elementi logici: una riga
+     * che soddisfa $startPattern apre un nuovo elemento, qualunque altra
+     * riga non vuota si accoda come continuazione con uno spazio. Pattern
+     * reale e frequente in docs/collaudo/02-fase-0.md e 03-fase-1.md (70-100
+     * occorrenze ciascuno): un singolo item lungo va a capo manualmente su
+     * più righe fisiche indentate, talvolta con un code span che attraversa
+     * l'a-capo (es. `` `docker compose exec db\n  psql ...` ``) — senza
+     * questo raggruppamento ogni riga di continuazione diventerebbe un
+     * `\item` separato e spurio, con un backtick di apertura mai chiuso.
+     *
+     * @param  list<string>  $lines
+     * @return list<string> una riga per elemento logico (start-marker
+     *                      incluso, invariato), con le eventuali
+     *                      continuazioni già accodate
+     */
+    private function groupListLines(array $lines, string $startPattern): array
+    {
+        $items = [];
+        foreach ($lines as $line) {
+            if (preg_match($startPattern, $line)) {
+                $items[] = $line;
+
+                continue;
+            }
+
+            $continuation = trim($line);
+            if ($continuation === '' || $items === []) {
+                continue;
+            }
+
+            $items[array_key_last($items)] .= ' '.$continuation;
+        }
+
+        return $items;
     }
 
     /**

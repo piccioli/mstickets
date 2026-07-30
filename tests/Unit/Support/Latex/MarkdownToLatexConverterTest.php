@@ -151,3 +151,39 @@ it('does not corrupt bold or link markup when the surrounding text needs escapin
         '100\% \textbf{importante} \& vero, vedi \href{https://x.test/a&b}{qui}'
     );
 });
+
+it('joins a hard-wrapped bullet item spanning multiple physical lines, including a code span across the wrap', function () {
+    // Pattern reale e frequente (70-100 occorrenze per file) in
+    // docs/collaudo/02-fase-0.md e 03-fase-1.md: un singolo item lungo va a
+    // capo manualmente su più righe fisiche indentate, qui con un code span
+    // che attraversa l'a-capo. Senza raggruppamento, ogni riga di
+    // continuazione diventerebbe un \item separato e spurio, con un
+    // backtick di apertura mai chiuso.
+    $out = (new MarkdownToLatexConverter)->convert(
+        "- Accesso al database (locale: `docker compose exec db\n".
+        "  psql -U utente database`; per l'ambiente UAT vedi le note).\n".
+        '- Secondo elemento, su una sola riga.'
+    );
+
+    expect($out)->toBe(
+        "\\begin{itemize}\n".
+        "\\item Accesso al database (locale: \\texttt{docker compose exec db psql -U utente database}; per l'ambiente UAT vedi le note).\n".
+        '\item Secondo elemento, su una sola riga.'."\n".
+        '\end{itemize}'
+    );
+});
+
+it('keeps a bullet list intact when it immediately follows a bold-only label line', function () {
+    // Pattern reale in docs/collaudo/02-fase-0.md: "**Riferimenti**" e
+    // "**Prerequisiti**" sono seguiti, SENZA riga vuota, da un elenco
+    // puntato. Il resto del blocco non è sempre un paragrafo semplice: va
+    // fatto risolvere di nuovo come blocco (lista/tabella/paragrafo), non
+    // appiattito in testo piano con i trattini letterali.
+    $out = (new MarkdownToLatexConverter)->convert(
+        "**Riferimenti**\n- primo riferimento\n- secondo riferimento"
+    );
+
+    expect($out)->toBe(
+        "\\textbf{Riferimenti}\\par\n\\begin{itemize}\n\\item primo riferimento\n\\item secondo riferimento\n\\end{itemize}"
+    );
+});
