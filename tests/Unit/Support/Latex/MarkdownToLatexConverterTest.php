@@ -1,0 +1,153 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Support\Latex\MarkdownToLatexConverter;
+
+it('converts headers to section commands', function () {
+    $out = (new MarkdownToLatexConverter)->convert(
+        "# Titolo\n\n## Sotto\n\n### Sottosotto\n"
+    );
+
+    expect($out)->toContain('\section{Titolo}');
+    expect($out)->toContain('\subsection{Sotto}');
+    expect($out)->toContain('\subsubsection{Sottosotto}');
+});
+
+it('converts a plain paragraph and escapes latex special characters', function () {
+    $out = (new MarkdownToLatexConverter)->convert("Il 100% dei test_case passa & funziona.\n");
+
+    expect($out)->toContain('Il 100\% dei test\_case passa \& funziona.');
+});
+
+it('converts bold and inline code within a paragraph', function () {
+    $out = (new MarkdownToLatexConverter)->convert(
+        "**Obiettivo**\nVerifica che `ticket.update.*` funzioni.\n"
+    );
+
+    expect($out)->toContain('\textbf{Obiettivo}');
+    expect($out)->toContain('\texttt{ticket.update.*}');
+});
+
+it('converts a bullet list', function () {
+    $out = (new MarkdownToLatexConverter)->convert(
+        "- primo elemento\n- secondo elemento\n"
+    );
+
+    expect($out)->toContain('\begin{itemize}');
+    expect($out)->toContain('\item primo elemento');
+    expect($out)->toContain('\item secondo elemento');
+    expect($out)->toContain('\end{itemize}');
+});
+
+it('converts a numbered list', function () {
+    $out = (new MarkdownToLatexConverter)->convert(
+        "1. primo\n2. secondo\n"
+    );
+
+    expect($out)->toContain('\begin{enumerate}');
+    expect($out)->toContain('\item primo');
+    expect($out)->toContain('\end{enumerate}');
+});
+
+it('converts a checkbox list using square symbols', function () {
+    $out = (new MarkdownToLatexConverter)->convert(
+        "- [ ] Collaudo superato\n- [ ] Collaudo non superato\n"
+    );
+
+    expect($out)->toContain('$\square$ Collaudo superato');
+    expect($out)->toContain('$\square$ Collaudo non superato');
+});
+
+it('converts a blockquote to a quote environment, dropping internal markdown links', function () {
+    $out = (new MarkdownToLatexConverter)->convert(
+        "> Torna a [`README.md`](README.md) · vedi [`00-istruzioni.md`](00-istruzioni.md)\n"
+    );
+
+    expect($out)->toContain('\begin{quote}');
+    expect($out)->toContain('\texttt{README.md}');
+    expect($out)->not->toContain('\href');
+});
+
+it('converts an external link to href', function () {
+    $out = (new MarkdownToLatexConverter)->convert(
+        "Vai su [Montagna Servizi](https://montagnaservizi.com) per informazioni.\n"
+    );
+
+    expect($out)->toContain('\href{https://montagnaservizi.com}{Montagna Servizi}');
+});
+
+it('converts a horizontal rule to msseparatore', function () {
+    $out = (new MarkdownToLatexConverter)->convert("Testo prima\n\n---\n\nTesto dopo\n");
+
+    expect($out)->toContain('\msseparatore');
+});
+
+it('converts a fenced code block to lstlisting', function () {
+    $out = (new MarkdownToLatexConverter)->convert(
+        "```php\nRoute::get('/x', fn () => 1);\n```\n"
+    );
+
+    expect($out)->toContain('\begin{lstlisting}');
+    expect($out)->toContain("Route::get('/x', fn () => 1);");
+    expect($out)->toContain('\end{lstlisting}');
+});
+
+it('converts a pipe table into a mdtabella with escaped cell content', function () {
+    $markdown = <<<'MD'
+    | Passo | Azione | Risultato |
+    |------:|--------|-----------|
+    | 1 | Fai `x_y` | 100% ok |
+    | 2 | Fai altro | 50% ok |
+    MD;
+
+    $out = (new MarkdownToLatexConverter)->convert($markdown);
+
+    expect($out)->toContain('\mdtabella{');
+    expect($out)->toContain('\thc{Passo}');
+    expect($out)->toContain('\thc{Azione}');
+    expect($out)->toContain('\thc{Risultato}');
+    expect($out)->toContain('\texttt{x\_y}');
+    expect($out)->toContain('100\% ok');
+});
+
+it('right-aligns a table column marked with --: in the header separator', function () {
+    $markdown = <<<'MD'
+    | A | B |
+    |---|--:|
+    | x | 1 |
+    MD;
+
+    $out = (new MarkdownToLatexConverter)->convert($markdown);
+
+    expect($out)->toMatch('/\{@\{\}.*>\{\\\\raggedleft\\\\arraybackslash\}.*@\{\}\}/');
+});
+
+it('breaks a bold-only label line from the text that follows onto its own paragraph', function () {
+    // Pattern usato in tutti i casi di test di docs/collaudo/02-fase-0.md e
+    // 03-fase-1.md: "**Obiettivo**\nTesto..." con un SOLO a-capo (non riga
+    // vuota). Senza un \par esplicito qui, LaTeX tratterebbe l'a-capo come
+    // uno spazio (stesso comportamento CommonMark "soft break"), fondendo
+    // visivamente l'etichetta in grassetto col testo — il problema che il
+    // vecchio helper CommonMark-specifico separateBoldLabelsIntoOwnParagraph
+    // (rimosso nel Task 6) risolveva per la pipeline dompdf.
+    $out = (new MarkdownToLatexConverter)->convert("**Obiettivo**\nTesto che segue subito dopo.");
+
+    expect($out)->toBe("\\textbf{Obiettivo}\\par\nTesto che segue subito dopo.");
+});
+
+it('does not insert a paragraph break when bold text is inline within a sentence', function () {
+    $out = (new MarkdownToLatexConverter)->convert('Il **grassetto** qui è inline, non un\'etichetta.');
+
+    expect($out)->not->toContain('\par');
+});
+
+it('does not corrupt bold or link markup when the surrounding text needs escaping', function () {
+    $out = (new MarkdownToLatexConverter)->convert(
+        '100% **importante** & vero, vedi [qui](https://x.test/a&b)'
+    );
+
+    expect($out)->toBe(
+        '100\% \textbf{importante} \& vero, vedi \href{https://x.test/a&b}{qui}'
+    );
+});
