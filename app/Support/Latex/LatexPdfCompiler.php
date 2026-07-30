@@ -12,30 +12,51 @@ use RuntimeException;
 final class LatexPdfCompiler
 {
     /**
+     * Tetto di sicurezza sul numero di passate pdflatex, stessa convenzione
+     * usata da latexmk: un documento patologico che non converge mai (numero
+     * di pagine che continua a oscillare) si ferma qui invece di compilare
+     * all'infinito — l'ultimo PDF prodotto viene restituito comunque (meglio
+     * un PDF con un possibile piccolo disallineamento residuo che nessun
+     * PDF).
+     */
+    private const int MAX_PASSES = 5;
+
+    /**
      * Compila un sorgente LaTeX completo in PDF, in una directory temporanea
      * isolata che contiene una copia di montagnaservizi.cls e degli asset
      * (logo): pdflatex risolve \documentclass/\includegraphics solo
-     * relativamente alla propria working directory. Compila due volte
-     * (indice, riferimenti, numero di pagina — footer della classe usa
-     * \pageref{LastPage}), coerente con la nota "Compilazione" del README
-     * della classe stessa.
+     * relativamente alla propria working directory. Compila SEMPRE almeno
+     * due volte (indice, riferimenti, numero di pagina — footer della classe
+     * usa \pageref{LastPage} — richiedono un secondo passaggio per leggere i
+     * dati scritti nel file .aux dal primo), poi continua a ricompilare
+     * finché il conteggio pagine riportato da pdflatex stesso (riga
+     * "Output written on document.pdf (N pages, ...)" del suo output,
+     * intercettata invece di invocare un tool esterno come pdfinfo) non si
+     * stabilizza fra due passate consecutive, fino a un massimo di
+     * self::MAX_PASSES passate totali. Necessario per documenti lunghi
+     * (verificato su un PDF combinato reale di 488 pagine): il conteggio
+     * pagine può ancora crescere fra la 1ª e la 2ª passata — tipicamente
+     * perché i numeri di pagina dell'indice passano da 2 a 3 cifre a metà
+     * documento, cambiando gli a-capo — e una 2ª passata da sola compila
+     * comunque su riferimenti/indice ormai disallineati rispetto al
+     * documento reale.
      *
      * La directory di lavoro viene sempre rimossa prima del ritorno, sia in
      * caso di successo sia in caso di errore — inclusi eventuali errori
      * durante la preparazione stessa (creazione directory, copia di
      * montagnaservizi.cls/assets, scrittura del sorgente): tutta la
      * preparazione avviene dentro lo stesso blocco try/catch che governa la
-     * doppia compilazione, verificando esplicitamente l'esito di ogni
-     * operazione File — questi metodi non lanciano eccezioni proprie in
-     * caso di fallimento (wrappano mkdir()/copy(), che restituiscono
-     * `false` silenziosamente), quindi il controllo va fatto a mano perché
-     * il catch scatti davvero. Non deve mai restare traccia di una
-     * directory ms-latex-* in sys_get_temp_dir() dopo una chiamata a
-     * compile(), qualunque sia l'esito. In caso di successo, il PDF
-     * prodotto viene prima estratto in un file temporaneo indipendente
-     * (fuori dalla directory di lavoro, con un prefisso diverso da
-     * "ms-latex-") di cui il chiamante è responsabile: quel file non viene
-     * ripulito da questa classe.
+     * compilazione, verificando esplicitamente l'esito di ogni operazione
+     * File — questi metodi non lanciano eccezioni proprie in caso di
+     * fallimento (wrappano mkdir()/copy(), che restituiscono `false`
+     * silenziosamente), quindi il controllo va fatto a mano perché il catch
+     * scatti davvero. Non deve mai restare traccia di una directory
+     * ms-latex-* in sys_get_temp_dir() dopo una chiamata a compile(),
+     * qualunque sia l'esito. In caso di successo, il PDF prodotto viene
+     * prima estratto in un file temporaneo indipendente (fuori dalla
+     * directory di lavoro, con un prefisso diverso da "ms-latex-") di cui il
+     * chiamante è responsabile: quel file non viene ripulito da questa
+     * classe.
      *
      * @return string path assoluto al PDF compilato (file temporaneo
      *                indipendente dalla directory di lavoro, già rimossa)
@@ -61,8 +82,19 @@ final class LatexPdfCompiler
                 throw new RuntimeException('Impossibile scrivere il sorgente LaTeX nella directory di lavoro.');
             }
 
-            $this->runPdflatex($workDir);
-            $this->runPdflatex($workDir);
+            $previousPageCount = $this->runPdflatex($workDir);
+            $pageCount = $this->runPdflatex($workDir);
+            $pass = 2;
+
+            while (
+                $pageCount !== null
+                && $pageCount !== $previousPageCount
+                && $pass < self::MAX_PASSES
+            ) {
+                $previousPageCount = $pageCount;
+                $pageCount = $this->runPdflatex($workDir);
+                $pass++;
+            }
         } catch (RuntimeException $e) {
             File::deleteDirectory($workDir);
             throw $e;
@@ -100,7 +132,17 @@ final class LatexPdfCompiler
         return $finalPath;
     }
 
-    private function runPdflatex(string $workDir): void
+    /**
+     * @return int|null il conteggio pagine annunciato da pdflatex per questa
+     *                  passata (riga "Output written on document.pdf (N
+     *                  pages, ...)" del suo stdout), o null se quella riga
+     *                  non è presente nell'output (es. un documento talmente
+     *                  piccolo/particolare da non produrla ancora — in quel
+     *                  caso il chiamante interrompe il loop di passate
+     *                  aggiuntive, non essendoci un segnale di convergenza
+     *                  da osservare)
+     */
+    private function runPdflatex(string $workDir): ?int
     {
         $result = Process::path($workDir)
             ->timeout(120)
@@ -120,6 +162,17 @@ final class LatexPdfCompiler
                 "pdflatex ha fallito la compilazione. Coda del log:\n".self::tail($log),
             );
         }
+
+        return self::parsePageCount($result->output());
+    }
+
+    private static function parsePageCount(string $output): ?int
+    {
+        if (preg_match('/Output written on \S+\.pdf \((\d+) pages?,/', $output, $matches) === 1) {
+            return (int) $matches[1];
+        }
+
+        return null;
     }
 
     private static function tail(string $text, int $lines = 40): string

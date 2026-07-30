@@ -236,3 +236,35 @@ it('keeps a bullet list intact when it immediately follows a bold-only label lin
         "\\textbf{Riferimenti}\\par\n\\begin{itemize}\n\\item primo riferimento\n\\item secondo riferimento\n\\end{itemize}"
     );
 });
+
+it('closes a two-line code fence even when a paragraph follows without a blank line', function () {
+    // Bug reale trovato inspezionando il PDF combinato di 488 pagine
+    // generato da collaudo:generate (task-10-report.md, "Due difetti reali
+    // trovati e riprodotti", difetto 1): 4 occorrenze in
+    // docs/collaudo/02-fase-0.md, tutte con la stessa forma — un blocco
+    // "**Dati di test**" seguito, SENZA riga vuota, da un fence ```sql di
+    // 2 righe di contenuto, seguito a sua volta, ANCORA senza riga vuota,
+    // da un paragrafo di chiusura ("Nessun valore per ... (NULL)."). Poiché
+    // preg_split('/\n{2,}/', ...) spezza i blocchi solo sulle righe vuote,
+    // tutto questo finiva in un unico blocco: la vecchia convertCodeFence()
+    // assumeva che il fence di chiusura ``` fosse sempre l'ULTIMA riga del
+    // blocco, quindi non lo trovava (l'ultima riga era il paragrafo), non
+    // lo rimuoveva, e fondeva sia il ``` letterale sia il paragrafo
+    // successivo come contenuto del listato.
+    $out = (new MarkdownToLatexConverter)->convert(
+        "**Dati di test**\n".
+        "```sql\n".
+        "insert into activity_reports (owner_kind) values ('user');\n".
+        "values ('user', 'monthly', 2026, 7, 'it', now(), now());\n".
+        "```\n".
+        'Nessun valore per `owner_user_id`: omesso (NULL).'
+    );
+
+    expect($out)->not->toContain('```');
+    expect($out)->toContain(
+        "insert into activity_reports (owner_kind) values ('user');\n".
+        "values ('user', 'monthly', 2026, 7, 'it', now(), now());\n".
+        '\end{lstlisting}'
+    );
+    expect($out)->toContain('Nessun valore per \texttt{owner\_user\_id}: omesso (NULL).');
+});

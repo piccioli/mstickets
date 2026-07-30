@@ -40,7 +40,7 @@ final class MarkdownToLatexConverter
         }
 
         if (str_starts_with(ltrim($first), '```')) {
-            return $this->convertCodeFence($lines);
+            return $this->convertCodeFenceBlock($lines);
         }
 
         if (str_starts_with(ltrim($first), '> ')) {
@@ -119,7 +119,57 @@ final class MarkdownToLatexConverter
     }
 
     /**
+     * Individua il fence di chiusura (```) all'interno di $lines invece di
+     * assumere che sia sempre l'ultima riga del blocco: `preg_split('/\n{2,}/',
+     * ...)` (a monte, in convert()) spezza i blocchi solo sulle righe vuote,
+     * quindi un blocco di codice seguito, SENZA riga vuota, da un paragrafo
+     * (pattern reale in docs/collaudo/02-fase-0.md, es. "**Dati di
+     * test**\n```sql\n...\n```\nNessun valore...") include quel paragrafo
+     * come righe finali dello STESSO blocco. `convertCodeFence()` (assumeva
+     * il fence di chiusura = ultima riga) non lo trovava più, lasciava il
+     * fence letterale nel listato e fondeva il paragrafo successivo come
+     * contenuto di codice. Qui si cerca il fence di chiusura per indice, si
+     * passa a `convertCodeFence()` solo le righe del blocco di codice vero
+     * (apertura...chiusura) e si delega ricorsivamente a `convertBlock()` la
+     * parte residua — stesso principio già usato per l'interruzione di
+     * paragrafo da lista/tabella più sotto in questo file.
+     *
      * @param  list<string>  $lines
+     */
+    private function convertCodeFenceBlock(array $lines): string
+    {
+        $closingIndex = null;
+        foreach ($lines as $index => $line) {
+            if ($index === 0) {
+                continue;
+            }
+
+            if (trim($line) === '```') {
+                $closingIndex = $index;
+
+                break;
+            }
+        }
+
+        if ($closingIndex === null) {
+            return $this->convertCodeFence($lines);
+        }
+
+        $listing = $this->convertCodeFence(array_slice($lines, 0, $closingIndex + 1));
+        $trailing = array_slice($lines, $closingIndex + 1);
+
+        if (trim(implode('', $trailing)) === '') {
+            return $listing;
+        }
+
+        return $listing."\n\n".$this->convertBlock(implode("\n", $trailing));
+    }
+
+    /**
+     * @param  list<string>  $lines  blocco completo del fence: riga di
+     *                               apertura ```lang, contenuto, riga di
+     *                               chiusura ``` (già isolato da
+     *                               convertCodeFenceBlock())
      */
     private function convertCodeFence(array $lines): string
     {
