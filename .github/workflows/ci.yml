@@ -42,6 +42,14 @@ jobs:
       - name: Build front-end assets
         run: npm run build
 
+      - name: Install TeX Live
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            texlive-latex-base texlive-latex-recommended texlive-latex-extra \
+            texlive-fonts-recommended texlive-fonts-extra texlive-lang-italian \
+            texlive-plain-generic texlive-pictures poppler-utils
+
       - name: Pint
         run: vendor/bin/pint --test
 
