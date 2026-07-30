@@ -21,12 +21,21 @@ final class LatexPdfCompiler
      * della classe stessa.
      *
      * La directory di lavoro viene sempre rimossa prima del ritorno, sia in
-     * caso di successo sia in caso di errore: non deve mai restarne traccia
-     * in sys_get_temp_dir() dopo una chiamata a compile(). In caso di
-     * successo, il PDF prodotto viene prima estratto in un file temporaneo
-     * indipendente (fuori dalla directory di lavoro, con un prefisso
-     * diverso da "ms-latex-") di cui il chiamante è responsabile: quel file
-     * non viene ripulito da questa classe.
+     * caso di successo sia in caso di errore — inclusi eventuali errori
+     * durante la preparazione stessa (creazione directory, copia di
+     * montagnaservizi.cls/assets, scrittura del sorgente): tutta la
+     * preparazione avviene dentro lo stesso blocco try/catch che governa la
+     * doppia compilazione, verificando esplicitamente l'esito di ogni
+     * operazione File — questi metodi non lanciano eccezioni proprie in
+     * caso di fallimento (wrappano mkdir()/copy(), che restituiscono
+     * `false` silenziosamente), quindi il controllo va fatto a mano perché
+     * il catch scatti davvero. Non deve mai restare traccia di una
+     * directory ms-latex-* in sys_get_temp_dir() dopo una chiamata a
+     * compile(), qualunque sia l'esito. In caso di successo, il PDF
+     * prodotto viene prima estratto in un file temporaneo indipendente
+     * (fuori dalla directory di lavoro, con un prefisso diverso da
+     * "ms-latex-") di cui il chiamante è responsabile: quel file non viene
+     * ripulito da questa classe.
      *
      * @return string path assoluto al PDF compilato (file temporaneo
      *                indipendente dalla directory di lavoro, già rimossa)
@@ -34,13 +43,24 @@ final class LatexPdfCompiler
     public function compile(string $texSource): string
     {
         $workDir = sys_get_temp_dir().'/ms-latex-'.Str::random(16);
-        File::makeDirectory($workDir, recursive: true);
-
-        File::copy(resource_path('latex/montagnaservizi.cls'), $workDir.'/montagnaservizi.cls');
-        File::copyDirectory(resource_path('latex/assets'), $workDir.'/assets');
-        File::put($workDir.'/document.tex', $texSource);
 
         try {
+            if (! File::makeDirectory($workDir, recursive: true)) {
+                throw new RuntimeException("Impossibile creare la directory di lavoro temporanea [{$workDir}].");
+            }
+
+            if (! File::copy(resource_path('latex/montagnaservizi.cls'), $workDir.'/montagnaservizi.cls')) {
+                throw new RuntimeException('Impossibile copiare montagnaservizi.cls nella directory di lavoro.');
+            }
+
+            if (! File::copyDirectory(resource_path('latex/assets'), $workDir.'/assets')) {
+                throw new RuntimeException('Impossibile copiare gli asset LaTeX nella directory di lavoro.');
+            }
+
+            if (File::put($workDir.'/document.tex', $texSource) === false) {
+                throw new RuntimeException('Impossibile scrivere il sorgente LaTeX nella directory di lavoro.');
+            }
+
             $this->runPdflatex($workDir);
             $this->runPdflatex($workDir);
         } catch (RuntimeException $e) {
@@ -69,7 +89,12 @@ final class LatexPdfCompiler
             throw new RuntimeException('Impossibile allocare un file temporaneo per il PDF compilato.');
         }
 
-        File::copy($pdfPath, $finalPath);
+        if (! File::copy($pdfPath, $finalPath)) {
+            File::deleteDirectory($workDir);
+
+            throw new RuntimeException('Impossibile copiare il PDF compilato nel file temporaneo finale.');
+        }
+
         File::deleteDirectory($workDir);
 
         return $finalPath;
