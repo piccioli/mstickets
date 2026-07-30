@@ -1,0 +1,86 @@
+<!--
+  Copia integrale, non modificata, del file "Login Montagna Servizi.dc.html" scaricato da Claude Design
+  (progetto b41c13f4-8321-4716-be35-295d0bdd9d1e). Conservata SOLO come riferimento testuale/strutturale
+  per la traduzione in Blade (vedi design-reference.md) — non fa parte della build, non è collegata da
+  nessuna route.
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/montagna-servizi-design-system-5cc04e95-0654-4ed9-8c55-821b392c3598/tokens/fonts.css">
+  <link rel="stylesheet" href="_ds/montagna-servizi-design-system-5cc04e95-0654-4ed9-8c55-821b392c3598/tokens/colors.css">
+  <link rel="stylesheet" href="_ds/montagna-servizi-design-system-5cc04e95-0654-4ed9-8c55-821b392c3598/tokens/typography.css">
+  <link rel="stylesheet" href="_ds/montagna-servizi-design-system-5cc04e95-0654-4ed9-8c55-821b392c3598/tokens/spacing.css">
+  <link rel="stylesheet" href="_ds/montagna-servizi-design-system-5cc04e95-0654-4ed9-8c55-821b392c3598/tokens/effects.css">
+  <link rel="stylesheet" href="_ds/montagna-servizi-design-system-5cc04e95-0654-4ed9-8c55-821b392c3598/tokens/base.css">
+  <link rel="stylesheet" href="_ds/montagna-servizi-design-system-5cc04e95-0654-4ed9-8c55-821b392c3598/styles.css">
+  <script src="https://unpkg.com/lucide@0.446.0/dist/umd/lucide.min.js"></script>
+  <script src="_ds/montagna-servizi-design-system-5cc04e95-0654-4ed9-8c55-821b392c3598/_ds_bundle.js"></script>
+  <script src="./image-slot.js"></script>
+  <style>
+    html,body{margin:0;padding:0;background:var(--stone-100);font-family:var(--font-sans);color:var(--text-strong);}
+    a{color:var(--text-brand);text-decoration:none;} a:hover{color:var(--green-800);text-decoration:underline;}
+  </style>
+</helmet>
+<div style="display:flex;flex-direction:column;align-items:center;gap:56px;padding:56px 40px 80px;">
+
+  <div style="width:100%;max-width:1440px;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
+      <span style="font-size:var(--text-xs);font-weight:var(--fw-extrabold);letter-spacing:0.12em;color:var(--text-brand);">LOGIN · DESKTOP 1440 × 900</span>
+      <span style="flex:1;border-top:1px solid var(--border-subtle);"></span>
+    </div>
+    <div style="width:1440px;height:900px;background:var(--surface-card);border-radius:var(--radius-card);overflow:hidden;box-shadow:var(--shadow-md);border:1px solid var(--border-subtle);display:grid;grid-template-columns:1.05fr 1fr;">
+      <div style="position:relative;overflow:hidden;">
+        <div style="position:absolute;inset:0;">
+          <image-slot id="login-hero" shape="rect" fit="cover" src="assets/hero-alpine.svg" placeholder="Foto alpina di apertura"></image-slot>
+        </div>
+        <div style="position:absolute;inset:0;background:linear-gradient(155deg,rgba(15,51,43,.88) 0%,rgba(18,63,53,.78) 45%,rgba(29,87,75,.42) 100%);pointer-events:none;"></div>
+        <div style="position:relative;display:flex;flex-direction:column;justify-content:space-between;height:100%;padding:56px 64px;box-sizing:border-box;pointer-events:none;">
+          <img src="assets/montagna-servizi-logo-white.png" alt="Montagna Servizi" style="height:62px;width:auto;align-self:flex-start;">
+          <div>
+            <div style="font-size:var(--text-sm);font-weight:var(--fw-extrabold);letter-spacing:0.12em;color:var(--green-200);margin-bottom:18px;">PIATTAFORMA SERVIZI CAI</div>
+            <h1 style="margin:0 0 20px;font-size:52px;font-weight:var(--fw-extrabold);letter-spacing:-0.02em;line-height:1.1;color:var(--text-inverse);max-width:520px;">Concentrati su ciò che conta: la montagna e la comunità.</h1>
+            <p style="margin:0 0 40px;font-size:var(--text-md);line-height:1.6;color:var(--green-100);max-width:490px;">Accedi alla piattaforma di Montagna Servizi per gestire documenti, riunioni, bandi e progetti della tua Sezione.</p>
+            <div style="display:flex;flex-direction:column;gap:16px;">
+              <!-- vantaggi: Drive Standard verbali e archivio sempre in ordine / Bandi e progetti seguiti passo dopo passo / Assistenza dedicata: ti rispondiamo entro 48 ore -->
+            </div>
+          </div>
+          <div style="font-size:var(--text-sm);color:var(--green-300);">Affidabilità · Competenza · Prossimità</div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;justify-content:center;padding:0 92px;box-sizing:border-box;">
+        <div style="font-size:var(--text-sm);font-weight:var(--fw-extrabold);letter-spacing:0.12em;color:var(--text-brand);margin-bottom:14px;">ACCEDI</div>
+        <h2 style="margin:0 0 10px;font-size:38px;font-weight:var(--fw-extrabold);letter-spacing:-0.02em;line-height:1.15;">Bentornato</h2>
+        <p style="margin:0 0 34px;font-size:var(--text-base);line-height:1.6;color:var(--text-body);">Inserisci le tue credenziali per entrare nella piattaforma.</p>
+        <!-- Input Email, Input Password (con toggle mostra/nascondi), checkbox "Salva per le prossime sessioni",
+             link "Recupera password", CTA primaria "Accedi", link di contatto -->
+        <div style="margin-top:34px;font-size:var(--text-base);color:var(--text-body);line-height:1.6;">La tua Sezione non ha ancora un accesso? <a href="https://www.montagnaservizi.com/contatti" target="_blank" style="font-weight:var(--fw-bold);">Contattaci →</a></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recupero password, 3 step:
+       1) "Hai dimenticato la password?" + Input email + CTA "Invia il link di recupero"
+       2) "Controlla la casella" + icona mail + testo "Se {email} è registrata, riceverai a breve un
+          messaggio con il link per reimpostare la password." + box "Non trovi l'email?" + CTA "Ho
+          ricevuto il link" + link "Invia di nuovo"
+       3) "Imposta una nuova password" + Input nuova password + barra forza (Debole/Media/Sicura) +
+          Input conferma password + checklist (Almeno 8 caratteri / Una lettera maiuscola / Almeno un
+          numero) + CTA "Salva la nuova password" → stato finale "Password aggiornata" (icona
+          circle-check) + CTA "Vai al login"
+       Hero laterale: eyebrow "ACCESSO SICURO", titolo "Ti rimettiamo in cammino in pochi passaggi.",
+       sottotitolo "Per la sicurezza dei dati della tua Sezione il link di recupero è valido 60 minuti e
+       utilizzabile una sola volta.", footer "Serve aiuto? Ti rispondiamo entro 48 ore." -->
+
+</div>
+</x-dc>
+</body>
+</html>
