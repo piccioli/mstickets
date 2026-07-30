@@ -5,6 +5,23 @@ Tutte le modifiche rilevanti a questo progetto sono documentate in questo file.
 Il formato è basato su [Keep a Changelog](https://keepachangelog.com/it/1.1.0/),
 e il progetto aderisce a [Semantic Versioning](https://semver.org/lang/it/).
 
+## [0.3.1] - 2026-07-30
+
+**Rifiniture pixel-perfect di login e recupero password** rispetto al mockup del committente, a
+completamento della feature rilasciata in 0.3.0.
+
+### Corretto
+
+- Layout auth (login/recupero password) estratto in un componente Blade condiviso (`components/auth/panel`).
+- Card flottante bianca del pannello form: contenitore e sfondo del pannello coerenti col mockup.
+- Colore bianco del titolo hero.
+- Caricamento del font Manrope diagnosticato e corretto.
+- Respiro verticale logo → eyebrow → titolo nel pannello hero (desktop).
+- Border-radius degli input coerente col design.
+- Eyebrow "ACCEDI" in maiuscolo.
+- Peso tipografico delle label Email/Password.
+- Bottone "Accedi con l'account CAI" disattivato, con modale informativa.
+
 ## [0.3.0] - 2026-07-27
 
 **Landing page, login e recupero password** con l'identità visiva pubblica "Montagna Servizi"
