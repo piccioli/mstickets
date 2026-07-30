@@ -9,6 +9,7 @@ use App\Domain\Ticketing\Events\TicketStatusChanged;
 use App\Domain\Ticketing\Listeners\RestoreTicketStatusOnRequesterMessage;
 use App\Domain\TimeTracking\Listeners\RecalculateWorkedTimeOnStatusChange;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -32,6 +33,14 @@ class AppServiceProvider extends ServiceProvider
     {
         Event::listen(TicketMessagePosted::class, RestoreTicketStatusOnRequesterMessage::class);
         Event::listen(TicketStatusChanged::class, RecalculateWorkedTimeOnStatusChange::class);
+
+        // Le viste LaTeX vivono in resources/views/latex/*.tex.blade.php (estensione doppia,
+        // per distinguerle a colpo d'occhio dalle viste HTML "*.blade.php"): il resolver di
+        // viste di Laravel cerca solo "blade.php"/"php"/"css"/"html" di default, quindi senza
+        // questa registrazione view('latex.collaudo') non troverebbe mai il file fisico
+        // "collaudo.tex.blade.php" (View::addExtension prepende l'estensione, che viene
+        // comunque compilata dal motore Blade come qualunque altra vista).
+        View::addExtension('tex.blade.php', 'blade');
 
         // La checklist di forza password nel flusso di recupero (v0.3.0) è puramente visiva
         // finché non coincide con la regola reale applicata server-side: min 8 caratteri,

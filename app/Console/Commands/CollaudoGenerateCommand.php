@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Support\Latex\LatexEscaper;
+use App\Support\Latex\LatexPdfCompiler;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -124,10 +127,37 @@ final class CollaudoGenerateCommand extends Command
      */
     public function buildPdf(string $fase, array $manifest): string
     {
-        $pdf = Pdf::loadView('pdf.collaudo', ['manifest' => $manifest]);
+        $credenziali = array_map(
+            static fn (array $cred): array => [
+                'ruolo' => LatexEscaper::escape($cred['ruolo']),
+                'email' => LatexEscaper::escape($cred['email']),
+                'password' => LatexEscaper::escape($cred['password']),
+            ],
+            $manifest['parte_1']['credenziali'],
+        );
+
+        $topics = array_map(
+            static fn (array $topic): array => [
+                'titolo' => LatexEscaper::escape($topic['titolo']),
+                'test' => $topic['test'],
+            ],
+            $manifest['topics'],
+        );
+
+        $tex = view('latex.collaudo', [
+            'titolo' => LatexEscaper::escape($manifest['titolo']),
+            'appUrl' => LatexEscaper::escape($manifest['parte_1']['app_url']),
+            'mailpitUrl' => LatexEscaper::escape($manifest['parte_1']['mailpit_url']),
+            'credenziali' => $credenziali,
+            'topics' => $topics,
+        ])->render();
+
+        $pdfPath = app(LatexPdfCompiler::class)->compile($tex);
+
         $filename = sprintf('collaudo-fase-%s-%s.pdf', $fase, now()->format('Ymd-His'));
         $disk = Storage::build(['driver' => 'local', 'root' => storage_path('app')]);
-        $disk->put("collaudo/{$filename}", $pdf->output());
+        $disk->put("collaudo/{$filename}", file_get_contents($pdfPath));
+        File::delete($pdfPath);
 
         return storage_path("app/collaudo/{$filename}");
     }
