@@ -13,6 +13,16 @@ RUN apk add --no-cache \
         oniguruma-dev \
         fcgi \
         shadow \
+        texlive \
+        texmf-dist-latex \
+        texmf-dist-latexrecommended \
+        texmf-dist-latexextra \
+        texmf-dist-fontsrecommended \
+        texmf-dist-fontsextra \
+        texmf-dist-langitalian \
+        texmf-dist-plaingeneric \
+        texmf-dist-pictures \
+        poppler-utils \
     && apk add --no-cache --virtual .build-deps ${PHPIZE_DEPS} \
     && docker-php-ext-install pdo pdo_pgsql zip intl bcmath opcache pcntl exif \
     && pecl install redis \
