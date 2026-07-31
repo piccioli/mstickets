@@ -8,7 +8,9 @@ use App\Import\Stages\OrganizationsStage;
 use App\Import\Stages\RolesPermissionsStage;
 use App\Import\Stages\TagsStage;
 use App\Import\Stages\TicketHierarchyStage;
+use App\Import\Stages\TicketParticipantsStage;
 use App\Import\Stages\TicketsStage;
+use App\Import\Stages\TicketTagsStage;
 use App\Import\Stages\UsersStage;
 
 return [
@@ -38,6 +40,8 @@ return [
         TagsStage::class,
         TicketsStage::class,
         TicketHierarchyStage::class,
+        TicketTagsStage::class,
+        TicketParticipantsStage::class,
     ],
 
 ];
