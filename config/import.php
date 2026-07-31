@@ -12,6 +12,7 @@ use App\Import\Stages\TicketLogsStage;
 use App\Import\Stages\TicketParticipantsStage;
 use App\Import\Stages\TicketsStage;
 use App\Import\Stages\TicketTagsStage;
+use App\Import\Stages\TicketViewsStage;
 use App\Import\Stages\UsersStage;
 
 return [
@@ -44,6 +45,7 @@ return [
         TicketTagsStage::class,
         TicketParticipantsStage::class,
         TicketLogsStage::class,
+        TicketViewsStage::class,
     ],
 
 ];
