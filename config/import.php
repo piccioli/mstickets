@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Import\Stages\DocumentationStage;
 use App\Import\Stages\OrganizationMembersStage;
 use App\Import\Stages\OrganizationsStage;
 use App\Import\Stages\RolesPermissionsStage;
+use App\Import\Stages\TagsStage;
 use App\Import\Stages\UsersStage;
 
 return [
@@ -30,6 +32,8 @@ return [
         RolesPermissionsStage::class,
         OrganizationsStage::class,
         OrganizationMembersStage::class,
+        DocumentationStage::class,
+        TagsStage::class,
     ],
 
 ];
