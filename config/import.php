@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Import\Stages\RolesPermissionsStage;
+use App\Import\Stages\UsersStage;
+
 return [
 
     /*
@@ -15,14 +18,14 @@ return [
     | ImportRunner::plan() risolve l'ordine di ESECUZIONE dalle dipendenze
     | dichiarate da ciascuno stage).
     |
-    | Nessuno stage reale esiste ancora in questa fase (US-201): le fasi
-    | successive aggiungono qui la propria classe, senza toccare il comando
-    | v1:import né il runner.
+    | Le fasi successive aggiungono qui la propria classe, senza toccare il
+    | comando v1:import né il runner (US-201).
     |
     */
 
     'stages' => [
-        // App\Import\Stages\UsersStage::class,
+        UsersStage::class,
+        RolesPermissionsStage::class,
     ],
 
 ];
