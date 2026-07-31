@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Import\Stages\OrganizationMembersStage;
+use App\Import\Stages\OrganizationsStage;
 use App\Import\Stages\RolesPermissionsStage;
 use App\Import\Stages\UsersStage;
 
@@ -26,6 +28,8 @@ return [
     'stages' => [
         UsersStage::class,
         RolesPermissionsStage::class,
+        OrganizationsStage::class,
+        OrganizationMembersStage::class,
     ],
 
 ];
