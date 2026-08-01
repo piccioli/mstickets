@@ -134,9 +134,61 @@ Ogni pull request esegue `.github/workflows/ci.yml` (GitHub Actions), che deve e
 1. **Pint** (`vendor/bin/pint --test`) — stile del codice, preset `laravel`.
 2. **Larastan** (`vendor/bin/phpstan analyse --memory-limit=1G`) — analisi statica a livello 6.
 3. **Pest con coverage** (`vendor/bin/pest --coverage`) — suite di test (driver di coverage `pcov`).
-4. **Build dei container Docker** (`docker compose build app`) — verifica che l'immagine PHP-FPM buildi senza errori.
+4. **ETL su fixture ridotta** (job `etl-fixture`, US-218) — vedi sotto.
+5. **Build dei container Docker** (`docker compose build app`) — verifica che l'immagine PHP-FPM buildi senza errori.
 
-La pipeline fallisce se uno qualunque di questi step fallisce. Lo step ETL (`php artisan v1:validate`) non esiste ancora in questa fase: il punto di inserimento futuro è commentato direttamente nel workflow, da aggiungere in Fase 2 insieme al comando `v1:import`.
+La pipeline fallisce se uno qualunque di questi step fallisce.
+
+### Job ETL dedicato (`etl-fixture`, US-218)
+
+Il job `etl-fixture` gira in parallelo al job `quality` e verifica l'intera pipeline `v1:import`/
+`v1:validate` **contro un vero servizio Postgres** (un container `postgres:16-alpine` come connessione
+`legacy`, non sqlite): il dump reale di produzione non può essere usato in CI (troppo grande/sensibile,
+`v1dumps/` è in `.gitignore`), quindi la pipeline gira invece su una fixture ridotta, già anonimizzata alla
+creazione, versionata in
+[`tests/Fixtures/Import/v1-ci-fixture.sql`](tests/Fixtures/Import/v1-ci-fixture.sql).
+
+Il job, in ordine:
+
+1. carica la fixture in un servizio `db_legacy` effimero (`psql -f tests/Fixtures/Import/v1-ci-fixture.sql`);
+2. esegue `php artisan v1:import --anonymize` **due volte consecutive** e verifica che la seconda esecuzione
+   non crei/aggiorni nessuna riga (idempotenza dimostrata direttamente in pipeline, non solo nel test Pest
+   `tests/Feature/Console/V1ImportPipelineIdempotencyTest.php` che copre lo stesso principio contro una
+   connessione `legacy` sqlite);
+3. esegue `php artisan v1:validate` e richiede che esca con successo (zero controlli di integrità falliti:
+   conteggi, FK orfane, enum fuori catalogo, unicità, media mancanti su disco — vedi
+   `app/Console/Commands/V1ValidateCommand.php`);
+4. verifica che il report generato segnali comunque, con un conteggio non a zero, i compromessi noti che la
+   fixture introduce apposta (vedi sotto): l'obiettivo di questi casi è che vengano **rilevati e contati**,
+   non che spariscano.
+
+La fixture copre esplicitamente i casi limite già documentati in
+[`storage/app/import/inspect-20260726_101916.md`](storage/app/import/inspect-20260726_101916.md) (Fase 0):
+un valore di `type`/`priority` fuori catalogo, `users.roles` con `"editor"`, un `customer_request` non
+parsabile, un conflitto di gerarchia `story_story`/`stories.parent_id`, un media orfano (file assente su
+disco) e un media con `model_type` diverso da `Story`. **Deliberatamente esclusa**: un'email duplicata a
+meno del case — nel dato reale non se n'è mai vista una, e a differenza degli altri casi non produce un
+semplice warning ma fa fallire il controllo di unicità di `v1:validate` (comportamento corretto e voluto:
+sarebbe una vera anomalia da correggere a mano su un dump reale), quindi non può convivere con l'AC "il
+comando esce con successo" in questa fixture. Resta comunque coperta a livello di stage da
+`tests/Feature/Import/Stages/UsersStageTest.php`.
+
+**Come rigenerare/estendere la fixture se lo schema v1 cambia**: individuare le colonne reali con
+`grep -n "CREATE TABLE public.<tabella>"` sul dump non compresso più recente in `v1dumps/` (mai il solo
+report `v1:inspect`, che non elenca tutte le colonne), poi aggiornare sia le `CREATE TABLE` sia i dati in
+`tests/Fixtures/Import/v1-ci-fixture.sql`. Per verificarla in locale prima di aprire una PR (serve
+`docker compose --profile etl` con `db_legacy` avviato):
+
+```bash
+make etl-up
+docker compose --profile etl exec db_legacy psql -U orchestrator_legacy -d orchestrator_legacy \
+  -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+docker compose --profile etl exec -T db_legacy psql -v ON_ERROR_STOP=1 -U orchestrator_legacy \
+  -d orchestrator_legacy < tests/Fixtures/Import/v1-ci-fixture.sql
+docker compose exec app php artisan v1:import --anonymize
+docker compose exec app php artisan v1:import --anonymize   # deve creare/aggiornare zero righe
+docker compose exec app php artisan v1:validate              # deve uscire con successo
+```
 
 Il badge di stato verrà aggiunto al README non appena il repository avrà un remote GitHub configurato (`https://github.com/<org>/<repo>/actions/workflows/ci.yml/badge.svg`).
 
