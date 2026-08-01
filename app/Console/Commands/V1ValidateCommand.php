@@ -285,9 +285,9 @@ final class V1ValidateCommand extends Command
         }
 
         $duplicates = DB::table($table)
-            ->selectRaw("{$expression} as dedup_key, count(*) as total")
+            ->selectRaw("{$expression} as dedup_key")
             ->groupBy('dedup_key')
-            ->having('total', '>', 1)
+            ->havingRaw('count(*) > 1')
             ->count();
 
         if ($duplicates > 0) {

@@ -87,6 +87,26 @@ jobs:
           --health-interval=5s
           --health-timeout=5s
           --health-retries=10
+      db:
+        # Schema v2 su Postgres reale, non sqlite (fix US-219): un bug di sintassi SQL
+        # Postgres-only in V1ValidateCommand::reportDuplicateCount() (alias di SELECT
+        # referenziato in HAVING, tollerato da sqlite ma rifiutato da Postgres) è passato
+        # inosservato da questo job finché non è stato scoperto eseguendo v1:import/
+        # v1:validate su un dump reale contro un vero Postgres v2 durante il checkpoint
+        # di fine Fase 2 (US-219) — v2 su sqlite qui creava lo stesso angolo cieco già
+        # noto per le sequenze Postgres-only (vedi CLAUDE.md, sezione ETL).
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: orchestrator
+          POSTGRES_USER: orchestrator
+          POSTGRES_PASSWORD: orchestrator
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd="pg_isready -U orchestrator -d orchestrator"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
 
     steps:
       - name: Checkout
@@ -108,23 +128,29 @@ jobs:
       - name: Generate application key
         run: php artisan key:generate
 
-      - name: Configura lo schema v2 su sqlite (isolato dalla connessione "legacy")
+      - name: Configura lo schema v2 su Postgres reale (isolato dalla connessione "legacy")
         # Variabili d'ambiente reali via $GITHUB_ENV, non righe duplicate in .env: la
         # precedenza di chiavi ripetute in un file .env non è garantita, mentre una vera
         # variabile d'ambiente di processo vince sempre su .env.example (stesso principio
         # scoperto durante lo sviluppo di questa story sul container Docker locale, dove
         # DB_* iniettate da env_file prevalgono silenziosamente sugli override di test).
+        # v2 su Postgres reale (servizio "db" sopra), non più sqlite (fix US-219, vedi
+        # commento sul servizio "db"): stesso motivo per cui le sequenze Postgres-only
+        # di DeriveStage non sono mai state validate qui, solo verificate a mano.
         run: |
           {
-            echo "DB_CONNECTION=sqlite"
-            echo "DB_DATABASE=${{ github.workspace }}/database/etl-ci.sqlite"
+            echo "DB_CONNECTION=pgsql"
+            echo "DB_HOST=127.0.0.1"
+            echo "DB_PORT=5433"
+            echo "DB_DATABASE=orchestrator"
+            echo "DB_USERNAME=orchestrator"
+            echo "DB_PASSWORD=orchestrator"
             echo "DB_LEGACY_HOST=127.0.0.1"
             echo "DB_LEGACY_PORT=5432"
             echo "DB_LEGACY_DATABASE=orchestrator_legacy"
             echo "DB_LEGACY_USERNAME=orchestrator_legacy"
             echo "DB_LEGACY_PASSWORD=orchestrator_legacy"
           } >> "$GITHUB_ENV"
-          touch database/etl-ci.sqlite
 
       - name: Migrazioni schema v2 + seeder ruoli/permessi
         run: |
