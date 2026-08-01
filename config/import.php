@@ -6,6 +6,8 @@ use App\Import\Stages\ActivityReportsStage;
 use App\Import\Stages\ActivityReportTicketsStage;
 use App\Import\Stages\DocumentationStage;
 use App\Import\Stages\FundraisingOpportunitiesStage;
+use App\Import\Stages\FundraisingPartnersStage;
+use App\Import\Stages\FundraisingProjectsStage;
 use App\Import\Stages\FundraisingScoresStage;
 use App\Import\Stages\OrganizationMembersStage;
 use App\Import\Stages\OrganizationsStage;
@@ -58,6 +60,8 @@ return [
         ActivityReportTicketsStage::class,
         FundraisingOpportunitiesStage::class,
         FundraisingScoresStage::class,
+        FundraisingProjectsStage::class,
+        FundraisingPartnersStage::class,
     ],
 
 ];
