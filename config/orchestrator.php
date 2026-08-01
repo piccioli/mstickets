@@ -86,4 +86,24 @@ return [
         'name' => 'Sistema',
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Anonimizzazione dati (§11.8 del PRD, US-217)
+    |--------------------------------------------------------------------------
+    |
+    | Domini email usati sia da `--anonymize` (App\Import\Anonymization\Anonymizer,
+    | primo dominio della lista) sia dal guard applicativo che blocca l'invio di
+    | QUALUNQUE email verso un indirizzo reale fuori produzione
+    | (App\Support\Mail\BlockRealRecipientsOutsideProduction): stessa fonte, per
+    | costruzione ogni email generata dall'anonimizzazione è già permessa dal guard.
+    |
+    */
+
+    'anonymization' => [
+        'mail_test_domains' => array_values(array_filter(array_map(
+            trim(...),
+            explode(',', (string) env('MAIL_TEST_DOMAINS', 'test.orchestrator.invalid')),
+        ))),
+    ],
+
 ];

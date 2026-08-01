@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Import\Stages;
 
+use App\Import\Anonymization\Anonymizer;
 use App\Import\Inspect\Analyzers\DuplicateEmailAnalyzer;
 use App\Import\Stages\Contracts\ImportStage;
 use Illuminate\Support\Collection;
@@ -16,6 +17,12 @@ use stdClass;
  * stage `roles_permissions`, US-202, dipendente da questo). `help_desk_chat`/
  * `help_desk_chat_url` restano fuori mapping: la feature non è confermata
  * (Q17 del PRD) e la colonna v2 non esiste ancora.
+ *
+ * Con `--anonymize` (§11.8, US-217) `name`/`email` sono sostituiti da
+ * {@see Anonymizer}, deterministico per `id` v1: una riesecuzione produce
+ * sempre la stessa identità fittizia per lo stesso utente, così il confronto
+ * di `attributesDiffer()` resta stabile (mai un `updated` spurio alla seconda
+ * esecuzione anonimizzata).
  */
 final class UsersStage implements ImportStage
 {
@@ -48,6 +55,8 @@ final class UsersStage implements ImportStage
 
         $warnings = $this->duplicateEmailWarnings($rows);
 
+        $anonymizer = $context->shouldAnonymize() ? Anonymizer::default() : null;
+
         $read = 0;
         $created = 0;
         $updated = 0;
@@ -61,8 +70,8 @@ final class UsersStage implements ImportStage
             }
 
             $attributes = [
-                'name' => $row->name,
-                'email' => $row->email,
+                'name' => $anonymizer?->nameFor($row->id) ?? $row->name,
+                'email' => $anonymizer?->emailFor($row->id) ?? $row->email,
                 'email_verified_at' => $row->email_verified_at,
                 'password' => $row->password,
                 'remember_token' => $row->remember_token,

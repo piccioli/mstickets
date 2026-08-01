@@ -7,6 +7,7 @@ namespace App\Import\Stages;
 use App\Domain\Ticketing\Enums\TicketMessageChannel;
 use App\Domain\Ticketing\Enums\TicketMessageVisibility;
 use App\Domain\Ticketing\Support\TicketMessageSanitizer;
+use App\Import\Anonymization\Anonymizer;
 use App\Import\Models\ImportMapping;
 use App\Import\Parsers\CustomerRequestParser;
 use App\Import\Parsers\ParsedTicketMessage;
@@ -32,6 +33,12 @@ use Illuminate\Support\Str;
  * ricostruibile (data malformata, mai osservato nel dump reale ma gestito
  * difensivamente) si applica la distribuzione monotona tra `created_at`/`updated_at`
  * richiesta dall'AC.
+ *
+ * Con `--anonymize` (§11.8, US-217) il corpo è sostituito da {@see Anonymizer}
+ * PRIMA della sanitizzazione, ma DOPO aver calcolato `$sourceKey` (hash del corpo
+ * originale) e il `channel` (euristica sui segnali email nel corpo originale):
+ * l'idempotenza e la classificazione del canale restano quindi identiche
+ * indipendentemente da `--anonymize`, solo il contenuto salvato cambia.
  */
 final class TicketMessagesStage implements ImportStage
 {
@@ -63,6 +70,8 @@ final class TicketMessagesStage implements ImportStage
             ->keyBy('id');
 
         $userIdsByLowerName = $this->userIdsByLowerName();
+
+        $anonymizer = $context->shouldAnonymize() ? Anonymizer::default() : null;
 
         $mappedSourceKeys = array_flip(
             ImportMapping::query()
@@ -132,14 +141,20 @@ final class TicketMessagesStage implements ImportStage
                 }
 
                 $authorId = $this->resolveAuthorId($message, $ticket->requester_id, $userIdsByLowerName, $unresolvedAuthorCount);
-                $sanitizedHtml = TicketMessageSanitizer::sanitize($message->body);
+                $channel = $this->resolveChannel($message->body);
+
+                $bodyToStore = $anonymizer === null
+                    ? $message->body
+                    : $anonymizer->bodyFor("{$row->id}:{$index}", strlen($message->body));
+
+                $sanitizedHtml = TicketMessageSanitizer::sanitize($bodyToStore);
 
                 $ticketMessageId = DB::table('ticket_messages')->insertGetId([
                     'ulid' => strtolower((string) Str::ulid()),
                     'ticket_id' => $row->id,
                     'author_id' => $authorId,
                     'author_email' => null,
-                    'channel' => $this->resolveChannel($message->body),
+                    'channel' => $channel,
                     'visibility' => TicketMessageVisibility::Public->value,
                     'body_html' => $sanitizedHtml,
                     'body_text' => TicketMessageSanitizer::toPlainText($sanitizedHtml),

@@ -18,7 +18,7 @@ use Tests\Feature\Import\Fixtures\InteractsWithLegacyDatabase;
 
 uses(RefreshDatabase::class, InteractsWithLegacyDatabase::class);
 
-function ticketMessagesStageContext(bool $dryRun = false, ?int $limit = null): ImportContext
+function ticketMessagesStageContext(bool $dryRun = false, ?int $limit = null, bool $anonymize = false): ImportContext
 {
     $importRun = ImportRun::create([
         'started_at' => now(),
@@ -28,7 +28,7 @@ function ticketMessagesStageContext(bool $dryRun = false, ?int $limit = null): I
         'is_dry_run' => $dryRun,
     ]);
 
-    return new ImportContext(importRun: $importRun, dryRun: $dryRun, limit: $limit);
+    return new ImportContext(importRun: $importRun, dryRun: $dryRun, limit: $limit, anonymize: $anonymize);
 }
 
 beforeEach(function (): void {
@@ -236,4 +236,44 @@ test('a message with no resolvable timestamp is distributed monotonically betwee
     expect($messages[0]->posted_at)->toBe('2026-01-01 00:00:00')
         ->and($messages[1]->posted_at)->toBeGreaterThan('2026-01-01 00:00:00')
         ->and($messages[1]->posted_at)->toBeLessThanOrEqual('2026-01-11 00:00:00');
+});
+
+test('--anonymize replaces the message body with deterministic fake content, without changing channel or author resolution', function (): void {
+    $requester = User::factory()->create(['name' => 'Marco Rossi']);
+    $riccardo = User::factory()->create(['name' => 'Riccardo Bernasconi']);
+    insertTicketForMessages(1641, requesterId: $requester->id, createdAt: '2026-01-10 09:00:00', updatedAt: '2026-01-21 12:00:00');
+    insertLegacyStoryForMessages(1641, realMultiMessageCustomerRequest());
+
+    $result = (new TicketMessagesStage)->run(ticketMessagesStageContext(anonymize: true));
+
+    expect($result->created)->toBe(3);
+
+    $messages = DB::table('ticket_messages')->where('ticket_id', 1641)->orderBy('posted_at')->get();
+
+    // Le relazioni (autore risolto/non risolto per posizione) restano identiche al caso non anonimizzato.
+    expect($messages[0]->author_id)->toBe($requester->id)
+        ->and($messages[1]->author_id)->toBeNull()
+        ->and($messages[2]->author_id)->toBe($riccardo->id)
+        ->and($messages[0]->channel)->toBe(TicketMessageChannel::System->value);
+
+    foreach ($messages as $message) {
+        expect($message->body_text)->not->toContain('Ciao Marco')
+            ->and($message->body_text)->not->toContain('Bernasconi')
+            ->and($message->body_text)->not->toContain('Commissione')
+            ->and($message->body_text)->not->toBe('');
+    }
+});
+
+test('--anonymize does not break idempotency: the source key is computed from the original body, not the fake one', function (): void {
+    insertTicketForMessages(1641, createdAt: '2026-01-10 09:00:00', updatedAt: '2026-01-21 12:00:00');
+    insertLegacyStoryForMessages(1641, realMultiMessageCustomerRequest());
+
+    $stage = new TicketMessagesStage;
+    $first = $stage->run(ticketMessagesStageContext(anonymize: true));
+    $second = $stage->run(ticketMessagesStageContext(anonymize: true));
+
+    expect($first->created)->toBe(3)
+        ->and($second->created)->toBe(0)
+        ->and($second->skipped)->toBe(3)
+        ->and(DB::table('ticket_messages')->count())->toBe(3);
 });

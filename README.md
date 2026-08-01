@@ -97,6 +97,24 @@ Il report viene salvato in `storage/app/import/inspect-<timestamp>.md` (conteggi
 allegato alla PR di questa fase. Il report generato su un dump v1 reale di questa fase è
 [`storage/app/import/inspect-20260725_225710.md`](storage/app/import/inspect-20260725_225710.md).
 
+### Anonimizzazione (`--anonymize`, §11.8 del PRD)
+
+`--anonymize` su `php artisan v1:import` sostituisce nome/email di ogni utente e il corpo di ogni messaggio
+importato con dati fittizi deterministici (stesso utente v1 → sempre la stessa identità fittizia, mai casuale
+a ogni riga), preservando le relazioni reali (chi ha scritto cosa, a chi è assegnato cosa). Le email fittizie
+usano sempre uno dei domini in `MAIL_TEST_DOMAINS` (`.env`, default `test.orchestrator.invalid`), mai un
+dominio reale.
+
+**`--anonymize` è OBBLIGATORIO per ogni esecuzione di `v1:import` in un ambiente non di produzione**
+(sviluppo, staging, CI): il dump v1 contiene dati reali dei clienti che non devono comparire in un ambiente
+non protetto. Solo l'import verso l'ambiente di produzione reale può ometterlo.
+
+Indipendentemente da `--anonymize`, un guard applicativo (`App\Support\Mail\BlockRealRecipientsOutsideProduction`,
+registrato in `AppServiceProvider::boot()`) blocca **qualunque** invio email dell'applicazione verso un
+indirizzo il cui dominio non è in `MAIL_TEST_DOMAINS` quando `APP_ENV !== production`: una protezione di
+ultima istanza contro l'invio accidentale verso un cliente reale durante un test/uno sviluppo locale, non
+solo un vincolo dell'ETL.
+
 ## Punto di controllo obbligatorio prima della Fase 1
 
 La Fase 0 (Fondazioni) non introduce nessuna business logic di dominio: prima di iniziare la Fase 1
