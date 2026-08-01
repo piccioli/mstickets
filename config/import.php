@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Import\Stages\ActivityReportsStage;
+use App\Import\Stages\ActivityReportTicketsStage;
 use App\Import\Stages\DocumentationStage;
 use App\Import\Stages\OrganizationMembersStage;
 use App\Import\Stages\OrganizationsStage;
@@ -50,6 +52,8 @@ return [
         TicketViewsStage::class,
         TicketMessagesStage::class,
         TicketAttachmentsStage::class,
+        ActivityReportsStage::class,
+        ActivityReportTicketsStage::class,
     ],
 
 ];
