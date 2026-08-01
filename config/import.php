@@ -5,6 +5,8 @@ declare(strict_types=1);
 use App\Import\Stages\ActivityReportsStage;
 use App\Import\Stages\ActivityReportTicketsStage;
 use App\Import\Stages\DocumentationStage;
+use App\Import\Stages\FundraisingOpportunitiesStage;
+use App\Import\Stages\FundraisingScoresStage;
 use App\Import\Stages\OrganizationMembersStage;
 use App\Import\Stages\OrganizationsStage;
 use App\Import\Stages\RolesPermissionsStage;
@@ -54,6 +56,8 @@ return [
         TicketAttachmentsStage::class,
         ActivityReportsStage::class,
         ActivityReportTicketsStage::class,
+        FundraisingOpportunitiesStage::class,
+        FundraisingScoresStage::class,
     ],
 
 ];
