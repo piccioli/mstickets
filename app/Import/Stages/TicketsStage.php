@@ -19,7 +19,12 @@ use Illuminate\Support\Facades\DB;
  * `status_changed_at`/`previous_status` sono derivati dai `story_logs` UNA TANTUM,
  * solo al primo inserimento del ticket: dopo l'import restano mantenuti
  * dall'applicazione (§11.4 nota), quindi una riesecuzione idempotente dello stage su
- * un ticket già presente non li ricalcola né li sovrascrive.
+ * un ticket già presente non li ricalcola né li sovrascrive. Stesso principio per
+ * `released_at`/`done_at` (importati dal v1 solo al primo insert, mai nel diff/update
+ * di un ticket già esistente): quando v1 non li valorizza, `derive` (US-215) li
+ * ricostruisce dai `ticket_logs` — una riesecuzione di questo stage non deve
+ * silenziosamente azzerarli di nuovo confrontandoli con l'`stories.released_at`/
+ * `done_at` (v1) sempre `null` in quel caso.
  */
 final class TicketsStage implements ImportStage
 {
@@ -96,8 +101,6 @@ final class TicketsStage implements ImportStage
                 'fundraising_project_id' => $row->fundraising_project_id,
                 'waiting_reason' => $row->waiting_reason,
                 'problem_reason' => $row->problem_reason,
-                'released_at' => $row->released_at,
-                'done_at' => $row->done_at,
                 'updated_at' => $row->updated_at,
             ];
 
@@ -125,6 +128,8 @@ final class TicketsStage implements ImportStage
                     'worked_minutes' => 0,
                     'status_changed_at' => $statusChangedAt,
                     'previous_status' => $previousStatus,
+                    'released_at' => $row->released_at,
+                    'done_at' => $row->done_at,
                     'created_at' => $row->created_at,
                     ...$attributes,
                 ]);
@@ -280,11 +285,24 @@ final class TicketsStage implements ImportStage
     }
 
     /**
+     * `updated_at` è escluso dal confronto: a differenza di ogni altra entità
+     * importata da questo repo, un ticket viene toccato ANCHE dallo stage `derive`
+     * (US-215, `RecalculateWorkedTime`/backfill `released_at`/`done_at` via
+     * `Model::save()`), che aggiorna `updated_at` a `now()` indipendentemente dal
+     * contenuto v1. Confrontarlo qui farebbe risultare "cambiato" ogni ticket già
+     * derivato a ogni riesecuzione di questo stage, anche a parità di contenuto v1
+     * (falso positivo di idempotenza). Il valore v1 di `updated_at` resta comunque
+     * scritto quando l'update scatta per un cambiamento reale di un altro campo.
+     *
      * @param  array<string, mixed>  $attributes
      */
     private function attributesDiffer(object $existing, array $attributes): bool
     {
         foreach ($attributes as $column => $value) {
+            if ($column === 'updated_at') {
+                continue;
+            }
+
             if ((string) ($existing->{$column} ?? '') !== (string) ($value ?? '')) {
                 return true;
             }
