@@ -59,6 +59,17 @@ return [
             'report' => false,
         ],
 
+        // File fisici degli allegati v1 (`media.file_name`, §11.4 stage 14 del PRD),
+        // forniti separatamente dal dump SQL: stessa convenzione piatta (nessuna
+        // sotto-cartella per id/uuid) già attesa da `v1:inspect` (storage/app/v1-media).
+        'legacy-media' => [
+            'driver' => 'local',
+            'root' => env('LEGACY_MEDIA_PATH', storage_path('app/v1-media')),
+            'serve' => false,
+            'throw' => false,
+            'report' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),

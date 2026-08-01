@@ -7,6 +7,7 @@ use App\Import\Stages\OrganizationMembersStage;
 use App\Import\Stages\OrganizationsStage;
 use App\Import\Stages\RolesPermissionsStage;
 use App\Import\Stages\TagsStage;
+use App\Import\Stages\TicketAttachmentsStage;
 use App\Import\Stages\TicketHierarchyStage;
 use App\Import\Stages\TicketLogsStage;
 use App\Import\Stages\TicketMessagesStage;
@@ -48,6 +49,7 @@ return [
         TicketLogsStage::class,
         TicketViewsStage::class,
         TicketMessagesStage::class,
+        TicketAttachmentsStage::class,
     ],
 
 ];
