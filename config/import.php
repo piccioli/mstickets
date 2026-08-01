@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Import\Stages\ActivityReportsStage;
 use App\Import\Stages\ActivityReportTicketsStage;
+use App\Import\Stages\DeriveStage;
 use App\Import\Stages\DocumentationStage;
 use App\Import\Stages\FundraisingOpportunitiesStage;
 use App\Import\Stages\FundraisingPartnersStage;
@@ -62,6 +63,7 @@ return [
         FundraisingScoresStage::class,
         FundraisingProjectsStage::class,
         FundraisingPartnersStage::class,
+        DeriveStage::class,
     ],
 
 ];
