@@ -23,6 +23,15 @@ use stdClass;
  * sempre la stessa identità fittizia per lo stesso utente, così il confronto
  * di `attributesDiffer()` resta stabile (mai un `updated` spurio alla seconda
  * esecuzione anonimizzata).
+ *
+ * `password` (US-R01): con `--anonymize` sostituita dall'hash Laravel di una
+ * password fissa nota ({@see Anonymizer::passwordHash()}), mai l'hash v1
+ * reale fuori produzione. Bcrypt sala casualmente ad ogni chiamata, quindi
+ * `password` è insert-only, come `released_at`/`done_at` in `TicketsStage`
+ * (US-205): esclusa dall'array `$attributes` usato per il diff/update,
+ * altrimenti ogni riesecuzione con `--anonymize` genererebbe un hash diverso
+ * e verrebbe segnalata come un `updated` spurio pur non essendo cambiato
+ * nulla di sostanziale.
  */
 final class UsersStage implements ImportStage
 {
@@ -73,7 +82,6 @@ final class UsersStage implements ImportStage
                 'name' => $anonymizer?->nameFor($row->id) ?? $row->name,
                 'email' => $anonymizer?->emailFor($row->id) ?? $row->email,
                 'email_verified_at' => $row->email_verified_at,
-                'password' => $row->password,
                 'remember_token' => $row->remember_token,
                 'locale' => $row->activity_report_language,
                 'drive_url' => $row->google_drive_url,
@@ -85,7 +93,11 @@ final class UsersStage implements ImportStage
             $existing = DB::table('users')->where('id', $row->id)->first();
 
             if ($existing === null) {
-                DB::table('users')->insert(['id' => $row->id, ...$attributes]);
+                DB::table('users')->insert([
+                    'id' => $row->id,
+                    'password' => $anonymizer?->passwordHash() ?? $row->password,
+                    ...$attributes,
+                ]);
                 $created++;
 
                 continue;

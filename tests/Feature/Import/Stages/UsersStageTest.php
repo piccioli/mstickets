@@ -9,6 +9,7 @@ use App\Import\Stages\UsersStage;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Tests\Feature\Import\Fixtures\InteractsWithLegacyDatabase;
 
@@ -195,4 +196,37 @@ test('--anonymize keeps re-running the stage idempotent (relations untouched, on
         ->and($second->created)->toBe(0)
         ->and($second->updated)->toBe(0)
         ->and($second->skipped)->toBe(1);
+});
+
+test('--anonymize overwrites the imported password with the hash of a fixed known password, never the v1 hash as-is', function (): void {
+    insertLegacyUser(['id' => 1, 'password' => 'v1-real-bcrypt-hash']);
+
+    (new UsersStage)->run(usersStageContext(anonymize: true));
+
+    $password = DB::table('users')->where('id', 1)->value('password');
+
+    expect(Hash::check('password', $password))->toBeTrue()
+        ->and($password)->not->toBe('v1-real-bcrypt-hash');
+});
+
+test('without --anonymize the v1 password is imported unchanged, not the fixed hash', function (): void {
+    insertLegacyUser(['id' => 1, 'password' => 'v1-real-bcrypt-hash']);
+
+    (new UsersStage)->run(usersStageContext());
+
+    expect(DB::table('users')->where('id', 1)->value('password'))->toBe('v1-real-bcrypt-hash');
+});
+
+test('--anonymize does not update an already-imported user on a second run just because the password hash would differ', function (): void {
+    insertLegacyUser(['id' => 1]);
+
+    $stage = new UsersStage;
+    $stage->run(usersStageContext(anonymize: true));
+    $passwordAfterFirstRun = DB::table('users')->where('id', 1)->value('password');
+
+    $second = $stage->run(usersStageContext(anonymize: true));
+
+    expect($second->updated)->toBe(0)
+        ->and($second->skipped)->toBe(1)
+        ->and(DB::table('users')->where('id', 1)->value('password'))->toBe($passwordAfterFirstRun);
 });

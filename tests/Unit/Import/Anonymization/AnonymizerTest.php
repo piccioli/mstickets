@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Import\Anonymization\Anonymizer;
+use Illuminate\Support\Facades\Hash;
 
 test('the same seed always produces the same fake name and email', function (): void {
     $anonymizer = new Anonymizer('test.orchestrator.invalid');
@@ -32,6 +33,15 @@ test('default() resolves the test domain from config, falling back to a safe def
     config(['orchestrator.anonymization.mail_test_domains' => []]);
 
     expect(Anonymizer::default()->emailFor(1))->toEndWith('@test.orchestrator.invalid');
+});
+
+test('passwordHash returns a Laravel hash of the fixed known password, never the raw string', function (): void {
+    $anonymizer = new Anonymizer('test.orchestrator.invalid');
+
+    $hash = $anonymizer->passwordHash();
+
+    expect($hash)->not->toBe('password')
+        ->and(Hash::check('password', $hash))->toBeTrue();
 });
 
 test('bodyFor is deterministic for the same seed and scales roughly with the original length', function (): void {

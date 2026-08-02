@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Import\Anonymization;
 
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
@@ -40,6 +41,14 @@ final class Anonymizer
         'scadenza', 'priorità',
     ];
 
+    /**
+     * Password fissa nota per ogni utente importato con `--anonymize`: mai
+     * l'hash v1 reale fuori produzione (US-R01). Non è un seed derivato per
+     * utente (a differenza di nome/email) — un solo hash noto, comunicato a
+     * fine `make setup`/deploy, è sufficiente per il login di collaudo.
+     */
+    private const FIXED_PASSWORD = 'password';
+
     public function __construct(private readonly string $testDomain) {}
 
     /**
@@ -59,6 +68,17 @@ final class Anonymizer
     public function nameFor(int|string $seed): string
     {
         return sprintf('%s %s', $this->firstNameFor($seed), $this->lastNameFor($seed));
+    }
+
+    /**
+     * Hash Laravel della password fissa nota ({@see self::FIXED_PASSWORD}),
+     * mai l'hash v1 copiato as-is. Non deterministico byte-per-byte (bcrypt
+     * sala casualmente ad ogni chiamata): per questo lo stage chiamante deve
+     * trattarlo come insert-only, mai confrontarlo in un diff/update.
+     */
+    public function passwordHash(): string
+    {
+        return Hash::make(self::FIXED_PASSWORD);
     }
 
     /**
