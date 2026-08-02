@@ -81,6 +81,42 @@ ln -sf production_dump_YYYYMMDD_HHMMSS.sql v1dumps/latest.sql
 Stessa convenzione riusata identica in locale e su UAT (vedi `bin/load-v1-dump` e il deploy remoto): chi
 deve "usare l'ultimo dump" legge sempre questo path fisso, mai un pattern di data.
 
+## Deploy UAT
+
+Ogni push su `develop` esegue `deploy/remote-deploy.sh` su `msuat` (comando forzato via `authorized_keys`,
+non l'output del workflow GitHub Actions), che ripristina **sempre l'ETL reale da zero** ad ogni deploy
+(nessun dato persistente tra un push e l'altro):
+
+```bash
+docker compose -f docker-compose.uat.yml --env-file .env.uat up -d --wait   # attende gli healthcheck, incluso db_legacy
+docker compose -f docker-compose.uat.yml --env-file .env.uat exec -T app php artisan migrate:fresh --force
+docker compose -f docker-compose.uat.yml --env-file .env.uat exec -T app php artisan db:seed --class=RolePermissionSeeder --force
+docker compose -f docker-compose.uat.yml --env-file .env.uat exec -T app php artisan v1:import --anonymize
+```
+
+`docker-compose.uat.yml` aggiunge, rispetto allo stack applicativo, la stessa infrastruttura ETL già
+disponibile in locale, ma sempre attiva (non dietro un profilo, perché qui serve a ogni deploy):
+
+- **`db_legacy`** (`postgres:16-alpine`, healthcheck `pg_isready`, volume dedicato `db_legacy_data`):
+  sorgente v1 in sola lettura, popolata su `msuat` con `v1dumps/latest.sql` + `bin/load-v1-dump` da un
+  umano con accesso SSH a produzione — nessuna automazione la aggiorna da sola (stessa convenzione del
+  paragrafo precedente).
+- Un bind-mount dedicato sul servizio `app` per gli allegati v1 reali (`LEGACY_MEDIA_HOST_PATH` in
+  `.env.uat`, di default `/opt/mstickets-uat/v1-media` sul disco host di `msuat`), popolato con
+  `bin/fetch-legacy-media`.
+
+Variabili `.env.uat` rilevanti (vedi `.env.uat.example`): `DB_LEGACY_HOST`/`DB_LEGACY_PORT`/
+`DB_LEGACY_DATABASE`/`DB_LEGACY_USERNAME`/`DB_LEGACY_PASSWORD` (connessione a `db_legacy`) e
+`LEGACY_MEDIA_HOST_PATH` (path host degli allegati, non l'env var applicativa `LEGACY_MEDIA_PATH` letta
+dentro al container).
+
+`docker-compose.uat.yml`/`.env.uat.example`/`deploy/remote-deploy.sh` sono la fonte di verità versionata in
+questo repository: un umano con accesso SSH copia manualmente il contenuto aggiornato su `msuat` quando
+cambia, nessuna automazione sincronizza da sola questi file sul server reale.
+
+**`docs/collaudo/*` restano esplicitamente fuori scope**: il committente li aggiorna direttamente a mano,
+nessuna story di questo repository deve modificarli.
+
 ## Docker
 
 Ambiente di sviluppo containerizzato (§4.2 del PRD): `app` (PHP 8.4-FPM), `web` (nginx, unico entrypoint HTTP), `db` (Postgres 16), `redis` (Redis 7), `queue` (Horizon), `scheduler` (`schedule:work`), `mailpit` (SMTP+IMAP locale).
