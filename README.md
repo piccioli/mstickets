@@ -44,19 +44,42 @@ Boost provides your agent 15+ tools and skills that help agents build Laravel ap
 ## Setup rapido (`make setup`)
 
 Un solo comando porta l'ambiente da zero (nessun volume/vendor/node_modules preesistente) a navigabile
-(§4.2 del PRD): build delle immagini, dipendenze PHP e frontend, chiave applicativa, migrazioni e seed di
-sviluppo (5 utenti, uno per ruolo, credenziali stampate a fine seed).
+(§4.2 del PRD) con **dati reali**, non un seed fittizio: build delle immagini, dipendenze PHP e frontend,
+chiave applicativa, `db_legacy` con l'ultimo dump v1 reale disponibile e l'ETL completo
+(`php artisan v1:import --anonymize`, design in
+[`docs/superpowers/specs/2026-08-02-etl-real-data-seeding-design.md`](docs/superpowers/specs/2026-08-02-etl-real-data-seeding-design.md)).
 
 ```bash
 make setup
 ```
 
-Richiede solo Docker e Node.js sul host (npm compila gli asset Filament/Tailwind via Vite, gli altri
-passi girano nei container). Rilanciabile senza distruggere dati esistenti: `.env` non viene sovrascritto
-se già presente, le migrazioni e il seed di sviluppo sono idempotenti. L'app è raggiungibile su
-`http://localhost:8080/admin`, login con una delle credenziali stampate a fine `make setup` (es.
-`admin@orchestrator.local` / `password`): il pannello riflette il tema Montagna Servizi importato in
+Richiede, oltre a Docker e Node.js sul host, che **`v1dumps/latest.sql` esista già** (convenzione descritta
+sotto): il target fallisce subito con un messaggio esplicito se manca, invece di procedere con dati
+fittizi. Rilanciabile senza distruggere dati esistenti: `.env` non viene sovrascritto se già presente, il
+reset di `db_legacy`, le migrazioni e l'ETL sono già idempotenti di loro. Gli allegati restano
+**best-effort**: se `storage/app/v1-media/` è vuota (nessuno ha ancora lanciato `bin/fetch-legacy-media`),
+il setup non fallisce, l'ETL segnala solo i media come compromesso.
+
+L'app è raggiungibile su `http://localhost:8080/admin`. A fine setup viene stampato un promemoria: la
+password di ogni utente importato con `--anonymize` è `password`; per il login, individuare l'email
+anonimizzata di un utente reale noto con una query diretta su `users` (l'`id` è conservato dal v1) oppure
+consultare i manifest di collaudo aggiornati dal committente — nessun utente sintetico con credenziali
+fisse viene creato da questo target. Il pannello riflette il tema Montagna Servizi importato in
 US-004/US-005 (palette teal, font Nunito Sans, logo), non il tema di default di Filament.
+
+### Convenzione del dump corrente: `v1dumps/latest.sql`
+
+`v1dumps/` è gitignored: i dump reali non vanno mai versionati. `v1dumps/latest.sql` è un puntatore fisso
+(symlink o copia, a scelta) al dump v1 reale più recente, mantenuto **manualmente** da un umano con accesso
+SSH a produzione — nessuno script (né `make setup` né il deploy UAT) lo aggiorna da solo:
+
+```bash
+scp ms:/percorso/dump.sql v1dumps/production_dump_YYYYMMDD_HHMMSS.sql
+ln -sf production_dump_YYYYMMDD_HHMMSS.sql v1dumps/latest.sql
+```
+
+Stessa convenzione riusata identica in locale e su UAT (vedi `bin/load-v1-dump` e il deploy remoto): chi
+deve "usare l'ultimo dump" legge sempre questo path fisso, mai un pattern di data.
 
 ## Docker
 
@@ -76,11 +99,12 @@ L'app è raggiungibile su `http://localhost:8080`, la UI di Mailpit su `http://l
 
 Il servizio `db_legacy` (Postgres 16, §4.2 / §11.1 principio P2 del PRD) ospita il dump v1 in **sola
 lettura**, isolato dall'esercizio normale: non parte con `docker compose up`, solo col profilo Compose
-dedicato `etl`.
+dedicato `etl`. `make setup` lo avvia e carica `v1dumps/latest.sql` già da solo (vedi sopra); i comandi
+seguenti restano utili per gestirlo a parte (es. per rinfrescare il dump senza rieseguire tutto il setup):
 
 ```bash
 make etl-up                       # avvia (solo) il servizio db_legacy
-bin/load-v1-dump path/to/dump.sql # ripristina il dump SQL in db_legacy
+bin/load-v1-dump path/to/dump.sql # ripristina il dump SQL in db_legacy (avvia da solo db_legacy)
 ```
 
 L'ETL (Fase 2+) non scrive mai sul database v1: `db_legacy` è la sorgente in sola lettura usata da tutto il
