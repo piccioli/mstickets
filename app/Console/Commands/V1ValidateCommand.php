@@ -41,6 +41,8 @@ final class V1ValidateCommand extends Command
 
     private const HOURS_TOLERANCE = 0.05;
 
+    private const HOURS_TOLERANCE_ABSOLUTE_MINUTES = 15;
+
     /** @var array<int, array{label:string, v1_table:string, v2_table:string}> Entità con id v1 conservato (§14 del PRD). */
     private const ENTITY_MAPPINGS = [
         ['label' => 'users', 'v1_table' => 'users', 'v2_table' => 'users'],
@@ -354,7 +356,7 @@ final class V1ValidateCommand extends Command
 
     private function reportWorkedHours(): void
     {
-        $this->heading('Ore lavorate per ticket: v1 vs v2 (Q6 del PRD, tolleranza ±5% per ticket — assunzione operativa da confermare col committente in US-219)');
+        $this->heading('Ore lavorate per ticket: v1 vs v2 (Q6 del PRD, tolleranza ±5% O ±15\' assoluti per ticket, il primo dei due che copre il caso — confermato col committente in US-219: la sola percentuale non è un criterio sensato sui ticket con poche ore v1, dove l\'arrotondamento alla granularità configurata produce scostamenti percentuali enormi su differenze reali di pochi minuti)');
 
         if (! $this->legacyHasTable('stories') || ! Schema::connection(self::CONNECTION)->hasColumn('stories', 'hours')) {
             $this->addLine('- `stories.hours` non presente nello schema legacy: confronto non applicabile.');
@@ -385,18 +387,18 @@ final class V1ValidateCommand extends Command
             ];
         }
 
-        $analysis = WorkedHoursDeviationAnalyzer::analyze($rows, self::HOURS_TOLERANCE);
+        $analysis = WorkedHoursDeviationAnalyzer::analyze($rows, self::HOURS_TOLERANCE, self::HOURS_TOLERANCE_ABSOLUTE_MINUTES);
 
         $this->addLine("- Ticket confrontabili (v1 hours > 0): {$analysis['compared']} (esclusi senza ore v1: {$analysis['skipped_no_v1_hours']})");
-        $this->addLine("- Entro tolleranza ±5%: {$analysis['within_tolerance']}");
+        $this->addLine('- Entro tolleranza (±5% oppure ±'.self::HOURS_TOLERANCE_ABSOLUTE_MINUTES."'): {$analysis['within_tolerance']}");
         $this->addLine('- Oltre tolleranza: '.count($analysis['beyond_tolerance']));
-        $this->addLine("- Scostamento percentuale: min {$analysis['min_deviation_percent']}%, media {$analysis['avg_deviation_percent']}%, max {$analysis['max_deviation_percent']}%");
+        $this->addLine("- Scostamento percentuale (solo informativo, non il criterio di classificazione): min {$analysis['min_deviation_percent']}%, media {$analysis['avg_deviation_percent']}%, max {$analysis['max_deviation_percent']}%");
 
         if ($analysis['beyond_tolerance'] !== []) {
             $this->addLine('- Ticket oltre tolleranza:');
 
             foreach ($analysis['beyond_tolerance'] as $entry) {
-                $this->addLine("  - ticket #{$entry['id']}: v1 {$entry['v1_hours']}h, v2 {$entry['v2_hours']}h, scostamento {$entry['deviation_percent']}%");
+                $this->addLine("  - ticket #{$entry['id']}: v1 {$entry['v1_hours']}h, v2 {$entry['v2_hours']}h, scostamento {$entry['deviation_percent']}% ({$entry['deviation_minutes']}')");
             }
         }
     }

@@ -6,10 +6,15 @@ namespace App\Import\Validation;
 
 /**
  * Confronta le ore lavorate v1 (`stories.hours`) con i minuti lavorati ricalcolati in
- * v2 (`tickets.worked_minutes`, stage `derive`/US-215), ticket per ticket, secondo la
- * tolleranza operativa ±5% (assunzione per Q6 del PRD, da confermare col committente
- * al checkpoint di fine fase, US-219). Puro/senza I/O: il chiamante (v1:validate,
- * US-216) legge le due colonne e passa qui solo le coppie già accoppiate per id.
+ * v2 (`tickets.worked_minutes`, stage `derive`/US-215), ticket per ticket. Un ticket è
+ * entro tolleranza se lo scostamento è entro la soglia **percentuale** (±5% di default,
+ * assunzione per Q6 del PRD) **oppure** entro la soglia **assoluta** in minuti (15' di
+ * default): la sola percentuale non è un criterio sensato su valori piccoli (un ticket
+ * v1 da 10 minuti che in v2 arrotonda a 0 per la granularità configurata risulta "100%
+ * di scostamento" pur essendo una differenza reale di pochi minuti, rumore di
+ * arrotondamento — non un problema di dominio, verificato sul dump v1 reale in
+ * US-219). Puro/senza I/O: il chiamante (v1:validate, US-216) legge le due colonne e
+ * passa qui solo le coppie già accoppiate per id.
  */
 final class WorkedHoursDeviationAnalyzer
 {
@@ -19,13 +24,13 @@ final class WorkedHoursDeviationAnalyzer
      *     compared:int,
      *     skipped_no_v1_hours:int,
      *     within_tolerance:int,
-     *     beyond_tolerance:array<int, array{id:int, v1_hours:float, v2_hours:float, deviation_percent:float}>,
+     *     beyond_tolerance:array<int, array{id:int, v1_hours:float, v2_hours:float, deviation_percent:float, deviation_minutes:float}>,
      *     min_deviation_percent:float,
      *     max_deviation_percent:float,
      *     avg_deviation_percent:float,
      * }
      */
-    public static function analyze(array $rows, float $tolerance = 0.05): array
+    public static function analyze(array $rows, float $tolerance = 0.05, int $toleranceAbsoluteMinutes = 15): array
     {
         $compared = 0;
         $skippedNoV1Hours = 0;
@@ -48,16 +53,19 @@ final class WorkedHoursDeviationAnalyzer
 
             $compared++;
 
+            $v1Minutes = $v1Hours * 60;
             $v2Hours = $row['v2_minutes'] / 60;
-            $deviation = abs($v2Hours - $v1Hours) / $v1Hours;
+            $deviationMinutes = abs($row['v2_minutes'] - $v1Minutes);
+            $deviation = $deviationMinutes / $v1Minutes;
             $deviations[] = $deviation;
 
-            if ($deviation > $tolerance) {
+            if ($deviation > $tolerance && $deviationMinutes > $toleranceAbsoluteMinutes) {
                 $beyondTolerance[] = [
                     'id' => $row['id'],
                     'v1_hours' => $v1Hours,
                     'v2_hours' => round($v2Hours, 2),
                     'deviation_percent' => round($deviation * 100, 2),
+                    'deviation_minutes' => round($deviationMinutes, 2),
                 ];
 
                 continue;

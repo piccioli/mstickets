@@ -108,13 +108,15 @@ final class WorkedTimeCalculator
         $openUserId = null;
 
         foreach ($logs as $log) {
-            if ($log->to_status === TicketStatus::Progress) {
-                $openStart = CarbonImmutable::instance($log->occurred_at);
-                $openUserId = $log->user_id;
-
-                continue;
-            }
-
+            // Va controllata PRIMA la chiusura, poi l'apertura, SENZA un `continue`
+            // fra le due: un log "progress -> progress" (nessun cambio di stato
+            // intermedio, frequente sui dati reali v1) ha contemporaneamente
+            // `from_status = Progress` e `to_status = Progress` e deve sia chiudere
+            // l'intervallo già aperto sia aprirne uno nuovo alla stessa istante (zero
+            // minuti persi, zero doppio conteggio). Un ordine invertito, o un
+            // `continue` dopo l'apertura, fa perdere silenziosamente l'intero
+            // intervallo precedente (bug reale trovato importando il dump v1: un
+            // intervallo di 27 giorni azzerato da un singolo log di questo tipo).
             if ($openStart !== null && $openUserId !== null && $log->from_status === TicketStatus::Progress) {
                 $intervals[] = [
                     'start' => $openStart,
@@ -125,6 +127,11 @@ final class WorkedTimeCalculator
 
                 $openStart = null;
                 $openUserId = null;
+            }
+
+            if ($log->to_status === TicketStatus::Progress) {
+                $openStart = CarbonImmutable::instance($log->occurred_at);
+                $openUserId = $log->user_id;
             }
         }
 
