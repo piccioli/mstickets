@@ -27,10 +27,14 @@ use Spatie\MediaLibrary\MediaCollections\Exceptions\FileCannotBeAdded;
  * messaggio legacy" anche per una riesecuzione successiva, senza bisogno di
  * un'ulteriore chiave di idempotenza dedicata a quel messaggio.
  *
- * I file fisici vengono letti dal disco `legacy-media` (§11.3, stessa convenzione
- * piatta `<file_name>` già usata da `v1:inspect`): un media la cui riga esiste nel
- * dump ma il cui file non è presente su questo disco è un **compromesso**, mai un
- * crash — segnalato nel report, mai contato come importato con successo.
+ * I file fisici vengono letti dal disco `legacy-media`, con percorso `<uuid>-<file_name>`
+ * (§US-219): NON il solo `file_name` come in una prima versione di questo stage —
+ * `file_name` non è univoco tra ticket diversi nel dump v1 reale (verificato: 110 nomi
+ * duplicati su 752 righe, es. più upload distinti chiamati "PA01012.PDF"), mentre
+ * `media.uuid` è garantito univoco per riga (vincolo unique nello schema v1). Un media
+ * la cui riga esiste nel dump ma il cui file non è presente su questo disco è un
+ * **compromesso**, mai un crash — segnalato nel report, mai contato come importato con
+ * successo.
  */
 final class TicketAttachmentsStage implements ImportStage
 {
@@ -107,7 +111,9 @@ final class TicketAttachmentsStage implements ImportStage
                 continue;
             }
 
-            if (! Storage::disk('legacy-media')->exists($row->file_name)) {
+            $diskPath = self::legacyDiskPath((string) $row->uuid, (string) $row->file_name);
+
+            if (! Storage::disk('legacy-media')->exists($diskPath)) {
                 $missingFileCount++;
                 $skipped++;
 
@@ -126,7 +132,7 @@ final class TicketAttachmentsStage implements ImportStage
                 $systemMessageCreatedCount++;
             }
 
-            $absolutePath = Storage::disk('legacy-media')->path($row->file_name);
+            $absolutePath = Storage::disk('legacy-media')->path($diskPath);
 
             try {
                 $media = TicketMessage::query()->findOrFail($messageId)
@@ -165,6 +171,17 @@ final class TicketAttachmentsStage implements ImportStage
         );
 
         return new StageResult(read: $read, created: $created, skipped: $skipped, warnings: $warnings);
+    }
+
+    /**
+     * Percorso del file su `legacy-media` per un media v1: prefissato con `uuid`
+     * (univoco per riga), non il solo `file_name` (non univoco tra ticket diversi,
+     * §US-219). Chi copia i file fisici da produzione deve nominarli così — vedi
+     * `bin/fetch-legacy-media`.
+     */
+    private static function legacyDiskPath(string $uuid, string $fileName): string
+    {
+        return "{$uuid}-{$fileName}";
     }
 
     /**

@@ -91,12 +91,22 @@ function insertLegacyMedia(int $modelId, string $uuid, string $fileName, ?string
     ]);
 }
 
+/**
+ * Percorso sul disco `legacy-media` per un media v1: prefissato con `uuid` (§US-219,
+ * fix del bug di collisione), non il solo `file_name` — `file_name` NON è univoco tra
+ * ticket diversi nel dump v1 reale (verificato: 110 nomi duplicati su 752 righe).
+ */
+function legacyMediaDiskPath(string $uuid, string $fileName): string
+{
+    return "{$uuid}-{$fileName}";
+}
+
 test('a media with its file present on disk is attached to the first legacy message of its ticket', function (): void {
     insertTicketForAttachments(100);
     $older = insertLegacyTicketMessage(100, '2026-01-01 09:00:00');
     insertLegacyTicketMessage(100, '2026-01-02 09:00:00');
 
-    Storage::disk('legacy-media')->put('report.txt', 'Contenuto vero del file.');
+    Storage::disk('legacy-media')->put(legacyMediaDiskPath('372a3c0f-72bd-4b12-8629-1196a0c15cc0', 'report.txt'), 'Contenuto vero del file.');
     insertLegacyMedia(100, '372a3c0f-72bd-4b12-8629-1196a0c15cc0', 'report.txt');
 
     $result = (new TicketAttachmentsStage)->run(ticketAttachmentsStageContext());
@@ -117,7 +127,40 @@ test('a media with its file present on disk is attached to the first legacy mess
     expect(ImportMapping::query()->where('source_table', 'media')->where('target_table', 'media')->count())->toBe(1);
 
     // Il file sorgente non va rimosso dal disco v1 (preservingOriginal).
-    Storage::disk('legacy-media')->assertExists('report.txt');
+    Storage::disk('legacy-media')->assertExists(legacyMediaDiskPath('372a3c0f-72bd-4b12-8629-1196a0c15cc0', 'report.txt'));
+});
+
+test('two different media rows sharing the same file_name across different tickets do not collide', function (): void {
+    // Caso reale sul dump v1 (US-219): `file_name` NON è univoco tra ticket
+    // diversi (es. "PA01012.PDF" ricorre più volte con contenuti diversi). Il
+    // lookup sul disco deve usare `uuid` (univoco per riga), non il solo nome
+    // file, altrimenti un ticket riceverebbe l'allegato sbagliato o "mancante".
+    insertTicketForAttachments(110);
+    insertLegacyTicketMessage(110, '2026-01-01 09:00:00');
+    insertTicketForAttachments(120);
+    insertLegacyTicketMessage(120, '2026-01-01 09:00:00');
+
+    Storage::disk('legacy-media')->put(legacyMediaDiskPath('aaaaaaaa-72bd-4b12-8629-1196a0c15cc0', 'PA01012.PDF'), 'Contenuto del ticket 110.');
+    Storage::disk('legacy-media')->put(legacyMediaDiskPath('bbbbbbbb-72bd-4b12-8629-1196a0c15cc0', 'PA01012.PDF'), 'Contenuto del ticket 120, diverso.');
+    insertLegacyMedia(110, 'aaaaaaaa-72bd-4b12-8629-1196a0c15cc0', 'PA01012.PDF');
+    insertLegacyMedia(120, 'bbbbbbbb-72bd-4b12-8629-1196a0c15cc0', 'PA01012.PDF');
+
+    $result = (new TicketAttachmentsStage)->run(ticketAttachmentsStageContext());
+
+    expect($result->created)->toBe(2)
+        ->and($result->skipped)->toBe(0);
+
+    expect(Media::query()->count())->toBe(2);
+
+    $ticket110Message = DB::table('ticket_messages')->where('ticket_id', 110)->first();
+    $ticket120Message = DB::table('ticket_messages')->where('ticket_id', 120)->first();
+
+    $mediaFor110 = Media::query()->where('model_id', $ticket110Message->id)->sole();
+    $mediaFor120 = Media::query()->where('model_id', $ticket120Message->id)->sole();
+
+    expect($mediaFor110->getPath())->not->toBe($mediaFor120->getPath())
+        ->and(file_get_contents($mediaFor110->getPath()))->toBe('Contenuto del ticket 110.')
+        ->and(file_get_contents($mediaFor120->getPath()))->toBe('Contenuto del ticket 120, diverso.');
 });
 
 test('a media whose physical file is missing is reported as orphan, not attached', function (): void {
@@ -135,7 +178,7 @@ test('a media whose physical file is missing is reported as orphan, not attached
 
 test('a ticket without any legacy message gets a system message created to host its attachments', function (): void {
     insertTicketForAttachments(300, createdAt: '2026-02-01 10:00:00');
-    Storage::disk('legacy-media')->put('bilancio.txt', 'Bilancio.');
+    Storage::disk('legacy-media')->put(legacyMediaDiskPath('a33a8778-2496-4fd8-b8a8-3d7a48237bf9', 'bilancio.txt'), 'Bilancio.');
     insertLegacyMedia(300, 'a33a8778-2496-4fd8-b8a8-3d7a48237bf9', 'bilancio.txt');
 
     $result = (new TicketAttachmentsStage)->run(ticketAttachmentsStageContext());
@@ -154,7 +197,7 @@ test('a ticket without any legacy message gets a system message created to host 
 });
 
 test('a media referencing a non-existent v2 ticket is discarded and reported, not crashed', function (): void {
-    Storage::disk('legacy-media')->put('orfano.pdf', 'Contenuto.');
+    Storage::disk('legacy-media')->put(legacyMediaDiskPath('ad3d2321-a79d-40da-8f83-c6be2475c88c', 'orfano.pdf'), 'Contenuto.');
     insertLegacyMedia(999, 'ad3d2321-a79d-40da-8f83-c6be2475c88c', 'orfano.pdf');
 
     $result = (new TicketAttachmentsStage)->run(ticketAttachmentsStageContext());
@@ -166,7 +209,7 @@ test('a media referencing a non-existent v2 ticket is discarded and reported, no
 
 test('a media on a model_type other than Story is out of scope and reported, not crashed', function (): void {
     insertTicketForAttachments(400);
-    Storage::disk('legacy-media')->put('doc.pdf', 'Contenuto.');
+    Storage::disk('legacy-media')->put(legacyMediaDiskPath('199cc074-2408-400c-a6bd-d561be1bc19b', 'doc.pdf'), 'Contenuto.');
     insertLegacyMedia(400, '199cc074-2408-400c-a6bd-d561be1bc19b', 'doc.pdf', modelType: 'App\\Models\\Documentation');
 
     $result = (new TicketAttachmentsStage)->run(ticketAttachmentsStageContext());
@@ -179,7 +222,7 @@ test('a media on a model_type other than Story is out of scope and reported, not
 test('dry-run does not attach media, create system messages nor write import_mappings', function (): void {
     insertTicketForAttachments(500);
     insertLegacyTicketMessage(500, '2026-01-01 09:00:00');
-    Storage::disk('legacy-media')->put('report.txt', 'Contenuto.');
+    Storage::disk('legacy-media')->put(legacyMediaDiskPath('d36105fb-8eb5-4a3e-af21-4ec68f96fa53', 'report.txt'), 'Contenuto.');
     insertLegacyMedia(500, 'd36105fb-8eb5-4a3e-af21-4ec68f96fa53', 'report.txt');
 
     $result = (new TicketAttachmentsStage)->run(ticketAttachmentsStageContext(dryRun: true));
@@ -193,8 +236,8 @@ test('dry-run does not attach media, create system messages nor write import_map
 test('--limit caps the number of source rows read', function (): void {
     insertTicketForAttachments(600);
     insertLegacyTicketMessage(600, '2026-01-01 09:00:00');
-    Storage::disk('legacy-media')->put('uno.txt', 'Uno.');
-    Storage::disk('legacy-media')->put('due.txt', 'Due.');
+    Storage::disk('legacy-media')->put(legacyMediaDiskPath('6cdbf949-2b07-4150-ab9a-439378969d9c', 'uno.txt'), 'Uno.');
+    Storage::disk('legacy-media')->put(legacyMediaDiskPath('c978cb3c-b07f-412a-b084-7069bd152a29', 'due.txt'), 'Due.');
     insertLegacyMedia(600, '6cdbf949-2b07-4150-ab9a-439378969d9c', 'uno.txt');
     insertLegacyMedia(600, 'c978cb3c-b07f-412a-b084-7069bd152a29', 'due.txt');
 
@@ -207,7 +250,7 @@ test('--limit caps the number of source rows read', function (): void {
 test('re-running the stage on the same dump is idempotent via import_mappings on media.uuid: second run only skips', function (): void {
     insertTicketForAttachments(700);
     insertLegacyTicketMessage(700, '2026-01-01 09:00:00');
-    Storage::disk('legacy-media')->put('report.txt', 'Contenuto.');
+    Storage::disk('legacy-media')->put(legacyMediaDiskPath('538eec50-ddfa-4798-b842-c62e65ae17ea', 'report.txt'), 'Contenuto.');
     insertLegacyMedia(700, '538eec50-ddfa-4798-b842-c62e65ae17ea', 'report.txt');
 
     $stage = new TicketAttachmentsStage;
