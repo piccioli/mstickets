@@ -8,6 +8,16 @@ services:
     env_file: .env.uat
     ports:
       - "127.0.0.1:8090:8000"
+    volumes:
+      # Allegati v1 (media.file_name, TicketAttachmentsStage) per l'ETL reale
+      # (design ETL real data seeding, §4): l'immagine UAT non monta l'intero
+      # repo come in locale, quindi qui serve un bind-mount dedicato su un
+      # percorso del disco host di msuat, popolato da un umano con
+      # `bin/fetch-legacy-media` + scp/rsync verso msuat (mai un accesso diretto
+      # msuat -> produzione). Monta direttamente su storage/app/v1-media (stesso
+      # path di default letto da LEGACY_MEDIA_PATH, config/filesystems.php): non
+      # serve valorizzare LEGACY_MEDIA_PATH in .env.uat.
+      - ${LEGACY_MEDIA_HOST_PATH:-/opt/mstickets-uat/v1-media}:/app/storage/app/v1-media
     depends_on:
       db:
         condition: service_healthy
@@ -64,6 +74,28 @@ services:
     networks:
       - ticket-uat
 
+  db_legacy:
+    # Sorgente v1 in sola lettura per l'ETL reale (design ETL real data seeding,
+    # §4): a differenza del servizio locale equivalente (docker-compose.yml,
+    # dietro il profilo "etl"), qui è SEMPRE attivo perché serve a ogni deploy
+    # su develop (US-R06), non a una sessione ETL occasionale.
+    image: postgres:16-alpine
+    restart: unless-stopped
+    mem_limit: ${MEM_LIMIT_DB_LEGACY:-384m}
+    environment:
+      POSTGRES_DB: ${DB_LEGACY_DATABASE:-orchestrator_legacy}
+      POSTGRES_USER: ${DB_LEGACY_USERNAME:-orchestrator_legacy}
+      POSTGRES_PASSWORD: ${DB_LEGACY_PASSWORD:?err}
+    volumes:
+      - db_legacy_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_LEGACY_USERNAME:-orchestrator_legacy}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - ticket-uat
+
   redis:
     image: redis:7-alpine
     restart: unless-stopped
@@ -93,3 +125,4 @@ networks:
 
 volumes:
   ticket_uat_db_data:
+  db_legacy_data:
