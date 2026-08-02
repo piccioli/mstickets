@@ -58,7 +58,7 @@ it('lancia eccezione se eseguito in ambiente production', function () {
     expect(fn () => (new UatSeeder)->run())->toThrow(RuntimeException::class);
 });
 
-it('copre lo stesso volume/scope minimo di DevelopmentSeeder su tutti i moduli', function () {
+it('copre tutti i moduli in scope con il volume minimo atteso', function () {
     (new UatSeeder)->run();
 
     foreach (UserRole::cases() as $role) {

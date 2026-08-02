@@ -13,12 +13,11 @@ use App\Domain\Reporting\Models\ActivityReport;
 use App\Domain\Ticketing\Models\Ticket;
 
 /**
- * Coppia di report attività (uno per utente, uno per organizzazione) usata sia da
- * `DevelopmentSeeder` che da `UatSeeder`: a differenza dei metodi "narrativi" degli stessi due
- * seeder (nomi di organizzazioni, titoli di ticket, fundraising — intenzionalmente duplicati per
- * restare indipendenti fra i due ambienti), questa logica non ha alcun contenuto specifico da
- * proteggere: è puro cablaggio di periodi/slice di ticket che driftrebbe silenziosamente se
- * corretto in una copia e non nell'altra.
+ * Coppia di report attività (uno per utente, uno per organizzazione) usata da `UatSeeder`:
+ * questa logica non ha alcun contenuto specifico da proteggere (a differenza dei metodi
+ * "narrativi" dello stesso seeder — nomi di organizzazioni, titoli di ticket, fundraising),
+ * è puro cablaggio di periodi/slice di ticket, isolato in un trait per restare testabile
+ * indipendentemente dal resto del seeder.
  */
 trait SeedsActivityReports
 {

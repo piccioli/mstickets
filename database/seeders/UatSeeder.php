@@ -34,9 +34,8 @@ use RuntimeException;
  * Popola l'ambiente pubblico di collaudo (UAT) con un dataset realistico e deterministico,
  * pensato per essere descritto uno-a-uno nel PDF di collaudo formale (Task 3/8). Eseguito ad
  * ogni deploy UAT come `migrate:fresh --seed --class=UatSeeder` (non tramite `DatabaseSeeder`,
- * quindi richiama da sé `RolePermissionSeeder`): a differenza di `DevelopmentSeeder` (Fase 0,
- * dati "di sviluppo" generici), qui titoli/nomi sono testo scritto a mano, stabile tra un deploy
- * e l'altro, e mai frutto di generazione casuale. Nessuna chiamata a `fake()`: `fakerphp/faker`
+ * quindi richiama da sé `RolePermissionSeeder`): titoli/nomi sono testo scritto a mano, stabile
+ * tra un deploy e l'altro, e mai frutto di generazione casuale. Nessuna chiamata a `fake()`: `fakerphp/faker`
  * è una dipendenza `require-dev`, assente nell'immagine UAT costruita con `composer install
  * --no-dev` (vedi `docker/uat/Dockerfile`), quindi qualunque uso di `fake()` qui farebbe
  * crashare il seeder ad ogni deploy reale. Non eseguibile in produzione.
@@ -53,8 +52,11 @@ class UatSeeder extends Seeder
     private array $credentials = [];
 
     /**
-     * Copia nullable del comando console: vedi `DevelopmentSeeder` per il razionale
-     * (Larastan tratta `Seeder::$command` come sempre presente, non lo è nei test).
+     * Copia nullable del comando console: la proprietà ereditata `Seeder::$command` è
+     * documentata come sempre presente, ma non lo è quando il seeder gira fuori da
+     * `php artisan db:seed` (es. istanziato direttamente nei test). Con
+     * `treatPhpDocTypesAsCertain` (default true), Larastan tratterebbe `$this->command?->...`
+     * come sempre non-null; questa proprietà nostra, dichiarata `?Command`, evita il problema.
      */
     private ?Command $console = null;
 
