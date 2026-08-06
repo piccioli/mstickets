@@ -294,13 +294,13 @@ return [
             'test' => [
                 [
                     'id' => 'F0-47',
-                    'descrizione' => 'Il seed di sviluppo rifiuta di girare in produzione e popola un ambiente completo (utenti, organizzazioni, ticket, tag, documentazione, report, fundraising)',
-                    'test_automatico' => 'tests/Feature/Database/Seeders/DevelopmentSeederTest.php::it seeds a complete development environment',
+                    'descrizione' => 'L\'ambiente locale è popolato con dati reali importati via ETL (utenti, organizzazioni, ticket, tag, documentazione, report, fundraising) invece di un seed fittizio (make setup, seeding con dati reali)',
+                    'test_automatico' => 'tests/Feature/Console/V1ImportPipelineIdempotencyTest.php::a second consecutive v1:import run creates/updates nothing on every registered stage',
                 ],
                 [
                     'id' => 'F0-48',
-                    'descrizione' => 'Una seconda esecuzione del seed di sviluppo non duplica ticket, tag o pagine di documentazione',
-                    'test_automatico' => 'tests/Feature/Database/Seeders/DevelopmentSeederTest.php::running it twice does not duplicate tickets, tags or documentation',
+                    'descrizione' => 'Una seconda esecuzione di v1:import non duplica nulla su nessuno stage (ticket, tag, documentazione, report, fundraising compresi)',
+                    'test_automatico' => 'tests/Feature/Console/V1ImportPipelineIdempotencyTest.php::a second consecutive v1:import run creates/updates nothing on every registered stage',
                 ],
             ],
         ],
