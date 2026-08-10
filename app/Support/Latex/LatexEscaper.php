@@ -28,6 +28,7 @@ final class LatexEscaper
         '—' => '---',
         '–' => '--',
         '→' => '$\rightarrow$',
+        '↔' => '$\leftrightarrow$',
         '⇒' => '$\Rightarrow$',
         '×' => '$\times$',
         '…' => '\ldots{}',
