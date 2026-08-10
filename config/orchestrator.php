@@ -102,8 +102,27 @@ return [
     'anonymization' => [
         'mail_test_domains' => array_values(array_filter(array_map(
             trim(...),
-            explode(',', (string) env('MAIL_TEST_DOMAINS', 'test.orchestrator.invalid')),
+            explode(',', (string) env('MAIL_TEST_DOMAINS', 'test.orchestrator.invalid,oc.test')),
         ))),
+
+        /*
+        | Utenti di riferimento del collaudo (docs/collaudo/00-istruzioni-generali.md):
+        | id v1 conservato → email fissa nota, sempre la stessa a ogni reimport.
+        | Individuati dal committente su dati reali (2026-08-10): admin = unico utente
+        | con ruolo "admin" in v1 (account aziendale generico, non una persona); dev =
+        | Lorena Sava; fundraising = Sara Mariani; customer = "Sentiero Italia CAI -
+        | SICAI" (sezione/cliente esterno reale, non un account interno). Applicata SOLO
+        | quando --anonymize è attivo (App\Import\Anonymization\Anonymizer::emailFor()):
+        | mai in un cutover reale in produzione. Nessun utente v1 ha il ruolo "manager"
+        | (introdotto solo in v2): quell'account è creato ex novo da
+        | `collaudo:ensure-manager-account`, non da questa mappa.
+        */
+        'reference_users' => [
+            1 => 'admin@oc.test',
+            7 => 'dev@oc.test',
+            6 => 'fr@oc.test',
+            571 => 'customer@oc.test',
+        ],
     ],
 
 ];

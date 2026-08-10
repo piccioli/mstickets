@@ -22,4 +22,8 @@ docker compose -f docker-compose.uat.yml --env-file .env.uat exec -T app php art
 docker compose -f docker-compose.uat.yml --env-file .env.uat exec -T app php artisan db:seed --class=RolePermissionSeeder --force
 docker compose -f docker-compose.uat.yml --env-file .env.uat exec -T app php artisan v1:import --anonymize
 
+# manager@oc.test non esiste in v1 (nessun utente reale ha il ruolo "manager"):
+# creato ex novo, non dalla mappa reference_users dell'anonimizzazione.
+docker compose -f docker-compose.uat.yml --env-file .env.uat exec -T app php artisan collaudo:ensure-manager-account
+
 docker image prune -f

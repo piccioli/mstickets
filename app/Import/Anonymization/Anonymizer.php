@@ -49,20 +49,37 @@ final class Anonymizer
      */
     private const FIXED_PASSWORD = 'password';
 
-    public function __construct(private readonly string $testDomain) {}
+    /**
+     * @param  array<int, string>  $referenceEmails  Mappa id v1 → email fissa nota per gli
+     *                                               utenti di riferimento del collaudo
+     *                                               (`docs/collaudo/00-istruzioni-generali.md`):
+     *                                               ha sempre precedenza sull'algoritmo generico
+     *                                               di {@see self::emailFor()}. Vuota di
+     *                                               default: nessun id ha un trattamento
+     *                                               speciale a meno di essere elencato qui.
+     */
+    public function __construct(
+        private readonly string $testDomain,
+        private readonly array $referenceEmails = [],
+    ) {}
 
     /**
-     * Dominio di test usato per le email fittizie: il primo dell'allowlist già
+     * Dominio di test usato per le email fittizie generiche: il primo dell'allowlist già
      * condivisa col guard applicativo che blocca l'invio verso indirizzi reali
      * fuori produzione (`App\Support\Mail\BlockRealRecipientsOutsideProduction`),
-     * così ogni email generata da `--anonymize` è per costruzione già permessa.
+     * così ogni email generata da `--anonymize` è per costruzione già permessa. Le email
+     * di riferimento fisse (`reference_users`, dominio `oc.test`) sono incluse nella
+     * stessa allowlist per lo stesso motivo.
      */
     public static function default(): self
     {
         /** @var array<int, string> $domains */
         $domains = config('orchestrator.anonymization.mail_test_domains', ['test.orchestrator.invalid']);
 
-        return new self($domains[0] ?? 'test.orchestrator.invalid');
+        /** @var array<int, string> $referenceEmails */
+        $referenceEmails = config('orchestrator.anonymization.reference_users', []);
+
+        return new self($domains[0] ?? 'test.orchestrator.invalid', $referenceEmails);
     }
 
     public function nameFor(int|string $seed): string
@@ -82,12 +99,25 @@ final class Anonymizer
     }
 
     /**
-     * Il seed è incluso letteralmente nella local-part per garantire l'unicità
-     * (vincolo `unique` su `users.email`): la combinazione nome/cognome da sola
-     * (30×30) potrebbe ripetersi ben prima di esaurire gli utenti reali del dump.
+     * Un id elencato in `$referenceEmails` (utenti di riferimento del collaudo) ottiene
+     * sempre la sua email fissa nota, mai quella generata dall'algoritmo generico —
+     * verificato PRIMA di qualunque altra cosa, così un id di riferimento resta stabile
+     * anche se la tabella nome/cognome cambiasse in futuro.
+     *
+     * Per tutti gli altri id, il seed è incluso letteralmente nella local-part per
+     * garantire l'unicità (vincolo `unique` su `users.email`): la combinazione
+     * nome/cognome da sola (30×30) potrebbe ripetersi ben prima di esaurire gli utenti
+     * reali del dump.
      */
     public function emailFor(int|string $seed): string
     {
+        // `$seed` arriva da un id di riga DB: può essere int o stringa numerica a
+        // seconda del driver/query builder — normalizzato a int solo per il lookup,
+        // mai per la generazione generica sotto (che usa il seed originale).
+        if (is_numeric($seed) && array_key_exists((int) $seed, $this->referenceEmails)) {
+            return $this->referenceEmails[(int) $seed];
+        }
+
         $local = Str::slug("{$this->firstNameFor($seed)}.{$this->lastNameFor($seed)}", '.');
 
         return sprintf('%s.%s@%s', $local, $seed, $this->testDomain);

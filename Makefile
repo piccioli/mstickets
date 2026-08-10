@@ -30,12 +30,12 @@ setup:
 	docker compose exec app php artisan migrate --force
 	docker compose exec app php artisan db:seed --class=RolePermissionSeeder --force
 	docker compose exec app php artisan v1:import --anonymize
+	docker compose exec app php artisan collaudo:ensure-manager-account
 	@echo ""
 	@echo "Setup completato: dati reali importati da v1dumps/latest.sql (--anonymize)."
-	@echo "Password di ogni utente importato: 'password'. Per il login, individua l'email"
-	@echo "anonimizzata di un utente reale noto con una query diretta su users (id conservato"
-	@echo "dal v1) oppure consulta i manifest di collaudo aggiornati dal committente — nessun"
-	@echo "utente sintetico con credenziali fisse viene creato da questo target."
+	@echo "Password di ogni utente (importato o di riferimento): 'password'."
+	@echo "Utenti di riferimento del collaudo (docs/collaudo/00-istruzioni-generali.md):"
+	@echo "  admin@oc.test | dev@oc.test | fr@oc.test | customer@oc.test | manager@oc.test"
 
 # Avvia il servizio db_legacy (database di appoggio in sola lettura per il dump v1,
 # §4.2 / §11.1 P2 del PRD). Non parte con un `docker compose up` normale: richiede
