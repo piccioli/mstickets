@@ -65,9 +65,141 @@ jobs:
       - name: Verifica manifest di collaudo (Fase 1A)
         run: php artisan collaudo:verify-manifest 1a
 
-      # Quando la Fase 2 introduce i comandi v1:import/v1:validate, aggiungere qui
-      # uno step dedicato "ETL validate" (php artisan v1:validate) che gira dopo
-      # Pest e prima del build Docker. Non esiste ancora in questa fase (Fase 0).
+      # Il job ETL dedicato (v1:import + v1:validate su una fixture ridotta, US-218)
+      # gira separatamente qui sotto (job "etl-fixture"): richiede un servizio
+      # Postgres reale per la connessione "legacy", che questo job "quality" non ha.
+
+  etl-fixture:
+    name: ETL — v1:import + v1:validate su fixture ridotta (US-218)
+    runs-on: ubuntu-latest
+
+    services:
+      db_legacy:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: orchestrator_legacy
+          POSTGRES_USER: orchestrator_legacy
+          POSTGRES_PASSWORD: orchestrator_legacy
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U orchestrator_legacy -d orchestrator_legacy"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+      db:
+        # Schema v2 su Postgres reale, non sqlite (fix US-219): un bug di sintassi SQL
+        # Postgres-only in V1ValidateCommand::reportDuplicateCount() (alias di SELECT
+        # referenziato in HAVING, tollerato da sqlite ma rifiutato da Postgres) è passato
+        # inosservato da questo job finché non è stato scoperto eseguendo v1:import/
+        # v1:validate su un dump reale contro un vero Postgres v2 durante il checkpoint
+        # di fine Fase 2 (US-219) — v2 su sqlite qui creava lo stesso angolo cieco già
+        # noto per le sequenze Postgres-only (vedi CLAUDE.md, sezione ETL).
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: orchestrator
+          POSTGRES_USER: orchestrator
+          POSTGRES_PASSWORD: orchestrator
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd="pg_isready -U orchestrator -d orchestrator"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo, pdo_pgsql, pdo_sqlite, redis, zip, intl, bcmath, opcache, pcntl
+          coverage: none
+
+      - name: Copy .env
+        run: cp .env.example .env
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Generate application key
+        run: php artisan key:generate
+
+      - name: Configura lo schema v2 su Postgres reale (isolato dalla connessione "legacy")
+        # Variabili d'ambiente reali via $GITHUB_ENV, non righe duplicate in .env: la
+        # precedenza di chiavi ripetute in un file .env non è garantita, mentre una vera
+        # variabile d'ambiente di processo vince sempre su .env.example (stesso principio
+        # scoperto durante lo sviluppo di questa story sul container Docker locale, dove
+        # DB_* iniettate da env_file prevalgono silenziosamente sugli override di test).
+        # v2 su Postgres reale (servizio "db" sopra), non più sqlite (fix US-219, vedi
+        # commento sul servizio "db"): stesso motivo per cui le sequenze Postgres-only
+        # di DeriveStage non sono mai state validate qui, solo verificate a mano.
+        # CACHE_STORE/SESSION_DRIVER/QUEUE_CONNECTION forzati ad array/sync: questo job
+        # esegue `php artisan ...` direttamente, non tramite `vendor/bin/pest` — gli
+        # <env> di phpunit.xml (che già impostano questi stessi valori per il job
+        # "quality" sopra) non si applicano qui. Senza questo override resta il default
+        # di .env.example (redis), e questo job non ha un servizio "redis": ogni comando
+        # che tocca la cache (incluso il flush cache di Spatie permission nella
+        # migrazione 2026_07_25_230614_create_permission_tables.php) fallisce con
+        # "getaddrinfo for redis failed" (nessun host "redis" risolvibile).
+        run: |
+          {
+            echo "DB_CONNECTION=pgsql"
+            echo "DB_HOST=127.0.0.1"
+            echo "DB_PORT=5433"
+            echo "DB_DATABASE=orchestrator"
+            echo "DB_USERNAME=orchestrator"
+            echo "DB_PASSWORD=orchestrator"
+            echo "DB_LEGACY_HOST=127.0.0.1"
+            echo "DB_LEGACY_PORT=5432"
+            echo "DB_LEGACY_DATABASE=orchestrator_legacy"
+            echo "DB_LEGACY_USERNAME=orchestrator_legacy"
+            echo "DB_LEGACY_PASSWORD=orchestrator_legacy"
+            echo "CACHE_STORE=array"
+            echo "SESSION_DRIVER=array"
+            echo "QUEUE_CONNECTION=sync"
+          } >> "$GITHUB_ENV"
+
+      - name: Migrazioni schema v2 + seeder ruoli/permessi
+        run: |
+          php artisan migrate --force
+          php artisan db:seed --class="Database\Seeders\RolePermissionSeeder" --force
+
+      - name: Carica la fixture ridotta in db_legacy
+        env:
+          PGPASSWORD: orchestrator_legacy
+        run: psql -h 127.0.0.1 -U orchestrator_legacy -d orchestrator_legacy -v ON_ERROR_STOP=1 -f tests/Fixtures/Import/v1-ci-fixture.sql
+
+      - name: v1:import (prima esecuzione)
+        run: php artisan v1:import --anonymize
+
+      - name: v1:import (seconda esecuzione — verifica idempotenza)
+        run: |
+          php artisan v1:import --anonymize | tee /tmp/second-import.log
+          if grep -qE 'creati [1-9]|aggiornati [1-9]' /tmp/second-import.log; then
+            echo "::error::La seconda esecuzione consecutiva di v1:import ha creato/aggiornato righe: non idempotente." >&2
+            exit 1
+          fi
+
+      - name: "v1:validate (deve uscire con successo: zero controlli di integrità falliti)"
+        run: php artisan v1:validate
+
+      - name: Verifica che i compromessi noti della fixture siano stati rilevati e contati
+        run: |
+          REPORT=$(ls -t storage/app/import/validate-*.md | head -n1)
+          for needle in \
+            'editor" era l.unico ruolo' \
+            'tipo v1 non riconosciuto' \
+            'priorità v1 fuori dai valori noti' \
+            'padre diverso tra stories.parent_id e story_story' \
+            'conversazione non scomponibile' \
+            'media orfani: riga presente nel dump ma file assente su disco'; do
+            grep -qE "$needle" "$REPORT" || { echo "::error::Compromesso atteso non trovato nel report ($needle)." >&2; exit 1; }
+          done
+          echo "Tutti i compromessi noti della fixture sono stati rilevati e contati nel report."
 
   docker-build:
     name: Build Docker containers

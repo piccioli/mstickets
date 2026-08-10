@@ -86,4 +86,45 @@ return [
         'name' => 'Sistema',
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Anonimizzazione dati (§11.8 del PRD, US-217)
+    |--------------------------------------------------------------------------
+    |
+    | Domini email usati sia da `--anonymize` (App\Import\Anonymization\Anonymizer,
+    | primo dominio della lista) sia dal guard applicativo che blocca l'invio di
+    | QUALUNQUE email verso un indirizzo reale fuori produzione
+    | (App\Support\Mail\BlockRealRecipientsOutsideProduction): stessa fonte, per
+    | costruzione ogni email generata dall'anonimizzazione è già permessa dal guard.
+    |
+    */
+
+    'anonymization' => [
+        'mail_test_domains' => array_values(array_filter(array_map(
+            trim(...),
+            explode(',', (string) env('MAIL_TEST_DOMAINS', 'test.orchestrator.invalid,oc.test')),
+        ))),
+
+        /*
+        | Utenti di riferimento del collaudo (docs/collaudo/00-istruzioni-generali.md):
+        | id v1 conservato → nome+email fissi noti, sempre gli stessi a ogni reimport. Il
+        | nome è un'etichetta di ruolo generica, non il nome reale dell'utente v1 scelto
+        | per quell'id (coerente con --anonymize anche nei documenti di collaudo).
+        | Individuati dal committente su dati reali (2026-08-10): admin = unico utente
+        | con ruolo "admin" in v1 (account aziendale generico, non una persona); dev =
+        | Lorena Sava; fundraising = Sara Mariani; customer = "Sentiero Italia CAI -
+        | SICAI" (sezione/cliente esterno reale, non un account interno). Applicata SOLO
+        | quando --anonymize è attivo (App\Import\Anonymization\Anonymizer), mai in un
+        | cutover reale in produzione. Nessun utente v1 ha il ruolo "manager" (introdotto
+        | solo in v2): quell'account è creato ex novo da
+        | `collaudo:ensure-manager-account`, non da questa mappa.
+        */
+        'reference_users' => [
+            1 => ['name' => 'Amministratore Collaudo', 'email' => 'admin@oc.test'],
+            7 => ['name' => 'Sviluppatore Collaudo', 'email' => 'dev@oc.test'],
+            6 => ['name' => 'Referente Fundraising Collaudo', 'email' => 'fr@oc.test'],
+            571 => ['name' => 'Socio CAI Collaudo', 'email' => 'customer@oc.test'],
+        ],
+    ],
+
 ];

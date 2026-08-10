@@ -8,6 +8,8 @@ use App\Domain\Ticketing\Events\TicketMessagePosted;
 use App\Domain\Ticketing\Events\TicketStatusChanged;
 use App\Domain\Ticketing\Listeners\RestoreTicketStatusOnRequesterMessage;
 use App\Domain\TimeTracking\Listeners\RecalculateWorkedTimeOnStatusChange;
+use App\Support\Mail\BlockRealRecipientsOutsideProduction;
+use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -33,6 +35,11 @@ class AppServiceProvider extends ServiceProvider
     {
         Event::listen(TicketMessagePosted::class, RestoreTicketStatusOnRequesterMessage::class);
         Event::listen(TicketStatusChanged::class, RecalculateWorkedTimeOnStatusChange::class);
+
+        // Guard applicativo §11.8 del PRD (US-217): non un listener di dominio, ma va
+        // comunque registrato qui perché Illuminate\Mail\Events\MessageSending non è
+        // nella scansione di auto-discovery (nessuna classe App\Listeners\* nel repo).
+        Event::listen(MessageSending::class, BlockRealRecipientsOutsideProduction::class);
 
         // Le viste LaTeX vivono in resources/views/latex/*.tex.blade.php (estensione doppia,
         // per distinguerle a colpo d'occhio dalle viste HTML "*.blade.php"): il resolver di

@@ -59,6 +59,38 @@ return [
             'report' => false,
         ],
 
+        // Disco nominato radicato su storage/app (non storage/app/private, il default
+        // Laravel 11+ del disco "local"): usato dai report v1:inspect/v1:validate
+        // (§11.2/§11.7 del PRD), che devono vivere in storage/app/import/ (path
+        // letterale richiesto dal PRD). Nominato (non un Storage::build() ad-hoc)
+        // proprio per essere intercettabile da Storage::fake('import-reports') nei
+        // test, stesso motivo già documentato per "legacy-media" (US-211).
+        'import-reports' => [
+            'driver' => 'local',
+            'root' => storage_path('app'),
+            'serve' => false,
+            'throw' => false,
+            'report' => false,
+        ],
+
+        // File fisici degli allegati v1 (`media.file_name`, §11.4 stage 14 del PRD),
+        // forniti separatamente dal dump SQL: stessa convenzione piatta (nessuna
+        // sotto-cartella per id/uuid) già attesa da `v1:inspect` (storage/app/v1-media).
+        'legacy-media' => [
+            'driver' => 'local',
+            // `env('LEGACY_MEDIA_PATH', default)` non applica il default se la variabile
+            // è definita ma vuota (`.env.example` la lascia intenzionalmente vuota,
+            // "vuoto = default storage/app/v1-media"): `env()` sostituisce il default
+            // solo quando la chiave è del tutto assente, non quando vale ''. Senza `?:`
+            // una stringa vuota diventa la root del disco, e Flysystem fallisce con
+            // "Unable to create a directory at ." (bug reale trovato nel job CI
+            // etl-fixture, mai eseguito prima su questo branch).
+            'root' => env('LEGACY_MEDIA_PATH') ?: storage_path('app/v1-media'),
+            'serve' => false,
+            'throw' => false,
+            'report' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),

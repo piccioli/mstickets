@@ -44,19 +44,78 @@ Boost provides your agent 15+ tools and skills that help agents build Laravel ap
 ## Setup rapido (`make setup`)
 
 Un solo comando porta l'ambiente da zero (nessun volume/vendor/node_modules preesistente) a navigabile
-(§4.2 del PRD): build delle immagini, dipendenze PHP e frontend, chiave applicativa, migrazioni e seed di
-sviluppo (5 utenti, uno per ruolo, credenziali stampate a fine seed).
+(§4.2 del PRD) con **dati reali**, non un seed fittizio: build delle immagini, dipendenze PHP e frontend,
+chiave applicativa, `db_legacy` con l'ultimo dump v1 reale disponibile e l'ETL completo
+(`php artisan v1:import --anonymize`, design in
+[`docs/superpowers/specs/2026-08-02-etl-real-data-seeding-design.md`](docs/superpowers/specs/2026-08-02-etl-real-data-seeding-design.md)).
 
 ```bash
 make setup
 ```
 
-Richiede solo Docker e Node.js sul host (npm compila gli asset Filament/Tailwind via Vite, gli altri
-passi girano nei container). Rilanciabile senza distruggere dati esistenti: `.env` non viene sovrascritto
-se già presente, le migrazioni e il seed di sviluppo sono idempotenti. L'app è raggiungibile su
-`http://localhost:8080/admin`, login con una delle credenziali stampate a fine `make setup` (es.
-`admin@orchestrator.local` / `password`): il pannello riflette il tema Montagna Servizi importato in
+Richiede, oltre a Docker e Node.js sul host, che **`v1dumps/latest.sql` esista già** (convenzione descritta
+sotto): il target fallisce subito con un messaggio esplicito se manca, invece di procedere con dati
+fittizi. Rilanciabile senza distruggere dati esistenti: `.env` non viene sovrascritto se già presente, il
+reset di `db_legacy`, le migrazioni e l'ETL sono già idempotenti di loro. Gli allegati restano
+**best-effort**: se `storage/app/v1-media/` è vuota (nessuno ha ancora lanciato `bin/fetch-legacy-media`),
+il setup non fallisce, l'ETL segnala solo i media come compromesso.
+
+L'app è raggiungibile su `http://localhost:8080/admin`. A fine setup viene stampato un promemoria: la
+password di ogni utente importato con `--anonymize` è `password`; per il login, individuare l'email
+anonimizzata di un utente reale noto con una query diretta su `users` (l'`id` è conservato dal v1) oppure
+consultare i manifest di collaudo aggiornati dal committente — nessun utente sintetico con credenziali
+fisse viene creato da questo target. Il pannello riflette il tema Montagna Servizi importato in
 US-004/US-005 (palette teal, font Nunito Sans, logo), non il tema di default di Filament.
+
+### Convenzione del dump corrente: `v1dumps/latest.sql`
+
+`v1dumps/` è gitignored: i dump reali non vanno mai versionati. `v1dumps/latest.sql` è un puntatore fisso
+(symlink o copia, a scelta) al dump v1 reale più recente, mantenuto **manualmente** da un umano con accesso
+SSH a produzione — nessuno script (né `make setup` né il deploy UAT) lo aggiorna da solo:
+
+```bash
+scp ms:/percorso/dump.sql v1dumps/production_dump_YYYYMMDD_HHMMSS.sql
+ln -sf production_dump_YYYYMMDD_HHMMSS.sql v1dumps/latest.sql
+```
+
+Stessa convenzione riusata identica in locale e su UAT (vedi `bin/load-v1-dump` e il deploy remoto): chi
+deve "usare l'ultimo dump" legge sempre questo path fisso, mai un pattern di data.
+
+## Deploy UAT
+
+Ogni push su `develop` esegue `deploy/remote-deploy.sh` su `msuat` (comando forzato via `authorized_keys`,
+non l'output del workflow GitHub Actions), che ripristina **sempre l'ETL reale da zero** ad ogni deploy
+(nessun dato persistente tra un push e l'altro):
+
+```bash
+docker compose -f docker-compose.uat.yml --env-file .env.uat up -d --wait   # attende gli healthcheck, incluso db_legacy
+docker compose -f docker-compose.uat.yml --env-file .env.uat exec -T app php artisan migrate:fresh --force
+docker compose -f docker-compose.uat.yml --env-file .env.uat exec -T app php artisan db:seed --class=RolePermissionSeeder --force
+docker compose -f docker-compose.uat.yml --env-file .env.uat exec -T app php artisan v1:import --anonymize
+```
+
+`docker-compose.uat.yml` aggiunge, rispetto allo stack applicativo, la stessa infrastruttura ETL già
+disponibile in locale, ma sempre attiva (non dietro un profilo, perché qui serve a ogni deploy):
+
+- **`db_legacy`** (`postgres:16-alpine`, healthcheck `pg_isready`, volume dedicato `db_legacy_data`):
+  sorgente v1 in sola lettura, popolata su `msuat` con `v1dumps/latest.sql` + `bin/load-v1-dump` da un
+  umano con accesso SSH a produzione — nessuna automazione la aggiorna da sola (stessa convenzione del
+  paragrafo precedente).
+- Un bind-mount dedicato sul servizio `app` per gli allegati v1 reali (`LEGACY_MEDIA_HOST_PATH` in
+  `.env.uat`, di default `/opt/mstickets-uat/v1-media` sul disco host di `msuat`), popolato con
+  `bin/fetch-legacy-media`.
+
+Variabili `.env.uat` rilevanti (vedi `.env.uat.example`): `DB_LEGACY_HOST`/`DB_LEGACY_PORT`/
+`DB_LEGACY_DATABASE`/`DB_LEGACY_USERNAME`/`DB_LEGACY_PASSWORD` (connessione a `db_legacy`) e
+`LEGACY_MEDIA_HOST_PATH` (path host degli allegati, non l'env var applicativa `LEGACY_MEDIA_PATH` letta
+dentro al container).
+
+`docker-compose.uat.yml`/`.env.uat.example`/`deploy/remote-deploy.sh` sono la fonte di verità versionata in
+questo repository: un umano con accesso SSH copia manualmente il contenuto aggiornato su `msuat` quando
+cambia, nessuna automazione sincronizza da sola questi file sul server reale.
+
+**`docs/collaudo/*` restano esplicitamente fuori scope**: il committente li aggiorna direttamente a mano,
+nessuna story di questo repository deve modificarli.
 
 ## Docker
 
@@ -76,11 +135,12 @@ L'app è raggiungibile su `http://localhost:8080`, la UI di Mailpit su `http://l
 
 Il servizio `db_legacy` (Postgres 16, §4.2 / §11.1 principio P2 del PRD) ospita il dump v1 in **sola
 lettura**, isolato dall'esercizio normale: non parte con `docker compose up`, solo col profilo Compose
-dedicato `etl`.
+dedicato `etl`. `make setup` lo avvia e carica `v1dumps/latest.sql` già da solo (vedi sopra); i comandi
+seguenti restano utili per gestirlo a parte (es. per rinfrescare il dump senza rieseguire tutto il setup):
 
 ```bash
 make etl-up                       # avvia (solo) il servizio db_legacy
-bin/load-v1-dump path/to/dump.sql # ripristina il dump SQL in db_legacy
+bin/load-v1-dump path/to/dump.sql # ripristina il dump SQL in db_legacy (avvia da solo db_legacy)
 ```
 
 L'ETL (Fase 2+) non scrive mai sul database v1: `db_legacy` è la sorgente in sola lettura usata da tutto il
@@ -96,6 +156,24 @@ Il report viene salvato in `storage/app/import/inspect-<timestamp>.md` (conteggi
 `users.roles`, parsing di `stories.customer_request`, FK orfane, ecc.) ed è versionato nel repository per essere
 allegato alla PR di questa fase. Il report generato su un dump v1 reale di questa fase è
 [`storage/app/import/inspect-20260725_225710.md`](storage/app/import/inspect-20260725_225710.md).
+
+### Anonimizzazione (`--anonymize`, §11.8 del PRD)
+
+`--anonymize` su `php artisan v1:import` sostituisce nome/email di ogni utente e il corpo di ogni messaggio
+importato con dati fittizi deterministici (stesso utente v1 → sempre la stessa identità fittizia, mai casuale
+a ogni riga), preservando le relazioni reali (chi ha scritto cosa, a chi è assegnato cosa). Le email fittizie
+usano sempre uno dei domini in `MAIL_TEST_DOMAINS` (`.env`, default `test.orchestrator.invalid`), mai un
+dominio reale.
+
+**`--anonymize` è OBBLIGATORIO per ogni esecuzione di `v1:import` in un ambiente non di produzione**
+(sviluppo, staging, CI): il dump v1 contiene dati reali dei clienti che non devono comparire in un ambiente
+non protetto. Solo l'import verso l'ambiente di produzione reale può ometterlo.
+
+Indipendentemente da `--anonymize`, un guard applicativo (`App\Support\Mail\BlockRealRecipientsOutsideProduction`,
+registrato in `AppServiceProvider::boot()`) blocca **qualunque** invio email dell'applicazione verso un
+indirizzo il cui dominio non è in `MAIL_TEST_DOMAINS` quando `APP_ENV !== production`: una protezione di
+ultima istanza contro l'invio accidentale verso un cliente reale durante un test/uno sviluppo locale, non
+solo un vincolo dell'ETL.
 
 ## Punto di controllo obbligatorio prima della Fase 1
 
@@ -116,9 +194,61 @@ Ogni pull request esegue `.github/workflows/ci.yml` (GitHub Actions), che deve e
 1. **Pint** (`vendor/bin/pint --test`) — stile del codice, preset `laravel`.
 2. **Larastan** (`vendor/bin/phpstan analyse --memory-limit=1G`) — analisi statica a livello 6.
 3. **Pest con coverage** (`vendor/bin/pest --coverage`) — suite di test (driver di coverage `pcov`).
-4. **Build dei container Docker** (`docker compose build app`) — verifica che l'immagine PHP-FPM buildi senza errori.
+4. **ETL su fixture ridotta** (job `etl-fixture`, US-218) — vedi sotto.
+5. **Build dei container Docker** (`docker compose build app`) — verifica che l'immagine PHP-FPM buildi senza errori.
 
-La pipeline fallisce se uno qualunque di questi step fallisce. Lo step ETL (`php artisan v1:validate`) non esiste ancora in questa fase: il punto di inserimento futuro è commentato direttamente nel workflow, da aggiungere in Fase 2 insieme al comando `v1:import`.
+La pipeline fallisce se uno qualunque di questi step fallisce.
+
+### Job ETL dedicato (`etl-fixture`, US-218)
+
+Il job `etl-fixture` gira in parallelo al job `quality` e verifica l'intera pipeline `v1:import`/
+`v1:validate` **contro un vero servizio Postgres** (un container `postgres:16-alpine` come connessione
+`legacy`, non sqlite): il dump reale di produzione non può essere usato in CI (troppo grande/sensibile,
+`v1dumps/` è in `.gitignore`), quindi la pipeline gira invece su una fixture ridotta, già anonimizzata alla
+creazione, versionata in
+[`tests/Fixtures/Import/v1-ci-fixture.sql`](tests/Fixtures/Import/v1-ci-fixture.sql).
+
+Il job, in ordine:
+
+1. carica la fixture in un servizio `db_legacy` effimero (`psql -f tests/Fixtures/Import/v1-ci-fixture.sql`);
+2. esegue `php artisan v1:import --anonymize` **due volte consecutive** e verifica che la seconda esecuzione
+   non crei/aggiorni nessuna riga (idempotenza dimostrata direttamente in pipeline, non solo nel test Pest
+   `tests/Feature/Console/V1ImportPipelineIdempotencyTest.php` che copre lo stesso principio contro una
+   connessione `legacy` sqlite);
+3. esegue `php artisan v1:validate` e richiede che esca con successo (zero controlli di integrità falliti:
+   conteggi, FK orfane, enum fuori catalogo, unicità, media mancanti su disco — vedi
+   `app/Console/Commands/V1ValidateCommand.php`);
+4. verifica che il report generato segnali comunque, con un conteggio non a zero, i compromessi noti che la
+   fixture introduce apposta (vedi sotto): l'obiettivo di questi casi è che vengano **rilevati e contati**,
+   non che spariscano.
+
+La fixture copre esplicitamente i casi limite già documentati in
+[`storage/app/import/inspect-20260726_101916.md`](storage/app/import/inspect-20260726_101916.md) (Fase 0):
+un valore di `type`/`priority` fuori catalogo, `users.roles` con `"editor"`, un `customer_request` non
+parsabile, un conflitto di gerarchia `story_story`/`stories.parent_id`, un media orfano (file assente su
+disco) e un media con `model_type` diverso da `Story`. **Deliberatamente esclusa**: un'email duplicata a
+meno del case — nel dato reale non se n'è mai vista una, e a differenza degli altri casi non produce un
+semplice warning ma fa fallire il controllo di unicità di `v1:validate` (comportamento corretto e voluto:
+sarebbe una vera anomalia da correggere a mano su un dump reale), quindi non può convivere con l'AC "il
+comando esce con successo" in questa fixture. Resta comunque coperta a livello di stage da
+`tests/Feature/Import/Stages/UsersStageTest.php`.
+
+**Come rigenerare/estendere la fixture se lo schema v1 cambia**: individuare le colonne reali con
+`grep -n "CREATE TABLE public.<tabella>"` sul dump non compresso più recente in `v1dumps/` (mai il solo
+report `v1:inspect`, che non elenca tutte le colonne), poi aggiornare sia le `CREATE TABLE` sia i dati in
+`tests/Fixtures/Import/v1-ci-fixture.sql`. Per verificarla in locale prima di aprire una PR (serve
+`docker compose --profile etl` con `db_legacy` avviato):
+
+```bash
+make etl-up
+docker compose --profile etl exec db_legacy psql -U orchestrator_legacy -d orchestrator_legacy \
+  -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+docker compose --profile etl exec -T db_legacy psql -v ON_ERROR_STOP=1 -U orchestrator_legacy \
+  -d orchestrator_legacy < tests/Fixtures/Import/v1-ci-fixture.sql
+docker compose exec app php artisan v1:import --anonymize
+docker compose exec app php artisan v1:import --anonymize   # deve creare/aggiornare zero righe
+docker compose exec app php artisan v1:validate              # deve uscire con successo
+```
 
 Il badge di stato verrà aggiunto al README non appena il repository avrà un remote GitHub configurato (`https://github.com/<org>/<repo>/actions/workflows/ci.yml/badge.svg`).
 

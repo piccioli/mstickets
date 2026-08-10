@@ -1,0 +1,131 @@
+#!/usr/bin/env bash
+#
+# Recupera (in sola lettura da produzione) i file fisici degli allegati v1 e li
+# deposita in LEGACY_MEDIA_PATH (default storage/app/v1-media), rinominati
+# <uuid>-<file_name> — la convenzione attesa da TicketAttachmentsStage dopo il
+# fix del bug di collisione su file_name (§US-219: file_name NON è univoco tra
+# ticket diversi nel dump v1 reale, es. più upload distinti chiamati
+# "PA01012.PDF").
+#
+# Il layout reale su produzione è media/Story/<titolo corrente del ticket>/<file_name>:
+# fragile, perché quando un ticket viene rinominato dopo l'upload i file restano
+# sotto il titolo vecchio (verificato sul ticket v1 #282). Questo script non si
+# fida del percorso "ovvio" costruito dal titolo corrente: sul server costruisce
+# un indice nome file + dimensione dell'INTERO albero media/ e recupera ogni file
+# per corrispondenza esatta, indipendentemente dalla sottocartella in cui si trova
+# davvero. Sul dump reale del 26/07/2026 questo recupera 732/752 media (97%); i
+# restanti ~20 sono genuinamente assenti anche su produzione (persi lato v1, non
+# un difetto di questo script o dell'ETL).
+#
+# Nessuna scrittura su produzione: solo lettura + una cartella temporanea in /tmp
+# sul server, ripulita a fine esecuzione.
+#
+# Uso: bin/fetch-legacy-media [ssh-host] [percorso remoto storage/app/public]
+#   bin/fetch-legacy-media ms /root/orchestrator/storage/app/public
+
+set -euo pipefail
+
+SSH_HOST="${1:-ms}"
+REMOTE_PUBLIC_PATH="${2:-/root/orchestrator/storage/app/public}"
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO_ROOT"
+
+if [ -f .env ]; then
+    set -a
+    # shellcheck disable=SC1091
+    source .env
+    set +a
+fi
+
+LEGACY_MEDIA_PATH="${LEGACY_MEDIA_PATH:-$REPO_ROOT/storage/app/v1-media}"
+DB_LEGACY_DATABASE="${DB_LEGACY_DATABASE:-orchestrator_legacy}"
+DB_LEGACY_USERNAME="${DB_LEGACY_USERNAME:-orchestrator_legacy}"
+
+MANIFEST=/tmp/legacy-media-manifest.tsv
+REMOTE_STAGING="/tmp/legacy-media-staging-$$"
+
+mkdir -p "$LEGACY_MEDIA_PATH"
+
+echo "Avvio db_legacy (profilo etl) se non già attivo..."
+docker compose --profile etl up -d db_legacy >/dev/null
+
+echo "Attendo che db_legacy sia pronto..."
+until docker compose --profile etl exec -T db_legacy pg_isready -U "$DB_LEGACY_USERNAME" -d "$DB_LEGACY_DATABASE" >/dev/null 2>&1; do
+    sleep 1
+done
+
+echo "Estraggo il manifest media (id, uuid, file_name, size) da db_legacy..."
+docker compose --profile etl exec -T db_legacy psql -U "$DB_LEGACY_USERNAME" -d "$DB_LEGACY_DATABASE" -t -A -F $'\t' -c \
+    'select id, uuid, file_name, size from media order by id;' > "$MANIFEST"
+
+TOTAL=$(wc -l < "$MANIFEST" | tr -d ' ')
+echo "Righe media in db_legacy: $TOTAL"
+
+echo "Carico il manifest su $SSH_HOST e costruisco l'indice dell'albero media reale..."
+scp -q "$MANIFEST" "$SSH_HOST":/tmp/legacy-media-manifest.tsv
+
+ssh "$SSH_HOST" REMOTE_PUBLIC_PATH="$REMOTE_PUBLIC_PATH" REMOTE_STAGING="$REMOTE_STAGING" bash -s <<'REMOTE_SCRIPT'
+set -euo pipefail
+mkdir -p "$REMOTE_STAGING"
+cd "$REMOTE_PUBLIC_PATH/media"
+
+python3 - <<'PYEOF'
+import csv
+import os
+import shutil
+
+staging = os.environ["REMOTE_STAGING"]
+
+index = {}
+for root, _dirs, files in os.walk('.'):
+    for fn in files:
+        full = os.path.join(root, fn)
+        try:
+            size = os.path.getsize(full)
+        except OSError:
+            continue
+        index.setdefault((fn, size), []).append(full)
+
+copied = 0
+missing = []
+
+with open('/tmp/legacy-media-manifest.tsv') as f:
+    for media_id, uuid, file_name, size in csv.reader(f, delimiter='\t'):
+        hits = index.get((file_name, int(size)))
+        if not hits:
+            missing.append((media_id, file_name, size))
+            continue
+        dest_name = f"{uuid}-{file_name}"
+        shutil.copyfile(hits[0], os.path.join(staging, dest_name))
+        copied += 1
+
+print(f"copiati: {copied}")
+print(f"introvabili anche su produzione: {len(missing)}")
+
+with open(os.path.join(staging, '_missing.tsv'), 'w') as f:
+    for media_id, file_name, size in missing:
+        f.write(f"{media_id}\t{file_name}\t{size}\n")
+PYEOF
+
+cd /tmp
+tar czf "${REMOTE_STAGING}.tar.gz" -C "$REMOTE_STAGING" .
+REMOTE_SCRIPT
+
+echo "Scarico l'archivio..."
+scp -q "$SSH_HOST:${REMOTE_STAGING}.tar.gz" /tmp/legacy-media-staging.tar.gz
+
+echo "Estraggo in $LEGACY_MEDIA_PATH..."
+tar xzf /tmp/legacy-media-staging.tar.gz -C "$LEGACY_MEDIA_PATH"
+
+if [ -f "$LEGACY_MEDIA_PATH/_missing.tsv" ]; then
+    MISSING_COUNT=$(wc -l < "$LEGACY_MEDIA_PATH/_missing.tsv" | tr -d ' ')
+    mv "$LEGACY_MEDIA_PATH/_missing.tsv" /tmp/legacy-media-missing.tsv
+    echo "File davvero introvabili anche su produzione: $MISSING_COUNT (elenco in /tmp/legacy-media-missing.tsv)"
+fi
+
+echo "Pulizia file temporanei remoti e locali..."
+ssh "$SSH_HOST" "rm -rf '$REMOTE_STAGING' '${REMOTE_STAGING}.tar.gz'"
+rm -f "$MANIFEST" /tmp/legacy-media-staging.tar.gz
+
+echo "Fatto. File copiati in $LEGACY_MEDIA_PATH, pronti per: php artisan v1:import --stage=ticket_attachments"

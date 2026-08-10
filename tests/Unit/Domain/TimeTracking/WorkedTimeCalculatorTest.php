@@ -151,3 +151,42 @@ test('ignores an unopened interval (from_status progress with no prior opening l
 
     expect($this->calculator->totalMinutesFor($logs))->toBe(0);
 });
+
+test('does not lose time when a ticket is re-affirmed as progress without leaving it first', function (): void {
+    // Bug reale trovato su dati v1 reali (ETL Fase 2, ticket v1 #2855): un log
+    // "progress" ripetuto (from_status=Progress E to_status=Progress, nessun
+    // cambio di stato intermedio) faceva perdere silenziosamente l'intero
+    // intervallo aperto precedente, perché `to_status === Progress` veniva
+    // controllato per primo e usciva con `continue` prima di poter chiudere
+    // l'intervallo già aperto.
+    $logs = [
+        fakeTicketLog(TicketStatus::Todo, TicketStatus::Progress, '2026-01-05 10:00:00'),
+        fakeTicketLog(TicketStatus::Progress, TicketStatus::Progress, '2026-01-05 11:00:00'),
+        fakeTicketLog(TicketStatus::Progress, TicketStatus::Todo, '2026-01-05 11:30:00'),
+    ];
+
+    // Intervallo 1 (10:00-11:00) = 60', intervallo 2 (11:00-11:30) = 30': il
+    // log "progress -> progress" chiude il primo esattamente dove apre il
+    // secondo, nessun minuto perso e nessun doppio conteggio.
+    expect($this->calculator->totalMinutesFor($logs))->toBe(90);
+
+    $segments = $this->calculator->segmentsFor($logs);
+
+    expect($segments)->toHaveCount(1)
+        ->and($segments[0]->minutes)->toBe(90);
+});
+
+test('re-affirming progress with a different user attributes each side of the boundary correctly', function (): void {
+    $logs = [
+        fakeTicketLog(TicketStatus::Todo, TicketStatus::Progress, '2026-01-05 10:00:00', userId: 1),
+        fakeTicketLog(TicketStatus::Progress, TicketStatus::Progress, '2026-01-05 11:00:00', userId: 2),
+        fakeTicketLog(TicketStatus::Progress, TicketStatus::Todo, '2026-01-05 11:30:00', userId: 2),
+    ];
+
+    $segments = $this->calculator->segmentsFor($logs);
+    $byUser = collect($segments)->keyBy('userId');
+
+    expect($segments)->toHaveCount(2)
+        ->and($byUser[1]->minutes)->toBe(60)
+        ->and($byUser[2]->minutes)->toBe(30);
+});

@@ -30,6 +30,10 @@ it('substitutes risky unicode punctuation with latex-safe sequences', function (
     ['gennaio—giugno', 'gennaio---giugno'],
     ['pagina 1–2', 'pagina 1--2'],
     ['A → B', 'A $\rightarrow$ B'],
+    // Bug reale trovato generando il PDF di collaudo Fase 0-1 (2026-08-10):
+    // docs/collaudo/03-fase-1.md contiene "utente↔organizzazione" — stesso
+    // problema di →/⇒ sopra, il carattere non è nel set T1/Latin-1.
+    ['utente↔organizzazione', 'utente$\leftrightarrow$organizzazione'],
     ['nessuno dei 5 ruoli ⇒ accesso negato', 'nessuno dei 5 ruoli $\Rightarrow$ accesso negato'],
     ['3 × 4', '3 $\times$ 4'],
     ['testo…', 'testo\ldots{}'],
