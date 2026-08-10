@@ -78,7 +78,14 @@ return [
         // sotto-cartella per id/uuid) già attesa da `v1:inspect` (storage/app/v1-media).
         'legacy-media' => [
             'driver' => 'local',
-            'root' => env('LEGACY_MEDIA_PATH', storage_path('app/v1-media')),
+            // `env('LEGACY_MEDIA_PATH', default)` non applica il default se la variabile
+            // è definita ma vuota (`.env.example` la lascia intenzionalmente vuota,
+            // "vuoto = default storage/app/v1-media"): `env()` sostituisce il default
+            // solo quando la chiave è del tutto assente, non quando vale ''. Senza `?:`
+            // una stringa vuota diventa la root del disco, e Flysystem fallisce con
+            // "Unable to create a directory at ." (bug reale trovato nel job CI
+            // etl-fixture, mai eseguito prima su questo branch).
+            'root' => env('LEGACY_MEDIA_PATH') ?: storage_path('app/v1-media'),
             'serve' => false,
             'throw' => false,
             'report' => false,
