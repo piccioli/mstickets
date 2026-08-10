@@ -137,6 +137,14 @@ jobs:
         # v2 su Postgres reale (servizio "db" sopra), non più sqlite (fix US-219, vedi
         # commento sul servizio "db"): stesso motivo per cui le sequenze Postgres-only
         # di DeriveStage non sono mai state validate qui, solo verificate a mano.
+        # CACHE_STORE/SESSION_DRIVER/QUEUE_CONNECTION forzati ad array/sync: questo job
+        # esegue `php artisan ...` direttamente, non tramite `vendor/bin/pest` — gli
+        # <env> di phpunit.xml (che già impostano questi stessi valori per il job
+        # "quality" sopra) non si applicano qui. Senza questo override resta il default
+        # di .env.example (redis), e questo job non ha un servizio "redis": ogni comando
+        # che tocca la cache (incluso il flush cache di Spatie permission nella
+        # migrazione 2026_07_25_230614_create_permission_tables.php) fallisce con
+        # "getaddrinfo for redis failed" (nessun host "redis" risolvibile).
         run: |
           {
             echo "DB_CONNECTION=pgsql"
@@ -150,6 +158,9 @@ jobs:
             echo "DB_LEGACY_DATABASE=orchestrator_legacy"
             echo "DB_LEGACY_USERNAME=orchestrator_legacy"
             echo "DB_LEGACY_PASSWORD=orchestrator_legacy"
+            echo "CACHE_STORE=array"
+            echo "SESSION_DRIVER=array"
+            echo "QUEUE_CONNECTION=sync"
           } >> "$GITHUB_ENV"
 
       - name: Migrazioni schema v2 + seeder ruoli/permessi
