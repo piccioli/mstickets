@@ -107,21 +107,23 @@ return [
 
         /*
         | Utenti di riferimento del collaudo (docs/collaudo/00-istruzioni-generali.md):
-        | id v1 conservato → email fissa nota, sempre la stessa a ogni reimport.
+        | id v1 conservato → nome+email fissi noti, sempre gli stessi a ogni reimport. Il
+        | nome è un'etichetta di ruolo generica, non il nome reale dell'utente v1 scelto
+        | per quell'id (coerente con --anonymize anche nei documenti di collaudo).
         | Individuati dal committente su dati reali (2026-08-10): admin = unico utente
         | con ruolo "admin" in v1 (account aziendale generico, non una persona); dev =
         | Lorena Sava; fundraising = Sara Mariani; customer = "Sentiero Italia CAI -
         | SICAI" (sezione/cliente esterno reale, non un account interno). Applicata SOLO
-        | quando --anonymize è attivo (App\Import\Anonymization\Anonymizer::emailFor()):
-        | mai in un cutover reale in produzione. Nessun utente v1 ha il ruolo "manager"
-        | (introdotto solo in v2): quell'account è creato ex novo da
+        | quando --anonymize è attivo (App\Import\Anonymization\Anonymizer), mai in un
+        | cutover reale in produzione. Nessun utente v1 ha il ruolo "manager" (introdotto
+        | solo in v2): quell'account è creato ex novo da
         | `collaudo:ensure-manager-account`, non da questa mappa.
         */
         'reference_users' => [
-            1 => 'admin@oc.test',
-            7 => 'dev@oc.test',
-            6 => 'fr@oc.test',
-            571 => 'customer@oc.test',
+            1 => ['name' => 'Amministratore Collaudo', 'email' => 'admin@oc.test'],
+            7 => ['name' => 'Sviluppatore Collaudo', 'email' => 'dev@oc.test'],
+            6 => ['name' => 'Referente Fundraising Collaudo', 'email' => 'fr@oc.test'],
+            571 => ['name' => 'Socio CAI Collaudo', 'email' => 'customer@oc.test'],
         ],
     ],
 

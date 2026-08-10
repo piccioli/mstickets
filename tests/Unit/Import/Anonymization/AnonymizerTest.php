@@ -47,23 +47,29 @@ test('passwordHash returns a Laravel hash of the fixed known password, never the
         ->and(Hash::check('password', $hash))->toBeTrue();
 });
 
-test('emailFor returns the fixed reference email for a known collaudo id, ignoring the generic algorithm', function (): void {
-    $anonymizer = new Anonymizer('test.orchestrator.invalid', referenceEmails: [7 => 'dev@oc.test']);
+test('emailFor and nameFor return the fixed reference identity for a known collaudo id, ignoring the generic algorithm', function (): void {
+    $anonymizer = new Anonymizer('test.orchestrator.invalid', referenceUsers: [7 => ['name' => 'Sviluppatore Collaudo', 'email' => 'dev@oc.test']]);
 
-    expect($anonymizer->emailFor(7))->toBe('dev@oc.test');
+    expect($anonymizer->emailFor(7))->toBe('dev@oc.test')
+        ->and($anonymizer->nameFor(7))->toBe('Sviluppatore Collaudo');
 });
 
-test('emailFor falls back to the generic deterministic email for a seed not in the reference map', function (): void {
-    $anonymizer = new Anonymizer('test.orchestrator.invalid', referenceEmails: [7 => 'dev@oc.test']);
+test('emailFor and nameFor fall back to the generic deterministic identity for a seed not in the reference map', function (): void {
+    $anonymizer = new Anonymizer('test.orchestrator.invalid', referenceUsers: [7 => ['name' => 'Sviluppatore Collaudo', 'email' => 'dev@oc.test']]);
 
     expect($anonymizer->emailFor(8))->not->toBe('dev@oc.test')
-        ->and($anonymizer->emailFor(8))->toEndWith('@test.orchestrator.invalid');
+        ->and($anonymizer->emailFor(8))->toEndWith('@test.orchestrator.invalid')
+        ->and($anonymizer->nameFor(8))->not->toBe('Sviluppatore Collaudo');
 });
 
-test('default() resolves the reference email map from config', function (): void {
-    config(['orchestrator.anonymization.reference_users' => [1 => 'admin@oc.test', 571 => 'customer@oc.test']]);
+test('default() resolves the reference user map from config', function (): void {
+    config(['orchestrator.anonymization.reference_users' => [
+        1 => ['name' => 'Amministratore Collaudo', 'email' => 'admin@oc.test'],
+        571 => ['name' => 'Socio CAI Collaudo', 'email' => 'customer@oc.test'],
+    ]]);
 
     expect(Anonymizer::default()->emailFor(1))->toBe('admin@oc.test')
+        ->and(Anonymizer::default()->nameFor(1))->toBe('Amministratore Collaudo')
         ->and(Anonymizer::default()->emailFor(571))->toBe('customer@oc.test');
 
     config(['orchestrator.anonymization.reference_users' => []]);
