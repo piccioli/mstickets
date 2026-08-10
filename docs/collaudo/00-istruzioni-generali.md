@@ -3,7 +3,7 @@
 ## 1. Titolo, versione, data e stato del documento
 
 - **Titolo**: Documento di collaudo — Fase 0 (Fondazioni) + Fase 1 (Ticketing core) + Fase 1A (Landing, Login, Recupero password)
-- **Versione**: 2.1
+- **Versione**: 2.2
 
   La versione 1 era la matrice sintetica preesistente (`docs/collaudo/fase-0-1.php`, manifest di
   tracciabilità sorgente, più il PDF generato a partire da essa dal comando `php artisan
@@ -12,8 +12,12 @@
   con campi di consuntivazione, glossario, criteri di sospensione/superamento e procedura di
   segnalazione anomalie. La versione 2.1 aggiunge la **Fase 1A** (addendum contenuto, non una nuova
   fase del roadmap PRD §14): landing page pubblica, login e recupero password con la nuova identità
-  visiva "Montagna Servizi" — manifest dedicato `docs/collaudo/fase-1a.php`, 16 nuovi test.
-- **Data di stesura**: 26 luglio 2026 (v2.0), 27 luglio 2026 (v2.1)
+  visiva "Montagna Servizi" — manifest dedicato `docs/collaudo/fase-1a.php`, 16 nuovi test. La
+  versione 2.2 aggiorna l'intero pacchetto dopo il completamento della **Fase 2 (ETL)**: l'ambiente
+  UAT non usa più un seeder di dati fittizi (`UatSeeder`, rimosso) ma dati reali anonimizzati
+  importati da v1 (`v1:import --anonymize`) — credenziali, meccanismo di popolamento e composizione
+  del dataset aggiornati di conseguenza (punti 4, 6, 9, 13).
+- **Data di stesura**: 26 luglio 2026 (v2.0), 27 luglio 2026 (v2.1), 10 agosto 2026 (v2.2)
 - **Data di pubblicazione ufficiale**: DA VERIFICARE CON IL PRODUCT OWNER
 - **Stato**: Bozza per revisione
 
@@ -82,8 +86,13 @@ file `02-fase-0.md`, `03-fase-1.md` e `04-fase-1a.md` del pacchetto.
 
 Sono esplicitamente **fuori scopo** di questa release e di questo collaudo:
 
-- **Fase 2 — Importazione dati reali dal sistema v1** (ETL): non ancora iniziata. Tutti i dati
-  presenti in UAT sono dati fittizi generati da un seeder, mai dati reali migrati da v1.
+- **Fase 2 — Importazione dati reali dal sistema v1** (ETL): completata separatamente da questo
+  pacchetto di collaudo (manifest dedicato `docs/collaudo/fase-2.php`, non ancora integrato in
+  questo manuale generale — il collaudo specifico dell'ETL in sé, es. correttezza di
+  `v1:validate`, non è nello scopo di questo documento). Da questa versione, però, i dati presenti
+  in UAT sono **dati reali anonimizzati importati da v1** (`v1:import --anonymize`), non più dati
+  fittizi generati da un seeder: i test di Fase 0/1/1A descritti qui restano gli stessi, eseguiti
+  però su questo nuovo dataset (vedi punto 9 e punto 13).
 - **Fase 3 — Sottosistema email reale** (invio/ricezione): non costruito. Nel collaudo di questa
   release ogni messaggio di conversazione del ticket viaggia sempre sul canale "web": nessuna email
   reale viene mai inviata o ricevuta.
@@ -137,8 +146,10 @@ Sono esplicitamente **fuori scopo** di questa release e di questo collaudo:
   mai modificabile manualmente.
 - **Visualizzazione (ticket_view)**: la registrazione automatica del fatto che un utente ha aperto
   la scheda di un ticket in un determinato giorno.
-- **Seed/Seeder**: procedura automatica che popola il database con un insieme di dati di partenza;
-  in ambiente UAT il seeder dedicato è `UatSeeder`.
+- **Seed/importazione dati**: la procedura automatica che popola il database dell'ambiente UAT
+  prima del collaudo. Non è più un seeder di dati fittizi: è l'ETL reale (`v1:import
+  --anonymize`), che importa dal dump di produzione v1 anonimizzando nomi/email/corpo dei
+  messaggi e fissando 5 identità di riferimento sempre uguali (vedi punto 9).
 - **UAT**: User Acceptance Test, il collaudo di accettazione condotto dall'utente/committente,
   oggetto di questo manuale.
 - **Ambiente di collaudo**: l'installazione dedicata dell'applicazione, separata da sviluppo e
@@ -183,16 +194,23 @@ Sono esplicitamente **fuori scopo** di questa release e di questo collaudo:
 
 ## 9. Credenziali e profili di test
 
-Tutti gli utenti sono creati automaticamente dal seeder di ambiente (`UatSeeder`) con la stessa
-password. Nessuna registrazione manuale è necessaria.
+Le identità Admin/Developer/Fundraising/Customer corrispondono a **4 utenti reali del sistema
+v1**, scelti come riferimento fisso e importati con `--anonymize`: l'email in tabella è sempre la
+stessa a ogni reimport (indipendentemente da quale dump sia stato caricato sul server), il nome è
+un'etichetta di ruolo generica, **non** il nome reale della persona dietro quell'account — coerente
+con l'anonimizzazione, anche in questo documento. Il ruolo Manager non esiste in alcun utente v1
+(introdotto solo in questa versione del prodotto): il relativo account è creato appositamente dal
+comando `collaudo:ensure-manager-account`, eseguito automaticamente a fine `make setup` e ad ogni
+deploy UAT. In tutti i casi la password è sempre `password`. Nessuna registrazione manuale è
+necessaria.
 
 | Ruolo | Nome utente | Email | Password |
 |---|---|---|---|
-| Admin | Amministratore Collaudo | admin@orchestrator.local | password |
-| Developer | Sviluppatore Collaudo | developer@orchestrator.local | password |
-| Manager | Manager Collaudo | manager@orchestrator.local | password |
-| Customer | Socio CAI Collaudo | customer@orchestrator.local | password |
-| Fundraising | Referente Fundraising Collaudo | fundraising@orchestrator.local | password |
+| Admin | Amministratore Collaudo | admin@oc.test | password |
+| Developer | Sviluppatore Collaudo | dev@oc.test | password |
+| Manager | Manager Collaudo | manager@oc.test | password |
+| Customer | Socio CAI Collaudo | customer@oc.test | password |
+| Fundraising | Referente Fundraising Collaudo | fr@oc.test | password |
 
 Questi sono i soli 5 ruoli applicativi esistenti nel sistema: non esiste un ruolo "editor" né altri
 ruoli oltre a questi cinque.
@@ -241,25 +259,30 @@ da database o automatici):
 
 ## 13. Preparazione e ripristino dei dati
 
-L'ambiente UAT viene popolato dal seeder dedicato `UatSeeder` (`database/seeders/UatSeeder.php`),
-eseguito **ad ogni deploy** con un ciclo completo di `migrate:fresh` seguito dal seed: questo
-significa che **l'intero database viene ricreato da zero e ripopolato** a ogni nuova pubblicazione
-dell'ambiente.
+L'ambiente UAT viene popolato dall'ETL reale (`v1:import --anonymize`, non più un seeder di dati
+fittizi), eseguito **ad ogni deploy** con un ciclo completo di `migrate:fresh` seguito dall'import:
+questo significa che **l'intero database viene ricreato da zero e reimportato** a ogni nuova
+pubblicazione dell'ambiente, esattamente come prima con `UatSeeder` — cambia la fonte dei dati, non
+il fatto che si riparta sempre da zero.
 
 Subito dopo un deploy, l'ambiente contiene sempre:
 
-- 5 utenti, uno per ciascuno dei 5 ruoli applicativi (vedi punto 9).
-- 2 organizzazioni ("CAI Sezione di Aosta", "CAI Sezione di Trento").
-- 10 tag.
-- 5 pagine di documentazione (3 di categoria cliente, 2 di categoria interna).
-- 40 ticket, distribuiti su tutti i 12 stati e su tutti i 4 tipi di ticket previsti, ciascuno con
-  una conversazione minima (un messaggio del richiedente, una presa in carico dell'assegnatario) e
-  un tag associato.
-- Alcune opportunità di fundraising e relativi progetti collegati (dati di schema, coerenti con
-  quanto descritto al punto 4 come fuori scopo per l'interfaccia utente dedicata).
+- **L'intero storico reale (anonimizzato) del sistema v1** al momento dell'ultimo dump caricato sul
+  server: dell'ordine di alcune centinaia di utenti, alcune migliaia di ticket distribuiti su tutti
+  gli stati e tipi realmente occorsi in produzione (non un piccolo campione curato a mano), tag,
+  organizzazioni, pagine di documentazione, report di attività e opportunità/progetti di
+  fundraising reali.
+- Le **5 identità di riferimento** del punto 9 (Admin/Developer/Manager/Customer/Fundraising),
+  sempre con la stessa email indipendentemente da quale dump sia stato importato.
 
-I titoli specifici dei 40 ticket e degli altri dati puntuali non sono elencati qui: sono riportati
-nel dettaglio del singolo test dove effettivamente servono (`02-fase-0.md`, `03-fase-1.md`).
+**Cambia rispetto alla versione precedente di questo documento**: la composizione *esatta* del
+dataset (quanti ticket in un determinato stato, quali tag esistono, quali pagine di documentazione)
+**non è più fissa e nota in anticipo**: dipende dal dump v1 più recente caricato sul server al
+momento del deploy, e può cambiare quando viene caricato un dump più aggiornato. Un test che nel
+dettaglio (`02-fase-0.md`/`03-fase-1.md`) presuppone "esiste un ticket con questa caratteristica
+specifica" richiede quindi di **verificarlo empiricamente nell'ambiente al momento del collaudo**
+(es. tramite i filtri della lista ticket, punto 21) invece di assumerlo da un elenco fisso — oppure,
+dove il test lo richiede esplicitamente, di crearlo ad-hoc secondo la convenzione del punto 14.
 
 **Punto critico per chi pianifica un collaudo su più giorni**: qualunque dato creato manualmente
 durante un test (un nuovo ticket, un nuovo messaggio, un nuovo tag, ecc.) **non sopravvive a un

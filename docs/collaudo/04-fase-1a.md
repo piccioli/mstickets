@@ -97,7 +97,7 @@ Alta
 Un qualunque utente con accesso al pannello (es. Developer)
 
 **Prerequisiti**
-- Accesso con un account valido (es. developer@orchestrator.local, password "password" — UatSeeder).
+- Accesso con un account valido (es. dev@oc.test, password "password" — identità di riferimento popolata dall'ETL reale, `v1:import --anonymize`).
 
 **Dati di test**
 Nessuno.
@@ -235,10 +235,10 @@ Critica
 Un qualunque utente di collaudo (es. Developer)
 
 **Prerequisiti**
-- Utente "Sviluppatore Collaudo" esistente (developer@orchestrator.local / password, da `UatSeeder`).
+- Utente "Sviluppatore Collaudo" esistente (dev@oc.test / password, popolato dall'ETL reale, `v1:import --anonymize`).
 
 **Dati di test**
-- Email: `developer@orchestrator.local`
+- Email: `dev@oc.test`
 - Password: `password`
 
 **Stato iniziale**
@@ -248,7 +248,7 @@ Nessuna sessione attiva.
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Apri `/admin/login`, inserisci email e password | `developer@orchestrator.local` / `password` | I campi accettano l'input senza errori di validazione lato client |
+| 1 | Apri `/admin/login`, inserisci email e password | `dev@oc.test` / `password` | I campi accettano l'input senza errori di validazione lato client |
 | 2 | Clicca "Accedi" | — | Il bottone mostra "Accesso in corso…", poi il browser viene rimandato alla vista di lavoro del developer |
 
 **Risultato finale atteso**
@@ -307,7 +307,7 @@ Anonimo
 - Utente "Sviluppatore Collaudo" esistente.
 
 **Dati di test**
-- Email: `developer@orchestrator.local`
+- Email: `dev@oc.test`
 - Password: `password-sbagliata`
 
 **Stato iniziale**
@@ -317,7 +317,7 @@ Nessuna sessione attiva.
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Apri `/admin/login`, inserisci l'email corretta e una password errata | `developer@orchestrator.local` / `password-sbagliata` | — |
+| 1 | Apri `/admin/login`, inserisci l'email corretta e una password errata | `dev@oc.test` / `password-sbagliata` | — |
 | 2 | Clicca "Accedi" | — | Compare un riquadro rosso con il testo "I dati di accesso non sono corretti." La pagina resta sul login |
 
 **Risultato finale atteso**
@@ -445,7 +445,7 @@ Un qualunque utente di collaudo
 - Utente "Sviluppatore Collaudo" esistente.
 
 **Dati di test**
-- Email: `developer@orchestrator.local`, Password: `password`.
+- Email: `dev@oc.test`, Password: `password`.
 
 **Stato iniziale**
 Nessuna sessione attiva, cookie del browser non ripuliti tra i passi 2 e 3.
@@ -582,11 +582,11 @@ Critica
 Anonimo
 
 **Prerequisiti**
-- Utente "Sviluppatore Collaudo" esistente (developer@orchestrator.local).
+- Utente "Sviluppatore Collaudo" esistente (dev@oc.test).
 - Accesso a Mailpit UAT: `https://mailpit-ticket-uat.montagnaservizi.com` (credenziali Basic Auth fornite nel documento di istruzioni generali).
 
 **Dati di test**
-- Email: `developer@orchestrator.local`
+- Email: `dev@oc.test`
 
 **Stato iniziale**
 Casella Mailpit vuota o comunque consultabile per individuare il nuovo messaggio per data/ora.
@@ -596,8 +596,8 @@ Casella Mailpit vuota o comunque consultabile per individuare il nuovo messaggio
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
 | 1 | Da `/admin/login`, clicca "Recupera password" | — | Naviga a `/admin/password-reset/request`, pannello "Hai dimenticato la password?" |
-| 2 | Inserisci l'email e clicca "Invia il link di recupero" | `developer@orchestrator.local` | La stessa pagina mostra ora "Controlla la casella" con l'email inserita evidenziata in grassetto |
-| 3 | Apri Mailpit e individua il nuovo messaggio | — | È presente un'email con oggetto "Reimposta la password", destinata a `developer@orchestrator.local`, contenente un bottone "Reimposta password" |
+| 2 | Inserisci l'email e clicca "Invia il link di recupero" | `dev@oc.test` | La stessa pagina mostra ora "Controlla la casella" con l'email inserita evidenziata in grassetto |
+| 3 | Apri Mailpit e individua il nuovo messaggio | — | È presente un'email con oggetto "Reimposta la password", destinata a `dev@oc.test`, contenente un bottone "Reimposta password" |
 | 4 | Clicca sul bottone/link nell'email | — | Il browser naviga a `/admin/password-reset/reset?...`, pagina "Imposta una nuova password" |
 
 **Risultato finale atteso**
@@ -726,7 +726,7 @@ Anonimo
 - Accesso a Mailpit UAT.
 
 **Dati di test**
-- Email: `developer@orchestrator.local`
+- Email: `dev@oc.test`
 
 **Stato iniziale**
 Nessuna richiesta di reset recente per questa email (attendere almeno 60 secondi dall'ultimo test F1A-09/F1A-10 su questo stesso indirizzo, oppure usare un altro utente di collaudo).
@@ -735,7 +735,7 @@ Nessuna richiesta di reset recente per questa email (attendere almeno 60 secondi
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Richiedi il reset per l'email | `developer@orchestrator.local` | Pannello "Controlla la casella"; un'email arriva su Mailpit |
+| 1 | Richiedi il reset per l'email | `dev@oc.test` | Pannello "Controlla la casella"; un'email arriva su Mailpit |
 | 2 | Clicca immediatamente "Invia di nuovo" | — | Il pannello resta su "Controlla la casella" (nessun errore visibile), ma NESSUNA nuova email arriva su Mailpit entro pochi secondi |
 | 3 | Attendi 60 secondi e clicca di nuovo "Invia di nuovo" | — | Una seconda email arriva su Mailpit |
 
@@ -809,7 +809,7 @@ Link di reset non ancora utilizzato.
 | 2 | Digita la nuova password nel primo campo | `CollaudoF1A12` | La barra di forza diventa verde ("Sicura"); tutte le 4 voci della checklist (8+ caratteri, maiuscola, minuscola, numero) mostrano il segno di spunta |
 | 3 | Digita la stessa password nel campo di conferma | `CollaudoF1A12` | Nessun messaggio di mancata corrispondenza |
 | 4 | Clicca "Salva la nuova password" | — | Notifica di successo; redirect alla pagina di login |
-| 5 | Accedi con l'email e la nuova password | `developer@orchestrator.local` / `CollaudoF1A12` | Login riuscito |
+| 5 | Accedi con l'email e la nuova password | `dev@oc.test` / `CollaudoF1A12` | Login riuscito |
 
 **Risultato finale atteso**
 La password è aggiornata e utilizzabile per un login immediato; il vecchio link di reset non è più riutilizzabile (verifica facoltativa: ripetere il passo 1 con lo stesso link, deve fallire).

@@ -16,11 +16,11 @@ return [
         'app_url' => 'https://ticket-uat.montagnaservizi.com',
         'mailpit_url' => 'https://mailpit-ticket-uat.montagnaservizi.com',
         'credenziali' => [
-            ['ruolo' => 'Admin', 'email' => 'admin@orchestrator.local', 'password' => 'password'],
-            ['ruolo' => 'Developer', 'email' => 'developer@orchestrator.local', 'password' => 'password'],
-            ['ruolo' => 'Manager', 'email' => 'manager@orchestrator.local', 'password' => 'password'],
-            ['ruolo' => 'Customer', 'email' => 'customer@orchestrator.local', 'password' => 'password'],
-            ['ruolo' => 'Fundraising', 'email' => 'fundraising@orchestrator.local', 'password' => 'password'],
+            ['ruolo' => 'Admin', 'email' => 'admin@oc.test', 'password' => 'password'],
+            ['ruolo' => 'Developer', 'email' => 'dev@oc.test', 'password' => 'password'],
+            ['ruolo' => 'Manager', 'email' => 'manager@oc.test', 'password' => 'password'],
+            ['ruolo' => 'Customer', 'email' => 'customer@oc.test', 'password' => 'password'],
+            ['ruolo' => 'Fundraising', 'email' => 'fr@oc.test', 'password' => 'password'],
         ],
     ],
     'topics' => [

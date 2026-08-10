@@ -27,8 +27,8 @@ Critica
 Admin
 
 **Prerequisiti**
-- Accesso al pannello `/admin` come admin@orchestrator.local (password "password").
-- Esistono gli utenti di collaudo "Sviluppatore Collaudo" e "Manager Collaudo" (dal `UatSeeder`).
+- Accesso al pannello `/admin` come admin@oc.test (password "password").
+- Esistono gli utenti di collaudo "Sviluppatore Collaudo" (dall'ETL reale, `v1:import --anonymize`) e "Manager Collaudo" (da `collaudo:ensure-manager-account`, eseguito da `make setup`/deploy subito dopo l'import).
 
 **Dati di test**
 - Nuovo ticket con titolo `COLL-F1-01-20260726-01`.
@@ -68,7 +68,7 @@ BLOCKED: impossibile creare il ticket o accedere al pannello.
 NOT APPLICABLE: Non previsto per questo test.
 
 **Ripristino**
-Nessuno: il dataset si rigenera al prossimo deploy (il ticket `COLL-F1-01-...` è aggiuntivo e non altera i 40 ticket seed).
+Nessuno: il dataset si rigenera al prossimo deploy (il ticket `COLL-F1-01-...` è aggiuntivo e non altera i ticket importati dall'ETL).
 
 **Campi di consuntivazione**
 
@@ -104,7 +104,7 @@ Alta
 Admin
 
 **Prerequisiti**
-- Accesso al pannello `/admin` come admin@orchestrator.local.
+- Accesso al pannello `/admin` come admin@oc.test.
 - Esiste l'utente "Sviluppatore Collaudo".
 
 **Dati di test**
@@ -216,7 +216,7 @@ Note aggiuntive sulla matrice, da usare come attese per i casi vietati:
 - Il target dinamico delle righe #18/#19 coincide solo con `previous_status`: chiedere un target diverso da `previous_status` mentre si è in "In attesa"/"Problema" risulta "non ammesso" (non un guard fallito).
 
 **Stato iniziale**
-Nessun ticket precedente coinvolto: il passo 1 crea un ticket nuovo dedicato (`COLL-F1-03-20260726-01`), in stato "Nuovo", requester = "Socio CAI Collaudo". I passi successivi riusano quel ticket o ne identificano altri già presenti nel seed UAT (40 ticket, tutti i 12 stati rappresentati) per i casi che richiedono uno stato di partenza diverso (es. "In test" per il passo 3).
+Nessun ticket precedente coinvolto: il passo 1 crea un ticket nuovo dedicato (`COLL-F1-03-20260726-01`), in stato "Nuovo", requester = "Socio CAI Collaudo". I passi successivi riusano quel ticket o ne identificano altri già presenti nel dataset importato dall'ETL reale (filtrando l'elenco Ticket per "Stato" in Filament) per i casi che richiedono uno stato di partenza diverso (es. "In test" per il passo 3); se un dato stato non è rappresentato nel dump caricato, portare un ticket qualunque in quello stato con i bottoni di transizione già testati in F1-01/F1-02.
 
 **Procedura di esecuzione**
 
@@ -226,7 +226,7 @@ La procedura copre un sottoinsieme rappresentativo della matrice sopra: 3 transi
 |------:|-------------------|--------------------|------------------|
 | 1 | (Ammessa, Admin/Manager) Come admin, crea `COLL-F1-03-20260726-01`, aprilo e transiziona verso "Assegnato" | Assegnatario = "Sviluppatore Collaudo" | Bottone "Assegnato" presente; transizione riuscita; badge "Assegnato" (riga #1) |
 | 2 | (Ammessa, Assegnatario) Autenticati come "Sviluppatore Collaudo" (assegnatario del ticket del passo 1) e transiziona verso "Da fare" | Nessun campo aggiuntivo | Bottone "Da fare" presente per l'assegnatario; transizione riuscita (riga #6) |
-| 3 | (Ammessa, Tester) Su un ticket in stato "In test" con tester = "Sviluppatore Collaudo" (es. il ticket seed i=5, oppure porta un ticket fino a "In test" con tester dedicato), autenticato come quel tester, transiziona verso "Testato" | Nessun campo aggiuntivo | Bottone "Testato" presente per il tester; transizione riuscita (riga #11) |
+| 3 | (Ammessa, Tester) Su un ticket in stato "In test" con tester = "Sviluppatore Collaudo" (individuato filtrando l'elenco Ticket per Stato = "In test" e Tester = "Sviluppatore Collaudo", oppure portando un ticket fino a "In test" con tester dedicato), autenticato come quel tester, transiziona verso "Testato" | Nessun campo aggiuntivo | Bottone "Testato" presente per il tester; transizione riuscita (riga #11) |
 | 4 | (Vietata, attore) Autenticato come "Sviluppatore Collaudo" (developer, senza `ticket.transition.any`), apri un ticket in stato "Nuovo" | — | Il bottone verso "Rifiutato" NON è presente (riga #3 riservata ad Admin/Manager). A livello tecnico, invocare direttamente l'azione di cambio stato verso "Rifiutato" produce un errore di validazione localizzato, senza scrivere nulla |
 | 5 | (Vietata, assegnatario su fase di test) Autenticato come assegnatario (non tester) di un ticket in "In test", apri il dettaglio | — | Il bottone "Testato" NON è presente per l'assegnatario (riga #11 riservata a Tester/Admin/Manager); tentativo tecnico rifiutato |
 | 6 | (Vietata, sistema) Verifica che l'utente di sistema NON possa eseguire `Rilasciato → Completato` | Verifica tecnica: chiamata all'azione con l'utente di sistema | La transizione è rifiutata con errore localizzato: l'attore "Sistema" non è tra gli attori ammessi della riga #15 (automazione riservata a una fase futura) |
@@ -286,9 +286,9 @@ Alta
 Developer (Sviluppatore Collaudo)
 
 **Prerequisiti**
-- Accesso al pannello come developer@orchestrator.local.
+- Accesso al pannello come dev@oc.test.
 - Esiste almeno un secondo utente-collega (es. "Manager Collaudo") da usare come tentativo di assegnazione errata.
-- Esiste un ticket in stato "Nuovo" e senza assegnatario. Nota: i ticket "Nuovo" del seed hanno già un assegnatario; per un test pulito creare un ticket nuovo senza assegnatario.
+- Esiste un ticket in stato "Nuovo" e senza assegnatario. Nota: filtrare l'elenco Ticket per Stato = "Nuovo" e verificare la colonna Assegnatario; se ogni ticket "Nuovo" del dump importato ha già un assegnatario, creare un ticket nuovo dedicato senza assegnatario per un test pulito.
 
 **Dati di test**
 - Ticket `COLL-F1-04-20260726-01` in stato "Nuovo", senza assegnatario.
@@ -721,7 +721,7 @@ Critica
 Admin
 
 **Prerequisiti**
-- Un ticket in stato "Completato" (es. ticket seed i=8, oppure crearne uno e portarlo a "Completato").
+- Un ticket in stato "Completato" (filtrare l'elenco Ticket per Stato = "Completato" e scegliere un qualunque risultato, oppure crearne uno e portarlo a "Completato" con i bottoni di transizione).
 
 **Dati di test**
 - Ticket in stato "Completato".
@@ -1287,10 +1287,10 @@ Critica
 Customer (Socio CAI Collaudo)
 
 **Prerequisiti**
-- Esistono ticket con richiedente diverso dal cliente di prova (nel seed, tutti i 40 ticket hanno come richiedente "Socio CAI Collaudo"): per il controllo negativo predisporre almeno un ticket con richiedente diverso (es. un secondo cliente), oppure verificare via dati/query.
+- Esistono ticket con richiedente diverso dal cliente di prova: filtrare l'elenco Ticket per Richiedente per verificare quanti clienti distinti sono presenti nel dataset importato dall'ETL. Se il dump caricato ha come richiedente solo "Socio CAI Collaudo", per il controllo negativo predisporre almeno un ticket con richiedente diverso (es. un secondo cliente creato come admin), oppure verificare via dati/query.
 
 **Dati di test**
-- Ticket del cliente di prova: uno dei ticket seed con richiedente "Socio CAI Collaudo".
+- Ticket del cliente di prova: un ticket reale con richiedente "Socio CAI Collaudo" (filtrare l'elenco Ticket per Richiedente = "Socio CAI Collaudo").
 - Ticket di altro richiedente: `COLL-F1-18-20260726-01`, richiedente = un secondo cliente (da creare come admin), assegnatario = "Socio CAI Collaudo" (per verificare che l'assegnazione non conceda comunque la visibilità al cliente).
 
 **Stato iniziale**
@@ -1440,10 +1440,14 @@ Alta
 Sviluppatore (Developer)
 
 **Prerequisiti**
-- Utente `developer@orchestrator.local` con accesso al pannello `/admin`.
+- Utente `dev@oc.test` con accesso al pannello `/admin`.
 - Accesso a `php artisan tinker` (o equivalente) sull'ambiente collaudato, per il controllo tecnico finale.
-- Ticket seed UAT: titolo "Il pulsante «Rinnova tessera» non risponde su Safari mobile" (tipo Bug,
-  stato "Nuovo", assegnatario Sviluppatore Collaudo) — nessun messaggio aggiuntivo oltre ai 2 di seed.
+- Un ticket reale del dataset importato dall'ETL, tipo "Bug", stato "Nuovo", assegnatario
+  "Sviluppatore Collaudo", con almeno un messaggio già presente in "Conversazione" (individuato
+  filtrando l'elenco Ticket per Stato = "Nuovo" e Tipo = "Bug" e verificandone il dettaglio). Se nel
+  dump caricato nessun ticket soddisfa questa combinazione, crearne uno con i dati richiesti e
+  pubblicare un primo messaggio con la stessa azione "Aggiungi messaggio" prima di eseguire la
+  procedura sotto.
 
 **Dati di test**
 Testo del messaggio: digitare "Ciao " (testo semplice), poi selezionare la parola "mondo" e applicare
@@ -1451,13 +1455,13 @@ il pulsante Grassetto della toolbar RichEditor, per ottenere "Ciao **mondo**" (m
 aggiunto in coda al testo per riconoscere il messaggio di collaudo, es. "Ciao mondo COLL-F1-20-DATA-01").
 
 **Stato iniziale**
-Il ticket ha 2 messaggi di conversazione (seed): uno del Socio CAI Collaudo, uno dello Sviluppatore Collaudo.
+Il ticket ha già almeno un messaggio di conversazione presente.
 
 **Procedura di esecuzione**
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Login come `developer@orchestrator.local`, aprire il ticket indicato | Filtro tabella ticket: Stato = "Nuovo", Tipo = "Bug" | Pagina di dettaglio ticket aperta, sezione "Conversazione" con 2 messaggi esistenti |
+| 1 | Login come `dev@oc.test`, aprire il ticket individuato sopra | Filtro tabella ticket: Stato = "Nuovo", Tipo = "Bug" | Pagina di dettaglio ticket aperta, sezione "Conversazione" con almeno un messaggio esistente |
 | 2 | Cliccare l'azione header "Aggiungi messaggio" | — | Si apre il modale con campo RichEditor "Messaggio" e campo "Allegati" |
 | 3 | Digitare "Ciao " nel campo Messaggio, selezionare "mondo" (digitato subito dopo) e cliccare il pulsante Grassetto, poi aggiungere " COLL-F1-20-DATA-01" | "Ciao **mondo** COLL-F1-20-DATA-01" | Il testo "mondo" appare in grassetto nell'editor |
 | 4 | Confermare l'invio | — | Notifica di successo "Messaggio pubblicato"; il nuovo messaggio compare in fondo alla sezione "Conversazione" con "mondo" mostrato in grassetto, autore "Sviluppatore Collaudo", data/ora corrente |
@@ -1484,7 +1488,7 @@ BLOCKED: l'azione "Aggiungi messaggio" non è disponibile o restituisce un error
 NOT APPLICABLE: Non previsto per questo test.
 
 **Ripristino**
-Nessuno: il dataset si rigenera al prossimo deploy (`migrate:fresh --seed --class=UatSeeder`).
+Nessuno: il dataset si rigenera al prossimo deploy (l'ETL reale, `v1:import --anonymize`, gira ad ogni deploy su `develop`).
 
 **Campi di consuntivazione**
 
@@ -1527,11 +1531,13 @@ Media
 Sviluppatore (Developer)
 
 **Prerequisiti**
-- Utente `developer@orchestrator.local` con accesso al pannello.
-- Ticket seed UAT: titolo "Aggiungere l'export CSV dell'elenco iscritti al corso di escursionismo"
-  (tipo Feature, stato "Backlog", assegnatario Manager Collaudo). Nota: i 40 ticket seed hanno la
-  conversazione popolata direttamente a livello dati (bypassando `PostTicketMessage`), quindi
-  `ticket_participants` è vuota per tutti — la sezione "Partecipanti" mostra "Nessun partecipante".
+- Utente `dev@oc.test` con accesso al pannello.
+- Un ticket con la sezione "Partecipanti" vuota (placeholder "Nessun partecipante"): filtrare
+  l'elenco Ticket per Tipo = "Feature" e Stato = "Backlog" e verificare il dettaglio di uno o più
+  risultati, oppure un ticket qualunque del dataset importato la cui sezione "Partecipanti" risulti
+  vuota (l'ETL importa la pivot `ticket_participants` dal v1 solo dove esisteva già esplicitamente,
+  quindi la maggior parte dei ticket reali parte senza partecipanti). Se nessun ticket del dump
+  soddisfa il criterio, creare un ticket nuovo dedicato: parte sempre senza partecipanti.
 
 **Dati di test**
 Due messaggi di testo semplice: "Prima verifica COLL-F1-21-DATA-01" e "Seconda verifica COLL-F1-21-DATA-02".
@@ -1543,7 +1549,7 @@ Sezione "Partecipanti" del ticket vuota (placeholder "Nessun partecipante").
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Login come `developer@orchestrator.local`, aprire il ticket indicato | Filtro: Stato = "Backlog", Tipo = "Feature" | Sezione "Partecipanti" mostra "Nessun partecipante" |
+| 1 | Login come `dev@oc.test`, aprire il ticket individuato sopra | — | Sezione "Partecipanti" mostra "Nessun partecipante" |
 | 2 | Cliccare "Aggiungi messaggio", digitare il primo testo, confermare | "Prima verifica COLL-F1-21-DATA-01" | Notifica di successo; sezione "Partecipanti" ora mostra esattamente 1 badge "Sviluppatore Collaudo" |
 | 3 | Ricaricare la pagina del ticket | — | La sezione "Partecipanti" mostra ancora esattamente 1 badge "Sviluppatore Collaudo" |
 | 4 | Cliccare di nuovo "Aggiungi messaggio", digitare il secondo testo, confermare | "Seconda verifica COLL-F1-21-DATA-02" | Notifica di successo; il nuovo messaggio compare in "Conversazione" |
@@ -1609,37 +1615,46 @@ Sviluppatore/Amministratore di sistema
 
 **Prerequisiti**
 - Accesso a `php artisan tinker` sull'ambiente collaudato.
-- Ticket seed UAT in stato "In test" (Testing): per costruzione del seeder, ogni ticket in questo
-  stato ha richiedente = Socio CAI Collaudo, assegnatario = Manager Collaudo, tester = Sviluppatore
-  Collaudo (`UatSeeder::seedTickets()`, `tester_id` valorizzato solo per stato Testing/Tested).
+- Un ticket in stato "In test" (Testing) esistente nel dataset importato dall'ETL: sui dati reali
+  `requester_id`/`assignee_id`/`tester_id` sono quelli effettivamente registrati sul ticket in v1
+  (identità anonimizzate qualunque, non necessariamente le identità di riferimento del collaudo —
+  nessun ticket reale può avere Manager Collaudo come assegnatario, ruolo introdotto solo in v2).
+  Scegliere un ticket con tutti e tre i campi valorizzati e distinti tra loro.
 
 **Dati di test**
 ```php
-$ticket = App\Domain\Ticketing\Models\Ticket::where('status', App\Domain\Ticketing\Enums\TicketStatus::Testing)->first();
-$fundraising = App\Domain\Identity\Models\User::where('email', 'fundraising@orchestrator.local')->first();
-$admin = App\Domain\Identity\Models\User::where('email', 'admin@orchestrator.local')->first();
+$ticket = App\Domain\Ticketing\Models\Ticket::where('status', App\Domain\Ticketing\Enums\TicketStatus::Testing)
+    ->whereDoesntHave('participants')
+    ->whereNotNull('assignee_id')
+    ->whereNotNull('tester_id')
+    ->first();
+$fundraising = App\Domain\Identity\Models\User::where('email', 'fr@oc.test')->first();
+$admin = App\Domain\Identity\Models\User::where('email', 'admin@oc.test')->first();
 $ticket->participants()->attach($fundraising->id);
 $recipients = $ticket->messageRecipients($admin);
 $recipients->pluck('id')->sort()->values()->all();
 ```
+Se la prima riga restituisce `null` (nessun ticket "In test" senza partecipanti con entrambi i
+campi valorizzati sul dump caricato), rilassare uno dei filtri o scegliere manualmente un ticket
+idoneo dalla lista Filament.
 
 **Stato iniziale**
-Ticket in stato "In test", senza partecipanti (`ticket_participants` vuota per i ticket seed, come già osservato in F1-21).
+Ticket in stato "In test" scelto come sopra, senza partecipanti.
 
 **Procedura di esecuzione**
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
 | 1 | Aprire `php artisan tinker` sull'ambiente collaudato | — | Prompt tinker attivo |
-| 2 | Recuperare il ticket "In test" e gli utenti Fundraising/Admin | Righe 1-3 dello script sopra | Nessun errore, variabili popolate |
-| 3 | Aggiungere Fundraising come partecipante | Riga 4 dello script | `$ticket->participants()->count()` restituisce `1` |
-| 4 | Calcolare i destinatari con Admin come autore | Riga 5 dello script | `$recipients` è una Collection non vuota |
-| 5 | Estrarre e ordinare gli id dei destinatari | Riga 6 dello script | L'array restituito è identico a `[$ticket->requester_id, $ticket->assignee_id, $ticket->tester_id, $fundraising->id]` ordinato, senza l'id di Admin |
+| 2 | Recuperare il ticket "In test" e gli utenti Fundraising/Admin | Righe 1-6 dello script sopra | Nessun errore, variabili popolate, `$ticket` non `null` |
+| 3 | Aggiungere Fundraising come partecipante | Riga 7 dello script | `$ticket->participants()->count()` restituisce `1` |
+| 4 | Calcolare i destinatari con Admin come autore | Riga 8 dello script | `$recipients` è una Collection non vuota |
+| 5 | Estrarre e ordinare gli id dei destinatari | Riga 9 dello script | L'array restituito è identico a `[$ticket->requester_id, $ticket->assignee_id, $ticket->tester_id, $fundraising->id]` ordinato, senza l'id di Admin |
 
 **Risultato finale atteso**
-I destinatari calcolati sono esattamente 4 utenti distinti (Socio CAI Collaudo come richiedente,
-Manager Collaudo come assegnatario, Sviluppatore Collaudo come tester, Referente Fundraising Collaudo
-come partecipante aggiunto), mai l'autore (Admin).
+I destinatari calcolati sono esattamente i 4 utenti distinti tra richiedente, assegnatario e tester
+del ticket scelto (identità reali anonimizzate dal dump) più Referente Fundraising Collaudo come
+partecipante aggiunto, mai l'autore (Admin).
 
 **Controlli negativi**
 Ripetere il calcolo passando come autore lo stesso utente Fundraising appena aggiunto come
@@ -1699,13 +1714,16 @@ Alta
 Sviluppatore (Developer) per il setup, Socio CAI Collaudo (Customer) per l'azione sotto test
 
 **Prerequisiti**
-- Utenti `developer@orchestrator.local` e `customer@orchestrator.local`.
-- Ticket seed UAT: titolo "Errore 500 aprendo il dettaglio di un ticket con più allegati" (tipo Bug,
-  stato "In lavorazione", assegnatario Sviluppatore Collaudo). Nota: i ticket seed già in stato "In
-  attesa" NON hanno `previous_status` valorizzato (il seeder scrive direttamente la colonna `status`
-  senza passare dalla macchina a stati), quindi non sono utilizzabili direttamente per questo test:
-  serve portare un ticket "In lavorazione" in "In attesa" tramite un'azione di transizione reale,
-  che valorizza `previous_status` correttamente.
+- Utenti `dev@oc.test` e `customer@oc.test`.
+- Un ticket reale in stato "In lavorazione", assegnatario "Sviluppatore Collaudo" e richiedente
+  "Socio CAI Collaudo" (filtrare l'elenco Ticket per Stato = "In lavorazione", Assegnatario =
+  "Sviluppatore Collaudo" e Richiedente = "Socio CAI Collaudo"; se nessun ticket del dump soddisfa
+  tutti i criteri, crearne uno e portarlo in quello stato con i bottoni di transizione già testati in
+  F1-01). Nota: un ticket già in stato "In attesa" nel dump importato potrebbe non avere
+  `previous_status` valorizzato se lo stato "In attesa" risale a prima dell'import (l'ETL ricostruisce
+  `status_changed_at`/`previous_status` una tantum dallo storico v1, §11.4 del PRD): per questo test
+  serve comunque partire da "In lavorazione" e transitare in "In attesa" con un'azione reale, che
+  valorizza `previous_status` correttamente.
 
 **Dati di test**
 Motivo dell'attesa: "COLL-F1-23-DATA-01: attesa riscontro socio". Messaggio di risposta del
@@ -1718,12 +1736,12 @@ Ticket in stato "In lavorazione" (Progress), `previous_status` nullo.
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Login come `developer@orchestrator.local`, aprire il ticket indicato | Filtro: Stato = "In lavorazione", Tipo = "Bug" | Badge di stato "In lavorazione" visibile |
+| 1 | Login come `dev@oc.test`, aprire il ticket individuato sopra | Filtro: Stato = "In lavorazione", Assegnatario = "Sviluppatore Collaudo" | Badge di stato "In lavorazione" visibile |
 | 2 | Cliccare il bottone di transizione "In attesa", compilare "Motivo dell'attesa", lasciare deselezionato "Applica anche ai ticket figli", confermare | "COLL-F1-23-DATA-01: attesa riscontro socio" | Notifica "Stato del ticket aggiornato"; badge di stato ora "In attesa" |
-| 3 | Logout, login come `customer@orchestrator.local`, riaprire lo stesso ticket | — | Ticket visibile (il Socio CAI Collaudo è il richiedente di tutti i ticket seed), badge "In attesa" |
+| 3 | Logout, login come `customer@oc.test`, riaprire lo stesso ticket | — | Ticket visibile (il richiedente del ticket è "Socio CAI Collaudo"), badge "In attesa" |
 | 4 | Cliccare "Aggiungi messaggio", digitare il testo di risposta, confermare | "Ecco la risposta richiesta COLL-F1-23-DATA-02" | Notifica "Messaggio pubblicato" |
 | 5 | Osservare il badge di stato del ticket (aggiornamento reattivo o dopo ricarica pagina) | — | Il badge passa da "In attesa" a "In lavorazione" |
-| 6 | Logout, login come `developer@orchestrator.local` (per vedere la sezione "Storico", visibile solo a chi ha il permesso `ticket-log.view`), riaprire il ticket | — | La sezione "Storico" mostra una nuova riga "Cambio di stato" con Utente = "Sistema", relativa al passaggio "In attesa" → "In lavorazione" |
+| 6 | Logout, login come `dev@oc.test` (per vedere la sezione "Storico", visibile solo a chi ha il permesso `ticket-log.view`), riaprire il ticket | — | La sezione "Storico" mostra una nuova riga "Cambio di stato" con Utente = "Sistema", relativa al passaggio "In attesa" → "In lavorazione" |
 
 **Risultato finale atteso**
 Il ticket è tornato in stato "In lavorazione" (lo stato precedente all'attesa), con il cambio
@@ -1744,7 +1762,7 @@ BLOCKED: il bottone "In attesa" non è disponibile al passo 2, o l'azione "Aggiu
 NOT APPLICABLE: Non previsto per questo test.
 
 **Ripristino**
-Nessuno: il dataset si rigenera al prossimo deploy. Se necessario ripetere il test, scegliere un altro ticket "In lavorazione" del seed.
+Nessuno: il dataset si rigenera al prossimo deploy. Se necessario ripetere il test, individuare un altro ticket "In lavorazione" con gli stessi criteri.
 
 **Campi di consuntivazione**
 
@@ -1783,10 +1801,13 @@ Alta
 Socio CAI Collaudo (Customer) per l'azione, Sviluppatore (Developer) per la verifica in Storico
 
 **Prerequisiti**
-- Utenti `customer@orchestrator.local` e `developer@orchestrator.local`.
-- Ticket seed UAT: titolo "Il socio non riceve l'email di conferma rinnovo tessera" (tipo Helpdesk,
-  stato "Assegnato", assegnatario Sviluppatore Collaudo). Nessun setup aggiuntivo necessario: a
-  differenza di F1-23, il ramo "Assegnato/In lavorazione → Da fare" non dipende da `previous_status`.
+- Utenti `customer@oc.test` e `dev@oc.test`.
+- Un ticket reale in stato "Assegnato", assegnatario "Sviluppatore Collaudo" e richiedente
+  "Socio CAI Collaudo" (filtrare l'elenco Ticket per Stato = "Assegnato", Assegnatario =
+  "Sviluppatore Collaudo" e Richiedente = "Socio CAI Collaudo"; se nessun ticket del dump soddisfa
+  tutti i criteri, crearne uno e portarlo in quello stato con i bottoni di transizione). Nessun setup
+  aggiuntivo necessario oltre a questo: a differenza di F1-23, il ramo "Assegnato/In lavorazione → Da
+  fare" non dipende da `previous_status`.
 
 **Dati di test**
 Messaggio di risposta del richiedente: "Confermo il mio indirizzo email COLL-F1-24-DATA-01".
@@ -1798,17 +1819,17 @@ Ticket in stato "Assegnato".
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Login come `customer@orchestrator.local`, aprire il ticket indicato | Filtro: Stato = "Assegnato", Tipo = "Helpdesk" | Badge di stato "Assegnato" visibile |
+| 1 | Login come `customer@oc.test`, aprire il ticket individuato sopra | — | Badge di stato "Assegnato" visibile |
 | 2 | Cliccare "Aggiungi messaggio", digitare il testo, confermare | "Confermo il mio indirizzo email COLL-F1-24-DATA-01" | Notifica "Messaggio pubblicato" |
 | 3 | Osservare il badge di stato (aggiornamento reattivo o dopo ricarica pagina) | — | Il badge passa da "Assegnato" a "Da fare" |
-| 4 | Logout, login come `developer@orchestrator.local`, riaprire il ticket | — | Badge "Da fare" confermato |
+| 4 | Logout, login come `dev@oc.test`, riaprire il ticket | — | Badge "Da fare" confermato |
 | 5 | Ispezionare la sezione "Storico" | — | Nuova riga "Cambio di stato" con Utente = "Sistema", da "Assegnato" a "Da fare" |
 
 **Risultato finale atteso**
 Il ticket è in stato "Da fare" subito dopo la risposta del richiedente, con il cambio attribuito a "Sistema".
 
 **Controlli negativi**
-Ripetere la stessa procedura su un ticket già in stato "Da fare" (es. filtro Stato = "Da fare"): dopo
+Ripetere la stessa procedura su un ticket già in stato "Da fare" richiesto da "Socio CAI Collaudo" (filtro Stato = "Da fare", Richiedente = "Socio CAI Collaudo"): dopo
 il messaggio del richiedente, il badge deve restare "Da fare" e la sezione "Storico" non deve
 mostrare alcuna nuova riga "Cambio di stato" (nessuna transizione `todo → todo` in tabella).
 
@@ -1886,15 +1907,15 @@ Sviluppatore/Amministratore di sistema
 Payload HTML grezzo: `<script>alert('collaudo')</script>Ciao, ho un problema`.
 
 **Stato iniziale**
-Nessuno specifico: un ticket qualsiasi del seed UAT, con un autore diverso dal richiedente per non
-innescare la regola T7 (fuori scope di questo test).
+Nessuno specifico: un ticket qualsiasi del dataset importato dall'ETL, con un autore diverso dal
+richiedente per non innescare la regola T7 (fuori scope di questo test).
 
 **Procedura di esecuzione**
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
 | 1 | Aprire `php artisan tinker` | — | Prompt attivo |
-| 2 | Recuperare un ticket e l'utente Sviluppatore (non richiedente): `$ticket = App\Domain\Ticketing\Models\Ticket::first(); $developer = App\Domain\Identity\Models\User::where('email','developer@orchestrator.local')->first();` | — | Variabili popolate |
+| 2 | Recuperare un ticket e l'utente Sviluppatore (non richiedente): `$ticket = App\Domain\Ticketing\Models\Ticket::first(); $developer = App\Domain\Identity\Models\User::where('email','dev@oc.test')->first();` | — | Variabili popolate |
 | 3 | Pubblicare il messaggio con il payload grezzo: `$message = App\Domain\Ticketing\Actions\PostTicketMessage::run($ticket, $developer, "<script>alert('collaudo')</script>Ciao, ho un problema");` | Payload sopra | Nessuna eccezione, `$message` è un'istanza `TicketMessage` |
 | 4 | Ispezionare `$message->body_html` | — | Non contiene la stringa `<script` (case-insensitive) né il testo `alert('collaudo')`; contiene "Ciao, ho un problema" |
 | 5 | Ispezionare `$message->body_text` | — | È esattamente "Ciao, ho un problema" (nessun residuo del tag, nessuna entità HTML) |
@@ -1967,25 +1988,28 @@ Alta
 Sviluppatore (Developer)
 
 **Prerequisiti**
-- Utente `developer@orchestrator.local`.
+- Utente `dev@oc.test`.
 - Un file immagine reale in formato JPEG, dimensione contenuta (es. 200 KB), rinominato
   `COLL-F1-26-DATA-01.jpg`.
 - Accesso a `php artisan tinker` per la verifica tecnica.
-- Ticket seed UAT: titolo "Richiesta di reset password per un accompagnatore in trasferta" (tipo
-  Helpdesk, stato "Testato").
+- Un ticket reale in stato "Testato", tipo "Helpdesk", senza allegati sui messaggi esistenti
+  (filtrare l'elenco Ticket per Stato = "Testato" e Tipo = "Helpdesk" e verificare la sezione
+  "Conversazione" del dettaglio). Se nessun ticket del dump soddisfa il criterio, portarne uno in
+  quello stato con i bottoni di transizione già testati (F1-01), il che garantisce anche l'assenza di
+  allegati su un ticket appena creato.
 
 **Dati di test**
 File: `COLL-F1-26-DATA-01.jpg`, estensione `jpg`, contenuto reale JPEG (non un file vuoto rinominato),
 dimensione indicativa 200 KB (ben sotto il limite di 10 MB). Testo messaggio: "Allego screenshot COLL-F1-26-DATA-01".
 
 **Stato iniziale**
-Il ticket non ha allegati (i messaggi seed non hanno media associati).
+Il ticket non ha allegati sui messaggi esistenti.
 
 **Procedura di esecuzione**
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Login come `developer@orchestrator.local`, aprire il ticket indicato | Filtro: Stato = "Testato", Tipo = "Helpdesk" | Nessun allegato visibile nei messaggi esistenti |
+| 1 | Login come `dev@oc.test`, aprire il ticket individuato sopra | Filtro: Stato = "Testato", Tipo = "Helpdesk" | Nessun allegato visibile nei messaggi esistenti |
 | 2 | Cliccare "Aggiungi messaggio", digitare il testo, trascinare `COLL-F1-26-DATA-01.jpg` nel campo "Allegati", confermare | File e testo sopra | Notifica "Messaggio pubblicato" (nessuna notifica di errore) |
 | 3 | Osservare il nuovo messaggio nella sezione "Conversazione" | — | Compare un link "COLL-F1-26-DATA-01.jpg" cliccabile |
 | 4 | Cliccare il link e verificare che il file si apra/scarichi correttamente (immagine visibile) | — | Il browser mostra/scarica l'immagine caricata |
@@ -2057,7 +2081,7 @@ Critica
 Sviluppatore (Developer)
 
 **Prerequisiti**
-- Utente `developer@orchestrator.local`.
+- Utente `dev@oc.test`.
 - File 1: `virus.exe`, estensione `exe` (non presente in nessuna delle tre liste documenti/immagini/audio
   di `config/ticketing.php`), dimensione qualunque (es. 10 KB).
 - File 2: `documento-grande.pdf`, estensione ammessa (`pdf`), contenuto PDF reale, dimensione 11 MB
@@ -2068,21 +2092,20 @@ Sviluppatore (Developer)
   transitare un file di 11 MB fino al livello applicativo, altrimenti il file verrebbe
   troncato/rifiutato dal server prima ancora di raggiungere `AddTicketAttachment` — non è il
   comportamento sotto test, va escluso come causa di un eventuale BLOCKED.
-- Ticket seed UAT: stesso titolo "Richiesta di reset password per un accompagnatore in trasferta"
-  usato in F1-26 (o un altro ticket qualsiasi).
+- Lo stesso ticket individuato in F1-26 (o un altro ticket qualsiasi).
 
 **Dati di test**
 - File 1: `virus.exe`, estensione `exe`, ~10 KB, contenuto qualsiasi.
 - File 2: `documento-grande.pdf`, estensione `pdf`, 11 MB, contenuto PDF reale.
 
 **Stato iniziale**
-Ticket con conversazione seed, nessun allegato aggiuntivo (oltre a quello eventualmente creato in F1-26).
+Ticket con conversazione esistente, nessun allegato aggiuntivo (oltre a quello eventualmente creato in F1-26).
 
 **Procedura di esecuzione**
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Login come `developer@orchestrator.local`, aprire il ticket, cliccare "Aggiungi messaggio" | — | Modale aperto |
+| 1 | Login come `dev@oc.test`, aprire il ticket, cliccare "Aggiungi messaggio" | — | Modale aperto |
 | 2 | Digitare un testo di messaggio, allegare `virus.exe`, confermare | "Tentativo allegato non ammesso COLL-F1-27-DATA-01" + `virus.exe` | Notifica di successo "Messaggio pubblicato" (il testo viene comunque pubblicato) MA una notifica di errore "Allegato non valido" con testo "Il tipo di file 'exe' non è ammesso come allegato." |
 | 3 | Osservare la sezione "Conversazione" per il messaggio appena creato | — | Il messaggio di testo è presente, ma NESSUN link allegato compare |
 | 4 | Cliccare di nuovo "Aggiungi messaggio", digitare un nuovo testo, allegare `documento-grande.pdf` (11 MB), confermare | "Tentativo file oltre dimensione COLL-F1-27-DATA-02" + `documento-grande.pdf` | Notifica di successo per il messaggio, MA notifica di errore "Allegato non valido" con testo "Il file supera la dimensione massima consentita per gli allegati." |
@@ -2162,7 +2185,7 @@ Sviluppatore/Amministratore di sistema
 $messageWithAttachment = App\Domain\Ticketing\Models\TicketMessage::whereHas('media')->first();
 $media = $messageWithAttachment->getMedia('attachments')->first();
 $otherMessage = App\Domain\Ticketing\Models\TicketMessage::where('id', '!=', $messageWithAttachment->id)->first();
-$developer = App\Domain\Identity\Models\User::where('email', 'developer@orchestrator.local')->first();
+$developer = App\Domain\Identity\Models\User::where('email', 'dev@oc.test')->first();
 ```
 
 **Stato iniziale**
@@ -2240,11 +2263,11 @@ Sviluppatore (Developer) per recuperare il link, Referente Fundraising Collaudo 
 
 **Prerequisiti**
 - Un allegato esistente su un ticket (riutilizzare quello di F1-26).
-- Utente `fundraising@orchestrator.local`: il ruolo Fundraising non ha alcun permesso
+- Utente `fr@oc.test`: il ruolo Fundraising non ha alcun permesso
   `ticket.view.*` nella matrice di `RolePermissionSeeder` (`database/seeders/RolePermissionSeeder.php`),
-  quindi non può vedere NESSUNO dei 40 ticket del seed — è il candidato corretto per "un utente che
-  non può vedere il ticket", a differenza del Socio CAI Collaudo che è invece richiedente di tutti i
-  ticket seed e potrebbe vederli tutti.
+  quindi non può vedere NESSUNO dei ticket del dataset importato — è il candidato corretto per "un
+  utente che non può vedere il ticket", a differenza del Socio CAI Collaudo che è invece richiedente
+  di uno o più ticket reali e potrebbe vederli.
 
 **Dati di test**
 URL diretto della rotta di download dell'allegato creato in F1-26, es. `https://<host>/ticket-attachments/<id media>`.
@@ -2256,9 +2279,9 @@ Allegato esistente e scaricabile da chi ha accesso al ticket (verificato in F1-2
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Login come `developer@orchestrator.local`, aprire il ticket con l'allegato di F1-26 | — | Link "COLL-F1-26-DATA-01.jpg" visibile in "Conversazione" |
+| 1 | Login come `dev@oc.test`, aprire il ticket con l'allegato di F1-26 | — | Link "COLL-F1-26-DATA-01.jpg" visibile in "Conversazione" |
 | 2 | Tasto destro sul link, "Copia indirizzo link" | — | URL del tipo `/ticket-attachments/<id>` copiato |
-| 3 | Logout, login come `fundraising@orchestrator.local` | — | Login riuscito, pannello accessibile (Fundraising ha accesso al pannello per il proprio modulo) |
+| 3 | Logout, login come `fr@oc.test` | — | Login riuscito, pannello accessibile (Fundraising ha accesso al pannello per il proprio modulo) |
 | 4 | Incollare l'URL copiato al passo 2 direttamente nella barra degli indirizzi del browser e navigare | URL copiato | Il server risponde con una pagina di errore "403 | Questa azione non è autorizzata." (Forbidden), il file NON viene scaricato |
 
 **Risultato finale atteso**
@@ -2322,10 +2345,10 @@ Critica
 Sviluppatore (Developer)
 
 **Prerequisiti**
-- Utente `developer@orchestrator.local`.
+- Utente `dev@oc.test`.
 - File SVG malevolo reale, nome `COLL-F1-30-DATA-01.svg`, contenuto testuale esatto:
   `<svg xmlns="http://www.w3.org/2000/svg"><script>alert('collaudo')</script><circle r="4"/></svg>`.
-- Un ticket seed UAT qualsiasi diverso da quello usato in F1-26/27 (per non confondere gli allegati), es. titolo "La ricerca socio per codice fiscale restituisce risultati duplicati" (tipo Bug, stato "In lavorazione").
+- Un ticket reale qualsiasi, diverso da quello usato in F1-26/27 (per non confondere gli allegati), senza allegati SVG esistenti: filtrare l'elenco Ticket per Stato = "In lavorazione" e scegliere un risultato diverso da quello già usato.
 
 **Dati di test**
 File `COLL-F1-30-DATA-01.svg` come sopra; testo messaggio "Allego icona con contenuto sospetto COLL-F1-30-DATA-01".
@@ -2337,7 +2360,7 @@ Ticket senza allegati SVG.
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Login come `developer@orchestrator.local`, aprire il ticket indicato | Filtro: Stato = "In lavorazione", Tipo = "Bug" | — |
+| 1 | Login come `dev@oc.test`, aprire il ticket individuato sopra | Filtro: Stato = "In lavorazione" | — |
 | 2 | Cliccare "Aggiungi messaggio", digitare il testo, allegare `COLL-F1-30-DATA-01.svg`, confermare | File e testo sopra | Notifica "Messaggio pubblicato" (nessun errore: `svg` è nella lista immagini ammesse) |
 | 3 | Cliccare il link "COLL-F1-30-DATA-01.svg" nella conversazione | — | Il browser apre/mostra il file in una nuova scheda: nessun popup/alert JavaScript compare (lo script non viene eseguito) |
 | 4 | Salvare il file mostrato ("Salva con nome") e aprirlo con un editor di testo (non un browser) | — | Il contenuto NON contiene la stringa `<script` né `alert('collaudo')`; contiene ancora `<circle` |
@@ -2485,10 +2508,12 @@ Media
 Socio CAI Collaudo (Customer)
 
 **Prerequisiti**
-- Utente `customer@orchestrator.local`.
+- Utente `customer@oc.test`.
 - Accesso a `php artisan tinker` per la verifica.
-- Ticket seed UAT: titolo "Sprint planning: revisione backlog modulo tesseramento" (tipo Scrum,
-  stato "Da fare") — scelto perché non ancora usato in altri test di questo pacchetto.
+- Un ticket reale in stato "Da fare" con richiedente "Socio CAI Collaudo" (filtrare l'elenco Ticket
+  per Stato = "Da fare" e Richiedente = "Socio CAI Collaudo", scegliendo un risultato non ancora
+  usato in altri test di questo pacchetto; se nessuno esiste nel dump caricato, crearne uno con
+  richiedente "Socio CAI Collaudo" e portarlo in quello stato con i bottoni di transizione).
 - Nessuna visualizzazione precedente di questo ticket da parte dell'utente Customer nella giornata
   odierna (verificare prima con la query del passo 3 sotto, oppure usare un ticket diverso se già
   visitato in precedenza durante la sessione di collaudo).
@@ -2504,7 +2529,7 @@ Nessuna riga in `ticket_views` per (ticket, utente, oggi).
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
 | 1 | Aprire `php artisan tinker` e verificare l'assenza di righe pregresse: `App\Domain\Ticketing\Models\TicketView::whereDate('viewed_on', today())->count();` (per il ticket/utente scelti) | — | `0` |
-| 2 | Login come `customer@orchestrator.local`, aprire il ticket indicato | Filtro: Stato = "Da fare", Tipo = "Scrum" | Pagina di dettaglio caricata normalmente |
+| 2 | Login come `customer@oc.test`, aprire il ticket individuato sopra | Filtro: Stato = "Da fare" | Pagina di dettaglio caricata normalmente |
 | 3 | In tinker, recuperare la riga creata: `App\Domain\Ticketing\Models\TicketView::where('ticket_id', <id>)->where('user_id', <id customer>)->first();` | — | Restituisce una riga |
 | 4 | Ispezionare i campi della riga | — | `viewed_on` = data odierna; `view_count` = `1`; `last_viewed_at` valorizzato a un istante prossimo all'apertura della pagina |
 
@@ -2646,28 +2671,30 @@ Socio CAI Collaudo (Customer), con verifica di Sviluppatore/Amministratore di si
 
 **Prerequisiti**
 - Accesso a `php artisan tinker`.
-- Ticket seed UAT scelto in F1-32/33 (o un altro): poiché la conversazione seed è scritta
-  direttamente a livello dati bypassando `PostTicketMessage` (vedi `UatSeeder::seedTicketConversation`),
-  nessuno dei 40 ticket seed ha righe in `ticket_logs` all'origine — condizione ideale per isolare
-  l'effetto delle sole visualizzazioni.
+- Il ticket scelto in F1-32/33 (o un altro), richiesto da `customer@oc.test`. A differenza del
+  vecchio seed fittizio, un ticket importato dall'ETL può già avere righe reali in `ticket_logs`
+  (la sua storia v1 ricostruita): questo test non richiede quindi un conteggio iniziale a `0`, ma
+  verifica che il conteggio NON aumenti a seguito delle sole visualizzazioni — annotare il conteggio
+  di partenza prima di procedere, qualunque esso sia.
 
 **Dati di test**
 Nessun dato di input diretto.
 
 **Stato iniziale**
-`TicketLog::where('ticket_id', <id>)->count()` = `0` per il ticket scelto (da verificare prima di procedere).
+Conteggio `ticket_logs` per il ticket scelto annotato PRIMA di aprire la pagina (valore qualunque, dipende dal dump).
 
 **Procedura di esecuzione**
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | In tinker, verificare il conteggio log iniziale: `App\Domain\Ticketing\Models\TicketLog::where('ticket_id', <id>)->count();` | — | `0` |
-| 2 | Login come `customer@orchestrator.local`, aprire il ticket, ricaricare la pagina 2-3 volte | — | Pagina caricata normalmente ogni volta |
-| 3 | In tinker, rileggere il conteggio log | — | Ancora `0` |
-| 4 | Sul pannello, come Sviluppatore o Manager (permesso `ticket-log.view`), aprire lo stesso ticket e ispezionare la sezione "Storico" | — | "Nessun evento" (nessuna riga relativa alle visualizzazioni) |
+| 1 | In tinker, annotare il conteggio log iniziale: `App\Domain\Ticketing\Models\TicketLog::where('ticket_id', <id>)->count();` | — | Un numero (`$prima`), qualunque esso sia |
+| 2 | Login come `customer@oc.test`, aprire il ticket, ricaricare la pagina 2-3 volte | — | Pagina caricata normalmente ogni volta |
+| 3 | In tinker, rileggere il conteggio log | — | Identico a `$prima` |
+| 4 | Sul pannello, come Sviluppatore o Manager (permesso `ticket-log.view`), aprire lo stesso ticket e ispezionare la sezione "Storico" | — | Il numero di eventi mostrati non è cambiato rispetto a prima dell'apertura del passo 2 (nessun nuovo evento di visualizzazione aggiunto) |
 
 **Risultato finale atteso**
-Nessuna riga viene mai scritta in `ticket_logs` a seguito di una o più visualizzazioni del ticket.
+Nessuna riga viene mai scritta in `ticket_logs` a seguito di una o più visualizzazioni del ticket:
+il conteggio resta invariato rispetto al valore annotato al passo 1, quale esso sia.
 
 **Controlli negativi**
 Nessuno applicabile.
@@ -2678,13 +2705,13 @@ Nessuno applicabile.
 
 **Criterio di superamento**
 
-PASS: il conteggio `ticket_logs` resta `0` dopo le visualizzazioni, e "Storico" non mostra alcun evento correlato.
+PASS: il conteggio `ticket_logs` resta identico al valore annotato al passo 1 dopo le visualizzazioni, e "Storico" non mostra alcun nuovo evento correlato.
 FAIL: compare una qualunque riga in `ticket_logs` attribuibile alla sola apertura della pagina.
 BLOCKED: impossibile verificare la tabella `ticket_logs` sull'ambiente.
 NOT APPLICABLE: Non previsto per questo test.
 
 **Ripristino**
-Nessuno: il dataset si rigenera al prossimo deploy.
+Nessuno: il dataset si rigenera al prossimo deploy (l'ETL reale, `v1:import --anonymize`).
 
 **Campi di consuntivazione**
 
@@ -2976,10 +3003,14 @@ Alta
 Sviluppatore (Developer)
 
 **Prerequisiti**
-- Utente `developer@orchestrator.local`.
+- Utente `dev@oc.test`.
 - Accesso SSH/shell al container applicativo per eseguire `php artisan timetracking:recalculate`.
-- Ticket seed UAT in uno stato da cui sia raggiungibile "In lavorazione" con transizioni valide (es.
-  un ticket "Da fare" assegnato allo Sviluppatore).
+- Un ticket senza righe `ticket_work_logs` pregresse, in uno stato da cui sia raggiungibile "In
+  lavorazione" con transizioni valide. Nota: un ticket reale già importato dall'ETL può avere già
+  `worked_minutes`/`ticket_work_logs` popolati dallo stage `derive` a partire dalla sua storia v1 —
+  per partire da uno stato pulito, creare un ticket nuovo dedicato (`COLL-F1-38-...`) e assegnarlo a
+  "Sviluppatore Collaudo" con i bottoni di transizione già testati in F1-01, invece di riusare un
+  ticket del dump.
 
 **Dati di test**
 Nessun orario preciso richiesto per questo test (l'idempotenza non dipende dai minuti esatti, solo
@@ -2987,13 +3018,13 @@ dalla stabilità tra due esecuzioni consecutive): un singolo passaggio a "In lav
 altro stato è sufficiente per generare un intervallo `progress` chiuso nei `ticket_logs` reali del ticket.
 
 **Stato iniziale**
-Ticket "Da fare", `worked_minutes` = valore seed (non rilevante), nessuna riga `ticket_work_logs` per questo ticket.
+Ticket nuovo dedicato in stato "Da fare", `worked_minutes` = 0, nessuna riga `ticket_work_logs` per questo ticket.
 
 **Procedura di esecuzione**
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Login come `developer@orchestrator.local`, aprire il ticket, transizione a "In lavorazione" | Bottone "In lavorazione" | Notifica "Stato del ticket aggiornato" |
+| 1 | Login come `dev@oc.test`, aprire il ticket, transizione a "In lavorazione" | Bottone "In lavorazione" | Notifica "Stato del ticket aggiornato" |
 | 2 | Attendere qualche minuto, poi transizione a "Testato" (o altro stato che chiuda l'intervallo `progress`) con il campo Tester compilato | Bottone "In test" poi "Testato", oppure altra transizione valida che esca da `progress` | Stato aggiornato, un intervallo `progress` chiuso ora esiste nei `ticket_logs` del ticket |
 | 3 | Da shell, eseguire: `php artisan timetracking:recalculate --ticket=<id>` | Comando sopra | Output "Ricalcolate le ore lavorate per 1 ticket."; comando conclude con successo |
 | 4 | Verificare via tinker/DB: `App\Domain\Ticketing\Models\TicketWorkLog::where('ticket_id', <id>)->count();` e `Ticket::find(<id>)->worked_minutes;` | — | Conteggio righe = numero di segmenti giornalieri prodotti (tipicamente 1); `worked_minutes` coerente coi minuti dell'intervallo |
@@ -3079,7 +3110,7 @@ Ticket in uno stato di partenza noto (es. "Nuovo"); nessun job `RecalculateTicke
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
 | 1 | Annotare il timestamp/ID di partenza e verificare che non ci siano job pendenti per il ticket in Horizon (tab "Pending"/"Delayed") | — | Nessun job per questo `ticket_id` |
-| 2 | Aprire `php artisan tinker`, recuperare ticket e utente Admin | `$ticket = ...; $admin = App\Domain\Identity\Models\User::where('email','admin@orchestrator.local')->first();` | Variabili popolate |
+| 2 | Aprire `php artisan tinker`, recuperare ticket e utente Admin | `$ticket = ...; $admin = App\Domain\Identity\Models\User::where('email','admin@oc.test')->first();` | Variabili popolate |
 | 3 | Eseguire in sequenza immediata 3 transizioni valide sullo stesso ticket, es.: `App\Domain\Ticketing\Actions\ChangeTicketStatus::run($ticket, App\Domain\Ticketing\Enums\TicketStatus::Backlog, $admin); App\Domain\Ticketing\Actions\ChangeTicketStatus::run($ticket->fresh(), App\Domain\Ticketing\Enums\TicketStatus::Assigned, $admin, ['assignee_id' => $admin->id]); App\Domain\Ticketing\Actions\ChangeTicketStatus::run($ticket->fresh(), App\Domain\Ticketing\Enums\TicketStatus::Todo, $admin);` | Script sopra, eseguito come un unico blocco (senza pause manuali) | Le 3 transizioni completano senza errori |
 | 4 | Entro pochi secondi, controllare in Horizon (tab "Pending"/"Delayed") i job accodati per questo `ticket_id` | — | Esattamente 1 job `RecalculateTicketWorkedTimeJob` per il ticket, non 3 |
 | 5 | Attendere che il job venga eseguito (delay configurato di 5 secondi) e verificare in Horizon che sia passato a "Completed" | — | 1 solo job completato per questo ticket |
@@ -3225,8 +3256,8 @@ Critica
 Customer (parte di verifica onesta da UI) + Developer/Amministratore di sistema (parte di tentativo tecnico di bypass: richiede strumenti di sviluppo del browser o un client HTTP diretto sulla sessione autenticata del Customer)
 
 **Prerequisiti**
-- L'utente `admin@orchestrator.local` è disponibile per predisporre il ticket di test con valori interni noti (Admin ha tutti i permessi, incluso `ticket.manage-internal-fields`).
-- L'utente `customer@orchestrator.local` ha i permessi di ruolo `ticket.update.own`/`ticket.view.own` (matrice Customer, `RolePermissionSeeder`).
+- L'utente `admin@oc.test` è disponibile per predisporre il ticket di test con valori interni noti (Admin ha tutti i permessi, incluso `ticket.manage-internal-fields`).
+- L'utente `customer@oc.test` ha i permessi di ruolo `ticket.update.own`/`ticket.view.own` (matrice Customer, `RolePermissionSeeder`).
 - Per la parte tecnica del passo 9: un tester con accesso agli strumenti di sviluppo del browser (tab Network/Console) o a un client HTTP (es. Postman/curl) in grado di riutilizzare i cookie di sessione del Customer.
 
 **Dati di test**
@@ -3240,10 +3271,10 @@ Il ticket `COLL-F1-41-20260726-01` non esiste ancora. Nessuna sessione Customer 
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Aprire `https://ticket-uat.montagnaservizi.com/admin/login` e accedere come Admin | `admin@orchestrator.local` / `password` | Login riuscito, pannello raggiunto |
+| 1 | Aprire `https://ticket-uat.montagnaservizi.com/admin/login` e accedere come Admin | `admin@oc.test` / `password` | Login riuscito, pannello raggiunto |
 | 2 | Da "Ticket", aprire "Nuovo" e compilare Titolo, Richiedente, Tipo, Priorità, Descrizione interna, Ore stimate come da Dati di test, lasciando vuoti Assegnatario/Tester/URL staging/URL produzione | valori indicati sopra | Il ticket viene creato senza errori di validazione |
 | 3 | Osservare il badge "Stato" nella scheda appena creata | — | Il badge mostra "Nuovo" |
-| 4 | Disconnettersi e accedere come Customer | `customer@orchestrator.local` / `password` | Login riuscito |
+| 4 | Disconnettersi e accedere come Customer | `customer@oc.test` / `password` | Login riuscito |
 | 5 | Cercare nell'elenco Ticket il titolo `COLL-F1-41-20260726-01` (campo di ricerca sulla colonna "Titolo") e aprirne il dettaglio | testo di ricerca `COLL-F1-41` | Si apre la pagina di dettaglio del ticket |
 | 6 | Aprire il ticket in modifica (pulsante di modifica in testata) | — | Si apre il form di modifica |
 | 7 | Osservare le sezioni del form presenti | — | È visibile solo la sezione "Ticket" con i campi "Titolo" (in sola lettura), "Stato" (badge) e "Ticket padre"; le sezioni "Assegnazione e classificazione", "Link ambienti", "Tempo" e il campo "Descrizione interna" NON sono presenti in nessuna forma |
@@ -3270,7 +3301,7 @@ BLOCKED: non è possibile predisporre il ticket di test come Admin, o non è dis
 NOT APPLICABLE: Non previsto per questo test.
 
 **Ripristino**
-Nessuna azione di eliminazione ticket disponibile in UI in questa release (`TicketResource` non espone un `DeleteAction`). Il ticket di test resta nel dataset; se necessario, un tester tecnico può rimuoverlo con `\App\Domain\Ticketing\Models\Ticket::where('title','COLL-F1-41-20260726-01 — Verifica campi riservati')->first()->forceDelete();` via `php artisan tinker` (il modello usa `SoftDeletes`). In alternativa, il ticket resta come dato residuo non bloccante: `UatSeeder` non lo rimuove né lo duplica ad un successivo deploy, perché salta l'intera generazione ticket quando la tabella non è vuota.
+Nessuna azione di eliminazione ticket disponibile in UI in questa release (`TicketResource` non espone un `DeleteAction`). Il ticket di test resta nel dataset; se necessario, un tester tecnico può rimuoverlo con `\App\Domain\Ticketing\Models\Ticket::where('title','COLL-F1-41-20260726-01 — Verifica campi riservati')->first()->forceDelete();` via `php artisan tinker` (il modello usa `SoftDeletes`). In alternativa, il ticket resta come dato residuo non bloccante: l'ETL (`v1:import`) importa/aggiorna solo i ticket derivati dal dump v1 e non tocca né rimuove ticket creati manualmente durante il collaudo.
 
 **Campi di consuntivazione**
 
@@ -3306,19 +3337,19 @@ Alta
 Customer
 
 **Prerequisiti**
-- L'utente `customer@orchestrator.local` ("Socio CAI Collaudo") è il richiedente di tutti i 40 ticket del seed UAT (`UatSeeder`): qualunque ticket dell'elenco è idoneo, non serve crearne uno nuovo.
+- Esiste almeno un ticket reale importato dall'ETL con richiedente `customer@oc.test` ("Socio CAI Collaudo"): filtrare l'elenco Ticket per Richiedente = "Socio CAI Collaudo" per trovarne uno, non serve crearne uno nuovo.
 
 **Dati di test**
-Nessun dato nuovo da creare: usare un qualunque ticket esistente con richiedente "Socio CAI Collaudo" (es. il primo dell'elenco, "Il pulsante «Rinnova tessera» non risponde su Safari mobile").
+Nessun dato nuovo da creare: usare un qualunque ticket esistente con richiedente "Socio CAI Collaudo".
 
 **Stato iniziale**
-Il dataset dei 40 ticket UAT è già popolato.
+Il dataset importato dall'ETL reale (`v1:import --anonymize`) è già popolato.
 
 **Procedura di esecuzione**
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Aprire `https://ticket-uat.montagnaservizi.com/admin/login` e accedere come Customer | `customer@orchestrator.local` / `password` | Login riuscito |
+| 1 | Aprire `https://ticket-uat.montagnaservizi.com/admin/login` e accedere come Customer | `customer@oc.test` / `password` | Login riuscito |
 | 2 | Aprire l'elenco Ticket e aprire in visualizzazione un qualunque ticket proprio | un ticket qualunque dell'elenco | Si apre la pagina di dettaglio del ticket |
 | 3 | Osservare la sezione "Ticket" in alto | — | Sono visibili solo "Titolo", "Stato" (badge) e "Richiedente"; i campi "Tipo" e "Priorità" NON sono presenti |
 | 4 | Osservare la sezione "Riepilogo" | — | Sono visibili solo "Creato il", "Aggiornato il", "Ultimo cambio di stato", "Rilasciato il", "Completato il"; i campi "Ore lavorate" e "Ore stimate" NON sono presenti |
@@ -3381,8 +3412,8 @@ Alta
 Developer
 
 **Prerequisiti**
-- L'utente `admin@orchestrator.local` predispone il ticket di test (Admin per semplicità, ma qualunque utente con `ticket.create`+`ticket.manage-internal-fields` andrebbe bene, incluso lo stesso Developer).
-- L'utente `developer@orchestrator.local` ("Sviluppatore Collaudo") ha i permessi di ruolo `ticket.update.assigned`/`ticket.view.any`/`ticket.manage-internal-fields`, ma NON `ticket.transition.any` (matrice Developer, `RolePermissionSeeder`): condizione necessaria perché l'attore risolto sia `AutoAssigningDeveloper` e non l'admin/manager generico.
+- L'utente `admin@oc.test` predispone il ticket di test (Admin per semplicità, ma qualunque utente con `ticket.create`+`ticket.manage-internal-fields` andrebbe bene, incluso lo stesso Developer).
+- L'utente `dev@oc.test` ("Sviluppatore Collaudo") ha i permessi di ruolo `ticket.update.assigned`/`ticket.view.any`/`ticket.manage-internal-fields`, ma NON `ticket.transition.any` (matrice Developer, `RolePermissionSeeder`): condizione necessaria perché l'attore risolto sia `AutoAssigningDeveloper` e non l'admin/manager generico.
 
 **Dati di test**
 Ticket da creare: titolo `COLL-F1-43-20260726-01 — Verifica auto-assegnazione silenziosa`, Richiedente = "Socio CAI Collaudo", Assegnatario e Tester lasciati vuoti.
@@ -3395,7 +3426,7 @@ Il ticket `COLL-F1-43-20260726-01` non esiste ancora.
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
 | 1 | Accedere come Admin e creare il ticket con i Dati di test indicati, lasciando vuoti Assegnatario/Tester | vedi Dati di test | Ticket creato, badge "Stato" = "Nuovo" |
-| 2 | Disconnettersi e accedere come Developer | `developer@orchestrator.local` / `password` | Login riuscito |
+| 2 | Disconnettersi e accedere come Developer | `dev@oc.test` / `password` | Login riuscito |
 | 3 | Aprire il ticket `COLL-F1-43-20260726-01` in visualizzazione | — | Si apre la scheda di dettaglio, campo "Assegnatario" mostra "Nessuno" |
 | 4 | Individuare tra i pulsanti di testata quello con etichetta "Assegnato" e cliccarlo | pulsante "Assegnato" | Si apre un modale con titolo `Cambia stato in "Assegnato"` |
 | 5 | Osservare i campi presenti nel modale | — | È presente solo la checkbox "Applica anche ai ticket figli"; NON è presente alcun campo "Assegnatario" |
@@ -3422,7 +3453,7 @@ BLOCKED: non è possibile predisporre il ticket di test o accedere come Develope
 NOT APPLICABLE: Non previsto per questo test.
 
 **Ripristino**
-Nessuna azione di eliminazione ticket disponibile in UI. Un tester tecnico può rimuovere il ticket con `\App\Domain\Ticketing\Models\Ticket::where('title','COLL-F1-43-20260726-01 — Verifica auto-assegnazione silenziosa')->first()->forceDelete();` via `php artisan tinker`. In alternativa resta come dato residuo non bloccante (vedi nota su `UatSeeder` in F1-41).
+Nessuna azione di eliminazione ticket disponibile in UI. Un tester tecnico può rimuovere il ticket con `\App\Domain\Ticketing\Models\Ticket::where('title','COLL-F1-43-20260726-01 — Verifica auto-assegnazione silenziosa')->first()->forceDelete();` via `php artisan tinker`. In alternativa resta come dato residuo non bloccante (vedi nota sull'ETL in F1-41).
 
 **Campi di consuntivazione**
 
@@ -3458,11 +3489,11 @@ Critica
 Admin
 
 **Prerequisiti**
-- L'utente `admin@orchestrator.local` ha `ticket.transition.any` (matrice Admin, tutti i permessi).
-- Esiste un ticket in stato "In lavorazione" nel dataset UAT: il seed `UatSeeder` genera deterministicamente il ticket titolato "Errore 500 aprendo il dettaglio di un ticket con più allegati" in stato "In lavorazione" (assegnatario "Sviluppatore Collaudo"). Se il titolo non fosse più reperibile (dataset rigenerato con contenuti diversi), filtrare l'elenco Ticket per "Stato" = "In lavorazione" e scegliere un qualunque risultato.
+- L'utente `admin@oc.test` ha `ticket.transition.any` (matrice Admin, tutti i permessi).
+- Esiste un ticket in stato "In lavorazione" nel dataset importato dall'ETL: filtrare l'elenco Ticket per "Stato" = "In lavorazione" e scegliere un qualunque risultato (il dataset reale non ha un titolo/assegnatario fisso e predicibile, a differenza del vecchio seed fittizio).
 
 **Dati di test**
-Ticket: "Errore 500 aprendo il dettaglio di un ticket con più allegati" (o un ticket equivalente in stato "In lavorazione", vedi Prerequisiti). Tester da assegnare nel secondo tentativo: "Manager Collaudo".
+Un qualunque ticket in stato "In lavorazione" (vedi Prerequisiti). Tester da assegnare nel secondo tentativo: "Manager Collaudo".
 
 **Stato iniziale**
 Il ticket individuato è in stato "In lavorazione", campo Tester vuoto.
@@ -3471,8 +3502,8 @@ Il ticket individuato è in stato "In lavorazione", campo Tester vuoto.
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedere come Admin | `admin@orchestrator.local` / `password` | Login riuscito |
-| 2 | Nell'elenco Ticket, filtrare per "Stato" = "In lavorazione" e cercare "Errore 500" nella colonna "Titolo"; aprire il ticket in visualizzazione | filtro "Stato" = "In lavorazione", ricerca "Errore 500" | Si apre la scheda di dettaglio, badge "Stato" = "In lavorazione" |
+| 1 | Accedere come Admin | `admin@oc.test` / `password` | Login riuscito |
+| 2 | Nell'elenco Ticket, filtrare per "Stato" = "In lavorazione" e aprire in visualizzazione il ticket individuato nei Prerequisiti | filtro "Stato" = "In lavorazione" | Si apre la scheda di dettaglio, badge "Stato" = "In lavorazione" |
 | 3 | Cliccare il pulsante di testata con etichetta "In test" | pulsante "In test" | Si apre un modale con titolo `Cambia stato in "In test"`, contenente il campo "Tester" e la checkbox "Applica anche ai ticket figli" |
 | 4 | Lasciare vuoto il campo "Tester" e confermare l'azione | Tester: (vuoto) | Il modale non si chiude: viene mostrato un errore di validazione sotto il campo "Tester" che ne impedisce l'invio |
 | 5 | Chiudere il modale e ricontrollare il badge "Stato" del ticket | — | Il badge mostra ancora "In lavorazione" (nessuna transizione applicata) |
@@ -3534,12 +3565,12 @@ Alta
 Admin (parte UI) + Amministratore di sistema (parte tecnica di verifica del messaggio a livello di dominio)
 
 **Prerequisiti**
-- L'utente `admin@orchestrator.local` ha `ticket.transition.any` (tutti i permessi).
-- Esiste un ticket in stato "Completato" nel dataset UAT: il seed genera deterministicamente il ticket titolato "L'importo del bollettino MAV non arrotonda correttamente le quote sezionali" in stato "Completato". Se il titolo non fosse più reperibile, filtrare l'elenco per "Stato" = "Completato" e scegliere un qualunque risultato.
+- L'utente `admin@oc.test` ha `ticket.transition.any` (tutti i permessi).
+- Esiste un ticket in stato "Completato" nel dataset importato dall'ETL: filtrare l'elenco Ticket per "Stato" = "Completato" e scegliere un qualunque risultato (se nessuno esiste nel dump caricato, portarne uno in quello stato con i bottoni di transizione già testati in F1-01), e annotarne l'id per il passo tecnico 4.
 - Per il passo tecnico 4: accesso a `php artisan tinker` sull'ambiente da collaudare.
 
 **Dati di test**
-Ticket: "L'importo del bollettino MAV non arrotonda correttamente le quote sezionali" (o un ticket equivalente in stato "Completato").
+Il ticket in stato "Completato" individuato nei Prerequisiti.
 
 **Stato iniziale**
 Il ticket individuato è in stato "Completato".
@@ -3551,7 +3582,7 @@ Il ticket individuato è in stato "Completato".
 | 1 | Accedere come Admin e aprire il ticket in stato "Completato" individuato nei Prerequisiti | — | Si apre la scheda di dettaglio, badge "Stato" = "Completato" |
 | 2 | Osservare l'intera testata della pagina, elencando tutti i pulsanti di transizione presenti | — | Nessun pulsante di cambio di stato è disponibile (in particolare, nessun pulsante "Assegnato"): lo stato "Completato" non ha transizioni manuali uscenti definite in tabella |
 | 3 | Tentare di raggiungere una qualunque transizione tramite la tastiera/scorrimento della pagina (per escludere che un pulsante sia semplicemente fuori vista) | — | Conferma che nessun pulsante di transizione esiste nel DOM della pagina |
-| 4 | (Passo tecnico) In `php artisan tinker`, eseguire direttamente la macchina a stati bypassando l'interfaccia: `$ticket = \App\Domain\Ticketing\Models\Ticket::where('title', 'like', '%bollettino MAV%')->first(); $admin = \App\Domain\Identity\Models\User::where('email','admin@orchestrator.local')->first(); \App\Domain\Ticketing\Actions\ChangeTicketStatus::run($ticket, \App\Domain\Ticketing\Enums\TicketStatus::Assigned, $admin);` | comando tinker sopra | Il comando lancia una `Illuminate\Validation\ValidationException` con messaggio `La transizione da "Completato" a "Assegnato" non è ammessa.` |
+| 4 | (Passo tecnico) In `php artisan tinker`, eseguire direttamente la macchina a stati bypassando l'interfaccia: `$ticket = \App\Domain\Ticketing\Models\Ticket::find(<id del ticket individuato nei Prerequisiti>); $admin = \App\Domain\Identity\Models\User::where('email','admin@oc.test')->first(); \App\Domain\Ticketing\Actions\ChangeTicketStatus::run($ticket, \App\Domain\Ticketing\Enums\TicketStatus::Assigned, $admin);` | comando tinker sopra | Il comando lancia una `Illuminate\Validation\ValidationException` con messaggio `La transizione da "Completato" a "Assegnato" non è ammessa.` |
 
 **Risultato finale atteso**
 Da un ticket "Completato" non è raggiungibile da UI onesta alcuna transizione di stato (nessun pulsante esiste); un tentativo tecnico diretto sulla macchina a stati conferma che la stessa transizione è respinta con un messaggio di errore leggibile in italiano.
@@ -3607,11 +3638,11 @@ Alta
 Developer
 
 **Prerequisiti**
-- L'utente `developer@orchestrator.local` ha i permessi di ruolo `ticket.view.any`/`ticket-message.create`.
-- Esiste almeno un ticket nel dataset UAT (qualunque dei 40).
+- L'utente `dev@oc.test` ha i permessi di ruolo `ticket.view.any`/`ticket-message.create`.
+- Esiste almeno un ticket nel dataset importato dall'ETL.
 
 **Dati di test**
-Ticket: "Il pulsante «Rinnova tessera» non risponde su Safari mobile" (o un qualunque altro ticket dell'elenco). Testo del messaggio: `Ciao, come posso aiutarti?`.
+Ticket: un qualunque ticket dell'elenco. Testo del messaggio: `Ciao, come posso aiutarti?`.
 
 **Stato iniziale**
 Il ticket individuato non ha ancora il messaggio di test nella propria conversazione.
@@ -3620,8 +3651,8 @@ Il ticket individuato non ha ancora il messaggio di test nella propria conversaz
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedere come Developer | `developer@orchestrator.local` / `password` | Login riuscito |
-| 2 | Aprire il ticket "Il pulsante «Rinnova tessera» non risponde su Safari mobile" in visualizzazione | — | Si apre la scheda di dettaglio |
+| 1 | Accedere come Developer | `dev@oc.test` / `password` | Login riuscito |
+| 2 | Aprire un qualunque ticket dell'elenco in visualizzazione | — | Si apre la scheda di dettaglio |
 | 3 | Cliccare il pulsante di testata "Aggiungi messaggio" | pulsante "Aggiungi messaggio" | Si apre un modale con il campo "Messaggio" (editor di testo ricco) e il campo facoltativo "Allegati" |
 | 4 | Digitare il testo nel campo "Messaggio" e confermare l'azione senza allegare file | `Ciao, come posso aiutarti?` | Compare una notifica di successo con titolo "Messaggio pubblicato" |
 | 5 | Osservare la sezione "Conversazione" nella stessa pagina | — | Compare una nuova riga di conversazione con "Autore" = "Sviluppatore Collaudo" e il testo "Ciao, come posso aiutarti?" visibile |
@@ -3680,20 +3711,20 @@ Media
 Customer
 
 **Prerequisiti**
-- L'utente `customer@orchestrator.local` non ha `ticket.assign` nella matrice Customer (`RolePermissionSeeder`).
-- Esiste almeno un ticket con richiedente "Socio CAI Collaudo" (qualunque dei 40 del seed).
+- L'utente `customer@oc.test` non ha `ticket.assign` nella matrice Customer (`RolePermissionSeeder`).
+- Esiste almeno un ticket con richiedente "Socio CAI Collaudo" nel dataset importato dall'ETL.
 
 **Dati di test**
-Ticket: un qualunque ticket dell'elenco proprio del Customer (es. "Il pulsante «Rinnova tessera» non risponde su Safari mobile").
+Ticket: un qualunque ticket dell'elenco proprio del Customer.
 
 **Stato iniziale**
-Il dataset dei 40 ticket UAT è già popolato.
+Il dataset importato dall'ETL reale è già popolato.
 
 **Procedura di esecuzione**
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedere come Customer | `customer@orchestrator.local` / `password` | Login riuscito |
+| 1 | Accedere come Customer | `customer@oc.test` / `password` | Login riuscito |
 | 2 | Aprire un qualunque ticket proprio in visualizzazione | — | Si apre la scheda di dettaglio |
 | 3 | Elencare tutti i pulsanti presenti in testata | — | Non è presente alcun pulsante "Aggiungi partecipante" |
 | 4 | Confermare che non è presente nemmeno il pulsante "Rimuovi partecipante" | — | Il pulsante non è presente |
@@ -3751,8 +3782,8 @@ Alta
 Admin
 
 **Prerequisiti**
-- L'utente `admin@orchestrator.local` ha `ticket.update.any`/`ticket.view.any` (tutti i permessi).
-- Il dataset UAT (`UatSeeder`) non genera alcuna relazione padre/figlio tra i 40 ticket seminati: la gerarchia va costruita ex novo per questo test.
+- L'utente `admin@oc.test` ha `ticket.update.any`/`ticket.view.any` (tutti i permessi).
+- L'ETL reale importa la gerarchia padre/figlio esistente in v1 (`ticket_hierarchy`), ma non è garantito trovare a comando la combinazione esatta necessaria per questo test negativo (un ticket con già figli più un candidato padre valido separato): costruire tre ticket freschi ad hoc mantiene il test deterministico indipendentemente dal dump caricato.
 
 **Dati di test**
 Tre ticket da creare: `COLL-F1-48-20260726-01 — Padre bersaglio` (A, nessun padre), `COLL-F1-48-20260726-02 — Figlio di A` (B, Ticket padre = A), `COLL-F1-48-20260726-03 — Candidato padre valido` (C, nessun padre, nessun figlio). Tutti con Richiedente = "Socio CAI Collaudo".
@@ -3764,7 +3795,7 @@ Nessuno dei tre ticket A/B/C esiste ancora.
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedere come Admin | `admin@orchestrator.local` / `password` | Login riuscito |
+| 1 | Accedere come Admin | `admin@oc.test` / `password` | Login riuscito |
 | 2 | Creare il ticket A: titolo `COLL-F1-48-20260726-01 — Padre bersaglio`, Richiedente = "Socio CAI Collaudo", campo "Ticket padre" lasciato vuoto | vedi Dati di test | Ticket A creato senza errori |
 | 3 | Creare il ticket C: titolo `COLL-F1-48-20260726-03 — Candidato padre valido`, Richiedente = "Socio CAI Collaudo", campo "Ticket padre" lasciato vuoto | vedi Dati di test | Ticket C creato senza errori |
 | 4 | Creare il ticket B: titolo `COLL-F1-48-20260726-02 — Figlio di A`, Richiedente = "Socio CAI Collaudo", campo "Ticket padre" = ticket A | vedi Dati di test | Ticket B creato senza errori: il ticket A ora ha un figlio (B) |
@@ -3826,22 +3857,22 @@ Media
 Developer (parte UI) + Amministratore di sistema (parte di verifica tecnica sul database)
 
 **Prerequisiti**
-- L'utente `developer@orchestrator.local` ha `ticket.view.any` (matrice Developer).
+- L'utente `dev@oc.test` ha `ticket.view.any` (matrice Developer).
 - Scegliere un ticket che il Developer non abbia ancora aperto **oggi** (per non incorrere nella soglia di throttling di 30 minuti, che impedirebbe l'incremento del contatore su una visualizzazione ripetuta): se non è chiaro quale ticket sia idoneo, verificare prima con il passo tecnico 0 sotto.
 - Accesso a `php artisan tinker` (o a una query diretta sul database) per il controllo tecnico complementare.
 
 **Dati di test**
-Ticket: un qualunque ticket del dataset UAT non ancora aperto oggi dal Developer (es. "Sprint planning: revisione backlog modulo tesseramento").
+Ticket: un qualunque ticket del dataset importato dall'ETL non ancora aperto oggi dal Developer.
 
 **Stato iniziale**
-Nessuna riga `ticket_views` esiste per la coppia (ticket scelto, `developer@orchestrator.local`) con data odierna.
+Nessuna riga `ticket_views` esiste per la coppia (ticket scelto, `dev@oc.test`) con data odierna.
 
 **Procedura di esecuzione**
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 0 | (Facoltativo, verifica preliminare tecnica) In `php artisan tinker`: `\App\Domain\Ticketing\Models\TicketView::where('user_id', \App\Domain\Identity\Models\User::where('email','developer@orchestrator.local')->value('id'))->whereDate('viewed_on', now())->pluck('ticket_id');` | comando tinker sopra | Elenco degli id ticket già visti oggi dal Developer: scegliere un ticket il cui id NON compare in questo elenco |
-| 1 | Accedere come Developer | `developer@orchestrator.local` / `password` | Login riuscito |
+| 0 | (Facoltativo, verifica preliminare tecnica) In `php artisan tinker`: `\App\Domain\Ticketing\Models\TicketView::where('user_id', \App\Domain\Identity\Models\User::where('email','dev@oc.test')->value('id'))->whereDate('viewed_on', now())->pluck('ticket_id');` | comando tinker sopra | Elenco degli id ticket già visti oggi dal Developer: scegliere un ticket il cui id NON compare in questo elenco |
+| 1 | Accedere come Developer | `dev@oc.test` / `password` | Login riuscito |
 | 2 | Aprire il ticket scelto in visualizzazione | ticket individuato al passo 0 | Si apre la scheda di dettaglio |
 | 3 | (Passo tecnico) In `php artisan tinker`, eseguire: `\App\Domain\Ticketing\Models\TicketView::where('ticket_id', <id_ticket>)->where('user_id', <id_developer>)->whereDate('viewed_on', now())->first(['view_count','last_viewed_at']);` | comando tinker sopra, con gli id del ticket/utente del passo 2 | Il comando restituisce una riga con `view_count = 1` e `last_viewed_at` valorizzato a un istante recente |
 
@@ -3899,31 +3930,31 @@ Alta
 Admin
 
 **Prerequisiti**
-- Accesso a `/admin` come admin@orchestrator.local.
-- Dataset UAT (`UatSeeder`) presente e non alterato.
+- Accesso a `/admin` come admin@oc.test.
+- Dataset importato dall'ETL reale (`v1:import --anonymize`) presente e non alterato: a differenza del vecchio seed fittizio, non ha un conteggio o un contenuto fisso — individuare i ticket idonei con i filtri di Filament invece di assumere un titolo/indice predicibile.
 
 **Dati di test**
-- Ticket incluso atteso: ticket seed #5 del ciclo (indice `i=4`) "Errore 500 aprendo il dettaglio di un ticket con più allegati", stato "In lavorazione", richiedente "Socio CAI Collaudo".
-- Ticket escluso atteso: ticket seed (indice `i=8`) "L'importo del bollettino MAV non arrotonda correttamente le quote sezionali", stato "Completato", stesso richiedente.
+- Ticket incluso atteso: un ticket reale con richiedente esterno, stato "In lavorazione" (filtrare l'elenco Ticket per Stato = "In lavorazione" e Richiedente valorizzato; se nessuno esiste nel dump caricato, portare un ticket qualunque con richiedente in quello stato con i bottoni di transizione già testati (vedi F1-72/F1-73), mai scrivendo la colonna a mano).
+- Ticket escluso atteso: un ticket reale con lo stesso richiedente ma stato "Completato" (filtrare per Stato = "Completato").
 
 **Stato iniziale**
-I 40 ticket del seed UAT sono presenti, ciascuno con richiedente "Socio CAI Collaudo".
+Il dataset importato dall'ETL reale è presente: numero e contenuto dei ticket dipendono dal dump caricato, non un insieme fisso.
 
 **Procedura di esecuzione**
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedi a `/admin` e apri la risorsa Ticket | admin@orchestrator.local / password | Lista ticket visibile con le tab dello staff |
+| 1 | Accedi a `/admin` e apri la risorsa Ticket | admin@oc.test / password | Lista ticket visibile con le tab dello staff |
 | 2 | Apri la tab "Richieste attive" | — | La lista si filtra |
-| 3 | Cerca per titolo il ticket "Errore 500 aprendo il dettaglio di un ticket con più allegati" | Campo ricerca titolo | Il ticket compare nell'elenco |
-| 4 | Cerca per titolo il ticket "L'importo del bollettino MAV non arrotonda correttamente le quote sezionali" | Campo ricerca titolo | Il ticket NON compare (nessun risultato nella tab) |
+| 3 | Cerca per titolo il ticket incluso individuato sopra | Campo ricerca titolo | Il ticket compare nell'elenco |
+| 4 | Cerca per titolo il ticket escluso individuato sopra | Campo ricerca titolo | Il ticket NON compare (nessun risultato nella tab) |
 | 5 | Torna alla tab "Tutti i ticket" e verifica che quest'ultimo ticket esista davvero (stato "Completato") | — | Il ticket è presente altrove, confermando che l'esclusione è dovuta al filtro della tab, non alla sua assenza |
 
 **Risultato finale atteso**
 La tab "Richieste attive" mostra il ticket in "In lavorazione" e non mostra il ticket "Completato", pur essendo entrambi presenti nel sistema con lo stesso richiedente.
 
 **Controlli negativi**
-Verificare che anche un ticket in Backlog (es. indice `i=1`, "Aggiungere l'export CSV dell'elenco iscritti al corso di escursionismo") non compaia in "Richieste attive" (ha una tab dedicata, F1-56).
+Verificare che anche un ticket in Backlog non compaia in "Richieste attive" (ha una tab dedicata, F1-56).
 
 **Evidenze da acquisire**
 - Screenshot della tab "Richieste attive" con il ticket incluso visibile.
@@ -3973,39 +4004,44 @@ Media
 Admin
 
 **Prerequisiti**
-- Accesso a `/admin` come admin@orchestrator.local.
-- Dataset UAT presente e non alterato.
+- Accesso a `/admin` come admin@oc.test.
+- Dataset importato dall'ETL reale presente e non alterato: a differenza del vecchio seed fittizio,
+  non ha un conteggio o un contenuto fisso — individuare i ticket idonei con i filtri di Filament.
+- Almeno due o tre ticket reali in stato "In attesa", idealmente con richiedente "Socio CAI Collaudo",
+  con valori distinti della colonna "Giorni in stato" (filtrare l'elenco Ticket per Stato = "In
+  attesa" e ordinare/osservare quella colonna). Se il dump caricato ne contiene meno di due con valori
+  distinguibili, portarne alcuni in "In attesa" con i bottoni di transizione già testati in F1-01,
+  distanziando le transizioni nel tempo (anche di pochi minuti) in modo da ottenere `status_changed_at`
+  diversi e quindi un ordine osservabile nella tab.
 
 **Dati di test**
-Tre ticket seed in stato "In attesa", tutti con richiedente "Socio CAI Collaudo":
-- Indice `i=10` "Come modificare l'indirizzo di residenza di un socio già iscritto" — il più vecchio (in attesa da più giorni).
-- Indice `i=22` "Richiesta di duplicato tessera per smarrimento" — intermedio.
-- Indice `i=34` "Richiesta chiarimenti sulla copertura assicurativa in escursione" — il più recente.
+I ticket in stato "In attesa" individuati sopra, annotandone l'ordine per "Giorni in stato" (dal
+valore più alto, il più vecchio, al più basso, il più recente).
 
 **Stato iniziale**
-I tre ticket sono già in stato "In attesa" dal deploy del seed, con `status_changed_at` distanziati di circa 12 giorni l'uno dall'altro (il seed calcola `status_changed_at = oggi_del_deploy − (40 − indice)` giorni).
+I ticket individuati sono in stato "In attesa" con `status_changed_at` distinti tra loro.
 
 **Procedura di esecuzione**
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedi a `/admin` come admin | admin@orchestrator.local | Accesso riuscito |
+| 1 | Accedi a `/admin` come admin | admin@oc.test | Accesso riuscito |
 | 2 | Apri la tab "In attesa" della lista Ticket | — | Elenco filtrato ai soli ticket "In attesa" |
-| 3 | Annota l'ordine di comparsa dei tre ticket citati e il valore della colonna "Giorni in stato" per ciascuno | — | Il ticket `i=10` compare per primo (valore "Giorni in stato" più alto), poi `i=22`, poi `i=34` (valore più basso) per ultimo tra i tre |
+| 3 | Annota l'ordine di comparsa dei ticket individuati sopra e il valore della colonna "Giorni in stato" per ciascuno | — | Il ticket con "Giorni in stato" più alto (il più vecchio) compare per primo, poi gli altri in ordine decrescente di quel valore, fino al più recente per ultimo |
 | 4 | Verifica che nessun ticket in altro stato (es. "In lavorazione") compaia nella tab | — | Nessun ticket fuori stato "In attesa" è presente |
 
 **Risultato finale atteso**
-I tre ticket compaiono nell'ordine `i=10` → `i=22` → `i=34` (dal più vecchio al più recente), coerente con "Giorni in stato" decrescente lungo l'elenco.
+I ticket individuati compaiono ordinati dal più vecchio (valore "Giorni in stato" più alto) al più recente (valore più basso), coerente con `status_changed_at` crescente lungo l'elenco.
 
 **Controlli negativi**
-Un ticket "In lavorazione" (es. `i=4`) non deve mai comparire nella tab "In attesa".
+Un ticket in stato "In lavorazione" non deve mai comparire nella tab "In attesa".
 
 **Evidenze da acquisire**
-- Screenshot della tab "In attesa" con i tre ticket e la colonna "Giorni in stato" visibile, nell'ordine osservato.
+- Screenshot della tab "In attesa" con i ticket individuati e la colonna "Giorni in stato" visibile, nell'ordine osservato.
 
 **Criterio di superamento**
 
-PASS: i tre ticket compaiono solo in questa tab e nell'ordine dal più vecchio al più recente.
+PASS: i ticket individuati compaiono solo in questa tab e nell'ordine dal più vecchio al più recente.
 FAIL: ordine invertito/casuale, oppure compaiono ticket non in stato "In attesa".
 BLOCKED: impossibile accedere alla tab.
 NOT APPLICABLE: Non previsto per questo test.
@@ -4047,26 +4083,26 @@ Alta
 Developer
 
 **Prerequisiti**
-- Accesso a `/admin` come developer@orchestrator.local.
-- Dataset UAT presente e non alterato.
+- Accesso a `/admin` come dev@oc.test.
+- Dataset importato dall'ETL reale presente e non alterato: individuare i ticket idonei con i filtri Filament (Stato/Assegnatario) invece di assumere titolo/indice fissi.
 
 **Dati di test**
-- Ticket incluso atteso: indice `i=4` "Errore 500 aprendo il dettaglio di un ticket con più allegati", stato "In lavorazione", assegnatario "Sviluppatore Collaudo".
-- Ticket escluso atteso: indice `i=0` "Il pulsante «Rinnova tessera» non risponde su Safari mobile", stato "Nuovo", assegnatario "Sviluppatore Collaudo" (stesso assegnatario, ma stato escluso).
-- Ticket escluso atteso (assegnatario diverso): indice `i=1` "Aggiungere l'export CSV dell'elenco iscritti al corso di escursionismo", assegnatario "Manager Collaudo".
+- Ticket incluso atteso: un ticket reale con assegnatario "Sviluppatore Collaudo" e stato diverso da "Nuovo"/"Completato" (es. "In lavorazione"); se nessuno esiste, assegnarne uno con l'azione di assegnazione già testata e portarlo in quello stato con i bottoni di transizione (mai scrivendo le colonne a mano).
+- Ticket escluso atteso: un ticket reale con lo stesso assegnatario "Sviluppatore Collaudo" ma stato "Nuovo" (stesso assegnatario, ma stato escluso).
+- Ticket escluso atteso (assegnatario diverso): un ticket reale assegnato a "Manager Collaudo" (qualunque stato).
 
 **Stato iniziale**
-Dataset UAT presente e non alterato.
+Dataset importato dall'ETL reale presente e non alterato.
 
 **Procedura di esecuzione**
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedi a `/admin` come Sviluppatore Collaudo | developer@orchestrator.local | Accesso riuscito |
+| 1 | Accedi a `/admin` come Sviluppatore Collaudo | dev@oc.test | Accesso riuscito |
 | 2 | Apri la tab "Assegnati a me" | — | Elenco filtrato |
-| 3 | Verifica che il ticket "Errore 500 aprendo il dettaglio di un ticket con più allegati" sia presente | — | Presente |
-| 4 | Verifica che il ticket "Il pulsante «Rinnova tessera» non risponde su Safari mobile" (stato Nuovo, stesso assegnatario) NON sia presente | — | Assente |
-| 5 | Verifica che il ticket "Aggiungere l'export CSV dell'elenco iscritti al corso di escursionismo" (assegnato a Manager Collaudo) NON sia presente | — | Assente |
+| 3 | Verifica che il ticket incluso individuato sopra sia presente | — | Presente |
+| 4 | Verifica che il ticket escluso individuato sopra (stato Nuovo, stesso assegnatario) NON sia presente | — | Assente |
+| 5 | Verifica che il ticket escluso individuato sopra (assegnato a Manager Collaudo) NON sia presente | — | Assente |
 
 **Risultato finale atteso**
 Solo i ticket assegnati a "Sviluppatore Collaudo" in stato diverso da "Nuovo"/"Completato" compaiono nella tab.
@@ -4121,24 +4157,24 @@ Alta
 Developer
 
 **Prerequisiti**
-- Accesso a `/admin` come developer@orchestrator.local.
-- Dataset UAT presente e non alterato (il seed imposta sempre `tester_id` = "Sviluppatore Collaudo" per i ticket in stato "In test"/"Testato").
+- Accesso a `/admin` come dev@oc.test.
+- Dataset importato dall'ETL reale presente e non alterato: individuare i ticket idonei con i filtri Filament (Stato/Tester) invece di assumere titolo/indice fissi; se il dump caricato non ha già un ticket con tester "Sviluppatore Collaudo", impostarlo con l'azione di assegnazione tester già testata nelle story precedenti, mai scrivendo la colonna a mano.
 
 **Dati di test**
-- Ticket incluso atteso: indice `i=5` "Notifica al socio 30 giorni prima della scadenza tessera", stato "In test", tester "Sviluppatore Collaudo".
-- Ticket escluso atteso: indice `i=6` "Richiesta di reset password per un accompagnatore in trasferta", stato "Testato" (non più "In test"), tester comunque "Sviluppatore Collaudo".
+- Ticket incluso atteso: un ticket reale in stato "In test" con tester "Sviluppatore Collaudo".
+- Ticket escluso atteso: un ticket reale in stato "Testato" (non più "In test") con tester comunque "Sviluppatore Collaudo".
 
 **Stato iniziale**
-Dataset UAT presente e non alterato.
+Dataset importato dall'ETL reale presente e non alterato.
 
 **Procedura di esecuzione**
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedi a `/admin` come Sviluppatore Collaudo | developer@orchestrator.local | Accesso riuscito |
+| 1 | Accedi a `/admin` come Sviluppatore Collaudo | dev@oc.test | Accesso riuscito |
 | 2 | Apri la tab "Da testare" | — | Elenco filtrato |
-| 3 | Verifica che "Notifica al socio 30 giorni prima della scadenza tessera" sia presente | — | Presente |
-| 4 | Verifica che "Richiesta di reset password per un accompagnatore in trasferta" (stato Testato) NON sia presente | — | Assente |
+| 3 | Verifica che il ticket incluso individuato sopra (stato "In test") sia presente | — | Presente |
+| 4 | Verifica che il ticket escluso individuato sopra (stato "Testato") NON sia presente | — | Assente |
 
 **Risultato finale atteso**
 Solo il ticket "In test" con tester = utente corrente compare; il ticket "Testato" con lo stesso tester non compare.
@@ -4193,24 +4229,24 @@ Alta
 Manager
 
 **Prerequisiti**
-- Accesso a `/admin` come manager@orchestrator.local (non è mai tester di alcun ticket seed: il seed imposta sempre `tester_id` = "Sviluppatore Collaudo").
-- Dataset UAT presente e non alterato.
+- Accesso a `/admin` come manager@oc.test (verificare con il filtro Tester che non sia lui stesso il tester del ticket incluso individuato sotto — se lo fosse, scegliere un altro ticket idoneo).
+- Dataset importato dall'ETL reale presente e non alterato: individuare i ticket idonei con i filtri Filament (Stato) invece di assumere titolo/indice fissi.
 
 **Dati di test**
-- Ticket incluso atteso: indice `i=5` "Notifica al socio 30 giorni prima della scadenza tessera", stato "In test", tester "Sviluppatore Collaudo" (diverso dall'utente che esegue il test).
-- Ticket escluso atteso: indice `i=16` "La ricerca socio per codice fiscale restituisce risultati duplicati", stato "In lavorazione".
+- Ticket incluso atteso: un ticket reale in stato "In test", con un tester diverso dall'utente che esegue il test (es. "Sviluppatore Collaudo").
+- Ticket escluso atteso: un ticket reale in stato "In lavorazione".
 
 **Stato iniziale**
-Dataset UAT presente e non alterato.
+Dataset importato dall'ETL reale presente e non alterato.
 
 **Procedura di esecuzione**
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedi a `/admin` come Manager Collaudo | manager@orchestrator.local | Accesso riuscito |
+| 1 | Accedi a `/admin` come Manager Collaudo | manager@oc.test | Accesso riuscito |
 | 2 | Apri la tab "In test" | — | Elenco filtrato |
-| 3 | Verifica che "Notifica al socio 30 giorni prima della scadenza tessera" sia presente, pur non essendo Manager Collaudo il tester | — | Presente |
-| 4 | Verifica che "La ricerca socio per codice fiscale restituisce risultati duplicati" (In lavorazione) NON sia presente | — | Assente |
+| 3 | Verifica che il ticket incluso individuato sopra sia presente, pur non essendo Manager Collaudo il tester | — | Presente |
+| 4 | Verifica che il ticket escluso individuato sopra (In lavorazione) NON sia presente | — | Assente |
 
 **Risultato finale atteso**
 Il ticket in "In test" compare indipendentemente da chi sia il tester; il ticket in altro stato non compare.
@@ -4265,24 +4301,24 @@ Alta
 Admin
 
 **Prerequisiti**
-- Accesso a `/admin` come admin@orchestrator.local.
-- Dataset UAT presente e non alterato.
+- Accesso a `/admin` come admin@oc.test.
+- Dataset importato dall'ETL reale presente e non alterato: individuare i ticket idonei con i filtri Filament (Stato) invece di assumere titolo/indice fissi; se il dump caricato non ha un ticket in stato "Problema", portarne uno in quello stato con i bottoni di transizione già testati, mai scrivendo la colonna a mano.
 
 **Dati di test**
-- Ticket incluso atteso: indice `i=9` "Filtro avanzato per cercare rifugi per fascia altimetrica", stato "Problema".
-- Ticket escluso atteso: indice `i=10` "Come modificare l'indirizzo di residenza di un socio già iscritto", stato "In attesa".
+- Ticket incluso atteso: un ticket reale in stato "Problema".
+- Ticket escluso atteso: un ticket reale in stato "In attesa".
 
 **Stato iniziale**
-Dataset UAT presente e non alterato.
+Dataset importato dall'ETL reale presente e non alterato.
 
 **Procedura di esecuzione**
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedi a `/admin` come admin | admin@orchestrator.local | Accesso riuscito |
+| 1 | Accedi a `/admin` come admin | admin@oc.test | Accesso riuscito |
 | 2 | Apri la tab "Problemi" | — | Elenco filtrato |
-| 3 | Verifica che "Filtro avanzato per cercare rifugi per fascia altimetrica" sia presente | — | Presente |
-| 4 | Verifica che "Come modificare l'indirizzo di residenza di un socio già iscritto" (In attesa) NON sia presente | — | Assente |
+| 3 | Verifica che il ticket incluso individuato sopra sia presente | — | Presente |
+| 4 | Verifica che il ticket escluso individuato sopra (In attesa) NON sia presente | — | Assente |
 
 **Risultato finale atteso**
 Solo il ticket in stato "Problema" compare nella tab.
@@ -4337,24 +4373,24 @@ Media
 Admin
 
 **Prerequisiti**
-- Accesso a `/admin` come admin@orchestrator.local.
-- Dataset UAT presente e non alterato.
+- Accesso a `/admin` come admin@oc.test.
+- Dataset importato dall'ETL reale presente e non alterato: individuare i ticket idonei con i filtri Filament (Stato e Richiedente valorizzato) invece di assumere titolo/indice fissi.
 
 **Dati di test**
-- Ticket incluso atteso: indice `i=1` "Aggiungere l'export CSV dell'elenco iscritti al corso di escursionismo", stato "Backlog".
-- Ticket escluso atteso: indice `i=0` "Il pulsante «Rinnova tessera» non risponde su Safari mobile", stato "Nuovo".
+- Ticket incluso atteso: un ticket reale con richiedente valorizzato e stato "Backlog".
+- Ticket escluso atteso: un ticket reale in stato "Nuovo".
 
 **Stato iniziale**
-Dataset UAT presente e non alterato.
+Dataset importato dall'ETL reale presente e non alterato.
 
 **Procedura di esecuzione**
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedi a `/admin` come admin | admin@orchestrator.local | Accesso riuscito |
+| 1 | Accedi a `/admin` come admin | admin@oc.test | Accesso riuscito |
 | 2 | Apri la tab "Backlog" | — | Elenco filtrato |
-| 3 | Verifica che "Aggiungere l'export CSV dell'elenco iscritti al corso di escursionismo" sia presente | — | Presente |
-| 4 | Verifica che "Il pulsante «Rinnova tessera» non risponde su Safari mobile" (Nuovo) NON sia presente | — | Assente |
+| 3 | Verifica che il ticket incluso individuato sopra sia presente | — | Presente |
+| 4 | Verifica che il ticket escluso individuato sopra (Nuovo) NON sia presente | — | Assente |
 
 **Risultato finale atteso**
 Solo il ticket in stato "Backlog" compare nella tab.
@@ -4409,26 +4445,26 @@ Alta
 Admin
 
 **Prerequisiti**
-- Accesso a `/admin` come admin@orchestrator.local.
-- Dataset UAT presente e non alterato.
+- Accesso a `/admin` come admin@oc.test.
+- Dataset importato dall'ETL reale presente e non alterato: individuare i ticket idonei con i filtri Filament (Stato) invece di assumere titolo/indice fissi.
 
 **Dati di test**
-- Ticket incluso atteso: indice `i=8` "L'importo del bollettino MAV non arrotonda correttamente le quote sezionali", stato "Completato".
-- Ticket incluso atteso: indice `i=11` "Aggiornamento dipendenze in vista del prossimo rilascio", stato "Rifiutato".
-- Ticket escluso atteso: indice `i=16` "La ricerca socio per codice fiscale restituisce risultati duplicati", stato "In lavorazione".
+- Ticket incluso atteso: un ticket reale in stato "Completato".
+- Ticket incluso atteso: un ticket reale in stato "Rifiutato".
+- Ticket escluso atteso: un ticket reale in stato "In lavorazione".
 
 **Stato iniziale**
-Dataset UAT presente e non alterato.
+Dataset importato dall'ETL reale presente e non alterato.
 
 **Procedura di esecuzione**
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedi a `/admin` come admin | admin@orchestrator.local | Accesso riuscito |
+| 1 | Accedi a `/admin` come admin | admin@oc.test | Accesso riuscito |
 | 2 | Apri la tab "Archivio" | — | Elenco filtrato |
-| 3 | Verifica che "L'importo del bollettino MAV non arrotonda correttamente le quote sezionali" (Completato) sia presente | — | Presente |
-| 4 | Verifica che "Aggiornamento dipendenze in vista del prossimo rilascio" (Rifiutato) sia presente | — | Presente |
-| 5 | Verifica che "La ricerca socio per codice fiscale restituisce risultati duplicati" (In lavorazione) NON sia presente | — | Assente |
+| 3 | Verifica che il primo ticket incluso individuato sopra (Completato) sia presente | — | Presente |
+| 4 | Verifica che il secondo ticket incluso individuato sopra (Rifiutato) sia presente | — | Presente |
+| 5 | Verifica che il ticket escluso individuato sopra (In lavorazione) NON sia presente | — | Assente |
 
 **Risultato finale atteso**
 Entrambi gli stati archiviati ("Completato", "Rifiutato") compaiono nella tab; nessun ticket ancora aperto compare.
@@ -4465,7 +4501,7 @@ Nessuno: il dataset si rigenera al prossimo deploy.
 ### F1-58 — La vista "Interni" mostra solo i ticket senza un richiedente esterno
 
 **Obiettivo**
-Verificare che la tab "Interni" mostri i ticket con richiedente valorizzato il cui richiedente NON ha il ruolo "Socio CAI"/cliente (staff che apre un ticket per sé), escludendo i ticket dei clienti reali e quelli già completati. Il seed UAT non contiene alcun esempio pronto (il richiedente di tutti i 40 ticket è sempre "Socio CAI Collaudo", un cliente): occorre crearne uno ad hoc.
+Verificare che la tab "Interni" mostri i ticket con richiedente valorizzato il cui richiedente NON ha il ruolo "Socio CAI"/cliente (staff che apre un ticket per sé), escludendo i ticket dei clienti reali e quelli già completati. Il dataset importato dall'ETL reale potrebbe non contenere alcun esempio pronto di ticket con richiedente staff (i richiedenti v1 sono tipicamente clienti): verificare prima con il filtro Richiedente, e se assente crearne uno ad hoc come descritto sotto.
 
 **Riferimenti**
 - Requisito/regola di dominio: PRD §8.5, classe `InternalTicketsQuery`.
@@ -4483,12 +4519,12 @@ Alta
 Admin
 
 **Prerequisiti**
-- Accesso a `/admin` come admin@orchestrator.local.
+- Accesso a `/admin` come admin@oc.test.
 - Esiste l'utente "Sviluppatore Collaudo" (ruolo Developer, non Customer).
 
 **Dati di test**
 - Nuovo ticket con titolo `COLL-F1-58-20260726-01`, Richiedente = "Sviluppatore Collaudo" (staff, non cliente). Resta in stato "Nuovo" dopo la creazione.
-- Ticket escluso atteso (già nel seed): indice `i=4` "Errore 500 aprendo il dettaglio di un ticket con più allegati", richiedente "Socio CAI Collaudo" (cliente).
+- Ticket escluso atteso: un ticket reale del dataset importato con richiedente esterno (cliente).
 
 **Stato iniziale**
 Nessun ticket `COLL-F1-58-20260726-01` presente.
@@ -4497,11 +4533,11 @@ Nessun ticket `COLL-F1-58-20260726-01` presente.
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedi a `/admin` come admin | admin@orchestrator.local | Accesso riuscito |
+| 1 | Accedi a `/admin` come admin | admin@oc.test | Accesso riuscito |
 | 2 | Crea un nuovo ticket | Titolo `COLL-F1-58-20260726-01`; sezione "Assegnazione e classificazione" → Richiedente = "Sviluppatore Collaudo" | Ticket creato in stato "Nuovo" |
 | 3 | Apri la tab "Interni" | — | Elenco filtrato |
 | 4 | Verifica che `COLL-F1-58-20260726-01` sia presente | — | Presente |
-| 5 | Verifica che "Errore 500 aprendo il dettaglio di un ticket con più allegati" (richiedente cliente) NON sia presente | — | Assente |
+| 5 | Verifica che il ticket escluso individuato sopra (richiedente cliente) NON sia presente | — | Assente |
 
 **Risultato finale atteso**
 Solo il ticket con richiedente non-cliente compare nella tab "Interni"; i ticket con richiedente cliente non compaiono.
@@ -4521,7 +4557,7 @@ BLOCKED: impossibile creare il ticket o accedere alla tab.
 NOT APPLICABLE: Non previsto per questo test.
 
 **Ripristino**
-Nessuno: il dataset si rigenera al prossimo deploy (il ticket aggiuntivo non altera i 40 ticket seed). Se si preferisce non lasciare il ticket residuo tra un deploy e l'altro, eliminarlo manualmente dalla lista.
+Nessuno: il dataset si rigenera al prossimo deploy (il ticket aggiuntivo non altera i ticket importati dall'ETL). Se si preferisce non lasciare il ticket residuo tra un deploy e l'altro, eliminarlo manualmente dalla lista.
 
 **Campi di consuntivazione**
 
@@ -4557,30 +4593,30 @@ Critica
 Customer
 
 **Prerequisiti**
-- Accesso a `/admin` come customer@orchestrator.local.
-- Dataset UAT presente e non alterato.
+- Accesso a `/admin` come customer@oc.test.
+- Dataset importato dall'ETL reale presente e non alterato: individuare con l'admin, prima di accedere come cliente, un ticket con richiedente "Socio CAI Collaudo" in stato "In lavorazione" e uno, stesso richiedente, in stato "Completato" (filtri Filament su Richiedente/Stato).
 
 **Dati di test**
-- Ticket incluso atteso: indice `i=4` "Errore 500 aprendo il dettaglio di un ticket con più allegati", stato "In lavorazione", richiedente "Socio CAI Collaudo" (l'utente stesso).
-- Ticket escluso atteso: indice `i=8` "L'importo del bollettino MAV non arrotonda correttamente le quote sezionali", stato "Completato", stesso richiedente.
+- Ticket incluso atteso: un ticket reale con richiedente "Socio CAI Collaudo" (l'utente stesso), stato "In lavorazione".
+- Ticket escluso atteso: un ticket reale con lo stesso richiedente, stato "Completato".
 
 **Stato iniziale**
-Dataset UAT presente e non alterato.
+Dataset importato dall'ETL reale presente e non alterato.
 
 **Procedura di esecuzione**
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedi a `/admin` come Socio CAI Collaudo | customer@orchestrator.local | Accesso riuscito; solo le tab "I miei ticket"/"Archivio" sono visibili (nessuna tab staff) |
+| 1 | Accedi a `/admin` come Socio CAI Collaudo | customer@oc.test | Accesso riuscito; solo le tab "I miei ticket"/"Archivio" sono visibili (nessuna tab staff) |
 | 2 | Apri la tab "I miei ticket" (di norma già selezionata) | — | Elenco filtrato |
-| 3 | Verifica che "Errore 500 aprendo il dettaglio di un ticket con più allegati" sia presente | — | Presente |
-| 4 | Verifica che "L'importo del bollettino MAV non arrotonda correttamente le quote sezionali" (Completato) NON sia presente | — | Assente (si trova invece in "Archivio", F1-60) |
+| 3 | Verifica che il ticket incluso individuato sopra sia presente | — | Presente |
+| 4 | Verifica che il ticket escluso individuato sopra (Completato) NON sia presente | — | Assente (si trova invece in "Archivio", F1-60) |
 
 **Risultato finale atteso**
 Solo le proprie richieste non concluse compaiono in "I miei ticket".
 
 **Controlli negativi**
-Nessun ticket di un altro richiedente deve mai comparire (per costruzione del seed, tutti i 40 ticket hanno lo stesso richiedente cliente; questo aspetto specifico dell'isolamento fra clienti diversi resta quindi verificato solo dal test automatico citato — segnalare "DA VERIFICARE CON IL PRODUCT OWNER" se si desidera un secondo utente cliente nel seed per una verifica manuale diretta).
+Nessun ticket di un altro richiedente deve mai comparire: individuare come admin un ticket reale con un richiedente diverso da "Socio CAI Collaudo" (il dataset importato dall'ETL reale ne contiene tipicamente molti, a differenza del vecchio seed fittizio che ne aveva uno solo) e verificare che non compaia in "I miei ticket" per l'utente sotto test.
 
 **Evidenze da acquisire**
 - Screenshot della tab "I miei ticket" con il ticket incluso.
@@ -4630,24 +4666,24 @@ Alta
 Customer
 
 **Prerequisiti**
-- Accesso a `/admin` come customer@orchestrator.local.
-- Dataset UAT presente e non alterato.
+- Accesso a `/admin` come customer@oc.test.
+- Dataset importato dall'ETL reale presente e non alterato: individuare con l'admin, prima di accedere come cliente, un ticket con richiedente "Socio CAI Collaudo" in stato "Completato" e uno, stesso richiedente, in stato "In lavorazione" (filtri Filament su Richiedente/Stato).
 
 **Dati di test**
-- Ticket incluso atteso: indice `i=8` "L'importo del bollettino MAV non arrotonda correttamente le quote sezionali", stato "Completato".
-- Ticket escluso atteso: indice `i=4` "Errore 500 aprendo il dettaglio di un ticket con più allegati", stato "In lavorazione".
+- Ticket incluso atteso: un ticket reale con richiedente "Socio CAI Collaudo", stato "Completato".
+- Ticket escluso atteso: un ticket reale con lo stesso richiedente, stato "In lavorazione".
 
 **Stato iniziale**
-Dataset UAT presente e non alterato.
+Dataset importato dall'ETL reale presente e non alterato.
 
 **Procedura di esecuzione**
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedi a `/admin` come Socio CAI Collaudo | customer@orchestrator.local | Accesso riuscito |
+| 1 | Accedi a `/admin` come Socio CAI Collaudo | customer@oc.test | Accesso riuscito |
 | 2 | Apri la tab "Archivio" | — | Elenco filtrato |
-| 3 | Verifica che "L'importo del bollettino MAV non arrotonda correttamente le quote sezionali" sia presente | — | Presente |
-| 4 | Verifica che "Errore 500 aprendo il dettaglio di un ticket con più allegati" (In lavorazione) NON sia presente | — | Assente |
+| 3 | Verifica che il ticket incluso individuato sopra sia presente | — | Presente |
+| 4 | Verifica che il ticket escluso individuato sopra (In lavorazione) NON sia presente | — | Assente |
 
 **Risultato finale atteso**
 Solo le proprie richieste concluse/rifiutate compaiono in "Archivio".
@@ -4702,24 +4738,24 @@ Media
 Admin
 
 **Prerequisiti**
-- Accesso a `/admin` come admin@orchestrator.local.
-- Dataset UAT presente e non alterato.
+- Accesso a `/admin` come admin@oc.test.
+- Dataset importato dall'ETL reale presente e non alterato: individuare i ticket idonei con i filtri Filament (Stato e Richiedente valorizzato) invece di assumere titolo/indice fissi.
 
 **Dati di test**
-- Ticket incluso atteso: indice `i=0` "Il pulsante «Rinnova tessera» non risponde su Safari mobile", stato "Nuovo".
-- Ticket escluso atteso: indice `i=2` "Il socio non riceve l'email di conferma rinnovo tessera", stato "Assegnato".
+- Ticket incluso atteso: un ticket reale con richiedente valorizzato in stato "Nuovo".
+- Ticket escluso atteso: un ticket reale in stato "Assegnato".
 
 **Stato iniziale**
-Dataset UAT presente e non alterato.
+Dataset importato dall'ETL reale presente e non alterato.
 
 **Procedura di esecuzione**
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedi a `/admin` come admin | admin@orchestrator.local | Accesso riuscito |
+| 1 | Accedi a `/admin` come admin | admin@oc.test | Accesso riuscito |
 | 2 | Apri la tab "Nuovi" | — | Elenco filtrato |
-| 3 | Verifica che "Il pulsante «Rinnova tessera» non risponde su Safari mobile" sia presente | — | Presente |
-| 4 | Verifica che "Il socio non riceve l'email di conferma rinnovo tessera" (Assegnato) NON sia presente | — | Assente |
+| 3 | Verifica che il ticket incluso individuato sopra sia presente | — | Presente |
+| 4 | Verifica che il ticket escluso individuato sopra (Assegnato) NON sia presente | — | Assente |
 
 **Risultato finale atteso**
 Solo i ticket in stato "Nuovo" compaiono nella tab.
@@ -4774,24 +4810,24 @@ Alta
 Manager
 
 **Prerequisiti**
-- Accesso a `/admin` come manager@orchestrator.local.
-- Dataset UAT presente e non alterato.
+- Accesso a `/admin` come manager@oc.test.
+- Dataset importato dall'ETL reale presente e non alterato: individuare i ticket idonei con i filtri Filament (Stato e Assegnatario) invece di assumere titolo/indice fissi.
 
 **Dati di test**
-- Ticket incluso atteso: indice `i=4` "Errore 500 aprendo il dettaglio di un ticket con più allegati", stato "In lavorazione", assegnatario "Sviluppatore Collaudo" (non l'utente che esegue il test).
-- Ticket escluso atteso: indice `i=3` "Sprint planning: revisione backlog modulo tesseramento", stato "Da fare".
+- Ticket incluso atteso: un ticket reale con richiedente valorizzato in stato "In lavorazione", assegnato a un utente diverso da chi esegue il test (es. "Sviluppatore Collaudo").
+- Ticket escluso atteso: un ticket reale in stato "Da fare".
 
 **Stato iniziale**
-Dataset UAT presente e non alterato.
+Dataset importato dall'ETL reale presente e non alterato.
 
 **Procedura di esecuzione**
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedi a `/admin` come Manager Collaudo | manager@orchestrator.local | Accesso riuscito |
+| 1 | Accedi a `/admin` come Manager Collaudo | manager@oc.test | Accesso riuscito |
 | 2 | Apri la tab "In lavorazione" | — | Elenco filtrato |
-| 3 | Verifica che "Errore 500 aprendo il dettaglio di un ticket con più allegati" sia presente, pur essendo assegnato allo Sviluppatore e non al Manager | — | Presente |
-| 4 | Verifica che "Sprint planning: revisione backlog modulo tesseramento" (Da fare) NON sia presente | — | Assente |
+| 3 | Verifica che il ticket incluso individuato sopra sia presente, pur non essendo assegnato al Manager | — | Presente |
+| 4 | Verifica che il ticket escluso individuato sopra (Da fare) NON sia presente | — | Assente |
 
 **Risultato finale atteso**
 Ogni ticket "In lavorazione" compare a prescindere dall'assegnatario; i ticket in altro stato non compaiono.
@@ -4846,23 +4882,23 @@ Alta
 Admin
 
 **Prerequisiti**
-- Accesso a `/admin` come admin@orchestrator.local.
+- Accesso a `/admin` come admin@oc.test.
 - Consigliato eseguire questo test dopo F1-58 (riusa lo stesso ticket creato lì come esempio escluso), oppure creare al volo un ticket equivalente se F1-58 non è stato eseguito in questa sessione.
 
 **Dati di test**
-- Ticket incluso atteso: indice `i=8` "L'importo del bollettino MAV non arrotonda correttamente le quote sezionali", stato "Completato", richiedente "Socio CAI Collaudo" (cliente) — incluso nonostante lo stato concluso.
+- Ticket incluso atteso: un ticket reale con richiedente "Socio CAI Collaudo" (cliente) in stato "Completato" (filtrare per Richiedente/Stato) — incluso nonostante lo stato concluso.
 - Ticket escluso atteso: `COLL-F1-58-20260726-01` (creato in F1-58) con richiedente "Sviluppatore Collaudo" (non cliente); se non disponibile, crearne uno equivalente con titolo `COLL-F1-63-20260726-01` e Richiedente = "Manager Collaudo".
 
 **Stato iniziale**
-Dataset UAT presente e non alterato (più, se presente, il ticket creato in F1-58).
+Dataset importato dall'ETL reale presente e non alterato (più, se presente, il ticket creato in F1-58).
 
 **Procedura di esecuzione**
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedi a `/admin` come admin | admin@orchestrator.local | Accesso riuscito |
+| 1 | Accedi a `/admin` come admin | admin@oc.test | Accesso riuscito |
 | 2 | Apri la tab "Tutti i ticket di clienti" | — | Elenco filtrato |
-| 3 | Verifica che "L'importo del bollettino MAV non arrotonda correttamente le quote sezionali" (Completato) sia presente | — | Presente, nonostante lo stato concluso |
+| 3 | Verifica che il ticket incluso individuato sopra (Completato) sia presente | — | Presente, nonostante lo stato concluso |
 | 4 | Verifica che il ticket con richiedente non-cliente (`COLL-F1-58-...` o equivalente) NON sia presente | — | Assente |
 
 **Risultato finale atteso**
@@ -4920,21 +4956,21 @@ Alta
 Admin
 
 **Prerequisiti**
-- Accesso a `/admin` come admin@orchestrator.local.
-- Dataset UAT presente e non alterato.
+- Accesso a `/admin` come admin@oc.test.
+- Dataset importato dall'ETL reale presente e non alterato: individuare i ticket idonei con i filtri Filament (Stato) invece di assumere titolo/indice fissi.
 
 **Dati di test**
-- Ticket inclusi attesi: indice `i=0` (stato "Nuovo") e indice `i=1` (stato "Backlog").
-- Ticket escluso atteso: indice `i=8` (stato "Completato").
+- Ticket inclusi attesi: un ticket reale in stato "Nuovo" e un ticket reale in stato "Backlog".
+- Ticket escluso atteso: un ticket reale in stato "Completato".
 
 **Stato iniziale**
-Dataset UAT presente e non alterato; tab "Tutti i ticket" attiva, nessun filtro applicato.
+Dataset importato dall'ETL reale presente e non alterato; tab "Tutti i ticket" attiva, nessun filtro applicato.
 
 **Procedura di esecuzione**
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedi a `/admin` come admin e apri la lista Ticket (tab "Tutti i ticket") | admin@orchestrator.local | Elenco completo visibile |
+| 1 | Accedi a `/admin` come admin e apri la lista Ticket (tab "Tutti i ticket") | admin@oc.test | Elenco completo visibile |
 | 2 | Apri il pannello filtri e seleziona nel filtro "Stato" i valori "Nuovo" e "Backlog" | Filtro "Stato" = ["Nuovo", "Backlog"] | Il filtro si applica |
 | 3 | Verifica che i due ticket dei rispettivi stati compaiano | — | Entrambi presenti |
 | 4 | Verifica che il ticket in stato "Completato" non compaia | — | Assente |
@@ -4983,7 +5019,16 @@ Verificare che il filtro "Organizzazione del richiedente" mostri solo i ticket i
 - Test correlato: Nessuno.
 
 **Nota importante — gap di dati/UI**
-Il seed UAT (`UatSeeder`) crea le due organizzazioni "CAI Sezione di Aosta" e "CAI Sezione di Trento" ma **non collega nessun utente** a nessuna delle due (nessuna chiamata `->organizations()->attach(...)` nel seeder). Inoltre non esiste, in tutto il pannello Filament, alcuna schermata per gestire questa associazione (nessuna `OrganizationResource`, nessun campo "Organizzazione" nel form utente): l'unico punto in cui la relazione compare è, in sola lettura, questo stesso filtro. **DA VERIFICARE CON IL PRODUCT OWNER** se è prevista, in una fase successiva, una schermata di gestione organizzazioni/associazione utente/organizzazione: allo stato attuale il filtro non ha dati di esempio pronti in UAT e il collaudo richiede un passaggio tecnico (sotto) per crearli.
+Il dataset importato dall'ETL reale ha un numero variabile di organizzazioni e associazioni
+utente↔organizzazione, secondo il dump caricato: potrebbe già contenere naturalmente due utenti
+richiedenti associati a organizzazioni diverse, oppure no. Inoltre non esiste, in tutto il pannello
+Filament, alcuna schermata per gestire questa associazione (nessuna `OrganizationResource`, nessun
+campo "Organizzazione" nel form utente): l'unico punto in cui la relazione compare è, in sola
+lettura, questo stesso filtro. Verificare prima con i filtri Filament se la combinazione necessaria
+esiste già nel dump; solo se manca, ricorrere allo step tecnico sotto (`$user->organizations()
+->syncWithoutDetaching([$org->id])` in tinker, coerente con l'assenza di un'Action di dominio
+dedicata a questa associazione). **DA VERIFICARE CON IL PRODUCT OWNER** se è prevista, in una fase
+successiva, una schermata di gestione organizzazioni/associazione utente/organizzazione.
 
 **Modalità di esecuzione**
 MISTO
@@ -4995,26 +5040,28 @@ Media
 Admin (per la parte UI) + Amministratore di sistema (per lo step tecnico di collegamento)
 
 **Prerequisiti**
-- Accesso a `/admin` come admin@orchestrator.local.
+- Accesso a `/admin` come admin@oc.test.
 - Accesso tecnico a `php artisan tinker` sull'ambiente UAT (o equivalente, es. un comando one-off).
 
 **Dati di test**
-- Organizzazioni già presenti nel seed: "CAI Sezione di Aosta", "CAI Sezione di Trento".
-- Utenti da collegare (già presenti nel seed): "Socio CAI Collaudo" → Aosta; "Manager Collaudo" → Trento (usato qui solo come secondo richiedente distinto, non in quanto cliente: il seed non prevede un secondo utente con ruolo cliente).
-- Due nuovi ticket: `COLL-F1-65-20260726-01` (richiedente "Socio CAI Collaudo") e `COLL-F1-65-20260726-02` (richiedente "Manager Collaudo").
+- Due organizzazioni distinte, una qualunque tra quelle presenti nell'ambiente (dal dump importato).
+- Due utenti richiedenti da associare, uno per organizzazione — se non già associati nel dump,
+  associarli via tinker come sopra (es. "Socio CAI Collaudo" → prima organizzazione; "Manager
+  Collaudo" → seconda organizzazione, usato qui solo come secondo richiedente distinto).
+- Due nuovi ticket: `COLL-F1-65-20260726-01` (richiedente il primo utente) e `COLL-F1-65-20260726-02` (richiedente il secondo utente).
 
 **Stato iniziale**
-Nessun utente è associato a un'organizzazione.
+Nessun utente aggiuntivo è associato a un'organizzazione oltre a quanto già presente nel dump.
 
 **Procedura di esecuzione**
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 (tecnico) | Da `php artisan tinker`, recupera le due organizzazioni e associa "Socio CAI Collaudo" a "CAI Sezione di Aosta" e "Manager Collaudo" a "CAI Sezione di Trento" (`$user->organizations()->syncWithoutDetaching([$org->id])`) | Vedi comando sopra | Le due associazioni sono create senza errori |
-| 2 | Accedi a `/admin` come admin | admin@orchestrator.local | Accesso riuscito |
-| 3 | Crea `COLL-F1-65-20260726-01` con Richiedente = "Socio CAI Collaudo" | — | Ticket creato |
-| 4 | Crea `COLL-F1-65-20260726-02` con Richiedente = "Manager Collaudo" | — | Ticket creato |
-| 5 | Applica il filtro "Organizzazione del richiedente" = "CAI Sezione di Aosta" | — | Il filtro si applica |
+| 1 (tecnico) | Se necessario, da `php artisan tinker`, recupera due organizzazioni e associa i due utenti scelti, una organizzazione ciascuno (`$user->organizations()->syncWithoutDetaching([$org->id])`) | Vedi comando sopra | Le due associazioni sono create senza errori (o già presenti nel dump) |
+| 2 | Accedi a `/admin` come admin | admin@oc.test | Accesso riuscito |
+| 3 | Crea `COLL-F1-65-20260726-01` con Richiedente = il primo utente | — | Ticket creato |
+| 4 | Crea `COLL-F1-65-20260726-02` con Richiedente = il secondo utente | — | Ticket creato |
+| 5 | Applica il filtro "Organizzazione del richiedente" = la prima organizzazione | — | Il filtro si applica |
 | 6 | Verifica che `COLL-F1-65-20260726-01` compaia | — | Presente |
 | 7 | Verifica che `COLL-F1-65-20260726-02` NON compaia | — | Assente |
 
@@ -5022,7 +5069,7 @@ Nessun utente è associato a un'organizzazione.
 Solo il ticket il cui richiedente è associato all'organizzazione selezionata compare nell'elenco filtrato.
 
 **Controlli negativi**
-Cambiare il filtro su "CAI Sezione di Trento": ora deve comparire solo `COLL-F1-65-20260726-02`.
+Cambiare il filtro sulla seconda organizzazione: ora deve comparire solo `COLL-F1-65-20260726-02`.
 
 **Evidenze da acquisire**
 - Output del comando tecnico di associazione (screenshot/log della sessione tinker).
@@ -5063,7 +5110,7 @@ Verificare che il filtro "Senza tag" mostri solo i ticket privi di qualunque tag
 - Test correlato: Nessuno.
 
 **Nota importante — gap di dati/UI**
-Ogni ticket del seed UAT ha esattamente un tag assegnato (`$ticket->tags()->attach($tags[$i % 10]->id)`, un'unica chiamata per ticket): nessun ticket seed ha zero tag o più di un tag. Inoltre **non esiste alcun campo nel form del ticket (creazione o modifica) per gestire i tag**: l'unico punto in cui la relazione `tags` è raggiungibile da UI è, in sola lettura, questo filtro. Il caso "senza tag" è comunque verificabile con un ticket appena creato (che nasce sempre senza tag); il caso "più di un tag" richiede invece un passaggio tecnico. **DA VERIFICARE CON IL PRODUCT OWNER** se è prevista, in una fase successiva, una gestione dei tag dal form ticket.
+A differenza del vecchio seed fittizio (dove ogni ticket aveva esattamente un tag per costruzione, quindi nessun ticket seed aveva zero tag o più di un tag), il dataset importato dall'ETL reale ha un numero di tag per ticket che dipende dal dump caricato: potrebbe già contenere naturalmente ticket senza tag e ticket con più di un tag, oppure no. **Non esiste alcun campo nel form del ticket (creazione o modifica) per gestire i tag**: l'unico punto in cui la relazione `tags` è raggiungibile da UI è, in sola lettura, questo filtro. Verificare prima con i filtri Filament se le combinazioni necessarie esistono già nel dump; solo se manca la combinazione "2+ tag" ricorrere allo step tecnico sotto (mai una scrittura diretta sulla colonna di stato business-rilevante, ma qui si tratta di una relazione many-to-many pivot senza un'Action di dominio dedicata, quindi `tags()->attach()` in tinker è il mezzo naturale, coerente con l'assenza di un'Action equivalente in questa fase). **DA VERIFICARE CON IL PRODUCT OWNER** se è prevista, in una fase successiva, una gestione dei tag dal form ticket.
 
 **Modalità di esecuzione**
 MISTO
@@ -5072,18 +5119,18 @@ MISTO
 Media
 
 **Ruolo del tester**
-Admin (per la parte UI) + Amministratore di sistema (per lo step tecnico "più di un tag")
+Admin (per la parte UI) + Amministratore di sistema (per l'eventuale step tecnico "più di un tag")
 
 **Prerequisiti**
-- Accesso a `/admin` come admin@orchestrator.local.
-- Accesso tecnico a `php artisan tinker`.
+- Accesso a `/admin` come admin@oc.test.
+- Accesso tecnico a `php artisan tinker` (necessario solo se il dump caricato non contiene già un ticket con 2+ tag).
 
 **Dati di test**
-- Nuovo ticket `COLL-F1-66-20260726-01` (creato senza toccare i tag: 0 tag per costruzione).
-- Un ticket seed qualunque, es. indice `i=0` "Il pulsante «Rinnova tessera» non risponde su Safari mobile" (parte da 1 solo tag, "Frontend"), a cui aggiungere tecnicamente un secondo tag ("Backend") per renderlo idoneo al filtro "Con più di un tag".
+- Nuovo ticket `COLL-F1-66-20260726-01` (creato senza toccare i tag: 0 tag per costruzione) — usato come esempio "senza tag", a meno che uno già presente nel dump non sia più comodo (filtro "Senza tag" stesso).
+- Un ticket reale con almeno un tag già assegnato (individuato col filtro tag della tabella); se nel dump esiste già un ticket con 2+ tag usarlo direttamente, altrimenti aggiungergli tecnicamente un secondo tag per renderlo idoneo al filtro "Con più di un tag".
 
 **Stato iniziale**
-Tutti i 40 ticket seed hanno esattamente 1 tag; nessun ticket con 0 o 2+ tag esiste ancora.
+Dataset importato dall'ETL reale presente e non alterato; il numero di tag per ticket dipende dal dump caricato.
 
 **Procedura di esecuzione**
 
@@ -5092,21 +5139,21 @@ Tutti i 40 ticket seed hanno esattamente 1 tag; nessun ticket con 0 o 2+ tag esi
 | 1 | Accedi a `/admin` come admin e crea un nuovo ticket senza toccare alcun campo tag | Titolo `COLL-F1-66-20260726-01` | Ticket creato, 0 tag |
 | 2 | Applica il filtro "Senza tag" | — | Il filtro si applica |
 | 3 | Verifica che `COLL-F1-66-20260726-01` compaia | — | Presente |
-| 4 | Verifica che "Il pulsante «Rinnova tessera» non risponde su Safari mobile" (1 tag) NON compaia | — | Assente |
-| 5 (tecnico) | Da `php artisan tinker`, recupera il tag "Backend" e il ticket `i=0`, poi esegui `$ticket->tags()->attach($backendTag->id)` | Vedi comando sopra | Il ticket ha ora 2 tag |
+| 4 | Verifica che il ticket con 1 tag individuato sopra NON compaia | — | Assente |
+| 5 (tecnico, solo se necessario) | Da `php artisan tinker`, recupera un tag esistente e il ticket individuato sopra, poi esegui `$ticket->tags()->attach($tag->id)` | Vedi comando sopra | Il ticket ha ora 2 tag |
 | 6 | Rimuovi il filtro "Senza tag" e applica "Con più di un tag" | — | Il filtro si applica |
-| 7 | Verifica che "Il pulsante «Rinnova tessera» non risponde su Safari mobile" (ora con 2 tag) compaia | — | Presente |
+| 7 | Verifica che il ticket con 2+ tag (individuato o costruito sopra) compaia | — | Presente |
 | 8 | Verifica che `COLL-F1-66-20260726-01` (0 tag) NON compaia | — | Assente |
 
 **Risultato finale atteso**
 "Senza tag" restituisce solo ticket senza alcun tag; "Con più di un tag" restituisce solo ticket con almeno due tag.
 
 **Controlli negativi**
-Un ticket con esattamente 1 tag (qualunque altro ticket seed non toccato) non deve comparire in nessuno dei due filtri.
+Un ticket con esattamente 1 tag non deve comparire in nessuno dei due filtri.
 
 **Evidenze da acquisire**
 - Screenshot di entrambi i filtri applicati con i rispettivi risultati.
-- Output del comando tecnico di aggiunta tag.
+- Output del comando tecnico di aggiunta tag, se eseguito.
 
 **Criterio di superamento**
 
@@ -5116,7 +5163,7 @@ BLOCKED: impossibile creare il ticket o eseguire lo step tecnico.
 NOT APPLICABLE: Non previsto per questo test.
 
 **Ripristino**
-Rimuovere il secondo tag aggiunto al ticket `i=0` (`$ticket->tags()->detach($backendTag->id)`) ed eliminare `COLL-F1-66-20260726-01`, oppure attendere il prossimo deploy.
+Se eseguito lo step tecnico, rimuovere il tag aggiunto (`$ticket->tags()->detach($tag->id)`); eliminare `COLL-F1-66-20260726-01`, oppure attendere il prossimo deploy.
 
 **Campi di consuntivazione**
 
@@ -5152,15 +5199,23 @@ Media
 Admin
 
 **Prerequisiti**
-- Accesso a `/admin` come admin@orchestrator.local.
-- Il deploy UAT più recente (che ha generato i 40 ticket seed) è avvenuto in una data precedente a quella odierna del collaudo.
+- Accesso a `/admin` come admin@oc.test.
+- Il dataset importato dall'ETL reale è stato caricato in una data precedente a quella odierna del
+  collaudo (i ticket già presenti hanno quindi `created_at` antecedente a oggi).
+- Almeno due ticket reali in stato "Completato" con date di completamento diverse: filtrare l'elenco
+  Ticket per Stato = "Completato" e leggere la colonna "Giorni in stato" (che per un ticket concluso
+  riflette i giorni trascorsi da `done_at`) su due o più risultati, scegliendone due con valori
+  diversi. Se il dump caricato non offre almeno due valori distinti, va documentata questa limitazione
+  e la variante "Data di completamento" può essere eseguita su un solo giorno di riferimento (Dal=Al
+  = quella data), verificando solo l'inclusione, non l'esclusione per data diversa.
 
 **Dati di test**
 - Variante "Data di creazione": nuovo ticket `COLL-F1-67-20260726-01`, creato oggi.
-- Variante "Data di completamento": due ticket seed in stato "Completato" con `status_changed_at`/`done_at` diversi, es. indici `i=8`, `i=20`, `i=32` (il seed imposta `done_at` = `status_changed_at`, valore leggibile dalla colonna "Giorni in stato" della tabella).
+- Variante "Data di completamento": i due ticket "Completato" individuati sopra (di seguito T1 e T2,
+  con T1 il valore "Giorni in stato" più alto, cioè completato prima).
 
 **Stato iniziale**
-Dataset UAT presente e non alterato.
+Dataset importato dall'ETL reale presente e non alterato.
 
 **Procedura di esecuzione**
 
@@ -5169,16 +5224,16 @@ Dataset UAT presente e non alterato.
 | 1 | Accedi a `/admin` come admin e crea un nuovo ticket | Titolo `COLL-F1-67-20260726-01` | Ticket creato oggi |
 | 2 | Applica il filtro "Periodo": Campo = "Data di creazione", Dal = oggi, Al = oggi | — | Il filtro si applica |
 | 3 | Verifica che `COLL-F1-67-20260726-01` compaia | — | Presente |
-| 4 | Verifica che un ticket del seed (es. `i=0`, creato al deploy, in data precedente) NON compaia | — | Assente |
-| 5 | Rimuovi il filtro e apri il dettaglio di due ticket "Completato" (es. `i=8` e `i=20`) per leggere il numero di "Giorni in stato" di ciascuno, e ricava le rispettive date di completamento (oggi meno quel numero di giorni) | — | Due date di completamento distinte annotate |
-| 6 | Applica il filtro "Periodo": Campo = "Data di completamento", Dal/Al = intervallo di un solo giorno attorno alla data del ticket `i=8` | Date ricavate al passo 5 | Il filtro si applica |
-| 7 | Verifica che il ticket `i=8` compaia e che il ticket `i=20` (data di completamento diversa) NON compaia | — | Solo `i=8` presente |
+| 4 | Verifica che un ticket creato in una data precedente (es. uno qualunque del dataset importato) NON compaia | — | Assente |
+| 5 | Rimuovi il filtro e apri il dettaglio di T1 e T2 per leggere il numero di "Giorni in stato" di ciascuno, e ricava le rispettive date di completamento (oggi meno quel numero di giorni) | — | Due date di completamento annotate |
+| 6 | Applica il filtro "Periodo": Campo = "Data di completamento", Dal/Al = intervallo di un solo giorno attorno alla data di T1 | Date ricavate al passo 5 | Il filtro si applica |
+| 7 | Verifica che T1 compaia e che T2 (data di completamento diversa) NON compaia | — | Solo T1 presente |
 
 **Risultato finale atteso**
 Il filtro "Periodo" restringe correttamente l'elenco sia sul campo "Data di creazione" sia su "Data di completamento", in entrambi i casi includendo solo i ticket nell'intervallo scelto.
 
 **Controlli negativi**
-Allargare l'intervallo del passo 6 per includere entrambe le date: entrambi i ticket `i=8` e `i=20` devono comparire.
+Allargare l'intervallo del passo 6 per includere entrambe le date: sia T1 sia T2 devono comparire.
 
 **Evidenze da acquisire**
 - Screenshot del filtro con Campo = "Data di creazione" e risultato.
@@ -5228,26 +5283,26 @@ Alta
 Admin
 
 **Prerequisiti**
-- Accesso a `/admin` come admin@orchestrator.local.
-- Dataset UAT presente e non alterato.
+- Accesso a `/admin` come admin@oc.test.
+- Dataset importato dall'ETL reale presente e non alterato: individuare i ticket idonei con i filtri Filament (Stato/Assegnatario) invece di assumere titolo/indice fissi; se manca una combinazione, assegnarla con l'azione di assegnazione/transizione già testata, mai scrivendo le colonne a mano.
 
 **Dati di test**
-- Ticket incluso atteso: indice `i=4` "Errore 500 aprendo il dettaglio di un ticket con più allegati", stato "In lavorazione", assegnatario "Sviluppatore Collaudo" — soddisfa sia la tab sia il filtro.
-- Ticket escluso atteso (stato sbagliato, stesso assegnatario): indice `i=0` "Il pulsante «Rinnova tessera» non risponde su Safari mobile", stato "Nuovo", assegnatario "Sviluppatore Collaudo" — soddisfa il filtro ma non la tab.
-- Ticket escluso atteso (né stato né assegnatario): indice `i=1` "Aggiungere l'export CSV dell'elenco iscritti al corso di escursionismo", stato "Backlog", assegnatario "Manager Collaudo".
+- Ticket incluso atteso: un ticket reale in stato "In lavorazione" con assegnatario "Sviluppatore Collaudo" — soddisfa sia la tab sia il filtro.
+- Ticket escluso atteso (stato sbagliato, stesso assegnatario): un ticket reale in stato "Nuovo" con lo stesso assegnatario "Sviluppatore Collaudo" — soddisfa il filtro ma non la tab.
+- Ticket escluso atteso (né stato né assegnatario): un ticket reale in stato "Backlog" assegnato a "Manager Collaudo".
 
 **Stato iniziale**
-Dataset UAT presente e non alterato.
+Dataset importato dall'ETL reale presente e non alterato.
 
 **Procedura di esecuzione**
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedi a `/admin` come admin e apri la tab "In lavorazione" | admin@orchestrator.local | Elenco filtrato per stato "In lavorazione" |
+| 1 | Accedi a `/admin` come admin e apri la tab "In lavorazione" | admin@oc.test | Elenco filtrato per stato "In lavorazione" |
 | 2 | Applica il filtro "Assegnatario" = "Sviluppatore Collaudo", restando sulla tab | — | Il filtro si applica in aggiunta alla tab |
-| 3 | Verifica che "Errore 500 aprendo il dettaglio di un ticket con più allegati" compaia | — | Presente |
-| 4 | Verifica che "Il pulsante «Rinnova tessera» non risponde su Safari mobile" (Nuovo, stesso assegnatario) NON compaia | — | Assente: la tab continua a restringere per stato anche col filtro attivo |
-| 5 | Verifica che "Aggiungere l'export CSV dell'elenco iscritti al corso di escursionismo" (Backlog, altro assegnatario) NON compaia | — | Assente |
+| 3 | Verifica che il ticket incluso individuato sopra compaia | — | Presente |
+| 4 | Verifica che il ticket escluso individuato sopra (Nuovo, stesso assegnatario) NON compaia | — | Assente: la tab continua a restringere per stato anche col filtro attivo |
+| 5 | Verifica che il ticket escluso individuato sopra (Backlog, altro assegnatario) NON compaia | — | Assente |
 
 **Risultato finale atteso**
 Con tab "In lavorazione" e filtro "Assegnatario" entrambi attivi, compare solo il ticket che soddisfa contemporaneamente stato "In lavorazione" e assegnatario "Sviluppatore Collaudo".
@@ -5307,22 +5362,26 @@ Alta
 Developer (per la parte UI) — la parte "occultamento fuori scope" richiede l'esecuzione/lettura del test automatico citato, non riproducibile da un tester funzionale con i ruoli UAT reali
 
 **Prerequisiti**
-- Accesso a `/admin` come developer@orchestrator.local.
-- Dataset UAT presente e non alterato.
+- Accesso a `/admin` come dev@oc.test.
+- Dataset importato dall'ETL reale presente e non alterato.
 
 **Dati di test**
-- Nessun ticket nel seed è in stato "Rifiutato" senza che ne esistano altri: si userà lo stato "Rifiutato" (pochi ticket, buon esempio di colonna con pochi elementi) e uno stato sicuramente vuoto per l'assegnatario selezionato nel test successivo (F1-70) come riferimento incrociato.
+- Osservare quali colonne di stato hanno pochi ticket (buon esempio di colonna con pochi elementi,
+  es. tipicamente "Rifiutato") e quali stati risultano vuoti nel dump caricato: uno stato vuoto è
+  utile come riferimento incrociato per l'assegnatario selezionato nel test successivo (F1-70). Il
+  dataset reale non garantisce quali stati siano vuoti o poco popolati: verificarlo osservando i
+  contatori delle colonne al passo 2 invece di assumerlo a priori.
 
 **Stato iniziale**
-Dataset UAT presente e non alterato.
+Dataset importato dall'ETL reale presente e non alterato.
 
 **Procedura di esecuzione**
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedi a `/admin` come Sviluppatore Collaudo | developer@orchestrator.local | Login riuscito, redirect automatico alla "Vista di lavoro" (vedi anche F1-71) |
+| 1 | Accedi a `/admin` come Sviluppatore Collaudo | dev@oc.test | Login riuscito, redirect automatico alla "Vista di lavoro" (vedi anche F1-71) |
 | 2 | Osserva la vista di lavoro | — | Sono visibili colonne per ogni stato (Nuovo, Backlog, Assegnato, Da fare, In lavorazione, In test, Testato, Rilasciato, Completato, Problema, In attesa, Rifiutato), ciascuna con un contatore |
-| 3 | Verifica che ogni ticket seed presente nel sistema compaia in una sola colonna, coerente con il proprio stato (es. i ticket "In lavorazione" sono tutti e soli nella colonna "In lavorazione") | — | Nessun ticket duplicato o mancante rispetto al totale visibile nella lista Ticket |
+| 3 | Verifica che ogni ticket presente nel sistema compaia in una sola colonna, coerente con il proprio stato (es. i ticket "In lavorazione" sono tutti e soli nella colonna "In lavorazione") | — | Nessun ticket duplicato o mancante rispetto al totale visibile nella lista Ticket |
 | 4 | (riferimento, non bloccante) Consultare l'esito del test automatico citato per la parte "occultamento fuori scope" | `php artisan test --filter=WorkBoardTest` | Il test PASSA nell'ultima esecuzione in pipeline |
 
 **Risultato finale atteso**
@@ -5379,24 +5438,24 @@ Media
 Manager
 
 **Prerequisiti**
-- Accesso a `/admin` come manager@orchestrator.local.
-- Dataset UAT presente e non alterato.
+- Accesso a `/admin` come manager@oc.test.
+- Dataset importato dall'ETL reale presente e non alterato: individuare i ticket idonei con i filtri Filament (Assegnatario) invece di assumere titolo/indice fissi; se manca la combinazione, assegnarla con l'azione di assegnazione già testata, mai scrivendo la colonna a mano.
 
 **Dati di test**
-- Ticket incluso atteso quando si seleziona "Sviluppatore Collaudo": indice `i=4` "Errore 500 aprendo il dettaglio di un ticket con più allegati", assegnatario "Sviluppatore Collaudo".
-- Ticket escluso atteso: indice `i=1` "Aggiungere l'export CSV dell'elenco iscritti al corso di escursionismo", assegnatario "Manager Collaudo".
+- Ticket incluso atteso quando si seleziona "Sviluppatore Collaudo": un ticket reale assegnato a "Sviluppatore Collaudo", in stato "In lavorazione".
+- Ticket escluso atteso: un ticket reale assegnato a "Manager Collaudo".
 
 **Stato iniziale**
-Dataset UAT presente e non alterato; il selettore "Board di" è su "Tutti".
+Dataset importato dall'ETL reale presente e non alterato; il selettore "Board di" è su "Tutti".
 
 **Procedura di esecuzione**
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedi a `/admin` come Manager Collaudo e apri la Vista di lavoro | manager@orchestrator.local | Board con tutti i ticket visibili (Manager ha `ticket.view.any`) |
+| 1 | Accedi a `/admin` come Manager Collaudo e apri la Vista di lavoro | manager@oc.test | Board con tutti i ticket visibili (Manager ha `ticket.view.any`) |
 | 2 | Nel selettore "Board di" scegli "Sviluppatore Collaudo" | Select "Board di" = Sviluppatore Collaudo | Il board si aggiorna |
-| 3 | Verifica che "Errore 500 aprendo il dettaglio di un ticket con più allegati" compaia nella colonna "In lavorazione" | — | Presente |
-| 4 | Verifica che "Aggiungere l'export CSV dell'elenco iscritti al corso di escursionismo" (assegnato al Manager) NON compaia in alcuna colonna | — | Assente |
+| 3 | Verifica che il ticket incluso individuato sopra compaia nella colonna "In lavorazione" | — | Presente |
+| 4 | Verifica che il ticket escluso individuato sopra (assegnato al Manager) NON compaia in alcuna colonna | — | Assente |
 | 5 | Riporta il selettore su "Tutti" | — | Il ticket del Manager ricompare |
 
 **Risultato finale atteso**
@@ -5464,10 +5523,10 @@ Nessuna sessione attiva sul pannello.
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedi a `/admin` come Amministratore Collaudo | admin@orchestrator.local / password | Subito dopo il login la pagina mostrata è la "Vista di lavoro" (titolo pagina "Vista di lavoro", colonne per stato visibili), non la Dashboard di base |
-| 2 | Disconnetti e accedi come Manager Collaudo | manager@orchestrator.local / password | Stesso risultato: redirect automatico alla "Vista di lavoro" |
-| 3 | Disconnetti e accedi come Sviluppatore Collaudo | developer@orchestrator.local / password | Stesso risultato: redirect automatico alla "Vista di lavoro" |
-| 4 | Disconnetti e accedi come Socio CAI Collaudo | customer@orchestrator.local / password | La pagina mostrata resta la Dashboard di base di Filament (widget standard), NESSUN redirect verso la Vista di lavoro; il menu di navigazione non mostra nemmeno la voce "Vista di lavoro" |
+| 1 | Accedi a `/admin` come Amministratore Collaudo | admin@oc.test / password | Subito dopo il login la pagina mostrata è la "Vista di lavoro" (titolo pagina "Vista di lavoro", colonne per stato visibili), non la Dashboard di base |
+| 2 | Disconnetti e accedi come Manager Collaudo | manager@oc.test / password | Stesso risultato: redirect automatico alla "Vista di lavoro" |
+| 3 | Disconnetti e accedi come Sviluppatore Collaudo | dev@oc.test / password | Stesso risultato: redirect automatico alla "Vista di lavoro" |
+| 4 | Disconnetti e accedi come Socio CAI Collaudo | customer@oc.test / password | La pagina mostrata resta la Dashboard di base di Filament (widget standard), NESSUN redirect verso la Vista di lavoro; il menu di navigazione non mostra nemmeno la voce "Vista di lavoro" |
 
 **Risultato finale atteso**
 I tre profili staff atterrano sempre sulla Vista di lavoro; il cliente atterra sempre sulla Dashboard di base, senza redirect.
@@ -5524,7 +5583,7 @@ Critica
 Admin (creazione/assegnazione) + Developer (lavorazione) + Manager (collaudo interno, come tester)
 
 **Prerequisiti**
-- Accesso a `/admin` come admin@orchestrator.local, developer@orchestrator.local, manager@orchestrator.local.
+- Accesso a `/admin` come admin@oc.test, dev@oc.test, manager@oc.test.
 - Il worker della coda (`queue:work`) è attivo sull'ambiente UAT, altrimenti il ricalcolo automatico delle "Ore lavorate" (listener asincrono di `TicketStatusChanged`, con debounce) non avviene finché qualcuno non lo forza — in tal caso un tester tecnico può eseguire `php artisan timetracking:recalculate --ticket=<id>` per forzare il ricalcolo.
 - Eseguire l'intero percorso in un solo giorno feriale (lun-ven), per evitare lo scarto weekend nel calcolo delle ore lavorate.
 
@@ -5568,7 +5627,7 @@ BLOCKED: una transizione richiesta non è disponibile/eseguibile per l'utente at
 NOT APPLICABLE: Non previsto per questo test.
 
 **Ripristino**
-Nessuno: il dataset si rigenera al prossimo deploy (il ticket aggiuntivo non altera i 40 ticket seed).
+Nessuno: il dataset si rigenera al prossimo deploy (il ticket aggiuntivo non altera i ticket importati dall'ETL).
 
 **Campi di consuntivazione**
 
@@ -5604,7 +5663,7 @@ Critica
 Developer (per il percorso UI onesto) + Amministratore di sistema (per il tentativo tecnico di bypass)
 
 **Prerequisiti**
-- Accesso a `/admin` come developer@orchestrator.local.
+- Accesso a `/admin` come dev@oc.test.
 - Accesso tecnico a `php artisan tinker` (o alla suite di test) per la parte B.
 - Esiste un secondo utente qualunque da usare come "altro utente" nel tentativo (es. "Manager Collaudo").
 
@@ -5643,7 +5702,7 @@ BLOCKED: impossibile eseguire il tentativo tecnico (nessun accesso a tinker/test
 NOT APPLICABLE: Non previsto per questo test.
 
 **Ripristino**
-Nessuno: il dataset si rigenera al prossimo deploy (i ticket aggiuntivi non alterano i 40 ticket seed).
+Nessuno: il dataset si rigenera al prossimo deploy (i ticket aggiuntivi non alterano i ticket importati dall'ETL).
 
 **Campi di consuntivazione**
 
@@ -5679,23 +5738,23 @@ Critica
 Admin (per il percorso UI onesto) + Amministratore di sistema (per il tentativo tecnico)
 
 **Prerequisiti**
-- Accesso a `/admin` come admin@orchestrator.local.
+- Accesso a `/admin` come admin@oc.test.
 - Accesso tecnico a `php artisan tinker` (o alla suite di test) per la parte tecnica.
 
 **Dati di test**
-- Ticket seed indice `i=8` "L'importo del bollettino MAV non arrotonda correttamente le quote sezionali", stato "Completato" (già passato attraverso l'intero ciclo di vita, quindi con uno storico non vuoto).
+- Un ticket reale in stato "Completato" con storico non vuoto (un ticket importato dall'ETL reale ha già uno storico genuino di `ticket_logs` proveniente da v1: individuarne uno con il filtro Stato = "Completato" nella lista Ticket, senza bisogno di costruirlo ad hoc).
 
 **Stato iniziale**
-Il ticket `i=8` è in stato "Completato".
+Il ticket individuato sopra è in stato "Completato".
 
 **Procedura di esecuzione**
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 (percorso UI onesto) | Come admin, apri il ticket "L'importo del bollettino MAV non arrotonda correttamente le quote sezionali" | — | Il ticket è visualizzato in stato "Completato" |
+| 1 (percorso UI onesto) | Come admin, apri il ticket individuato sopra | — | Il ticket è visualizzato in stato "Completato" |
 | 2 | Osserva i bottoni di transizione disponibili nell'header della pagina | — | NESSUN bottone verso "Assegnato" (né verso alcuno stato non ammesso da "Completato": la tabella non ha righe con `from = Completato`) è presente; non è disponibile alcuna transizione, essendo "Completato" uno stato terminale |
-| 3 | Annota il numero di righe attualmente presenti nella sezione "Storico" del ticket | — | N righe (storico del ciclo di vita già percorso) |
-| 4 (tentativo tecnico diretto) | Da `php artisan tinker` (o eseguendo il test automatico citato), invoca direttamente `ChangeTicketStatus::run($ticket, TicketStatus::Assigned, $developer)` sul ticket `i=8`, bypassando del tutto Filament | `$developer` = un utente qualunque con permesso `ticket.update.assigned` | La chiamata lancia `Illuminate\Validation\ValidationException` |
+| 3 | Annota il numero di righe attualmente presenti nella sezione "Storico" del ticket | — | N righe (storico non vuoto) |
+| 4 (tentativo tecnico diretto) | Da `php artisan tinker` (o eseguendo il test automatico citato), invoca direttamente `ChangeTicketStatus::run($ticket, TicketStatus::Assigned, $developer)` sul ticket individuato sopra, bypassando del tutto Filament | `$developer` = un utente qualunque con permesso `ticket.update.assigned` | La chiamata lancia `Illuminate\Validation\ValidationException` |
 | 5 | Ricarica il ticket e verifica stato e storico | — | Lo stato resta "Completato"; il numero di righe nello storico è invariato rispetto al passo 3 (nessun nuovo log scritto) |
 
 **Risultato finale atteso**

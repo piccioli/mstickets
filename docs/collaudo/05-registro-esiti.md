@@ -58,8 +58,8 @@ lasciare vuoto se non ci sono anomalie da segnalare per quel test.
 | F0-44 | L'utente di sistema viene creato se assente e non consente mai l'accesso al pannello |  |  |  |  |  |  |  |
 | F0-45 | Le feature flag delle automazioni schedulate sono tutte disattivate di default |  |  |  |  |  |  |  |
 | F0-46 | Il tema del pannello deriva dai token del design system, non da valori scritti a mano |  |  |  |  |  |  |  |
-| F0-47 | Il seed di sviluppo rifiuta di girare in produzione e popola un ambiente completo |  |  |  |  |  |  |  |
-| F0-48 | Una seconda esecuzione del seed di sviluppo non duplica ticket, tag o documentazione |  |  |  |  |  |  |  |
+| F0-47 | `v1:import --anonymize` popola un ambiente locale completo con dati reali anonimizzati |  |  |  |  |  |  |  |
+| F0-48 | Una seconda esecuzione di `v1:import` non duplica nulla (idempotenza) |  |  |  |  |  |  |  |
 | F0-49 | L'analizzatore di chiavi esterne orfane conta correttamente le righe orfane e ignora i valori nulli |  |  |  |  |  |  |  |
 | F0-50 | L'analizzatore di email duplicate individua i duplicati che differiscono solo per maiuscole/minuscole |  |  |  |  |  |  |  |
 | F0-51 | L'analizzatore del changes di story_logs conta i JSON interpretabili e la distribuzione delle chiavi |  |  |  |  |  |  |  |

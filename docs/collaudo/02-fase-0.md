@@ -28,26 +28,26 @@ Developer
 
 **Prerequisiti**
 - Ambiente UAT raggiungibile su `https://ticket-uat.montagnaservizi.com/admin/login`.
-- L'utente seed `developer@orchestrator.local` esiste con ruolo "Sviluppatore" (popolato da `UatSeeder`).
+- L'utente seed `dev@oc.test` esiste con ruolo "Sviluppatore" (popolato dall'ETL reale, `v1:import --anonymize`).
 - L'utente non ha `deactivated_at` valorizzato (stato di default al seed).
 
 **Dati di test**
-Email: `developer@orchestrator.local` — Password: `password`
+Email: `dev@oc.test` — Password: `password`
 
 **Stato iniziale**
-L'utente `developer@orchestrator.local` esiste, ha il ruolo "Sviluppatore" assegnato, non è disattivato. Il tester non ha alcuna sessione attiva sul pannello.
+L'utente `dev@oc.test` esiste, ha il ruolo "Sviluppatore" assegnato, non è disattivato. Il tester non ha alcuna sessione attiva sul pannello.
 
 **Procedura di esecuzione**
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
 | 1 | Aprire il browser e navigare all'URL di login del pannello | `https://ticket-uat.montagnaservizi.com/admin/login` | Viene mostrata la pagina di login di Filament |
-| 2 | Compilare i campi email/password e premere "Accedi" | `developer@orchestrator.local` / `password` | Il login viene accettato, nessun messaggio d'errore mostrato |
+| 2 | Compilare i campi email/password e premere "Accedi" | `dev@oc.test` / `password` | Il login viene accettato, nessun messaggio d'errore mostrato |
 | 3 | Osservare l'URL nella barra degli indirizzi dopo il login | — | L'URL è sotto `/admin` (es. `/admin` o `/admin/tickets/work-board`), non `/admin/login` |
 | 4 | Osservare il menu di navigazione laterale del pannello | — | Il menu è visibile e popolato di voci (conferma sessione autenticata) |
 
 **Risultato finale atteso**
-L'utente `developer@orchestrator.local` ha una sessione attiva sul pannello `/admin` e può navigare tra le pagine per cui ha permesso.
+L'utente `dev@oc.test` ha una sessione attiva sul pannello `/admin` e può navigare tra le pagine per cui ha permesso.
 
 **Controlli negativi**
 Nessuno applicabile (il caso negativo — utente senza ruolo — è coperto da F0-02).
@@ -64,7 +64,7 @@ BLOCKED: l'ambiente UAT non è raggiungibile o l'utente seed non esiste.
 NOT APPLICABLE: Non previsto per questo test.
 
 **Ripristino**
-Nessuno: il dataset si rigenera al prossimo deploy (`UatSeeder` gira ad ogni deploy su `develop`).
+Nessuno: il dataset si rigenera al prossimo deploy (l'ETL reale, `v1:import --anonymize`, gira ad ogni deploy su `develop`).
 
 **Campi di consuntivazione**
 
@@ -245,11 +245,11 @@ Sviluppatore (predisposizione dato via CLI) + Manager (verifica UI sul form tick
 
 **Prerequisiti**
 - Esiste un utente disattivato con nome riconoscibile (riusare `disattivato@orchestrator.local` / "Amministratore Disattivato Collaudo" creato in F0-03, oppure crearlo ex novo con lo stesso comando tinker se F0-03 non è stato eseguito in questa sessione).
-- Esiste almeno un ticket già presente in UAT su cui aprire il form di modifica (il dataset `UatSeeder` genera 40 ticket in ambiente fresco).
-- Il tester ha il ruolo Manager (`manager@orchestrator.local`), che ha `ticket.update.any` e vede la sezione "Assegnazione e classificazione".
+- Esiste almeno un ticket già presente in UAT su cui aprire il form di modifica (l'ETL reale, `v1:import --anonymize`, popola l'ambiente fresco con i ticket del dump v1 importato).
+- Il tester ha il ruolo Manager (`manager@oc.test`), che ha `ticket.update.any` e vede la sezione "Assegnazione e classificazione".
 
 **Dati di test**
-Utente disattivato: "Amministratore Disattivato Collaudo" (`disattivato@orchestrator.local`). Utente attivo di confronto: "Sviluppatore Collaudo" (`developer@orchestrator.local`).
+Utente disattivato: "Amministratore Disattivato Collaudo" (`disattivato@orchestrator.local`). Utente attivo di confronto: "Sviluppatore Collaudo" (`dev@oc.test`).
 
 **Stato iniziale**
 L'utente "Amministratore Disattivato Collaudo" esiste con `deactivated_at` valorizzato. Almeno un ticket esiste nel sistema.
@@ -258,7 +258,7 @@ L'utente "Amministratore Disattivato Collaudo" esiste con `deactivated_at` valor
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedere al pannello come `manager@orchestrator.local` | `manager@orchestrator.local` / `password` | Login riuscito, dashboard/board di lavoro visibile |
+| 1 | Accedere al pannello come `manager@oc.test` | `manager@oc.test` / `password` | Login riuscito, dashboard/board di lavoro visibile |
 | 2 | Aprire un ticket qualunque in modifica dalla lista ticket | un qualunque ticket dell'elenco | Si apre la form di modifica del ticket |
 | 3 | Aprire il menu a tendina del campo "Assegnatario" (o "Tester") nella sezione "Assegnazione e classificazione" | campo assegnatario | Il menu a tendina mostra un elenco di utenti |
 | 4 | Cercare nell'elenco il nome "Amministratore Disattivato Collaudo" | testo di ricerca "Disattivato" | Il nome non compare tra le opzioni selezionabili |
@@ -744,26 +744,26 @@ Critica
 Customer (caso negativo) + Admin (caso positivo) + Sviluppatore (verifica tecnica dell'abilità "impersonate", priva di un pulsante in UI in questa release)
 
 **Prerequisiti**
-- Utenti seed `customer@orchestrator.local` (ruolo Customer: nessun permesso `user.*` nella matrice §9.4) e `admin@orchestrator.local` (tutti i permessi) disponibili.
-- Esiste almeno un altro utente nell'elenco su cui provare le azioni (es. `manager@orchestrator.local`).
+- Utenti seed `customer@oc.test` (ruolo Customer: nessun permesso `user.*` nella matrice §9.4) e `admin@oc.test` (tutti i permessi) disponibili.
+- Esiste almeno un altro utente nell'elenco su cui provare le azioni (es. `manager@oc.test`).
 
 **Dati di test**
-Attore negativo: `customer@orchestrator.local`. Attore positivo: `admin@orchestrator.local`. Utente bersaglio: `manager@orchestrator.local`.
+Attore negativo: `customer@oc.test`. Attore positivo: `admin@oc.test`. Utente bersaglio: `manager@oc.test`.
 
 **Stato iniziale**
-Gli utenti seed esistono con i ruoli assegnati da `UatSeeder`/`RolePermissionSeeder`.
+Gli utenti seed esistono con i ruoli assegnati dall'ETL reale (`v1:import --anonymize`) e da `collaudo:ensure-manager-account` (per `manager@oc.test`, ruolo non presente in v1).
 
 **Procedura di esecuzione**
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedere al pannello come `customer@orchestrator.local` | `customer@orchestrator.local` / `password` | Login riuscito |
+| 1 | Accedere al pannello come `customer@oc.test` | `customer@oc.test` / `password` | Login riuscito |
 | 2 | Verificare se la voce di menu "Utenti" è visibile in navigazione | — | La voce "Utenti" non compare nel menu (Customer non ha `user.view`) |
 | 3 | Tentare di navigare direttamente all'URL della lista utenti (`/admin/users`) | URL diretto | Viene mostrata una pagina di accesso negato (403), non l'elenco utenti |
-| 4 | Effettuare il logout e accedere come `admin@orchestrator.local` | `admin@orchestrator.local` / `password` | Login riuscito |
+| 4 | Effettuare il logout e accedere come `admin@oc.test` | `admin@oc.test` / `password` | Login riuscito |
 | 5 | Aprire la voce di menu "Utenti" | — | L'elenco utenti viene mostrato correttamente (Admin ha `user.view`) |
-| 6 | Aprire in modifica l'utente `manager@orchestrator.local` e osservare i pulsanti disponibili nella testata | — | Sono visibili i pulsanti Visualizza/Elimina (coerenti con `user.view`/`user.deactivate` posseduti da Admin) |
-| 7 | (Verifica tecnica) In `php artisan tinker`, per l'abilità "impersonate" (priva di un pulsante dedicato nell'interfaccia in questa release): `$admin = \App\Domain\Identity\Models\User::where('email','admin@orchestrator.local')->first(); $target = \App\Domain\Identity\Models\User::where('email','manager@orchestrator.local')->first(); $admin->can('impersonate', $target);` | comando tinker sopra | Restituisce `true` (Admin ha `user.impersonate`) |
+| 6 | Aprire in modifica l'utente `manager@oc.test` e osservare i pulsanti disponibili nella testata | — | Sono visibili i pulsanti Visualizza/Elimina (coerenti con `user.view`/`user.deactivate` posseduti da Admin) |
+| 7 | (Verifica tecnica) In `php artisan tinker`, per l'abilità "impersonate" (priva di un pulsante dedicato nell'interfaccia in questa release): `$admin = \App\Domain\Identity\Models\User::where('email','admin@oc.test')->first(); $target = \App\Domain\Identity\Models\User::where('email','manager@oc.test')->first(); $admin->can('impersonate', $target);` | comando tinker sopra | Restituisce `true` (Admin ha `user.impersonate`) |
 | 8 | Ripetere il comando del passo 7 sostituendo `$admin` con l'utente Customer | comando tinker sopra | Restituisce `false` (Customer non ha `user.impersonate`) |
 
 **Risultato finale atteso**
@@ -822,8 +822,8 @@ Critica
 Admin
 
 **Prerequisiti**
-- Utente seed `admin@orchestrator.local` disponibile (ha sia `user.assign-roles` sia `user.grant-permissions`, essendo Admin l'unico ruolo con l'intero catalogo).
-- Esiste almeno un altro utente su cui assegnare ruolo/permesso (es. `fundraising@orchestrator.local`, o un utente di test dedicato creato al passo 1).
+- Utente seed `admin@oc.test` disponibile (ha sia `user.assign-roles` sia `user.grant-permissions`, essendo Admin l'unico ruolo con l'intero catalogo).
+- Esiste almeno un altro utente su cui assegnare ruolo/permesso (es. `fr@oc.test`, o un utente di test dedicato creato al passo 1).
 
 **Dati di test**
 Utente bersaglio: nome "Utente Test Ruoli" (creato al passo 1). Ruolo da assegnare: "Cliente" (Customer). Permesso diretto da concedere: "Creare ticket" (`ticket.create`).
@@ -835,7 +835,7 @@ Nessun utente con nome "Utente Test Ruoli" esiste ancora. Le tabelle Ruoli/Perme
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedere al pannello come `admin@orchestrator.local` e creare un nuovo utente da "Utenti" → "Nuovo" | Nome: "Utente Test Ruoli", Email: `utente-test-ruoli@orchestrator.local`, Locale: `it` | L'utente viene creato e si viene reindirizzati alla sua scheda |
+| 1 | Accedere al pannello come `admin@oc.test` e creare un nuovo utente da "Utenti" → "Nuovo" | Nome: "Utente Test Ruoli", Email: `utente-test-ruoli@orchestrator.local`, Locale: `it` | L'utente viene creato e si viene reindirizzati alla sua scheda |
 | 2 | Aprire l'utente appena creato in modifica | — | Si apre la form di modifica con le sezioni "Anagrafica", "Ruoli", "Permessi diretti" visibili |
 | 3 | Nella sezione "Ruoli", selezionare la checkbox "Cliente" e salvare | Ruolo: "Cliente" | Il salvataggio avviene senza errori di validazione |
 | 4 | Aprire la scheda (vista) dell'utente e osservare la sezione "Ruoli assegnati" | — | Compare il badge "Cliente" |
@@ -912,7 +912,7 @@ L'utente "Utente Test Ruoli" ha il ruolo Cliente assegnato e il permesso diretto
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedere al pannello come `admin@orchestrator.local` e aprire la scheda (vista) dell'utente "Utente Test Ruoli" | — | Si apre la scheda utente con le sezioni "Ruoli assegnati" e "Permessi effettivi" |
+| 1 | Accedere al pannello come `admin@oc.test` e aprire la scheda (vista) dell'utente "Utente Test Ruoli" | — | Si apre la scheda utente con le sezioni "Ruoli assegnati" e "Permessi effettivi" |
 | 2 | Osservare la sezione "Permessi effettivi" e individuare la riga relativa a "Creare ticket" | — | La riga mostra sia il nome del ruolo "Cliente" sia la dicitura "diretto" tra parentesi (doppia provenienza) |
 | 3 | Individuare nella stessa sezione una riga relativa a un permesso derivato solo dal ruolo Cliente (es. "Visualizzare documentazione cliente") | — | La riga mostra il nome del ruolo "Cliente" tra parentesi, senza la dicitura "diretto" |
 | 4 | Verificare che non compaiano permessi non posseduti (es. "Eliminare utenti") | — | Nessuna riga relativa a permessi non posseduti dall'utente |
@@ -1042,10 +1042,10 @@ Sviluppatore
 
 **Prerequisiti**
 - Accesso a `psql` (o equivalente) e/o `php artisan tinker` sull'ambiente da collaudare.
-- Esiste almeno un'organizzazione (`UatSeeder` ne crea 2: "CAI Sezione di Aosta", "CAI Sezione di Trento") e un utente (es. `customer@orchestrator.local`).
+- Esiste almeno un'organizzazione tra quelle importate dall'ETL (numero e nomi dipendono dal dump caricato, non più un insieme fisso — vedi punto 13 di `00-istruzioni-generali.md`) e un utente (es. `customer@oc.test`).
 
 **Dati di test**
-Organizzazione: "CAI Sezione di Aosta". Utente: `customer@orchestrator.local`.
+Organizzazione: una qualunque tra quelle presenti nell'ambiente. Utente: `customer@oc.test`.
 
 **Stato iniziale**
 L'organizzazione e l'utente esistono; non è ancora garantito che siano già collegati (il passo 1 li collega esplicitamente se non lo sono già).
@@ -1055,7 +1055,7 @@ L'organizzazione e l'utente esistono; non è ancora garantito che siano già col
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
 | 1 | Verificare a livello di schema l'esistenza del vincolo: `SELECT indexname, indexdef FROM pg_indexes WHERE tablename = 'organization_user';` | query SQL sopra | È presente un indice unique sulla coppia `(organization_id, user_id)` |
-| 2 | In tinker, collegare l'utente all'organizzazione: `$org = \App\Domain\Identity\Models\Organization::where('name','CAI Sezione di Aosta')->first(); $user = \App\Domain\Identity\Models\User::where('email','customer@orchestrator.local')->first(); $org->users()->syncWithoutDetaching([$user->id]);` | comando tinker sopra | Il comando termina senza errori, il collegamento risulta presente |
+| 2 | In tinker, collegare l'utente all'organizzazione: `$org = \App\Domain\Identity\Models\Organization::where('name','CAI Sezione di Aosta')->first(); $user = \App\Domain\Identity\Models\User::where('email','customer@oc.test')->first(); $org->users()->syncWithoutDetaching([$user->id]);` | comando tinker sopra | Il comando termina senza errori, il collegamento risulta presente |
 | 3 | Tentare di inserire manualmente una riga duplicata per la stessa coppia: `INSERT INTO organization_user (organization_id, user_id, created_at, updated_at) VALUES (<id_org>, <id_user>, now(), now());` (sostituendo gli id reali osservati al passo 2) | query SQL sopra | L'inserimento viene rifiutato dal database con un errore di violazione del vincolo unique |
 
 **Risultato finale atteso**
@@ -1187,10 +1187,10 @@ Sviluppatore
 - Accesso a una shell nel container applicativo UAT per eseguire `php artisan tinker`
 
 **Dati di test**
-Nessun dato reale coinvolto: il test crea e rimuove record temporanei (`title = 'Verifica default UAT'`, un utente di factory) durante la sessione, senza toccare i 40 ticket seedati da `UatSeeder`.
+Nessun dato reale coinvolto: il test crea e rimuove record temporanei (`title = 'Verifica default UAT'`, un utente di factory) durante la sessione, senza toccare i ticket importati dall'ETL.
 
 **Stato iniziale**
-Ambiente UAT con i 40 ticket seedati da `UatSeeder` e nessuna riga aggiuntiva.
+Ambiente UAT con i ticket importati dall'ETL reale (`v1:import --anonymize`) e nessuna riga aggiuntiva.
 
 **Procedura di esecuzione**
 
@@ -1220,7 +1220,7 @@ BLOCKED: impossibile accedere al database o alla shell del container applicativo
 NOT APPLICABLE: Non previsto per questo test.
 
 **Ripristino**
-Eliminare i record temporanei creati in `tinker` (`Ticket::withTrashed()->find(...)->forceDelete()`, idem per l'utente di factory); in ogni caso il prossimo deploy rigenera l'ambiente con `UatSeeder`.
+Eliminare i record temporanei creati in `tinker` (`Ticket::withTrashed()->find(...)->forceDelete()`, idem per l'utente di factory); in ogni caso il prossimo deploy rigenera l'ambiente con l'ETL reale (`v1:import --anonymize`).
 
 **Campi di consuntivazione**
 
@@ -1399,7 +1399,7 @@ Sviluppatore
 
 **Prerequisiti**
 - Accesso psql all'istanza Postgres UAT
-- Conoscere l'`id` di un ticket esistente e di un utente esistente (es. il ticket con titolo "Il pulsante «Rinnova tessera» non risponde su Safari mobile" e l'utente `customer@orchestrator.local`)
+- Conoscere l'`id` di un ticket esistente e di un utente esistente (es. il ticket con titolo "Il pulsante «Rinnova tessera» non risponde su Safari mobile" e l'utente `customer@oc.test`)
 
 **Dati di test**
 `ticket_id` e `user_id` di un ticket/utente reali dell'ambiente UAT; `viewed_on = CURRENT_DATE`.
@@ -1471,7 +1471,7 @@ Sviluppatore
 
 **Prerequisiti**
 - Accesso psql all'istanza Postgres UAT
-- Conoscere l'`id` di un ticket e di un utente reali (es. `developer@orchestrator.local`)
+- Conoscere l'`id` di un ticket e di un utente reali (es. `dev@oc.test`)
 
 **Dati di test**
 `ticket_id` e `user_id` di un ticket/utente reali.
@@ -1685,7 +1685,7 @@ Alta
 Manager (per la parte UI) e Sviluppatore (per la parte tinker/codice)
 
 **Prerequisiti**
-- Utenza `manager@orchestrator.local` / `password`
+- Utenza `manager@oc.test` / `password`
 - Accesso a `php artisan tinker` nel container app UAT
 
 **Dati di test**
@@ -1698,7 +1698,7 @@ Ambiente UAT con i 40 ticket seedati (coprono ciclicamente tutti e 12 gli stati)
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedere al pannello `/admin` come Manager e aprire la lista Ticket | manager@orchestrator.local / password | La lista si apre mostrando i ticket con una colonna "Stato" a badge colorato |
+| 1 | Accedere al pannello `/admin` come Manager e aprire la lista Ticket | manager@oc.test / password | La lista si apre mostrando i ticket con una colonna "Stato" a badge colorato |
 | 2 | Aprire il filtro "Stato" sulla tabella | — | Il menu a tendina elenca esattamente 12 opzioni, con le etichette italiane elencate nei Dati di test (inclusa "In test", mai "Test") |
 | 3 | Scorrere la lista e individuare almeno un ticket per ciascuna delle etichette "In test" e "Testato" | — | I badge di stato mostrano il testo corretto ("In test"/"Testato"), non un valore grezzo come "testing"/"tested" |
 | 4 | Nel container app, aprire `php artisan tinker` ed eseguire `array_map(fn ($c) => $c->value, \App\Domain\Ticketing\Enums\TicketStatus::cases());` | — | L'array restituito è, in ordine, `['new','backlog','assigned','todo','progress','testing','tested','released','done','problem','waiting','rejected']` (12 elementi) |
@@ -1760,13 +1760,13 @@ Sviluppatore
 
 **Prerequisiti**
 - Accesso psql all'istanza Postgres UAT
-- Conoscere l'`id` di un tag esistente (es. "Backend") privo di collegamenti in uso durante il test
+- Conoscere l'`id` di un tag esistente (uno qualunque tra quelli importati dall'ETL) privo di collegamenti in uso durante il test
 
 **Dati di test**
-Uno slug duplicato per il test di unicità (es. `'backend'`, già usato dal tag seedato "Backend"); un tag e una pagina di documentazione temporanei per il test del collegamento opzionale.
+Uno slug duplicato per il test di unicità (lo slug di un tag già esistente nell'ambiente); un tag e una pagina di documentazione temporanei per il test del collegamento opzionale.
 
 **Stato iniziale**
-Ambiente UAT con i 10 tag e le 5 pagine di documentazione seedate da `UatSeeder`.
+Ambiente UAT con i tag e le pagine di documentazione importati dall'ETL reale (`v1:import --anonymize`, numero variabile secondo il dump caricato).
 
 **Procedura di esecuzione**
 
@@ -1836,7 +1836,7 @@ Sviluppatore (predisposizione dati) e Manager/Customer (verifica UI)
 
 **Prerequisiti**
 - Accesso psql all'istanza Postgres UAT
-- Utenze `manager@orchestrator.local` e `customer@orchestrator.local` (password `password`)
+- Utenze `manager@oc.test` e `customer@oc.test` (password `password`)
 - Un ticket il cui `requester_id` sia il Customer di collaudo (vale per tutti i 40 ticket seedati, dato che il richiedente è sempre "Socio CAI Collaudo")
 
 **Dati di test**
@@ -1851,8 +1851,8 @@ Nessun messaggio con `visibility = 'internal'` esiste ancora sul ticket scelto (
 |------:|-------------------|--------------------|------------------|
 | 1 | Individuare l'`id` del ticket di riferimento (`SELECT id FROM tickets WHERE title = 'Il pulsante «Rinnova tessera» non risponde su Safari mobile';`) | — | Un solo `id` restituito |
 | 2 | Inserire il messaggio interno via psql: `INSERT INTO ticket_messages (ticket_id, channel, visibility, body_text, posted_at, created_at, updated_at) VALUES (<id_ticket>, 'web', 'internal', 'Nota interna di collaudo: non visibile al cliente.', now(), now(), now());` | id ticket, testo sopra | L'inserimento va a buon fine |
-| 3 | Accedere al pannello come Manager e aprire il dettaglio del ticket di riferimento | manager@orchestrator.local / password | Nella sezione "Conversazione" compare anche il messaggio "Nota interna di collaudo: non visibile al cliente." |
-| 4 | Disconnettersi e accedere come Customer, aprire lo stesso ticket (è una propria richiesta, quindi visibile) | customer@orchestrator.local / password | Nella sezione "Conversazione" il messaggio interno NON compare; sono visibili solo i messaggi pubblici della conversazione seedata |
+| 3 | Accedere al pannello come Manager e aprire il dettaglio del ticket di riferimento | manager@oc.test / password | Nella sezione "Conversazione" compare anche il messaggio "Nota interna di collaudo: non visibile al cliente." |
+| 4 | Disconnettersi e accedere come Customer, aprire lo stesso ticket (è una propria richiesta, quindi visibile) | customer@oc.test / password | Nella sezione "Conversazione" il messaggio interno NON compare; sono visibili solo i messaggi pubblici della conversazione seedata |
 
 **Risultato finale atteso**
 Il messaggio con visibilità interna è visibile solo a chi ha il permesso `ticket-message.view.internal` (Manager, Developer, Admin) e mai a un Customer, indipendentemente dal fatto che il Customer possa già vedere il ticket stesso.
@@ -1908,7 +1908,7 @@ Alta
 Manager e Customer
 
 **Prerequisiti**
-- Utenze `manager@orchestrator.local` e `customer@orchestrator.local` (password `password`)
+- Utenze `manager@oc.test` e `customer@oc.test` (password `password`)
 - Un ticket qualunque tra i 40 seedati (il Customer di collaudo è richiedente di tutti)
 
 **Dati di test**
@@ -1921,9 +1921,9 @@ Il ticket scelto ha già righe di storico prodotte dal seeder/dalla macchina a s
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedere come Manager e aprire il dettaglio del ticket di riferimento | manager@orchestrator.local / password | La sezione "Storico" è presente e mostra almeno una riga (evento, utente, data) |
+| 1 | Accedere come Manager e aprire il dettaglio del ticket di riferimento | manager@oc.test / password | La sezione "Storico" è presente e mostra almeno una riga (evento, utente, data) |
 | 2 | Nella stessa sezione "Storico", cercare un pulsante o un'azione per aggiungere/modificare/eliminare una riga | — | Non esiste alcun controllo di scrittura: la sezione è un elenco di sola lettura |
-| 3 | Disconnettersi e accedere come Customer, aprire lo stesso ticket | customer@orchestrator.local / password | La sezione "Storico" non è presente affatto nella pagina |
+| 3 | Disconnettersi e accedere come Customer, aprire lo stesso ticket | customer@oc.test / password | La sezione "Storico" non è presente affatto nella pagina |
 
 **Risultato finale atteso**
 Lo storico è visibile in sola lettura solo a chi ha `ticket-log.view` (Manager/Developer/Admin) e completamente assente dalla pagina per chi non lo ha (Customer); nessuna azione di scrittura manuale è mai disponibile, per nessun ruolo.
@@ -1979,11 +1979,11 @@ Alta
 Manager e Customer
 
 **Prerequisiti**
-- Utenze `manager@orchestrator.local` (ha `ticket.assign`) e `customer@orchestrator.local` (non ha `ticket.assign`, solo `ticket.view.own`), password `password`
+- Utenze `manager@oc.test` (ha `ticket.assign`) e `customer@oc.test` (non ha `ticket.assign`, solo `ticket.view.own`), password `password`
 - Un ticket qualunque tra i 40 seedati
 
 **Dati di test**
-Ticket di riferimento: uno qualunque dei 40 ticket seedati. Utente da aggiungere come partecipante: un utente attivo qualsiasi non già partecipante (es. `fundraising@orchestrator.local`).
+Ticket di riferimento: uno qualunque dei 40 ticket seedati. Utente da aggiungere come partecipante: un utente attivo qualsiasi non già partecipante (es. `fr@oc.test`).
 
 **Stato iniziale**
 Il ticket di riferimento ha già una sezione "Partecipanti" (eventualmente vuota o con l'autore dei messaggi già presente).
@@ -1992,10 +1992,10 @@ Il ticket di riferimento ha già una sezione "Partecipanti" (eventualmente vuota
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedere come Manager e aprire il dettaglio del ticket di riferimento | manager@orchestrator.local / password | Tra le azioni di intestazione compaiono "Aggiungi partecipante" e "Rimuovi partecipante" |
+| 1 | Accedere come Manager e aprire il dettaglio del ticket di riferimento | manager@oc.test / password | Tra le azioni di intestazione compaiono "Aggiungi partecipante" e "Rimuovi partecipante" |
 | 2 | Eseguire "Aggiungi partecipante" selezionando un utente non ancora partecipante | Referente Fundraising Collaudo | Il partecipante compare nella sezione "Partecipanti"; notifica di successo "Partecipante aggiunto" |
 | 3 | Eseguire "Rimuovi partecipante" sull'utente appena aggiunto | Referente Fundraising Collaudo | Il partecipante scompare dalla sezione "Partecipanti"; notifica di successo "Partecipante rimosso" |
-| 4 | Disconnettersi e accedere come Customer, aprire lo stesso ticket | customer@orchestrator.local / password | La sezione "Partecipanti" è visibile (il Customer può vedere il proprio ticket), ma tra le azioni di intestazione NON compaiono "Aggiungi partecipante" né "Rimuovi partecipante" |
+| 4 | Disconnettersi e accedere come Customer, aprire lo stesso ticket | customer@oc.test / password | La sezione "Partecipanti" è visibile (il Customer può vedere il proprio ticket), ma tra le azioni di intestazione NON compaiono "Aggiungi partecipante" né "Rimuovi partecipante" |
 
 **Risultato finale atteso**
 Solo chi ha `ticket.assign` (Manager/Developer/Admin) può aggiungere/rimuovere partecipanti; chiunque possa vedere il ticket può vedere l'elenco partecipanti, senza poterlo modificare senza il permesso.
@@ -3417,7 +3417,7 @@ Admin
 
 **Prerequisiti**
 - Ambiente UAT raggiungibile e credenziali Admin (punto 9 delle istruzioni generali:
-  `admin@orchestrator.local` / `password`).
+  `admin@oc.test` / `password`).
 - Per la parte automatica: ambiente locale/CI con suite Pest funzionante.
 - Browser con strumenti di sviluppo (ispezione elemento/computed style) per la verifica visiva.
 
@@ -3434,7 +3434,7 @@ altrimenti la pagina non si carica affatto (`ViteManifestNotFoundException`).
 |------:|-------------------|--------------------|------------------|
 | 1 | (Parte automatica) Eseguire il test unitario sui token | `vendor/bin/pest --filter "reads the brand color token from resources/css/theme.css"` | Il comando termina con exit code 0, test passed |
 | 2 | Aprire il browser sull'URL di login del pannello UAT | `https://ticket-uat.montagnaservizi.com/admin/login` | La pagina di login si carica correttamente |
-| 3 | Accedere con le credenziali Admin | `admin@orchestrator.local` / `password` | Login riuscito, dashboard visibile |
+| 3 | Accedere con le credenziali Admin | `admin@oc.test` / `password` | Login riuscito, dashboard visibile |
 | 4 | Ispezionare visivamente (o via strumenti sviluppatore) il colore degli elementi di brand (es. bottone primario, elementi attivi della sidebar) | Ispezione elemento del browser | Il colore corrisponde a `#17a180` (verde/teal) |
 | 5 | Ispezionare il font utilizzato dal testo del pannello | Ispezione elemento del browser (computed style, `font-family`) | Il font applicato è `Nunito Sans` (o la sua stack di fallback dichiarata) |
 
@@ -3474,28 +3474,28 @@ Nessuno: nessun dato applicativo viene creato o modificato.
 - ID anomalia:
 - Note:
 
-## Seed di sviluppo
+## Popolamento dati locale (ETL)
 
-### F0-47 — Il seed di sviluppo rifiuta di girare in produzione e popola un ambiente completo
+### F0-47 — `v1:import --anonymize` popola un ambiente locale completo con dati reali anonimizzati
 
 **Obiettivo**
-Verificare che `DevelopmentSeeder` (seeder usato solo in ambiente di **sviluppo locale**, distinto
-da `UatSeeder` che popola l'ambiente pubblico di collaudo) rifiuti categoricamente di eseguire se
-l'applicazione gira in ambiente `production`, e che — quando eseguito in un ambiente non-prod —
-popoli un dataset di sviluppo completo su tutti i moduli in scope (5 utenti-ruolo, 2 organizzazioni,
-40 ticket su tutti gli stati/tipi con conversazioni e allegati finti, 10 tag, 5 pagine di
-documentazione, 2 report attività, 3 opportunità fundraising con relativi progetti). Questo test si
-esegue **in locale/CI da uno sviluppatore**, mai contro l'ambiente UAT (che usa esclusivamente
-`UatSeeder`, dati diversi e testo scritto a mano).
+Verificare che l'ambiente locale non sia più popolato da un seeder di dati fittizi
+(`DevelopmentSeeder`, rimosso) ma dall'ETL reale (`v1:import --anonymize`, incorporato in `make
+setup`): a partire dal dump v1 più recente disponibile (`v1dumps/latest.sql`), l'import popola
+utenti, organizzazioni, ticket, tag, pagine di documentazione, report di attività e opportunità/
+progetti di fundraising con dati reali anonimizzati, e le 5 identità di riferimento del collaudo
+(punto 9 di `00-istruzioni-generali.md`) sono presenti con le email fisse note.
 
 **Riferimenti**
-- Requisito/regola di dominio: PRD US-023 (seed di sviluppo); nota `CLAUDE.md` "Seed di sviluppo
-  (US-023)".
-- Test automatico: `tests/Feature/Database/Seeders/DevelopmentSeederTest.php` — `it seeds a
-  complete development environment` (nello stesso file: `it refuses to run in production`).
-- File/componente applicativo rilevante: `database/seeders/DevelopmentSeeder.php`;
-  `database/seeders/Concerns/SeedsActivityReports.php`.
-- Test correlato: F0-48 (idempotenza della stessa seed alla seconda esecuzione).
+- Requisito/regola di dominio: design `docs/superpowers/specs/2026-08-02-etl-real-data-seeding-design.md`
+  (US-R02); PRD §11 (M11 — ETL).
+- Test automatico: `tests/Feature/Console/V1ImportPipelineIdempotencyTest.php` — `a second
+  consecutive v1:import run creates/updates nothing on every registered stage` (verifica la stessa
+  pipeline su una fixture di test; il popolamento completo alla prima esecuzione è precondizione
+  implicita dell'asserzione di idempotenza sulla seconda).
+- File/componente applicativo rilevante: `app/Console/Commands/V1ImportCommand.php`; `Makefile`
+  (target `setup`); `app/Import/Anonymization/Anonymizer.php` (identità di riferimento).
+- Test correlato: F0-48 (idempotenza della stessa importazione alla seconda esecuzione).
 
 **Modalità di esecuzione**
 TECNICO CLI
@@ -3508,51 +3508,50 @@ Sviluppatore
 
 **Prerequisiti**
 - Ambiente di sviluppo locale (Docker Compose secondo `CLAUDE.md`/`make setup`), **mai** l'ambiente UAT.
-- Database di sviluppo azzerabile (`migrate:fresh` accettabile, dati non critici).
+- `v1dumps/latest.sql` presente (convenzione documentata in `CLAUDE.md`, sezione ETL).
+- Database locale azzerabile (`migrate:fresh` accettabile, dati non critici).
 - `APP_ENV` dell'ambiente locale impostato su un valore diverso da `production` (tipicamente `local`).
 
 **Dati di test**
-Nessun dato da inserire manualmente: il seeder genera da sé l'intero dataset.
+Nessun dato da inserire manualmente: `make setup`/`v1:import --anonymize` popola da sé l'intero
+dataset a partire dal dump.
 
 **Stato iniziale**
-Database di sviluppo vuoto (post `migrate:fresh`), ruoli/permessi già seminati da
-`RolePermissionSeeder` (eseguito prima nella catena di `DatabaseSeeder`).
+Database locale vuoto (post `migrate:fresh`), ruoli/permessi già seminati da
+`RolePermissionSeeder`, `db_legacy` avviato e caricato con `v1dumps/latest.sql`.
 
 **Procedura di esecuzione**
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Posizionarsi nella root del progetto locale (container `app` o equivalente) | `docker compose exec app bash` | Prompt di shell nella directory contenente `artisan` |
-| 2 | Verificare che l'ambiente non sia `production` | `php artisan tinker --execute="echo app()->environment();"` | Valore restituito diverso da `production` |
-| 3 | Eseguire una migrazione pulita e il seed completo | `php artisan migrate:fresh --seed` (la catena `DatabaseSeeder` richiama `RolePermissionSeeder` poi `DevelopmentSeeder`) | Il comando termina senza errori; a schermo compare "Credenziali di sviluppo (ambiente non-prod):" seguito dall'elenco di 5 utenti-ruolo |
-| 4 | Verificare i conteggi generati | `php artisan tinker --execute="echo App\Domain\Ticketing\Models\Ticket::count();"` (ripetere per `Organization`, `Tag`, `DocumentationPage`, `FundraisingOpportunity`, `FundraisingProject`) | `Ticket` = 40, `Organization` = 2, `Tag` = 10, `DocumentationPage` = 5, `FundraisingOpportunity` = 3, `FundraisingProject` = 2 |
-| 5 | Verificare che tutti i 12 stati e i 4 tipi di ticket siano rappresentati | `php artisan tinker --execute="dd(App\Domain\Ticketing\Models\Ticket::distinct()->pluck('status'));"` (e analogo per `type`) | Sono presenti tutti i valori dei rispettivi enum |
+| 1 | Posizionarsi nella root del progetto locale | `make setup` (oppure, passo per passo, `docker compose exec app php artisan v1:import --anonymize`) | Il comando termina senza errori |
+| 2 | Leggere il riepilogo per stage stampato dal comando | Output di `v1:import` | Ogni stage (`users`, `tickets`, `tags`, `documentation`, `activity_reports`, `fundraising_*`, ecc.) riporta `creati` > 0 (a meno che il dump non contenga righe per quello stage) |
+| 3 | Verificare la presenza delle 5 identità di riferimento | `docker compose exec app php artisan tinker --execute="echo App\Domain\Identity\Models\User::whereIn('email', ['admin@oc.test','dev@oc.test','manager@oc.test','customer@oc.test','fr@oc.test'])->count();"` | Il comando restituisce `5` (i primi 4 importati dall'ETL, il quinto — Manager — creato da `collaudo:ensure-manager-account`, eseguito da `make setup` subito dopo l'import) |
+| 4 | Verificare che i ticket importati coprano più stati/tipi reali | `docker compose exec app php artisan tinker --execute="dd(App\Domain\Ticketing\Models\Ticket::distinct()->pluck('status'));"` (e analogo per `type`) | Sono presenti più valori distinti (l'elenco esatto dipende dal dump caricato, non è più un insieme fisso — vedi punto 13 di `00-istruzioni-generali.md`) |
 
 **Risultato finale atteso**
-`DevelopmentSeeder` popola correttamente l'ambiente locale con i conteggi attesi su tutti i moduli
-in scope, senza mai poter essere eseguito in un ambiente `production`.
+`v1:import --anonymize` popola correttamente l'ambiente locale con dati reali anonimizzati su tutti
+i moduli in scope, e le 5 identità di riferimento del collaudo sono disponibili per il login.
 
 **Controlli negativi**
-In un ambiente locale, forzare temporaneamente `app()->detectEnvironment(fn () => 'production')`
-(solo via Tinker/test, mai su un ambiente reale) e tentare `(new
-Database\Seeders\DevelopmentSeeder)->run()`: deve lanciare una `RuntimeException` con messaggio
-"DevelopmentSeeder non può essere eseguito in produzione." — **non eseguire mai questo controllo
-contro un ambiente realmente configurato come `production`**.
+`v1:import --truncate` in un ambiente `production` deve essere rifiutato esplicitamente (già
+verificato da `tests/Feature/Console/V1ImportCommandTest.php::--truncate is refused outright in a
+production environment`) — **non eseguire mai questo controllo contro un ambiente realmente
+configurato come `production`**.
 
 **Evidenze da acquisire**
-- Output completo di `migrate:fresh --seed`.
-- Output dei conteggi Tinker per ciascun modello elencato.
+- Output completo di `make setup`/`v1:import --anonymize`.
+- Output dei conteggi Tinker per le 5 identità di riferimento e per gli stati/tipi ticket.
 
 **Criterio di superamento**
 
-PASS: tutti i conteggi corrispondono ai valori attesi e tutti gli stati/tipi di ticket sono rappresentati.
-FAIL: un conteggio non corrisponde, oppure manca uno stato/tipo di ticket, oppure il seeder solleva
-un errore inatteso in ambiente non-prod.
-BLOCKED: ambiente di sviluppo locale non disponibile/configurabile.
+PASS: il comando termina senza errori, tutti gli stage popolano dati e le 5 identità di riferimento sono presenti.
+FAIL: un errore inatteso durante l'import, oppure una o più identità di riferimento mancanti.
+BLOCKED: ambiente di sviluppo locale non disponibile/configurabile, oppure `v1dumps/latest.sql` assente.
 NOT APPLICABLE: Non previsto per questo test.
 
 **Ripristino**
-Nessuno: è un ambiente di sviluppo locale, liberamente ripristinabile con un successivo `migrate:fresh --seed`.
+Nessuno: è un ambiente di sviluppo locale, liberamente ripristinabile con un successivo `make setup`.
 
 **Campi di consuntivazione**
 
@@ -3567,23 +3566,22 @@ Nessuno: è un ambiente di sviluppo locale, liberamente ripristinabile con un su
 
 ---
 
-### F0-48 — Una seconda esecuzione del seed di sviluppo non duplica ticket, tag o documentazione
+### F0-48 — Una seconda esecuzione di `v1:import` non duplica nulla (idempotenza)
 
 **Obiettivo**
-Verificare che eseguire `DevelopmentSeeder` una seconda volta (senza un `migrate:fresh` di mezzo,
-scenario realistico per uno sviluppatore che rilancia `php artisan db:seed`) non produca duplicati:
-ticket/tag/pagine di documentazione/utenti-ruolo devono restare agli stessi conteggi della prima
-esecuzione.
+Verificare che rieseguire `v1:import --anonymize` (senza un `migrate:fresh` di mezzo, scenario
+realistico per uno sviluppatore che rilancia l'import dopo aver aggiornato `v1dumps/latest.sql`)
+non produca alcun duplicato: ogni stage registrato deve riportare `creati = 0` e `aggiornati = 0`
+alla seconda esecuzione, a fronte dello stesso dump.
 
 **Riferimenti**
-- Requisito/regola di dominio: PRD US-023; nota `CLAUDE.md` "le tabelle senza chiave naturale
-  univoca (tickets, ticket_messages) non possono usare firstOrCreate: DevelopmentSeeder guarda
-  invece `if (! Ticket::query()->exists())`".
-- Test automatico: `tests/Feature/Database/Seeders/DevelopmentSeederTest.php` — `running it twice
-  does not duplicate tickets, tags or documentation`
-- File/componente applicativo rilevante: `database/seeders/DevelopmentSeeder.php` (guardia
-  `if (! Ticket::query()->exists())`, `firstOrCreate` su utenti/organizzazioni/tag/pagine).
-- Test correlato: F0-47 (prima esecuzione dello stesso seeder).
+- Requisito/regola di dominio: nota `CLAUDE.md` "BUG DI IDEMPOTENZA REALE trovato e corretto in
+  `TicketsStage`... durante la scrittura del test di idempotenza dell'intera pipeline (US-216)".
+- Test automatico: `tests/Feature/Console/V1ImportPipelineIdempotencyTest.php` — `a second
+  consecutive v1:import run creates/updates nothing on every registered stage`.
+- File/componente applicativo rilevante: `app/Console/Commands/V1ImportCommand.php`;
+  `app/Import/ImportRunner.php`; `app/Import/Models/ImportRun.php`.
+- Test correlato: F0-47 (prima esecuzione dello stesso import).
 
 **Modalità di esecuzione**
 TECNICO CLI
@@ -3596,44 +3594,45 @@ Sviluppatore
 
 **Prerequisiti**
 - Ambiente di sviluppo locale (mai UAT), stesso di F0-47.
-- `DevelopmentSeeder` già eseguito una prima volta con successo (F0-47).
+- `v1:import --anonymize` già eseguito una prima volta con successo (F0-47), senza modificare
+  `v1dumps/latest.sql` nel frattempo.
 
 **Dati di test**
-Nessuno: si tratta di rieseguire lo stesso seeder senza parametri.
+Nessuno: si tratta di rieseguire lo stesso comando senza parametri aggiuntivi.
 
 **Stato iniziale**
-Database di sviluppo già popolato da una prima esecuzione di `DevelopmentSeeder` (40 ticket, 10
-tag, 5 pagine documentazione, 5 utenti-ruolo).
+Database locale già popolato da una prima esecuzione di `v1:import --anonymize` (F0-47).
 
 **Procedura di esecuzione**
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Annotare i conteggi correnti | `php artisan tinker --execute="echo App\Domain\Ticketing\Models\Ticket::count();"` (e analogo per `Tag`, `DocumentationPage`, utenti con email `admin@orchestrator.local`) | Conteggi corrispondenti a quelli di F0-47 (40/10/5/1) |
-| 2 | Rieseguire il solo seeder di sviluppo, senza `migrate:fresh` | `php artisan db:seed --class="Database\\Seeders\\DevelopmentSeeder"` | Il comando termina senza errori; compare il messaggio "DevelopmentSeeder: ticket/tag/documentazione/report/fundraising già presenti, salto la generazione." |
-| 3 | Rileggere gli stessi conteggi | Stessa query Tinker del passo 1 | I conteggi restano identici a quelli annotati al passo 1 (nessun incremento) |
+| 1 | Annotare i conteggi correnti di un paio di tabelle rappresentative | `docker compose exec app php artisan tinker --execute="echo App\Domain\Ticketing\Models\Ticket::count();"` (e analogo per `App\Domain\Identity\Models\User`) | I conteggi corrispondono a quelli osservati alla fine di F0-47 |
+| 2 | Rieseguire l'import | `docker compose exec app php artisan v1:import --anonymize` | Il comando termina senza errori |
+| 3 | Leggere il riepilogo per stage stampato dal comando | Output di `v1:import` | Ogni stage riporta `creati: 0, aggiornati: 0` (eventuali righe sono tutte `saltati`, cioè già presenti e senza differenze) |
+| 4 | Rileggere gli stessi conteggi del passo 1 | Stessa query Tinker del passo 1 | I conteggi restano identici (nessun incremento) |
 
 **Risultato finale atteso**
-Dopo una seconda esecuzione del seeder, `Ticket::count() = 40`, `Tag::count() = 10`,
-`DocumentationPage::count() = 5`, e un solo utente con email `admin@orchestrator.local`: nessun
-duplicato introdotto.
+Dopo una seconda esecuzione di `v1:import --anonymize` a fronte dello stesso dump, ogni stage
+registrato riporta `creati = 0` e `aggiornati = 0`, e i conteggi delle tabelle principali non
+cambiano.
 
 **Controlli negativi**
 Nessuno applicabile: non esiste un percorso alternativo "duplica intenzionalmente" da testare in negativo.
 
 **Evidenze da acquisire**
+- Output completo della seconda esecuzione di `v1:import --anonymize` (riepilogo per stage).
 - Output dei conteggi Tinker prima e dopo la seconda esecuzione.
-- Output testuale del messaggio "già presenti, salto la generazione." prodotto dal comando.
 
 **Criterio di superamento**
 
-PASS: tutti i conteggi restano invariati dopo la seconda esecuzione del seeder.
-FAIL: almeno un conteggio aumenta (duplicazione rilevata).
+PASS: ogni stage riporta `creati = 0, aggiornati = 0` alla seconda esecuzione e i conteggi restano invariati.
+FAIL: almeno uno stage riporta `creati` o `aggiornati` > 0 alla seconda esecuzione (duplicazione o mutazione spuria rilevata).
 BLOCKED: ambiente di sviluppo locale non disponibile, oppure F0-47 non è stato eseguito prima.
 NOT APPLICABLE: Non previsto per questo test.
 
 **Ripristino**
-Nessuno: è un ambiente di sviluppo locale, liberamente ripristinabile con un successivo `migrate:fresh --seed`.
+Nessuno: è un ambiente di sviluppo locale, liberamente ripristinabile con un successivo `make setup`.
 
 **Campi di consuntivazione**
 
