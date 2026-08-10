@@ -46,5 +46,15 @@ jobs:
           echo "${{ secrets.UAT_SSH_HOST_KEY }}" >> ~/.ssh/known_hosts
 
       - name: Deploy su msuat
+        # ServerAliveInterval/CountMax: v1:import gira sul dump v1 reale (migliaia
+        # di ticket/allegati) e può restare minuti senza produrre output sul canale
+        # SSH — un percorso di rete intermedio senza queste keepalive ha già chiuso
+        # la connessione per inattività con "Broken pipe" durante il primo deploy
+        # reale di questo flusso (2026-08-10), pur senza che il comando remoto
+        # fosse realmente bloccato (comando forzato via authorized_keys, il
+        # processo lato server continua comunque fino alla fine: qui serve solo a
+        # far arrivare l'esito reale al job CI, non a "salvare" il deploy in sé).
         run: |
-          ssh -i ~/.ssh/id_deploy -o UserKnownHostsFile=~/.ssh/known_hosts root@135.181.25.33 "ghcr.io/piccioli/mstickets-uat:${{ github.sha }}"
+          ssh -i ~/.ssh/id_deploy -o UserKnownHostsFile=~/.ssh/known_hosts \
+            -o ServerAliveInterval=15 -o ServerAliveCountMax=60 \
+            root@135.181.25.33 "ghcr.io/piccioli/mstickets-uat:${{ github.sha }}"
