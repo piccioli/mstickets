@@ -6,7 +6,7 @@
 # sola (stessa scelta di "solo un umano tocca msuat" di v1dumps/latest.sql,
 # docs/superpowers/specs/2026-08-02-etl-real-data-seeding-design.md §2/§4).
 set -euo pipefail
-cd /root/ticket-uat
+cd /root/ticket-uat/deploy
 
 docker compose -f docker-compose.uat.yml --env-file .env.uat pull
 
