@@ -20,7 +20,7 @@ test('creates the fixed manager reference account with the known password and th
     $user = User::query()->where('email', 'manager@oc.test')->first();
 
     expect($user)->not->toBeNull()
-        ->and(Hash::check('password', $user->password))->toBeTrue()
+        ->and(Hash::check('uat', $user->password))->toBeTrue()
         ->and($user->hasRole(UserRole::Manager))->toBeTrue()
         ->and($user->deactivated_at)->toBeNull();
 });

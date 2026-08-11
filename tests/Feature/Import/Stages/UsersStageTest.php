@@ -152,37 +152,15 @@ test('--limit caps the number of v1 rows read', function (): void {
         ->and($result->created)->toBe(1);
 });
 
-test('--anonymize replaces name and email with a deterministic fake identity on a test domain', function (): void {
-    config(['orchestrator.anonymization.mail_test_domains' => ['test.orchestrator.invalid']]);
-
+test('--anonymize never changes name or email: they always stay the real ones from v1 (US-R08)', function (): void {
     insertLegacyUser(['id' => 42, 'name' => 'Mario Rossi', 'email' => 'mario.rossi@clientedavvero.it']);
 
     (new UsersStage)->run(usersStageContext(anonymize: true));
 
     $user = DB::table('users')->where('id', 42)->first();
 
-    expect($user->name)->not->toBe('Mario Rossi')
-        ->and($user->email)->not->toBe('mario.rossi@clientedavvero.it')
-        ->and($user->email)->toEndWith('@test.orchestrator.invalid');
-});
-
-test('--anonymize produces the same fake identity for the same v1 id across separate runs, and a different one for a different id', function (): void {
-    insertLegacyUser(['id' => 1, 'email' => 'uno@clientedavvero.it']);
-    insertLegacyUser(['id' => 2, 'email' => 'due@clientedavvero.it']);
-
-    (new UsersStage)->run(usersStageContext(anonymize: true));
-    $firstRunUser1 = DB::table('users')->where('id', 1)->first();
-    $firstRunUser2 = DB::table('users')->where('id', 2)->first();
-
-    DB::table('users')->truncate();
-
-    (new UsersStage)->run(usersStageContext(anonymize: true));
-    $secondRunUser1 = DB::table('users')->where('id', 1)->first();
-
-    expect($secondRunUser1->name)->toBe($firstRunUser1->name)
-        ->and($secondRunUser1->email)->toBe($firstRunUser1->email)
-        ->and($firstRunUser1->email)->not->toBe($firstRunUser2->email)
-        ->and($firstRunUser1->name)->not->toBe($firstRunUser2->name);
+    expect($user->name)->toBe('Mario Rossi')
+        ->and($user->email)->toBe('mario.rossi@clientedavvero.it');
 });
 
 test('--anonymize keeps re-running the stage idempotent (relations untouched, only surface values replaced)', function (): void {
@@ -205,7 +183,7 @@ test('--anonymize overwrites the imported password with the hash of a fixed know
 
     $password = DB::table('users')->where('id', 1)->value('password');
 
-    expect(Hash::check('password', $password))->toBeTrue()
+    expect(Hash::check('uat', $password))->toBeTrue()
         ->and($password)->not->toBe('v1-real-bcrypt-hash');
 });
 

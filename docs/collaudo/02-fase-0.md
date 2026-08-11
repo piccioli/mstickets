@@ -28,26 +28,26 @@ Developer
 
 **Prerequisiti**
 - Ambiente UAT raggiungibile su `https://ticket-uat.montagnaservizi.com/admin/login`.
-- L'utente seed `dev@oc.test` esiste con ruolo "Sviluppatore" (popolato dall'ETL reale, `v1:import --anonymize`).
+- L'utente seed `lorena.sava@montagnaservizi.com` esiste con ruolo "Sviluppatore" (popolato dall'ETL reale, `v1:import --anonymize`).
 - L'utente non ha `deactivated_at` valorizzato (stato di default al seed).
 
 **Dati di test**
-Email: `dev@oc.test` — Password: `password`
+Email: `lorena.sava@montagnaservizi.com` — Password: `uat`
 
 **Stato iniziale**
-L'utente `dev@oc.test` esiste, ha il ruolo "Sviluppatore" assegnato, non è disattivato. Il tester non ha alcuna sessione attiva sul pannello.
+L'utente `lorena.sava@montagnaservizi.com` esiste, ha il ruolo "Sviluppatore" assegnato, non è disattivato. Il tester non ha alcuna sessione attiva sul pannello.
 
 **Procedura di esecuzione**
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
 | 1 | Aprire il browser e navigare all'URL di login del pannello | `https://ticket-uat.montagnaservizi.com/admin/login` | Viene mostrata la pagina di login di Filament |
-| 2 | Compilare i campi email/password e premere "Accedi" | `dev@oc.test` / `password` | Il login viene accettato, nessun messaggio d'errore mostrato |
+| 2 | Compilare i campi email/password e premere "Accedi" | `lorena.sava@montagnaservizi.com` / `uat` | Il login viene accettato, nessun messaggio d'errore mostrato |
 | 3 | Osservare l'URL nella barra degli indirizzi dopo il login | — | L'URL è sotto `/admin` (es. `/admin` o `/admin/tickets/work-board`), non `/admin/login` |
 | 4 | Osservare il menu di navigazione laterale del pannello | — | Il menu è visibile e popolato di voci (conferma sessione autenticata) |
 
 **Risultato finale atteso**
-L'utente `dev@oc.test` ha una sessione attiva sul pannello `/admin` e può navigare tra le pagine per cui ha permesso.
+L'utente `lorena.sava@montagnaservizi.com` ha una sessione attiva sul pannello `/admin` e può navigare tra le pagine per cui ha permesso.
 
 **Controlli negativi**
 Nessuno applicabile (il caso negativo — utente senza ruolo — è coperto da F0-02).
@@ -104,7 +104,7 @@ Sviluppatore (predisposizione dato via CLI) + Customer/utente senza ruolo (esecu
 - Nessun utente con email `senza-ruolo@orchestrator.local` già presente.
 
 **Dati di test**
-Email: `senza-ruolo@orchestrator.local` — Password: `password` — nessun ruolo assegnato.
+Email: `senza-ruolo@orchestrator.local` — Password: `uat` — nessun ruolo assegnato.
 
 **Stato iniziale**
 Nessun utente con l'email indicata esiste ancora nel database UAT.
@@ -113,10 +113,10 @@ Nessun utente con l'email indicata esiste ancora nel database UAT.
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Aprire `php artisan tinker` sul container applicativo ed eseguire `\App\Domain\Identity\Models\User::factory()->create(['name' => 'Utente Test Senza Ruolo', 'email' => 'senza-ruolo@orchestrator.local', 'password' => bcrypt('password')]);` (nessuna chiamata a `assignRole`) | comando tinker sopra | Il comando restituisce l'istanza dell'utente creato, senza errori |
+| 1 | Aprire `php artisan tinker` sul container applicativo ed eseguire `\App\Domain\Identity\Models\User::factory()->create(['name' => 'Utente Test Senza Ruolo', 'email' => 'senza-ruolo@orchestrator.local', 'password' => bcrypt('uat')]);` (nessuna chiamata a `assignRole`) | comando tinker sopra | Il comando restituisce l'istanza dell'utente creato, senza errori |
 | 2 | Verificare in tinker che l'utente non abbia ruoli: `\App\Domain\Identity\Models\User::where('email','senza-ruolo@orchestrator.local')->first()->getRoleNames();` | comando tinker sopra | Il comando restituisce una collection vuota |
 | 3 | Aprire il browser e navigare alla pagina di login del pannello | `https://ticket-uat.montagnaservizi.com/admin/login` | Viene mostrata la pagina di login |
-| 4 | Compilare email/password e premere "Accedi" | `senza-ruolo@orchestrator.local` / `password` | Il tentativo di accesso al pannello viene rifiutato (l'utente non atterra su una pagina del pannello) |
+| 4 | Compilare email/password e premere "Accedi" | `senza-ruolo@orchestrator.local` / `uat` | Il tentativo di accesso al pannello viene rifiutato (l'utente non atterra su una pagina del pannello) |
 
 **Risultato finale atteso**
 L'utente `senza-ruolo@orchestrator.local` non ottiene mai una sessione utilizzabile sul pannello `/admin`, pur avendo credenziali corrette.
@@ -176,7 +176,7 @@ Sviluppatore (predisposizione dato via CLI) + utente disattivato (esecuzione del
 - Nessun utente con email `disattivato@orchestrator.local` già presente.
 
 **Dati di test**
-Email: `disattivato@orchestrator.local` — Password: `password` — Ruolo: Admin — `deactivated_at`: data/ora corrente.
+Email: `disattivato@orchestrator.local` — Password: `uat` — Ruolo: Admin — `deactivated_at`: data/ora corrente.
 
 **Stato iniziale**
 Nessun utente con l'email indicata esiste ancora nel database UAT.
@@ -185,10 +185,10 @@ Nessun utente con l'email indicata esiste ancora nel database UAT.
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | In `php artisan tinker`, creare l'utente disattivato con ruolo Admin: `$u = \App\Domain\Identity\Models\User::factory()->create(['name' => 'Amministratore Disattivato Collaudo', 'email' => 'disattivato@orchestrator.local', 'password' => bcrypt('password'), 'deactivated_at' => now()]); $u->assignRole('admin');` | comando tinker sopra | Il comando restituisce l'utente creato senza errori |
+| 1 | In `php artisan tinker`, creare l'utente disattivato con ruolo Admin: `$u = \App\Domain\Identity\Models\User::factory()->create(['name' => 'Amministratore Disattivato Collaudo', 'email' => 'disattivato@orchestrator.local', 'password' => bcrypt('uat'), 'deactivated_at' => now()]); $u->assignRole('admin');` | comando tinker sopra | Il comando restituisce l'utente creato senza errori |
 | 2 | Verificare in tinker che l'utente abbia il ruolo e `deactivated_at` valorizzato: `\App\Domain\Identity\Models\User::where('email','disattivato@orchestrator.local')->first(['deactivated_at'])->deactivated_at;` | comando tinker sopra | Il comando restituisce una data/ora non nulla |
 | 3 | Aprire il browser e navigare alla pagina di login del pannello | `https://ticket-uat.montagnaservizi.com/admin/login` | Viene mostrata la pagina di login |
-| 4 | Compilare email/password e premere "Accedi" | `disattivato@orchestrator.local` / `password` | Il tentativo di accesso al pannello viene rifiutato nonostante il ruolo Admin |
+| 4 | Compilare email/password e premere "Accedi" | `disattivato@orchestrator.local` / `uat` | Il tentativo di accesso al pannello viene rifiutato nonostante il ruolo Admin |
 
 **Risultato finale atteso**
 L'utente `disattivato@orchestrator.local`, pur avendo il ruolo Admin, non ottiene mai una sessione utilizzabile sul pannello.
@@ -249,7 +249,7 @@ Sviluppatore (predisposizione dato via CLI) + Manager (verifica UI sul form tick
 - Il tester ha il ruolo Manager (`manager@oc.test`), che ha `ticket.update.any` e vede la sezione "Assegnazione e classificazione".
 
 **Dati di test**
-Utente disattivato: "Amministratore Disattivato Collaudo" (`disattivato@orchestrator.local`). Utente attivo di confronto: "Sviluppatore Collaudo" (`dev@oc.test`).
+Utente disattivato: "Amministratore Disattivato Collaudo" (`disattivato@orchestrator.local`). Utente attivo di confronto: "Lorena Sava" (`lorena.sava@montagnaservizi.com`).
 
 **Stato iniziale**
 L'utente "Amministratore Disattivato Collaudo" esiste con `deactivated_at` valorizzato. Almeno un ticket esiste nel sistema.
@@ -258,11 +258,11 @@ L'utente "Amministratore Disattivato Collaudo" esiste con `deactivated_at` valor
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedere al pannello come `manager@oc.test` | `manager@oc.test` / `password` | Login riuscito, dashboard/board di lavoro visibile |
+| 1 | Accedere al pannello come `manager@oc.test` | `manager@oc.test` / `uat` | Login riuscito, dashboard/board di lavoro visibile |
 | 2 | Aprire un ticket qualunque in modifica dalla lista ticket | un qualunque ticket dell'elenco | Si apre la form di modifica del ticket |
 | 3 | Aprire il menu a tendina del campo "Assegnatario" (o "Tester") nella sezione "Assegnazione e classificazione" | campo assegnatario | Il menu a tendina mostra un elenco di utenti |
 | 4 | Cercare nell'elenco il nome "Amministratore Disattivato Collaudo" | testo di ricerca "Disattivato" | Il nome non compare tra le opzioni selezionabili |
-| 5 | Cercare nell'elenco il nome "Sviluppatore Collaudo" | testo di ricerca "Sviluppatore" | Il nome compare tra le opzioni selezionabili |
+| 5 | Cercare nell'elenco il nome "Lorena Sava" | testo di ricerca "Sviluppatore" | Il nome compare tra le opzioni selezionabili |
 
 **Risultato finale atteso**
 Il campo di selezione assegnatario/tester del ticket non propone mai un utente disattivato, e propone regolarmente gli utenti attivi.
@@ -744,11 +744,11 @@ Critica
 Customer (caso negativo) + Admin (caso positivo) + Sviluppatore (verifica tecnica dell'abilità "impersonate", priva di un pulsante in UI in questa release)
 
 **Prerequisiti**
-- Utenti seed `customer@oc.test` (ruolo Customer: nessun permesso `user.*` nella matrice §9.4) e `admin@oc.test` (tutti i permessi) disponibili.
+- Utenti seed `infosentieroitalia@cai.it` (ruolo Customer: nessun permesso `user.*` nella matrice §9.4) e `info@montagnaservizi.com` (tutti i permessi) disponibili.
 - Esiste almeno un altro utente nell'elenco su cui provare le azioni (es. `manager@oc.test`).
 
 **Dati di test**
-Attore negativo: `customer@oc.test`. Attore positivo: `admin@oc.test`. Utente bersaglio: `manager@oc.test`.
+Attore negativo: `infosentieroitalia@cai.it`. Attore positivo: `info@montagnaservizi.com`. Utente bersaglio: `manager@oc.test`.
 
 **Stato iniziale**
 Gli utenti seed esistono con i ruoli assegnati dall'ETL reale (`v1:import --anonymize`) e da `collaudo:ensure-manager-account` (per `manager@oc.test`, ruolo non presente in v1).
@@ -757,13 +757,13 @@ Gli utenti seed esistono con i ruoli assegnati dall'ETL reale (`v1:import --anon
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedere al pannello come `customer@oc.test` | `customer@oc.test` / `password` | Login riuscito |
+| 1 | Accedere al pannello come `infosentieroitalia@cai.it` | `infosentieroitalia@cai.it` / `uat` | Login riuscito |
 | 2 | Verificare se la voce di menu "Utenti" è visibile in navigazione | — | La voce "Utenti" non compare nel menu (Customer non ha `user.view`) |
 | 3 | Tentare di navigare direttamente all'URL della lista utenti (`/admin/users`) | URL diretto | Viene mostrata una pagina di accesso negato (403), non l'elenco utenti |
-| 4 | Effettuare il logout e accedere come `admin@oc.test` | `admin@oc.test` / `password` | Login riuscito |
+| 4 | Effettuare il logout e accedere come `info@montagnaservizi.com` | `info@montagnaservizi.com` / `uat` | Login riuscito |
 | 5 | Aprire la voce di menu "Utenti" | — | L'elenco utenti viene mostrato correttamente (Admin ha `user.view`) |
 | 6 | Aprire in modifica l'utente `manager@oc.test` e osservare i pulsanti disponibili nella testata | — | Sono visibili i pulsanti Visualizza/Elimina (coerenti con `user.view`/`user.deactivate` posseduti da Admin) |
-| 7 | (Verifica tecnica) In `php artisan tinker`, per l'abilità "impersonate" (priva di un pulsante dedicato nell'interfaccia in questa release): `$admin = \App\Domain\Identity\Models\User::where('email','admin@oc.test')->first(); $target = \App\Domain\Identity\Models\User::where('email','manager@oc.test')->first(); $admin->can('impersonate', $target);` | comando tinker sopra | Restituisce `true` (Admin ha `user.impersonate`) |
+| 7 | (Verifica tecnica) In `php artisan tinker`, per l'abilità "impersonate" (priva di un pulsante dedicato nell'interfaccia in questa release): `$admin = \App\Domain\Identity\Models\User::where('email','info@montagnaservizi.com')->first(); $target = \App\Domain\Identity\Models\User::where('email','manager@oc.test')->first(); $admin->can('impersonate', $target);` | comando tinker sopra | Restituisce `true` (Admin ha `user.impersonate`) |
 | 8 | Ripetere il comando del passo 7 sostituendo `$admin` con l'utente Customer | comando tinker sopra | Restituisce `false` (Customer non ha `user.impersonate`) |
 
 **Risultato finale atteso**
@@ -822,8 +822,8 @@ Critica
 Admin
 
 **Prerequisiti**
-- Utente seed `admin@oc.test` disponibile (ha sia `user.assign-roles` sia `user.grant-permissions`, essendo Admin l'unico ruolo con l'intero catalogo).
-- Esiste almeno un altro utente su cui assegnare ruolo/permesso (es. `fr@oc.test`, o un utente di test dedicato creato al passo 1).
+- Utente seed `info@montagnaservizi.com` disponibile (ha sia `user.assign-roles` sia `user.grant-permissions`, essendo Admin l'unico ruolo con l'intero catalogo).
+- Esiste almeno un altro utente su cui assegnare ruolo/permesso (es. `sara.mariani@montagnaservizi.com`, o un utente di test dedicato creato al passo 1).
 
 **Dati di test**
 Utente bersaglio: nome "Utente Test Ruoli" (creato al passo 1). Ruolo da assegnare: "Cliente" (Customer). Permesso diretto da concedere: "Creare ticket" (`ticket.create`).
@@ -835,7 +835,7 @@ Nessun utente con nome "Utente Test Ruoli" esiste ancora. Le tabelle Ruoli/Perme
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedere al pannello come `admin@oc.test` e creare un nuovo utente da "Utenti" → "Nuovo" | Nome: "Utente Test Ruoli", Email: `utente-test-ruoli@orchestrator.local`, Locale: `it` | L'utente viene creato e si viene reindirizzati alla sua scheda |
+| 1 | Accedere al pannello come `info@montagnaservizi.com` e creare un nuovo utente da "Utenti" → "Nuovo" | Nome: "Utente Test Ruoli", Email: `utente-test-ruoli@orchestrator.local`, Locale: `it` | L'utente viene creato e si viene reindirizzati alla sua scheda |
 | 2 | Aprire l'utente appena creato in modifica | — | Si apre la form di modifica con le sezioni "Anagrafica", "Ruoli", "Permessi diretti" visibili |
 | 3 | Nella sezione "Ruoli", selezionare la checkbox "Cliente" e salvare | Ruolo: "Cliente" | Il salvataggio avviene senza errori di validazione |
 | 4 | Aprire la scheda (vista) dell'utente e osservare la sezione "Ruoli assegnati" | — | Compare il badge "Cliente" |
@@ -912,7 +912,7 @@ L'utente "Utente Test Ruoli" ha il ruolo Cliente assegnato e il permesso diretto
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedere al pannello come `admin@oc.test` e aprire la scheda (vista) dell'utente "Utente Test Ruoli" | — | Si apre la scheda utente con le sezioni "Ruoli assegnati" e "Permessi effettivi" |
+| 1 | Accedere al pannello come `info@montagnaservizi.com` e aprire la scheda (vista) dell'utente "Utente Test Ruoli" | — | Si apre la scheda utente con le sezioni "Ruoli assegnati" e "Permessi effettivi" |
 | 2 | Osservare la sezione "Permessi effettivi" e individuare la riga relativa a "Creare ticket" | — | La riga mostra sia il nome del ruolo "Cliente" sia la dicitura "diretto" tra parentesi (doppia provenienza) |
 | 3 | Individuare nella stessa sezione una riga relativa a un permesso derivato solo dal ruolo Cliente (es. "Visualizzare documentazione cliente") | — | La riga mostra il nome del ruolo "Cliente" tra parentesi, senza la dicitura "diretto" |
 | 4 | Verificare che non compaiano permessi non posseduti (es. "Eliminare utenti") | — | Nessuna riga relativa a permessi non posseduti dall'utente |
@@ -1042,10 +1042,10 @@ Sviluppatore
 
 **Prerequisiti**
 - Accesso a `psql` (o equivalente) e/o `php artisan tinker` sull'ambiente da collaudare.
-- Esiste almeno un'organizzazione tra quelle importate dall'ETL (numero e nomi dipendono dal dump caricato, non più un insieme fisso — vedi punto 13 di `00-istruzioni-generali.md`) e un utente (es. `customer@oc.test`).
+- Esiste almeno un'organizzazione tra quelle importate dall'ETL (numero e nomi dipendono dal dump caricato, non più un insieme fisso — vedi punto 13 di `00-istruzioni-generali.md`) e un utente (es. `infosentieroitalia@cai.it`).
 
 **Dati di test**
-Organizzazione: una qualunque tra quelle presenti nell'ambiente. Utente: `customer@oc.test`.
+Organizzazione: una qualunque tra quelle presenti nell'ambiente. Utente: `infosentieroitalia@cai.it`.
 
 **Stato iniziale**
 L'organizzazione e l'utente esistono; non è ancora garantito che siano già collegati (il passo 1 li collega esplicitamente se non lo sono già).
@@ -1055,7 +1055,7 @@ L'organizzazione e l'utente esistono; non è ancora garantito che siano già col
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
 | 1 | Verificare a livello di schema l'esistenza del vincolo: `SELECT indexname, indexdef FROM pg_indexes WHERE tablename = 'organization_user';` | query SQL sopra | È presente un indice unique sulla coppia `(organization_id, user_id)` |
-| 2 | In tinker, collegare l'utente all'organizzazione: `$org = \App\Domain\Identity\Models\Organization::where('name','CAI Sezione di Aosta')->first(); $user = \App\Domain\Identity\Models\User::where('email','customer@oc.test')->first(); $org->users()->syncWithoutDetaching([$user->id]);` | comando tinker sopra | Il comando termina senza errori, il collegamento risulta presente |
+| 2 | In tinker, collegare l'utente all'organizzazione: `$org = \App\Domain\Identity\Models\Organization::where('name','CAI Sezione di Aosta')->first(); $user = \App\Domain\Identity\Models\User::where('email','infosentieroitalia@cai.it')->first(); $org->users()->syncWithoutDetaching([$user->id]);` | comando tinker sopra | Il comando termina senza errori, il collegamento risulta presente |
 | 3 | Tentare di inserire manualmente una riga duplicata per la stessa coppia: `INSERT INTO organization_user (organization_id, user_id, created_at, updated_at) VALUES (<id_org>, <id_user>, now(), now());` (sostituendo gli id reali osservati al passo 2) | query SQL sopra | L'inserimento viene rifiutato dal database con un errore di violazione del vincolo unique |
 
 **Risultato finale atteso**
@@ -1399,7 +1399,7 @@ Sviluppatore
 
 **Prerequisiti**
 - Accesso psql all'istanza Postgres UAT
-- Conoscere l'`id` di un ticket esistente e di un utente esistente (es. il ticket con titolo "Il pulsante «Rinnova tessera» non risponde su Safari mobile" e l'utente `customer@oc.test`)
+- Conoscere l'`id` di un ticket esistente e di un utente esistente (es. il ticket con titolo "Il pulsante «Rinnova tessera» non risponde su Safari mobile" e l'utente `infosentieroitalia@cai.it`)
 
 **Dati di test**
 `ticket_id` e `user_id` di un ticket/utente reali dell'ambiente UAT; `viewed_on = CURRENT_DATE`.
@@ -1471,7 +1471,7 @@ Sviluppatore
 
 **Prerequisiti**
 - Accesso psql all'istanza Postgres UAT
-- Conoscere l'`id` di un ticket e di un utente reali (es. `dev@oc.test`)
+- Conoscere l'`id` di un ticket e di un utente reali (es. `lorena.sava@montagnaservizi.com`)
 
 **Dati di test**
 `ticket_id` e `user_id` di un ticket/utente reali.
@@ -1685,7 +1685,7 @@ Alta
 Manager (per la parte UI) e Sviluppatore (per la parte tinker/codice)
 
 **Prerequisiti**
-- Utenza `manager@oc.test` / `password`
+- Utenza `manager@oc.test` / `uat`
 - Accesso a `php artisan tinker` nel container app UAT
 
 **Dati di test**
@@ -1698,7 +1698,7 @@ Ambiente UAT con i 40 ticket seedati (coprono ciclicamente tutti e 12 gli stati)
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedere al pannello `/admin` come Manager e aprire la lista Ticket | manager@oc.test / password | La lista si apre mostrando i ticket con una colonna "Stato" a badge colorato |
+| 1 | Accedere al pannello `/admin` come Manager e aprire la lista Ticket | manager@oc.test / uat | La lista si apre mostrando i ticket con una colonna "Stato" a badge colorato |
 | 2 | Aprire il filtro "Stato" sulla tabella | — | Il menu a tendina elenca esattamente 12 opzioni, con le etichette italiane elencate nei Dati di test (inclusa "In test", mai "Test") |
 | 3 | Scorrere la lista e individuare almeno un ticket per ciascuna delle etichette "In test" e "Testato" | — | I badge di stato mostrano il testo corretto ("In test"/"Testato"), non un valore grezzo come "testing"/"tested" |
 | 4 | Nel container app, aprire `php artisan tinker` ed eseguire `array_map(fn ($c) => $c->value, \App\Domain\Ticketing\Enums\TicketStatus::cases());` | — | L'array restituito è, in ordine, `['new','backlog','assigned','todo','progress','testing','tested','released','done','problem','waiting','rejected']` (12 elementi) |
@@ -1836,8 +1836,8 @@ Sviluppatore (predisposizione dati) e Manager/Customer (verifica UI)
 
 **Prerequisiti**
 - Accesso psql all'istanza Postgres UAT
-- Utenze `manager@oc.test` e `customer@oc.test` (password `password`)
-- Un ticket il cui `requester_id` sia il Customer di collaudo (vale per tutti i 40 ticket seedati, dato che il richiedente è sempre "Socio CAI Collaudo")
+- Utenze `manager@oc.test` e `infosentieroitalia@cai.it` (password `uat`)
+- Un ticket il cui `requester_id` sia il Customer di collaudo (vale per tutti i 40 ticket seedati, dato che il richiedente è sempre "Sentiero Italia CAI - SICAI")
 
 **Dati di test**
 Ticket di riferimento: uno qualunque dei 40 ticket seedati (es. il primo, titolo "Il pulsante «Rinnova tessera» non risponde su Safari mobile"). Testo del messaggio interno da inserire: `'Nota interna di collaudo: non visibile al cliente.'`
@@ -1851,8 +1851,8 @@ Nessun messaggio con `visibility = 'internal'` esiste ancora sul ticket scelto (
 |------:|-------------------|--------------------|------------------|
 | 1 | Individuare l'`id` del ticket di riferimento (`SELECT id FROM tickets WHERE title = 'Il pulsante «Rinnova tessera» non risponde su Safari mobile';`) | — | Un solo `id` restituito |
 | 2 | Inserire il messaggio interno via psql: `INSERT INTO ticket_messages (ticket_id, channel, visibility, body_text, posted_at, created_at, updated_at) VALUES (<id_ticket>, 'web', 'internal', 'Nota interna di collaudo: non visibile al cliente.', now(), now(), now());` | id ticket, testo sopra | L'inserimento va a buon fine |
-| 3 | Accedere al pannello come Manager e aprire il dettaglio del ticket di riferimento | manager@oc.test / password | Nella sezione "Conversazione" compare anche il messaggio "Nota interna di collaudo: non visibile al cliente." |
-| 4 | Disconnettersi e accedere come Customer, aprire lo stesso ticket (è una propria richiesta, quindi visibile) | customer@oc.test / password | Nella sezione "Conversazione" il messaggio interno NON compare; sono visibili solo i messaggi pubblici della conversazione seedata |
+| 3 | Accedere al pannello come Manager e aprire il dettaglio del ticket di riferimento | manager@oc.test / uat | Nella sezione "Conversazione" compare anche il messaggio "Nota interna di collaudo: non visibile al cliente." |
+| 4 | Disconnettersi e accedere come Customer, aprire lo stesso ticket (è una propria richiesta, quindi visibile) | infosentieroitalia@cai.it / uat | Nella sezione "Conversazione" il messaggio interno NON compare; sono visibili solo i messaggi pubblici della conversazione seedata |
 
 **Risultato finale atteso**
 Il messaggio con visibilità interna è visibile solo a chi ha il permesso `ticket-message.view.internal` (Manager, Developer, Admin) e mai a un Customer, indipendentemente dal fatto che il Customer possa già vedere il ticket stesso.
@@ -1908,7 +1908,7 @@ Alta
 Manager e Customer
 
 **Prerequisiti**
-- Utenze `manager@oc.test` e `customer@oc.test` (password `password`)
+- Utenze `manager@oc.test` e `infosentieroitalia@cai.it` (password `uat`)
 - Un ticket qualunque tra i 40 seedati (il Customer di collaudo è richiedente di tutti)
 
 **Dati di test**
@@ -1921,9 +1921,9 @@ Il ticket scelto ha già righe di storico prodotte dal seeder/dalla macchina a s
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedere come Manager e aprire il dettaglio del ticket di riferimento | manager@oc.test / password | La sezione "Storico" è presente e mostra almeno una riga (evento, utente, data) |
+| 1 | Accedere come Manager e aprire il dettaglio del ticket di riferimento | manager@oc.test / uat | La sezione "Storico" è presente e mostra almeno una riga (evento, utente, data) |
 | 2 | Nella stessa sezione "Storico", cercare un pulsante o un'azione per aggiungere/modificare/eliminare una riga | — | Non esiste alcun controllo di scrittura: la sezione è un elenco di sola lettura |
-| 3 | Disconnettersi e accedere come Customer, aprire lo stesso ticket | customer@oc.test / password | La sezione "Storico" non è presente affatto nella pagina |
+| 3 | Disconnettersi e accedere come Customer, aprire lo stesso ticket | infosentieroitalia@cai.it / uat | La sezione "Storico" non è presente affatto nella pagina |
 
 **Risultato finale atteso**
 Lo storico è visibile in sola lettura solo a chi ha `ticket-log.view` (Manager/Developer/Admin) e completamente assente dalla pagina per chi non lo ha (Customer); nessuna azione di scrittura manuale è mai disponibile, per nessun ruolo.
@@ -1979,11 +1979,11 @@ Alta
 Manager e Customer
 
 **Prerequisiti**
-- Utenze `manager@oc.test` (ha `ticket.assign`) e `customer@oc.test` (non ha `ticket.assign`, solo `ticket.view.own`), password `password`
+- Utenze `manager@oc.test` (ha `ticket.assign`) e `infosentieroitalia@cai.it` (non ha `ticket.assign`, solo `ticket.view.own`), password `uat`
 - Un ticket qualunque tra i 40 seedati
 
 **Dati di test**
-Ticket di riferimento: uno qualunque dei 40 ticket seedati. Utente da aggiungere come partecipante: un utente attivo qualsiasi non già partecipante (es. `fr@oc.test`).
+Ticket di riferimento: uno qualunque dei 40 ticket seedati. Utente da aggiungere come partecipante: un utente attivo qualsiasi non già partecipante (es. `sara.mariani@montagnaservizi.com`).
 
 **Stato iniziale**
 Il ticket di riferimento ha già una sezione "Partecipanti" (eventualmente vuota o con l'autore dei messaggi già presente).
@@ -1992,10 +1992,10 @@ Il ticket di riferimento ha già una sezione "Partecipanti" (eventualmente vuota
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedere come Manager e aprire il dettaglio del ticket di riferimento | manager@oc.test / password | Tra le azioni di intestazione compaiono "Aggiungi partecipante" e "Rimuovi partecipante" |
-| 2 | Eseguire "Aggiungi partecipante" selezionando un utente non ancora partecipante | Referente Fundraising Collaudo | Il partecipante compare nella sezione "Partecipanti"; notifica di successo "Partecipante aggiunto" |
-| 3 | Eseguire "Rimuovi partecipante" sull'utente appena aggiunto | Referente Fundraising Collaudo | Il partecipante scompare dalla sezione "Partecipanti"; notifica di successo "Partecipante rimosso" |
-| 4 | Disconnettersi e accedere come Customer, aprire lo stesso ticket | customer@oc.test / password | La sezione "Partecipanti" è visibile (il Customer può vedere il proprio ticket), ma tra le azioni di intestazione NON compaiono "Aggiungi partecipante" né "Rimuovi partecipante" |
+| 1 | Accedere come Manager e aprire il dettaglio del ticket di riferimento | manager@oc.test / uat | Tra le azioni di intestazione compaiono "Aggiungi partecipante" e "Rimuovi partecipante" |
+| 2 | Eseguire "Aggiungi partecipante" selezionando un utente non ancora partecipante | Sara Mariani | Il partecipante compare nella sezione "Partecipanti"; notifica di successo "Partecipante aggiunto" |
+| 3 | Eseguire "Rimuovi partecipante" sull'utente appena aggiunto | Sara Mariani | Il partecipante scompare dalla sezione "Partecipanti"; notifica di successo "Partecipante rimosso" |
+| 4 | Disconnettersi e accedere come Customer, aprire lo stesso ticket | infosentieroitalia@cai.it / uat | La sezione "Partecipanti" è visibile (il Customer può vedere il proprio ticket), ma tra le azioni di intestazione NON compaiono "Aggiungi partecipante" né "Rimuovi partecipante" |
 
 **Risultato finale atteso**
 Solo chi ha `ticket.assign` (Manager/Developer/Admin) può aggiungere/rimuovere partecipanti; chiunque possa vedere il ticket può vedere l'elenco partecipanti, senza poterlo modificare senza il permesso.
@@ -3417,7 +3417,7 @@ Admin
 
 **Prerequisiti**
 - Ambiente UAT raggiungibile e credenziali Admin (punto 9 delle istruzioni generali:
-  `admin@oc.test` / `password`).
+  `info@montagnaservizi.com` / `uat`).
 - Per la parte automatica: ambiente locale/CI con suite Pest funzionante.
 - Browser con strumenti di sviluppo (ispezione elemento/computed style) per la verifica visiva.
 
@@ -3434,7 +3434,7 @@ altrimenti la pagina non si carica affatto (`ViteManifestNotFoundException`).
 |------:|-------------------|--------------------|------------------|
 | 1 | (Parte automatica) Eseguire il test unitario sui token | `vendor/bin/pest --filter "reads the brand color token from resources/css/theme.css"` | Il comando termina con exit code 0, test passed |
 | 2 | Aprire il browser sull'URL di login del pannello UAT | `https://ticket-uat.montagnaservizi.com/admin/login` | La pagina di login si carica correttamente |
-| 3 | Accedere con le credenziali Admin | `admin@oc.test` / `password` | Login riuscito, dashboard visibile |
+| 3 | Accedere con le credenziali Admin | `info@montagnaservizi.com` / `uat` | Login riuscito, dashboard visibile |
 | 4 | Ispezionare visivamente (o via strumenti sviluppatore) il colore degli elementi di brand (es. bottone primario, elementi attivi della sidebar) | Ispezione elemento del browser | Il colore corrisponde a `#17a180` (verde/teal) |
 | 5 | Ispezionare il font utilizzato dal testo del pannello | Ispezione elemento del browser (computed style, `font-family`) | Il font applicato è `Nunito Sans` (o la sua stack di fallback dichiarata) |
 
@@ -3526,7 +3526,7 @@ Database locale vuoto (post `migrate:fresh`), ruoli/permessi già seminati da
 |------:|-------------------|--------------------|------------------|
 | 1 | Posizionarsi nella root del progetto locale | `make setup` (oppure, passo per passo, `docker compose exec app php artisan v1:import --anonymize`) | Il comando termina senza errori |
 | 2 | Leggere il riepilogo per stage stampato dal comando | Output di `v1:import` | Ogni stage (`users`, `tickets`, `tags`, `documentation`, `activity_reports`, `fundraising_*`, ecc.) riporta `creati` > 0 (a meno che il dump non contenga righe per quello stage) |
-| 3 | Verificare la presenza delle 5 identità di riferimento | `docker compose exec app php artisan tinker --execute="echo App\Domain\Identity\Models\User::whereIn('email', ['admin@oc.test','dev@oc.test','manager@oc.test','customer@oc.test','fr@oc.test'])->count();"` | Il comando restituisce `5` (i primi 4 importati dall'ETL, il quinto — Manager — creato da `collaudo:ensure-manager-account`, eseguito da `make setup` subito dopo l'import) |
+| 3 | Verificare la presenza delle 5 identità di riferimento | `docker compose exec app php artisan tinker --execute="echo App\Domain\Identity\Models\User::whereIn('email', ['info@montagnaservizi.com','lorena.sava@montagnaservizi.com','manager@oc.test','infosentieroitalia@cai.it','sara.mariani@montagnaservizi.com'])->count();"` | Il comando restituisce `5` (i primi 4 importati dall'ETL, il quinto — Manager — creato da `collaudo:ensure-manager-account`, eseguito da `make setup` subito dopo l'import) |
 | 4 | Verificare che i ticket importati coprano più stati/tipi reali | `docker compose exec app php artisan tinker --execute="dd(App\Domain\Ticketing\Models\Ticket::distinct()->pluck('status'));"` (e analogo per `type`) | Sono presenti più valori distinti (l'elenco esatto dipende dal dump caricato, non è più un insieme fisso — vedi punto 13 di `00-istruzioni-generali.md`) |
 
 **Risultato finale atteso**

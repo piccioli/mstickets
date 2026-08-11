@@ -15,11 +15,11 @@ return [
         'app_url' => 'https://ticket-uat.montagnaservizi.com',
         'mailpit_url' => 'https://mailpit-ticket-uat.montagnaservizi.com',
         'credenziali' => [
-            ['ruolo' => 'Admin', 'email' => 'admin@oc.test', 'password' => 'password'],
-            ['ruolo' => 'Developer', 'email' => 'dev@oc.test', 'password' => 'password'],
-            ['ruolo' => 'Manager', 'email' => 'manager@oc.test', 'password' => 'password'],
-            ['ruolo' => 'Customer', 'email' => 'customer@oc.test', 'password' => 'password'],
-            ['ruolo' => 'Fundraising', 'email' => 'fr@oc.test', 'password' => 'password'],
+            ['ruolo' => 'Admin', 'email' => 'info@montagnaservizi.com', 'password' => 'uat'],
+            ['ruolo' => 'Developer', 'email' => 'lorena.sava@montagnaservizi.com', 'password' => 'uat'],
+            ['ruolo' => 'Manager', 'email' => 'manager@oc.test', 'password' => 'uat'],
+            ['ruolo' => 'Customer', 'email' => 'infosentieroitalia@cai.it', 'password' => 'uat'],
+            ['ruolo' => 'Fundraising', 'email' => 'sara.mariani@montagnaservizi.com', 'password' => 'uat'],
         ],
     ],
     'topics' => [

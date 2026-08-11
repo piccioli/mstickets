@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Import\Stages;
 
-use App\Import\Anonymization\Anonymizer;
 use App\Import\Inspect\Analyzers\DuplicateEmailAnalyzer;
+use App\Import\Security\FixedPasswordHasher;
 use App\Import\Stages\Contracts\ImportStage;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -18,20 +18,18 @@ use stdClass;
  * `help_desk_chat_url` restano fuori mapping: la feature non è confermata
  * (Q17 del PRD) e la colonna v2 non esiste ancora.
  *
- * Con `--anonymize` (§11.8, US-217) `name`/`email` sono sostituiti da
- * {@see Anonymizer}, deterministico per `id` v1: una riesecuzione produce
- * sempre la stessa identità fittizia per lo stesso utente, così il confronto
- * di `attributesDiffer()` resta stabile (mai un `updated` spurio alla seconda
- * esecuzione anonimizzata).
+ * `name`/`email` non vengono mai alterati (US-R08, sostituisce l'anonimizzazione
+ * identitaria originale di US-217): restano sempre quelli reali del dump v1,
+ * sia in produzione sia in locale/UAT.
  *
- * `password` (US-R01): con `--anonymize` sostituita dall'hash Laravel di una
- * password fissa nota ({@see Anonymizer::passwordHash()}), mai l'hash v1
- * reale fuori produzione. Bcrypt sala casualmente ad ogni chiamata, quindi
- * `password` è insert-only, come `released_at`/`done_at` in `TicketsStage`
- * (US-205): esclusa dall'array `$attributes` usato per il diff/update,
- * altrimenti ogni riesecuzione con `--anonymize` genererebbe un hash diverso
- * e verrebbe segnalata come un `updated` spurio pur non essendo cambiato
- * nulla di sostanziale.
+ * `password` (US-R01, ridefinita da US-R08): con `--anonymize` sostituita
+ * dall'hash Laravel di una password fissa nota ({@see FixedPasswordHasher}),
+ * mai l'hash v1 reale fuori produzione. Bcrypt sala casualmente ad ogni
+ * chiamata, quindi `password` è insert-only, come `released_at`/`done_at` in
+ * `TicketsStage` (US-205): esclusa dall'array `$attributes` usato per il
+ * diff/update, altrimenti ogni riesecuzione con `--anonymize` genererebbe un
+ * hash diverso e verrebbe segnalata come un `updated` spurio pur non essendo
+ * cambiato nulla di sostanziale.
  */
 final class UsersStage implements ImportStage
 {
@@ -64,8 +62,6 @@ final class UsersStage implements ImportStage
 
         $warnings = $this->duplicateEmailWarnings($rows);
 
-        $anonymizer = $context->shouldAnonymize() ? Anonymizer::default() : null;
-
         $read = 0;
         $created = 0;
         $updated = 0;
@@ -79,8 +75,8 @@ final class UsersStage implements ImportStage
             }
 
             $attributes = [
-                'name' => $anonymizer?->nameFor($row->id) ?? $row->name,
-                'email' => $anonymizer?->emailFor($row->id) ?? $row->email,
+                'name' => $row->name,
+                'email' => $row->email,
                 'email_verified_at' => $row->email_verified_at,
                 'remember_token' => $row->remember_token,
                 'locale' => $row->activity_report_language,
@@ -95,7 +91,7 @@ final class UsersStage implements ImportStage
             if ($existing === null) {
                 DB::table('users')->insert([
                     'id' => $row->id,
-                    'password' => $anonymizer?->passwordHash() ?? $row->password,
+                    'password' => $context->shouldAnonymize() ? FixedPasswordHasher::hash() : $row->password,
                     ...$attributes,
                 ]);
                 $created++;

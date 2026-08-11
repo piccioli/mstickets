@@ -60,12 +60,12 @@ reset di `db_legacy`, le migrazioni e l'ETL sono già idempotenti di loro. Gli a
 **best-effort**: se `storage/app/v1-media/` è vuota (nessuno ha ancora lanciato `bin/fetch-legacy-media`),
 il setup non fallisce, l'ETL segnala solo i media come compromesso.
 
-L'app è raggiungibile su `http://localhost:8080/admin`. A fine setup viene stampato un promemoria: la
-password di ogni utente importato con `--anonymize` è `password`; per il login, individuare l'email
-anonimizzata di un utente reale noto con una query diretta su `users` (l'`id` è conservato dal v1) oppure
-consultare i manifest di collaudo aggiornati dal committente — nessun utente sintetico con credenziali
-fisse viene creato da questo target. Il pannello riflette il tema Montagna Servizi importato in
-US-004/US-005 (palette teal, font Nunito Sans, logo), non il tema di default di Filament.
+L'app è raggiungibile su `http://localhost:8080/admin`. Nome/email/contenuti di ogni utente e ticket
+importato sono quelli reali del dump v1 (US-R08): solo la password cambia, impostata a `uat` per
+**tutti** gli utenti importati con `--anonymize`. Per il login, usare l'email reale di un utente noto
+(vedi `docs/collaudo/00-istruzioni-generali.md` per le identità di riferimento del collaudo) oppure
+individuarne una con una query diretta su `users`. Il pannello riflette il tema Montagna Servizi importato
+in US-004/US-005 (palette teal, font Nunito Sans, logo), non il tema di default di Filament.
 
 ### Convenzione del dump corrente: `v1dumps/latest.sql`
 
@@ -157,23 +157,24 @@ Il report viene salvato in `storage/app/import/inspect-<timestamp>.md` (conteggi
 allegato alla PR di questa fase. Il report generato su un dump v1 reale di questa fase è
 [`storage/app/import/inspect-20260725_225710.md`](storage/app/import/inspect-20260725_225710.md).
 
-### Anonimizzazione (`--anonymize`, §11.8 del PRD)
+### Password fissa fuori produzione (`--anonymize`, ridefinito da US-R08)
 
-`--anonymize` su `php artisan v1:import` sostituisce nome/email di ogni utente e il corpo di ogni messaggio
-importato con dati fittizi deterministici (stesso utente v1 → sempre la stessa identità fittizia, mai casuale
-a ogni riga), preservando le relazioni reali (chi ha scritto cosa, a chi è assegnato cosa). Le email fittizie
-usano sempre uno dei domini in `MAIL_TEST_DOMAINS` (`.env`, default `test.orchestrator.invalid`), mai un
-dominio reale.
+`--anonymize` su `php artisan v1:import` impone a **ogni** utente importato la stessa password fissa nota
+(`uat`, hash Laravel via `App\Import\Security\FixedPasswordHasher`), mai l'hash v1 reale. Nome, email e
+contenuti (messaggi, ticket, ecc.) **non vengono mai alterati**: restano sempre quelli reali del dump v1,
+con o senza `--anonymize` — a differenza del design originale (US-217, §11.8 del PRD), che anonimizzava
+anche l'identità. La sola password resta un segreto degno di nota: mai l'hash v1 reale fuori produzione.
 
 **`--anonymize` è OBBLIGATORIO per ogni esecuzione di `v1:import` in un ambiente non di produzione**
-(sviluppo, staging, CI): il dump v1 contiene dati reali dei clienti che non devono comparire in un ambiente
-non protetto. Solo l'import verso l'ambiente di produzione reale può ometterlo.
+(sviluppo, staging, CI): fuori produzione nessun utente deve poter accedere con la propria password v1
+reale. Solo l'import verso l'ambiente di produzione reale può ometterlo (mantiene l'hash v1 as-is, un vero
+cutover).
 
-Indipendentemente da `--anonymize`, un guard applicativo (`App\Support\Mail\BlockRealRecipientsOutsideProduction`,
-registrato in `AppServiceProvider::boot()`) blocca **qualunque** invio email dell'applicazione verso un
-indirizzo il cui dominio non è in `MAIL_TEST_DOMAINS` quando `APP_ENV !== production`: una protezione di
-ultima istanza contro l'invio accidentale verso un cliente reale durante un test/uno sviluppo locale, non
-solo un vincolo dell'ETL.
+Un guard applicativo indipendente (`App\Support\Mail\BlockRealRecipientsOutsideProduction`, registrato in
+`AppServiceProvider::boot()`) blocca **qualunque** invio email dell'applicazione verso un indirizzo il cui
+dominio non è in `MAIL_TEST_DOMAINS` (`.env`) quando `APP_ENV !== production`: dato che gli utenti importati
+hanno ora email reali, questo guard è la sola protezione contro l'invio accidentale di una notifica verso
+un cliente/collega reale durante un test/uno sviluppo locale.
 
 ## Punto di controllo obbligatorio prima della Fase 1
 

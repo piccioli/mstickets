@@ -29,7 +29,7 @@ final class V1ImportCommand extends Command
         {--from-stage= : Esegue lo stage indicato e tutti quelli successivi nell\'ordine di dipendenza}
         {--limit= : Limita il numero di righe lette da ciascuno stage (debug/dev)}
         {--truncate : Tronca le tabelle di destinazione prima di importare (richiede conferma, non consentito in produzione)}
-        {--anonymize : Sostituisce dati identificativi con dati fittizi deterministici (§11.8)}';
+        {--anonymize : Impone una password fissa nota a tutti gli utenti importati, mai l\'hash v1 reale (nome/email/contenuti restano sempre quelli reali del dump, US-R08)}';
 
     protected $description = 'Importa i dati del dump v1 (db_legacy) nello schema v2.';
 

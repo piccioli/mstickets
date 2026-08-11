@@ -27,12 +27,12 @@ Critica
 Admin
 
 **Prerequisiti**
-- Accesso al pannello `/admin` come admin@oc.test (password "password").
-- Esistono gli utenti di collaudo "Sviluppatore Collaudo" (dall'ETL reale, `v1:import --anonymize`) e "Manager Collaudo" (da `collaudo:ensure-manager-account`, eseguito da `make setup`/deploy subito dopo l'import).
+- Accesso al pannello `/admin` come info@montagnaservizi.com (password "uat").
+- Esistono gli utenti di collaudo "Lorena Sava" (dall'ETL reale, `v1:import --anonymize`) e "Manager Collaudo" (da `collaudo:ensure-manager-account`, eseguito da `make setup`/deploy subito dopo l'import).
 
 **Dati di test**
 - Nuovo ticket con titolo `COLL-F1-01-20260726-01`.
-- Assegnatario: "Sviluppatore Collaudo". Tester: "Sviluppatore Collaudo" (un solo utente può ricoprire entrambi i ruoli nel percorso).
+- Assegnatario: "Lorena Sava". Tester: "Lorena Sava" (un solo utente può ricoprire entrambi i ruoli nel percorso).
 
 **Stato iniziale**
 Nessun ticket `COLL-F1-01-20260726-01` presente. Il tester è autenticato come admin.
@@ -42,10 +42,10 @@ Nessun ticket `COLL-F1-01-20260726-01` presente. Il tester è autenticato come a
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
 | 1 | Crea un nuovo ticket dalla lista Ticket | Titolo `COLL-F1-01-20260726-01` | Il ticket viene creato con badge di stato "Nuovo"; nello storico compare un evento di creazione |
-| 2 | Apri il dettaglio e usa il bottone di transizione verso "Assegnato" | Modale: Assegnatario = "Sviluppatore Collaudo" | Badge passa a "Assegnato"; storico registra il cambio `Nuovo → Assegnato` |
+| 2 | Apri il dettaglio e usa il bottone di transizione verso "Assegnato" | Modale: Assegnatario = "Lorena Sava" | Badge passa a "Assegnato"; storico registra il cambio `Nuovo → Assegnato` |
 | 3 | Esegui la transizione verso "Da fare" | Nessun campo aggiuntivo (solo checkbox "Applica ai figli", lasciare deselezionato) | Badge passa a "Da fare"; storico registra `Assegnato → Da fare` |
 | 4 | Esegui la transizione verso "In lavorazione" | Nessun campo aggiuntivo | Badge passa a "In lavorazione"; storico registra `Da fare → In lavorazione` (transizione che dichiara l'effetto di retrocessione degli altri ticket in lavorazione dello stesso assegnatario) |
-| 5 | Esegui la transizione verso "In test" | Modale: Tester = "Sviluppatore Collaudo" | Badge passa a "In test"; storico registra `In lavorazione → In test` |
+| 5 | Esegui la transizione verso "In test" | Modale: Tester = "Lorena Sava" | Badge passa a "In test"; storico registra `In lavorazione → In test` |
 | 6 | Esegui la transizione verso "Testato" | Nessun campo aggiuntivo | Badge passa a "Testato"; storico registra `In test → Testato` |
 | 7 | Esegui la transizione verso "Rilasciato" | Nessun campo aggiuntivo | Badge passa a "Rilasciato"; il campo data di rilascio (`released_at`) viene valorizzato |
 | 8 | Esegui la transizione verso "Completato" | Nessun campo aggiuntivo | Badge passa a "Completato"; il campo data di completamento (`done_at`) viene valorizzato; nessun bottone di transizione ulteriore è più disponibile (stato terminale) |
@@ -104,12 +104,12 @@ Alta
 Admin
 
 **Prerequisiti**
-- Accesso al pannello `/admin` come admin@oc.test.
-- Esiste l'utente "Sviluppatore Collaudo".
+- Accesso al pannello `/admin` come info@montagnaservizi.com.
+- Esiste l'utente "Lorena Sava".
 
 **Dati di test**
 - Nuovo ticket con titolo `COLL-F1-02-20260726-01`.
-- Assegnatario: "Sviluppatore Collaudo".
+- Assegnatario: "Lorena Sava".
 
 **Stato iniziale**
 Nessun ticket `COLL-F1-02-20260726-01` presente. Tester autenticato come admin.
@@ -119,7 +119,7 @@ Nessun ticket `COLL-F1-02-20260726-01` presente. Tester autenticato come admin.
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
 | 1 | Crea un nuovo ticket | Titolo `COLL-F1-02-20260726-01` | Ticket creato in stato "Nuovo" |
-| 2 | Transizione verso "Assegnato" | Assegnatario = "Sviluppatore Collaudo" | Badge "Assegnato" |
+| 2 | Transizione verso "Assegnato" | Assegnatario = "Lorena Sava" | Badge "Assegnato" |
 | 3 | Transizione verso "Da fare" | Nessun campo aggiuntivo | Badge "Da fare" |
 | 4 | Transizione verso "In lavorazione" | Nessun campo aggiuntivo | Badge "In lavorazione" |
 | 5 | Verifica i bottoni di transizione disponibili in "In lavorazione" | — | Sono presenti sia "Rilasciato" sia "In test" (percorsi alternativi); scegliere "Rilasciato" |
@@ -216,7 +216,7 @@ Note aggiuntive sulla matrice, da usare come attese per i casi vietati:
 - Il target dinamico delle righe #18/#19 coincide solo con `previous_status`: chiedere un target diverso da `previous_status` mentre si è in "In attesa"/"Problema" risulta "non ammesso" (non un guard fallito).
 
 **Stato iniziale**
-Nessun ticket precedente coinvolto: il passo 1 crea un ticket nuovo dedicato (`COLL-F1-03-20260726-01`), in stato "Nuovo", requester = "Socio CAI Collaudo". I passi successivi riusano quel ticket o ne identificano altri già presenti nel dataset importato dall'ETL reale (filtrando l'elenco Ticket per "Stato" in Filament) per i casi che richiedono uno stato di partenza diverso (es. "In test" per il passo 3); se un dato stato non è rappresentato nel dump caricato, portare un ticket qualunque in quello stato con i bottoni di transizione già testati in F1-01/F1-02.
+Nessun ticket precedente coinvolto: il passo 1 crea un ticket nuovo dedicato (`COLL-F1-03-20260726-01`), in stato "Nuovo", requester = "Sentiero Italia CAI - SICAI". I passi successivi riusano quel ticket o ne identificano altri già presenti nel dataset importato dall'ETL reale (filtrando l'elenco Ticket per "Stato" in Filament) per i casi che richiedono uno stato di partenza diverso (es. "In test" per il passo 3); se un dato stato non è rappresentato nel dump caricato, portare un ticket qualunque in quello stato con i bottoni di transizione già testati in F1-01/F1-02.
 
 **Procedura di esecuzione**
 
@@ -224,10 +224,10 @@ La procedura copre un sottoinsieme rappresentativo della matrice sopra: 3 transi
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | (Ammessa, Admin/Manager) Come admin, crea `COLL-F1-03-20260726-01`, aprilo e transiziona verso "Assegnato" | Assegnatario = "Sviluppatore Collaudo" | Bottone "Assegnato" presente; transizione riuscita; badge "Assegnato" (riga #1) |
-| 2 | (Ammessa, Assegnatario) Autenticati come "Sviluppatore Collaudo" (assegnatario del ticket del passo 1) e transiziona verso "Da fare" | Nessun campo aggiuntivo | Bottone "Da fare" presente per l'assegnatario; transizione riuscita (riga #6) |
-| 3 | (Ammessa, Tester) Su un ticket in stato "In test" con tester = "Sviluppatore Collaudo" (individuato filtrando l'elenco Ticket per Stato = "In test" e Tester = "Sviluppatore Collaudo", oppure portando un ticket fino a "In test" con tester dedicato), autenticato come quel tester, transiziona verso "Testato" | Nessun campo aggiuntivo | Bottone "Testato" presente per il tester; transizione riuscita (riga #11) |
-| 4 | (Vietata, attore) Autenticato come "Sviluppatore Collaudo" (developer, senza `ticket.transition.any`), apri un ticket in stato "Nuovo" | — | Il bottone verso "Rifiutato" NON è presente (riga #3 riservata ad Admin/Manager). A livello tecnico, invocare direttamente l'azione di cambio stato verso "Rifiutato" produce un errore di validazione localizzato, senza scrivere nulla |
+| 1 | (Ammessa, Admin/Manager) Come admin, crea `COLL-F1-03-20260726-01`, aprilo e transiziona verso "Assegnato" | Assegnatario = "Lorena Sava" | Bottone "Assegnato" presente; transizione riuscita; badge "Assegnato" (riga #1) |
+| 2 | (Ammessa, Assegnatario) Autenticati come "Lorena Sava" (assegnatario del ticket del passo 1) e transiziona verso "Da fare" | Nessun campo aggiuntivo | Bottone "Da fare" presente per l'assegnatario; transizione riuscita (riga #6) |
+| 3 | (Ammessa, Tester) Su un ticket in stato "In test" con tester = "Lorena Sava" (individuato filtrando l'elenco Ticket per Stato = "In test" e Tester = "Lorena Sava", oppure portando un ticket fino a "In test" con tester dedicato), autenticato come quel tester, transiziona verso "Testato" | Nessun campo aggiuntivo | Bottone "Testato" presente per il tester; transizione riuscita (riga #11) |
+| 4 | (Vietata, attore) Autenticato come "Lorena Sava" (developer, senza `ticket.transition.any`), apri un ticket in stato "Nuovo" | — | Il bottone verso "Rifiutato" NON è presente (riga #3 riservata ad Admin/Manager). A livello tecnico, invocare direttamente l'azione di cambio stato verso "Rifiutato" produce un errore di validazione localizzato, senza scrivere nulla |
 | 5 | (Vietata, assegnatario su fase di test) Autenticato come assegnatario (non tester) di un ticket in "In test", apri il dettaglio | — | Il bottone "Testato" NON è presente per l'assegnatario (riga #11 riservata a Tester/Admin/Manager); tentativo tecnico rifiutato |
 | 6 | (Vietata, sistema) Verifica che l'utente di sistema NON possa eseguire `Rilasciato → Completato` | Verifica tecnica: chiamata all'azione con l'utente di sistema | La transizione è rifiutata con errore localizzato: l'attore "Sistema" non è tra gli attori ammessi della riga #15 (automazione riservata a una fase futura) |
 
@@ -283,16 +283,16 @@ MISTO
 Alta
 
 **Ruolo del tester**
-Developer (Sviluppatore Collaudo)
+Developer (Lorena Sava)
 
 **Prerequisiti**
-- Accesso al pannello come dev@oc.test.
+- Accesso al pannello come lorena.sava@montagnaservizi.com.
 - Esiste almeno un secondo utente-collega (es. "Manager Collaudo") da usare come tentativo di assegnazione errata.
 - Esiste un ticket in stato "Nuovo" e senza assegnatario. Nota: filtrare l'elenco Ticket per Stato = "Nuovo" e verificare la colonna Assegnatario; se ogni ticket "Nuovo" del dump importato ha già un assegnatario, creare un ticket nuovo dedicato senza assegnatario per un test pulito.
 
 **Dati di test**
 - Ticket `COLL-F1-04-20260726-01` in stato "Nuovo", senza assegnatario.
-- Utente corrente: "Sviluppatore Collaudo". Collega: "Manager Collaudo".
+- Utente corrente: "Lorena Sava". Collega: "Manager Collaudo".
 
 **Stato iniziale**
 Ticket `COLL-F1-04-20260726-01` "Nuovo", `assignee_id` vuoto. Tester autenticato come developer.
@@ -302,7 +302,7 @@ Ticket `COLL-F1-04-20260726-01` "Nuovo", `assignee_id` vuoto. Tester autenticato
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
 | 1 | (Positivo) Apri il ticket e avvia la transizione verso "Assegnato" | — | Il modale NON mostra il campo "Assegnatario" (auto-assegnazione silenziosa): il developer sta assegnando implicitamente a sé stesso |
-| 2 | Conferma la transizione | Solo checkbox "Applica ai figli", deselezionato | Badge passa a "Assegnato"; l'assegnatario del ticket è "Sviluppatore Collaudo" (l'utente corrente) |
+| 2 | Conferma la transizione | Solo checkbox "Applica ai figli", deselezionato | Badge passa a "Assegnato"; l'assegnatario del ticket è "Lorena Sava" (l'utente corrente) |
 | 3 | (Negativo, livello dati) Simula un payload manipolato che inietta `assignee_id` di un collega nella stessa transizione | `assignee_id` = id di "Manager Collaudo" | Il campo iniettato ma non dichiarato nello schema viene ignorato da Filament: il ticket resta assegnato all'utente corrente, mai al collega |
 | 4 | (Negativo, livello macchina a stati) Verifica tecnica: invoca direttamente il cambio stato `Nuovo → Assegnato` con `assignee_id` di un collega, come developer | Contesto `assignee_id` = collega | La macchina a stati rifiuta con errore di validazione localizzato ("Non hai i permessi per eseguire questa transizione su questo ticket."); il ticket resta "Nuovo" e senza assegnatario; nessuno storico scritto |
 
@@ -314,7 +314,7 @@ I passi 3 e 4 sono i controlli negativi.
 
 **Evidenze da acquisire**
 - Screenshot del modale di transizione senza campo "Assegnatario".
-- Screenshot dell'assegnatario finale = "Sviluppatore Collaudo".
+- Screenshot dell'assegnatario finale = "Lorena Sava".
 - Registrazione dell'errore/rifiuto sul tentativo con collega.
 
 **Criterio di superamento**
@@ -377,7 +377,7 @@ Ticket in "In lavorazione", senza tester.
 |------:|-------------------|--------------------|------------------|
 | 1 | Apri il ticket e avvia la transizione verso "In test" | — | Il modale mostra il campo obbligatorio "Tester" |
 | 2 | Tenta di confermare lasciando "Tester" vuoto | Tester = (vuoto) | La conferma è bloccata: il campo obbligatorio impedisce l'invio. Se l'invio viene forzato/bypassato, la transizione è rifiutata con il messaggio "La transizione richiede di specificare un tester." e il ticket resta "In lavorazione" |
-| 3 | Seleziona un tester valido e conferma | Tester = "Sviluppatore Collaudo" | La transizione riesce; badge passa a "In test" |
+| 3 | Seleziona un tester valido e conferma | Tester = "Lorena Sava" | La transizione riesce; badge passa a "In test" |
 
 **Risultato finale atteso**
 Senza tester la transizione verso "In test" è impedita con il messaggio italiano esatto; con tester valorizzato riesce.
@@ -788,7 +788,7 @@ MISTO
 Alta
 
 **Ruolo del tester**
-Admin (predispone gli stati); l'assegnatario è "Sviluppatore Collaudo"
+Admin (predispone gli stati); l'assegnatario è "Lorena Sava"
 
 **Prerequisiti**
 - Almeno due ticket assegnati allo stesso developer già in stato "In lavorazione", più un terzo ticket dello stesso developer in "Da fare" da promuovere.
@@ -936,10 +936,10 @@ Admin (oppure Manager, che ha `ticket.assign`)
 - Un ticket con un assegnatario iniziale, da riassegnare a un secondo utente.
 
 **Dati di test**
-- Ticket `COLL-F1-13-20260726-01`, assegnatario iniziale "Sviluppatore Collaudo", nuovo assegnatario "Manager Collaudo".
+- Ticket `COLL-F1-13-20260726-01`, assegnatario iniziale "Lorena Sava", nuovo assegnatario "Manager Collaudo".
 
 **Stato iniziale**
-Ticket con assegnatario = "Sviluppatore Collaudo".
+Ticket con assegnatario = "Lorena Sava".
 
 **Procedura di esecuzione**
 
@@ -1212,7 +1212,7 @@ MISTO
 Alta
 
 **Ruolo del tester**
-Developer (Sviluppatore Collaudo)
+Developer (Lorena Sava)
 
 **Prerequisiti**
 - Un ticket assegnato a un altro utente (né assegnatario né tester = il developer di prova).
@@ -1220,7 +1220,7 @@ Developer (Sviluppatore Collaudo)
 
 **Dati di test**
 - Ticket di altri: `COLL-F1-17-20260726-01`, assegnatario "Manager Collaudo", tester nessuno.
-- Ticket proprio: `COLL-F1-17-20260726-02`, assegnatario "Sviluppatore Collaudo".
+- Ticket proprio: `COLL-F1-17-20260726-02`, assegnatario "Lorena Sava".
 
 **Stato iniziale**
 Ticket `01` assegnato a Manager; ticket `02` assegnato al developer di prova. Tester autenticato come developer.
@@ -1284,17 +1284,17 @@ MISTO
 Critica
 
 **Ruolo del tester**
-Customer (Socio CAI Collaudo)
+Customer (Sentiero Italia CAI - SICAI)
 
 **Prerequisiti**
-- Esistono ticket con richiedente diverso dal cliente di prova: filtrare l'elenco Ticket per Richiedente per verificare quanti clienti distinti sono presenti nel dataset importato dall'ETL. Se il dump caricato ha come richiedente solo "Socio CAI Collaudo", per il controllo negativo predisporre almeno un ticket con richiedente diverso (es. un secondo cliente creato come admin), oppure verificare via dati/query.
+- Esistono ticket con richiedente diverso dal cliente di prova: filtrare l'elenco Ticket per Richiedente per verificare quanti clienti distinti sono presenti nel dataset importato dall'ETL. Se il dump caricato ha come richiedente solo "Sentiero Italia CAI - SICAI", per il controllo negativo predisporre almeno un ticket con richiedente diverso (es. un secondo cliente creato come admin), oppure verificare via dati/query.
 
 **Dati di test**
-- Ticket del cliente di prova: un ticket reale con richiedente "Socio CAI Collaudo" (filtrare l'elenco Ticket per Richiedente = "Socio CAI Collaudo").
-- Ticket di altro richiedente: `COLL-F1-18-20260726-01`, richiedente = un secondo cliente (da creare come admin), assegnatario = "Socio CAI Collaudo" (per verificare che l'assegnazione non conceda comunque la visibilità al cliente).
+- Ticket del cliente di prova: un ticket reale con richiedente "Sentiero Italia CAI - SICAI" (filtrare l'elenco Ticket per Richiedente = "Sentiero Italia CAI - SICAI").
+- Ticket di altro richiedente: `COLL-F1-18-20260726-01`, richiedente = un secondo cliente (da creare come admin), assegnatario = "Sentiero Italia CAI - SICAI" (per verificare che l'assegnazione non conceda comunque la visibilità al cliente).
 
 **Stato iniziale**
-Almeno un ticket con richiedente = cliente di prova e almeno uno con richiedente diverso. Tester autenticato come "Socio CAI Collaudo".
+Almeno un ticket con richiedente = cliente di prova e almeno uno con richiedente diverso. Tester autenticato come "Sentiero Italia CAI - SICAI".
 
 **Procedura di esecuzione**
 
@@ -1355,7 +1355,7 @@ MISTO
 Alta
 
 **Ruolo del tester**
-Customer (Socio CAI Collaudo) per l'osservazione in UI; Amministratore di sistema per la verifica sui dati/scope
+Customer (Sentiero Italia CAI - SICAI) per l'osservazione in UI; Amministratore di sistema per la verifica sui dati/scope
 
 **Prerequisiti**
 - Deve esistere almeno un messaggio con visibilità "interna" su un ticket visibile al cliente. Poiché la UI non consente di crearne, il messaggio interno va predisposto a livello dati (inserimento diretto in `ticket_messages` con visibilità interna) oppure la verifica si affida al test automatico. Predisposizione dati diretta: DA VERIFICARE CON IL PRODUCT OWNER se ammessa nell'ambiente UAT.
@@ -1440,10 +1440,10 @@ Alta
 Sviluppatore (Developer)
 
 **Prerequisiti**
-- Utente `dev@oc.test` con accesso al pannello `/admin`.
+- Utente `lorena.sava@montagnaservizi.com` con accesso al pannello `/admin`.
 - Accesso a `php artisan tinker` (o equivalente) sull'ambiente collaudato, per il controllo tecnico finale.
 - Un ticket reale del dataset importato dall'ETL, tipo "Bug", stato "Nuovo", assegnatario
-  "Sviluppatore Collaudo", con almeno un messaggio già presente in "Conversazione" (individuato
+  "Lorena Sava", con almeno un messaggio già presente in "Conversazione" (individuato
   filtrando l'elenco Ticket per Stato = "Nuovo" e Tipo = "Bug" e verificandone il dettaglio). Se nel
   dump caricato nessun ticket soddisfa questa combinazione, crearne uno con i dati richiesti e
   pubblicare un primo messaggio con la stessa azione "Aggiungi messaggio" prima di eseguire la
@@ -1461,10 +1461,10 @@ Il ticket ha già almeno un messaggio di conversazione presente.
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Login come `dev@oc.test`, aprire il ticket individuato sopra | Filtro tabella ticket: Stato = "Nuovo", Tipo = "Bug" | Pagina di dettaglio ticket aperta, sezione "Conversazione" con almeno un messaggio esistente |
+| 1 | Login come `lorena.sava@montagnaservizi.com`, aprire il ticket individuato sopra | Filtro tabella ticket: Stato = "Nuovo", Tipo = "Bug" | Pagina di dettaglio ticket aperta, sezione "Conversazione" con almeno un messaggio esistente |
 | 2 | Cliccare l'azione header "Aggiungi messaggio" | — | Si apre il modale con campo RichEditor "Messaggio" e campo "Allegati" |
 | 3 | Digitare "Ciao " nel campo Messaggio, selezionare "mondo" (digitato subito dopo) e cliccare il pulsante Grassetto, poi aggiungere " COLL-F1-20-DATA-01" | "Ciao **mondo** COLL-F1-20-DATA-01" | Il testo "mondo" appare in grassetto nell'editor |
-| 4 | Confermare l'invio | — | Notifica di successo "Messaggio pubblicato"; il nuovo messaggio compare in fondo alla sezione "Conversazione" con "mondo" mostrato in grassetto, autore "Sviluppatore Collaudo", data/ora corrente |
+| 4 | Confermare l'invio | — | Notifica di successo "Messaggio pubblicato"; il nuovo messaggio compare in fondo alla sezione "Conversazione" con "mondo" mostrato in grassetto, autore "Lorena Sava", data/ora corrente |
 | 5 | Aprire `php artisan tinker` e recuperare l'ultimo messaggio del ticket: `App\Domain\Ticketing\Models\TicketMessage::where('ticket_id', <id>)->latest('posted_at')->first()` | Script tinker | Restituisce il record appena creato |
 | 6 | Ispezionare i campi `channel`, `visibility`, `body_html`, `body_text`, `is_legacy_import` del record | — | `channel` = `web`; `visibility` = `public`; `body_html` contiene `<strong>mondo</strong>`; `body_text` = "Ciao mondo COLL-F1-20-DATA-01" (nessun tag HTML); `is_legacy_import` = `false` |
 
@@ -1531,7 +1531,7 @@ Media
 Sviluppatore (Developer)
 
 **Prerequisiti**
-- Utente `dev@oc.test` con accesso al pannello.
+- Utente `lorena.sava@montagnaservizi.com` con accesso al pannello.
 - Un ticket con la sezione "Partecipanti" vuota (placeholder "Nessun partecipante"): filtrare
   l'elenco Ticket per Tipo = "Feature" e Stato = "Backlog" e verificare il dettaglio di uno o più
   risultati, oppure un ticket qualunque del dataset importato la cui sezione "Partecipanti" risulti
@@ -1549,11 +1549,11 @@ Sezione "Partecipanti" del ticket vuota (placeholder "Nessun partecipante").
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Login come `dev@oc.test`, aprire il ticket individuato sopra | — | Sezione "Partecipanti" mostra "Nessun partecipante" |
-| 2 | Cliccare "Aggiungi messaggio", digitare il primo testo, confermare | "Prima verifica COLL-F1-21-DATA-01" | Notifica di successo; sezione "Partecipanti" ora mostra esattamente 1 badge "Sviluppatore Collaudo" |
-| 3 | Ricaricare la pagina del ticket | — | La sezione "Partecipanti" mostra ancora esattamente 1 badge "Sviluppatore Collaudo" |
+| 1 | Login come `lorena.sava@montagnaservizi.com`, aprire il ticket individuato sopra | — | Sezione "Partecipanti" mostra "Nessun partecipante" |
+| 2 | Cliccare "Aggiungi messaggio", digitare il primo testo, confermare | "Prima verifica COLL-F1-21-DATA-01" | Notifica di successo; sezione "Partecipanti" ora mostra esattamente 1 badge "Lorena Sava" |
+| 3 | Ricaricare la pagina del ticket | — | La sezione "Partecipanti" mostra ancora esattamente 1 badge "Lorena Sava" |
 | 4 | Cliccare di nuovo "Aggiungi messaggio", digitare il secondo testo, confermare | "Seconda verifica COLL-F1-21-DATA-02" | Notifica di successo; il nuovo messaggio compare in "Conversazione" |
-| 5 | Osservare la sezione "Partecipanti" | — | Ancora esattamente 1 badge "Sviluppatore Collaudo" (mai 2 badge identiche) |
+| 5 | Osservare la sezione "Partecipanti" | — | Ancora esattamente 1 badge "Lorena Sava" (mai 2 badge identiche) |
 
 **Risultato finale atteso**
 Dopo due messaggi dello stesso autore, la sezione "Partecipanti" mostra esattamente una badge col
@@ -1628,8 +1628,8 @@ $ticket = App\Domain\Ticketing\Models\Ticket::where('status', App\Domain\Ticketi
     ->whereNotNull('assignee_id')
     ->whereNotNull('tester_id')
     ->first();
-$fundraising = App\Domain\Identity\Models\User::where('email', 'fr@oc.test')->first();
-$admin = App\Domain\Identity\Models\User::where('email', 'admin@oc.test')->first();
+$fundraising = App\Domain\Identity\Models\User::where('email', 'sara.mariani@montagnaservizi.com')->first();
+$admin = App\Domain\Identity\Models\User::where('email', 'info@montagnaservizi.com')->first();
 $ticket->participants()->attach($fundraising->id);
 $recipients = $ticket->messageRecipients($admin);
 $recipients->pluck('id')->sort()->values()->all();
@@ -1653,7 +1653,7 @@ Ticket in stato "In test" scelto come sopra, senza partecipanti.
 
 **Risultato finale atteso**
 I destinatari calcolati sono esattamente i 4 utenti distinti tra richiedente, assegnatario e tester
-del ticket scelto (identità reali anonimizzate dal dump) più Referente Fundraising Collaudo come
+del ticket scelto (identità reali anonimizzate dal dump) più Sara Mariani come
 partecipante aggiunto, mai l'autore (Admin).
 
 **Controlli negativi**
@@ -1711,13 +1711,13 @@ MANUALE UI
 Alta
 
 **Ruolo del tester**
-Sviluppatore (Developer) per il setup, Socio CAI Collaudo (Customer) per l'azione sotto test
+Sviluppatore (Developer) per il setup, Sentiero Italia CAI - SICAI (Customer) per l'azione sotto test
 
 **Prerequisiti**
-- Utenti `dev@oc.test` e `customer@oc.test`.
-- Un ticket reale in stato "In lavorazione", assegnatario "Sviluppatore Collaudo" e richiedente
-  "Socio CAI Collaudo" (filtrare l'elenco Ticket per Stato = "In lavorazione", Assegnatario =
-  "Sviluppatore Collaudo" e Richiedente = "Socio CAI Collaudo"; se nessun ticket del dump soddisfa
+- Utenti `lorena.sava@montagnaservizi.com` e `infosentieroitalia@cai.it`.
+- Un ticket reale in stato "In lavorazione", assegnatario "Lorena Sava" e richiedente
+  "Sentiero Italia CAI - SICAI" (filtrare l'elenco Ticket per Stato = "In lavorazione", Assegnatario =
+  "Lorena Sava" e Richiedente = "Sentiero Italia CAI - SICAI"; se nessun ticket del dump soddisfa
   tutti i criteri, crearne uno e portarlo in quello stato con i bottoni di transizione già testati in
   F1-01). Nota: un ticket già in stato "In attesa" nel dump importato potrebbe non avere
   `previous_status` valorizzato se lo stato "In attesa" risale a prima dell'import (l'ETL ricostruisce
@@ -1736,12 +1736,12 @@ Ticket in stato "In lavorazione" (Progress), `previous_status` nullo.
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Login come `dev@oc.test`, aprire il ticket individuato sopra | Filtro: Stato = "In lavorazione", Assegnatario = "Sviluppatore Collaudo" | Badge di stato "In lavorazione" visibile |
+| 1 | Login come `lorena.sava@montagnaservizi.com`, aprire il ticket individuato sopra | Filtro: Stato = "In lavorazione", Assegnatario = "Lorena Sava" | Badge di stato "In lavorazione" visibile |
 | 2 | Cliccare il bottone di transizione "In attesa", compilare "Motivo dell'attesa", lasciare deselezionato "Applica anche ai ticket figli", confermare | "COLL-F1-23-DATA-01: attesa riscontro socio" | Notifica "Stato del ticket aggiornato"; badge di stato ora "In attesa" |
-| 3 | Logout, login come `customer@oc.test`, riaprire lo stesso ticket | — | Ticket visibile (il richiedente del ticket è "Socio CAI Collaudo"), badge "In attesa" |
+| 3 | Logout, login come `infosentieroitalia@cai.it`, riaprire lo stesso ticket | — | Ticket visibile (il richiedente del ticket è "Sentiero Italia CAI - SICAI"), badge "In attesa" |
 | 4 | Cliccare "Aggiungi messaggio", digitare il testo di risposta, confermare | "Ecco la risposta richiesta COLL-F1-23-DATA-02" | Notifica "Messaggio pubblicato" |
 | 5 | Osservare il badge di stato del ticket (aggiornamento reattivo o dopo ricarica pagina) | — | Il badge passa da "In attesa" a "In lavorazione" |
-| 6 | Logout, login come `dev@oc.test` (per vedere la sezione "Storico", visibile solo a chi ha il permesso `ticket-log.view`), riaprire il ticket | — | La sezione "Storico" mostra una nuova riga "Cambio di stato" con Utente = "Sistema", relativa al passaggio "In attesa" → "In lavorazione" |
+| 6 | Logout, login come `lorena.sava@montagnaservizi.com` (per vedere la sezione "Storico", visibile solo a chi ha il permesso `ticket-log.view`), riaprire il ticket | — | La sezione "Storico" mostra una nuova riga "Cambio di stato" con Utente = "Sistema", relativa al passaggio "In attesa" → "In lavorazione" |
 
 **Risultato finale atteso**
 Il ticket è tornato in stato "In lavorazione" (lo stato precedente all'attesa), con il cambio
@@ -1798,13 +1798,13 @@ MANUALE UI
 Alta
 
 **Ruolo del tester**
-Socio CAI Collaudo (Customer) per l'azione, Sviluppatore (Developer) per la verifica in Storico
+Sentiero Italia CAI - SICAI (Customer) per l'azione, Sviluppatore (Developer) per la verifica in Storico
 
 **Prerequisiti**
-- Utenti `customer@oc.test` e `dev@oc.test`.
-- Un ticket reale in stato "Assegnato", assegnatario "Sviluppatore Collaudo" e richiedente
-  "Socio CAI Collaudo" (filtrare l'elenco Ticket per Stato = "Assegnato", Assegnatario =
-  "Sviluppatore Collaudo" e Richiedente = "Socio CAI Collaudo"; se nessun ticket del dump soddisfa
+- Utenti `infosentieroitalia@cai.it` e `lorena.sava@montagnaservizi.com`.
+- Un ticket reale in stato "Assegnato", assegnatario "Lorena Sava" e richiedente
+  "Sentiero Italia CAI - SICAI" (filtrare l'elenco Ticket per Stato = "Assegnato", Assegnatario =
+  "Lorena Sava" e Richiedente = "Sentiero Italia CAI - SICAI"; se nessun ticket del dump soddisfa
   tutti i criteri, crearne uno e portarlo in quello stato con i bottoni di transizione). Nessun setup
   aggiuntivo necessario oltre a questo: a differenza di F1-23, il ramo "Assegnato/In lavorazione → Da
   fare" non dipende da `previous_status`.
@@ -1819,17 +1819,17 @@ Ticket in stato "Assegnato".
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Login come `customer@oc.test`, aprire il ticket individuato sopra | — | Badge di stato "Assegnato" visibile |
+| 1 | Login come `infosentieroitalia@cai.it`, aprire il ticket individuato sopra | — | Badge di stato "Assegnato" visibile |
 | 2 | Cliccare "Aggiungi messaggio", digitare il testo, confermare | "Confermo il mio indirizzo email COLL-F1-24-DATA-01" | Notifica "Messaggio pubblicato" |
 | 3 | Osservare il badge di stato (aggiornamento reattivo o dopo ricarica pagina) | — | Il badge passa da "Assegnato" a "Da fare" |
-| 4 | Logout, login come `dev@oc.test`, riaprire il ticket | — | Badge "Da fare" confermato |
+| 4 | Logout, login come `lorena.sava@montagnaservizi.com`, riaprire il ticket | — | Badge "Da fare" confermato |
 | 5 | Ispezionare la sezione "Storico" | — | Nuova riga "Cambio di stato" con Utente = "Sistema", da "Assegnato" a "Da fare" |
 
 **Risultato finale atteso**
 Il ticket è in stato "Da fare" subito dopo la risposta del richiedente, con il cambio attribuito a "Sistema".
 
 **Controlli negativi**
-Ripetere la stessa procedura su un ticket già in stato "Da fare" richiesto da "Socio CAI Collaudo" (filtro Stato = "Da fare", Richiedente = "Socio CAI Collaudo"): dopo
+Ripetere la stessa procedura su un ticket già in stato "Da fare" richiesto da "Sentiero Italia CAI - SICAI" (filtro Stato = "Da fare", Richiedente = "Sentiero Italia CAI - SICAI"): dopo
 il messaggio del richiedente, il badge deve restare "Da fare" e la sezione "Storico" non deve
 mostrare alcuna nuova riga "Cambio di stato" (nessuna transizione `todo → todo` in tabella).
 
@@ -1915,7 +1915,7 @@ richiedente per non innescare la regola T7 (fuori scope di questo test).
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
 | 1 | Aprire `php artisan tinker` | — | Prompt attivo |
-| 2 | Recuperare un ticket e l'utente Sviluppatore (non richiedente): `$ticket = App\Domain\Ticketing\Models\Ticket::first(); $developer = App\Domain\Identity\Models\User::where('email','dev@oc.test')->first();` | — | Variabili popolate |
+| 2 | Recuperare un ticket e l'utente Sviluppatore (non richiedente): `$ticket = App\Domain\Ticketing\Models\Ticket::first(); $developer = App\Domain\Identity\Models\User::where('email','lorena.sava@montagnaservizi.com')->first();` | — | Variabili popolate |
 | 3 | Pubblicare il messaggio con il payload grezzo: `$message = App\Domain\Ticketing\Actions\PostTicketMessage::run($ticket, $developer, "<script>alert('collaudo')</script>Ciao, ho un problema");` | Payload sopra | Nessuna eccezione, `$message` è un'istanza `TicketMessage` |
 | 4 | Ispezionare `$message->body_html` | — | Non contiene la stringa `<script` (case-insensitive) né il testo `alert('collaudo')`; contiene "Ciao, ho un problema" |
 | 5 | Ispezionare `$message->body_text` | — | È esattamente "Ciao, ho un problema" (nessun residuo del tag, nessuna entità HTML) |
@@ -1988,7 +1988,7 @@ Alta
 Sviluppatore (Developer)
 
 **Prerequisiti**
-- Utente `dev@oc.test`.
+- Utente `lorena.sava@montagnaservizi.com`.
 - Un file immagine reale in formato JPEG, dimensione contenuta (es. 200 KB), rinominato
   `COLL-F1-26-DATA-01.jpg`.
 - Accesso a `php artisan tinker` per la verifica tecnica.
@@ -2009,7 +2009,7 @@ Il ticket non ha allegati sui messaggi esistenti.
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Login come `dev@oc.test`, aprire il ticket individuato sopra | Filtro: Stato = "Testato", Tipo = "Helpdesk" | Nessun allegato visibile nei messaggi esistenti |
+| 1 | Login come `lorena.sava@montagnaservizi.com`, aprire il ticket individuato sopra | Filtro: Stato = "Testato", Tipo = "Helpdesk" | Nessun allegato visibile nei messaggi esistenti |
 | 2 | Cliccare "Aggiungi messaggio", digitare il testo, trascinare `COLL-F1-26-DATA-01.jpg` nel campo "Allegati", confermare | File e testo sopra | Notifica "Messaggio pubblicato" (nessuna notifica di errore) |
 | 3 | Osservare il nuovo messaggio nella sezione "Conversazione" | — | Compare un link "COLL-F1-26-DATA-01.jpg" cliccabile |
 | 4 | Cliccare il link e verificare che il file si apra/scarichi correttamente (immagine visibile) | — | Il browser mostra/scarica l'immagine caricata |
@@ -2081,7 +2081,7 @@ Critica
 Sviluppatore (Developer)
 
 **Prerequisiti**
-- Utente `dev@oc.test`.
+- Utente `lorena.sava@montagnaservizi.com`.
 - File 1: `virus.exe`, estensione `exe` (non presente in nessuna delle tre liste documenti/immagini/audio
   di `config/ticketing.php`), dimensione qualunque (es. 10 KB).
 - File 2: `documento-grande.pdf`, estensione ammessa (`pdf`), contenuto PDF reale, dimensione 11 MB
@@ -2105,7 +2105,7 @@ Ticket con conversazione esistente, nessun allegato aggiuntivo (oltre a quello e
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Login come `dev@oc.test`, aprire il ticket, cliccare "Aggiungi messaggio" | — | Modale aperto |
+| 1 | Login come `lorena.sava@montagnaservizi.com`, aprire il ticket, cliccare "Aggiungi messaggio" | — | Modale aperto |
 | 2 | Digitare un testo di messaggio, allegare `virus.exe`, confermare | "Tentativo allegato non ammesso COLL-F1-27-DATA-01" + `virus.exe` | Notifica di successo "Messaggio pubblicato" (il testo viene comunque pubblicato) MA una notifica di errore "Allegato non valido" con testo "Il tipo di file 'exe' non è ammesso come allegato." |
 | 3 | Osservare la sezione "Conversazione" per il messaggio appena creato | — | Il messaggio di testo è presente, ma NESSUN link allegato compare |
 | 4 | Cliccare di nuovo "Aggiungi messaggio", digitare un nuovo testo, allegare `documento-grande.pdf` (11 MB), confermare | "Tentativo file oltre dimensione COLL-F1-27-DATA-02" + `documento-grande.pdf` | Notifica di successo per il messaggio, MA notifica di errore "Allegato non valido" con testo "Il file supera la dimensione massima consentita per gli allegati." |
@@ -2185,7 +2185,7 @@ Sviluppatore/Amministratore di sistema
 $messageWithAttachment = App\Domain\Ticketing\Models\TicketMessage::whereHas('media')->first();
 $media = $messageWithAttachment->getMedia('attachments')->first();
 $otherMessage = App\Domain\Ticketing\Models\TicketMessage::where('id', '!=', $messageWithAttachment->id)->first();
-$developer = App\Domain\Identity\Models\User::where('email', 'dev@oc.test')->first();
+$developer = App\Domain\Identity\Models\User::where('email', 'lorena.sava@montagnaservizi.com')->first();
 ```
 
 **Stato iniziale**
@@ -2259,14 +2259,14 @@ MANUALE UI
 Critica
 
 **Ruolo del tester**
-Sviluppatore (Developer) per recuperare il link, Referente Fundraising Collaudo per il tentativo negato
+Sviluppatore (Developer) per recuperare il link, Sara Mariani per il tentativo negato
 
 **Prerequisiti**
 - Un allegato esistente su un ticket (riutilizzare quello di F1-26).
-- Utente `fr@oc.test`: il ruolo Fundraising non ha alcun permesso
+- Utente `sara.mariani@montagnaservizi.com`: il ruolo Fundraising non ha alcun permesso
   `ticket.view.*` nella matrice di `RolePermissionSeeder` (`database/seeders/RolePermissionSeeder.php`),
   quindi non può vedere NESSUNO dei ticket del dataset importato — è il candidato corretto per "un
-  utente che non può vedere il ticket", a differenza del Socio CAI Collaudo che è invece richiedente
+  utente che non può vedere il ticket", a differenza del Sentiero Italia CAI - SICAI che è invece richiedente
   di uno o più ticket reali e potrebbe vederli.
 
 **Dati di test**
@@ -2279,9 +2279,9 @@ Allegato esistente e scaricabile da chi ha accesso al ticket (verificato in F1-2
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Login come `dev@oc.test`, aprire il ticket con l'allegato di F1-26 | — | Link "COLL-F1-26-DATA-01.jpg" visibile in "Conversazione" |
+| 1 | Login come `lorena.sava@montagnaservizi.com`, aprire il ticket con l'allegato di F1-26 | — | Link "COLL-F1-26-DATA-01.jpg" visibile in "Conversazione" |
 | 2 | Tasto destro sul link, "Copia indirizzo link" | — | URL del tipo `/ticket-attachments/<id>` copiato |
-| 3 | Logout, login come `fr@oc.test` | — | Login riuscito, pannello accessibile (Fundraising ha accesso al pannello per il proprio modulo) |
+| 3 | Logout, login come `sara.mariani@montagnaservizi.com` | — | Login riuscito, pannello accessibile (Fundraising ha accesso al pannello per il proprio modulo) |
 | 4 | Incollare l'URL copiato al passo 2 direttamente nella barra degli indirizzi del browser e navigare | URL copiato | Il server risponde con una pagina di errore "403 | Questa azione non è autorizzata." (Forbidden), il file NON viene scaricato |
 
 **Risultato finale atteso**
@@ -2345,7 +2345,7 @@ Critica
 Sviluppatore (Developer)
 
 **Prerequisiti**
-- Utente `dev@oc.test`.
+- Utente `lorena.sava@montagnaservizi.com`.
 - File SVG malevolo reale, nome `COLL-F1-30-DATA-01.svg`, contenuto testuale esatto:
   `<svg xmlns="http://www.w3.org/2000/svg"><script>alert('collaudo')</script><circle r="4"/></svg>`.
 - Un ticket reale qualsiasi, diverso da quello usato in F1-26/27 (per non confondere gli allegati), senza allegati SVG esistenti: filtrare l'elenco Ticket per Stato = "In lavorazione" e scegliere un risultato diverso da quello già usato.
@@ -2360,7 +2360,7 @@ Ticket senza allegati SVG.
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Login come `dev@oc.test`, aprire il ticket individuato sopra | Filtro: Stato = "In lavorazione" | — |
+| 1 | Login come `lorena.sava@montagnaservizi.com`, aprire il ticket individuato sopra | Filtro: Stato = "In lavorazione" | — |
 | 2 | Cliccare "Aggiungi messaggio", digitare il testo, allegare `COLL-F1-30-DATA-01.svg`, confermare | File e testo sopra | Notifica "Messaggio pubblicato" (nessun errore: `svg` è nella lista immagini ammesse) |
 | 3 | Cliccare il link "COLL-F1-30-DATA-01.svg" nella conversazione | — | Il browser apre/mostra il file in una nuova scheda: nessun popup/alert JavaScript compare (lo script non viene eseguito) |
 | 4 | Salvare il file mostrato ("Salva con nome") e aprirlo con un editor di testo (non un browser) | — | Il contenuto NON contiene la stringa `<script` né `alert('collaudo')`; contiene ancora `<circle` |
@@ -2505,15 +2505,15 @@ MISTO (apertura pagina da UI + verifica tecnica sulla tabella `ticket_views`)
 Media
 
 **Ruolo del tester**
-Socio CAI Collaudo (Customer)
+Sentiero Italia CAI - SICAI (Customer)
 
 **Prerequisiti**
-- Utente `customer@oc.test`.
+- Utente `infosentieroitalia@cai.it`.
 - Accesso a `php artisan tinker` per la verifica.
-- Un ticket reale in stato "Da fare" con richiedente "Socio CAI Collaudo" (filtrare l'elenco Ticket
-  per Stato = "Da fare" e Richiedente = "Socio CAI Collaudo", scegliendo un risultato non ancora
+- Un ticket reale in stato "Da fare" con richiedente "Sentiero Italia CAI - SICAI" (filtrare l'elenco Ticket
+  per Stato = "Da fare" e Richiedente = "Sentiero Italia CAI - SICAI", scegliendo un risultato non ancora
   usato in altri test di questo pacchetto; se nessuno esiste nel dump caricato, crearne uno con
-  richiedente "Socio CAI Collaudo" e portarlo in quello stato con i bottoni di transizione).
+  richiedente "Sentiero Italia CAI - SICAI" e portarlo in quello stato con i bottoni di transizione).
 - Nessuna visualizzazione precedente di questo ticket da parte dell'utente Customer nella giornata
   odierna (verificare prima con la query del passo 3 sotto, oppure usare un ticket diverso se già
   visitato in precedenza durante la sessione di collaudo).
@@ -2529,7 +2529,7 @@ Nessuna riga in `ticket_views` per (ticket, utente, oggi).
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
 | 1 | Aprire `php artisan tinker` e verificare l'assenza di righe pregresse: `App\Domain\Ticketing\Models\TicketView::whereDate('viewed_on', today())->count();` (per il ticket/utente scelti) | — | `0` |
-| 2 | Login come `customer@oc.test`, aprire il ticket individuato sopra | Filtro: Stato = "Da fare" | Pagina di dettaglio caricata normalmente |
+| 2 | Login come `infosentieroitalia@cai.it`, aprire il ticket individuato sopra | Filtro: Stato = "Da fare" | Pagina di dettaglio caricata normalmente |
 | 3 | In tinker, recuperare la riga creata: `App\Domain\Ticketing\Models\TicketView::where('ticket_id', <id>)->where('user_id', <id customer>)->first();` | — | Restituisce una riga |
 | 4 | Ispezionare i campi della riga | — | `viewed_on` = data odierna; `view_count` = `1`; `last_viewed_at` valorizzato a un istante prossimo all'apertura della pagina |
 
@@ -2589,7 +2589,7 @@ MISTO (apertura pagina da UI + manipolazione/verifica tecnica su `ticket_views`,
 Media
 
 **Ruolo del tester**
-Socio CAI Collaudo (Customer), con supporto tecnico di Sviluppatore/Amministratore di sistema
+Sentiero Italia CAI - SICAI (Customer), con supporto tecnico di Sviluppatore/Amministratore di sistema
 
 **Prerequisiti**
 - Esecuzione di F1-32 completata sullo stesso ticket (riga `ticket_views` con `view_count = 1` esistente).
@@ -2667,11 +2667,11 @@ MISTO (apertura pagina da UI + verifica tecnica sulla tabella `ticket_logs`)
 Bassa
 
 **Ruolo del tester**
-Socio CAI Collaudo (Customer), con verifica di Sviluppatore/Amministratore di sistema
+Sentiero Italia CAI - SICAI (Customer), con verifica di Sviluppatore/Amministratore di sistema
 
 **Prerequisiti**
 - Accesso a `php artisan tinker`.
-- Il ticket scelto in F1-32/33 (o un altro), richiesto da `customer@oc.test`. A differenza del
+- Il ticket scelto in F1-32/33 (o un altro), richiesto da `infosentieroitalia@cai.it`. A differenza del
   vecchio seed fittizio, un ticket importato dall'ETL può già avere righe reali in `ticket_logs`
   (la sua storia v1 ricostruita): questo test non richiede quindi un conteggio iniziale a `0`, ma
   verifica che il conteggio NON aumenti a seguito delle sole visualizzazioni — annotare il conteggio
@@ -2688,7 +2688,7 @@ Conteggio `ticket_logs` per il ticket scelto annotato PRIMA di aprire la pagina 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
 | 1 | In tinker, annotare il conteggio log iniziale: `App\Domain\Ticketing\Models\TicketLog::where('ticket_id', <id>)->count();` | — | Un numero (`$prima`), qualunque esso sia |
-| 2 | Login come `customer@oc.test`, aprire il ticket, ricaricare la pagina 2-3 volte | — | Pagina caricata normalmente ogni volta |
+| 2 | Login come `infosentieroitalia@cai.it`, aprire il ticket, ricaricare la pagina 2-3 volte | — | Pagina caricata normalmente ogni volta |
 | 3 | In tinker, rileggere il conteggio log | — | Identico a `$prima` |
 | 4 | Sul pannello, come Sviluppatore o Manager (permesso `ticket-log.view`), aprire lo stesso ticket e ispezionare la sezione "Storico" | — | Il numero di eventi mostrati non è cambiato rispetto a prima dell'apertura del passo 2 (nessun nuovo evento di visualizzazione aggiunto) |
 
@@ -3003,13 +3003,13 @@ Alta
 Sviluppatore (Developer)
 
 **Prerequisiti**
-- Utente `dev@oc.test`.
+- Utente `lorena.sava@montagnaservizi.com`.
 - Accesso SSH/shell al container applicativo per eseguire `php artisan timetracking:recalculate`.
 - Un ticket senza righe `ticket_work_logs` pregresse, in uno stato da cui sia raggiungibile "In
   lavorazione" con transizioni valide. Nota: un ticket reale già importato dall'ETL può avere già
   `worked_minutes`/`ticket_work_logs` popolati dallo stage `derive` a partire dalla sua storia v1 —
   per partire da uno stato pulito, creare un ticket nuovo dedicato (`COLL-F1-38-...`) e assegnarlo a
-  "Sviluppatore Collaudo" con i bottoni di transizione già testati in F1-01, invece di riusare un
+  "Lorena Sava" con i bottoni di transizione già testati in F1-01, invece di riusare un
   ticket del dump.
 
 **Dati di test**
@@ -3024,7 +3024,7 @@ Ticket nuovo dedicato in stato "Da fare", `worked_minutes` = 0, nessuna riga `ti
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Login come `dev@oc.test`, aprire il ticket, transizione a "In lavorazione" | Bottone "In lavorazione" | Notifica "Stato del ticket aggiornato" |
+| 1 | Login come `lorena.sava@montagnaservizi.com`, aprire il ticket, transizione a "In lavorazione" | Bottone "In lavorazione" | Notifica "Stato del ticket aggiornato" |
 | 2 | Attendere qualche minuto, poi transizione a "Testato" (o altro stato che chiuda l'intervallo `progress`) con il campo Tester compilato | Bottone "In test" poi "Testato", oppure altra transizione valida che esca da `progress` | Stato aggiornato, un intervallo `progress` chiuso ora esiste nei `ticket_logs` del ticket |
 | 3 | Da shell, eseguire: `php artisan timetracking:recalculate --ticket=<id>` | Comando sopra | Output "Ricalcolate le ore lavorate per 1 ticket."; comando conclude con successo |
 | 4 | Verificare via tinker/DB: `App\Domain\Ticketing\Models\TicketWorkLog::where('ticket_id', <id>)->count();` e `Ticket::find(<id>)->worked_minutes;` | — | Conteggio righe = numero di segmenti giornalieri prodotti (tipicamente 1); `worked_minutes` coerente coi minuti dell'intervallo |
@@ -3110,7 +3110,7 @@ Ticket in uno stato di partenza noto (es. "Nuovo"); nessun job `RecalculateTicke
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
 | 1 | Annotare il timestamp/ID di partenza e verificare che non ci siano job pendenti per il ticket in Horizon (tab "Pending"/"Delayed") | — | Nessun job per questo `ticket_id` |
-| 2 | Aprire `php artisan tinker`, recuperare ticket e utente Admin | `$ticket = ...; $admin = App\Domain\Identity\Models\User::where('email','admin@oc.test')->first();` | Variabili popolate |
+| 2 | Aprire `php artisan tinker`, recuperare ticket e utente Admin | `$ticket = ...; $admin = App\Domain\Identity\Models\User::where('email','info@montagnaservizi.com')->first();` | Variabili popolate |
 | 3 | Eseguire in sequenza immediata 3 transizioni valide sullo stesso ticket, es.: `App\Domain\Ticketing\Actions\ChangeTicketStatus::run($ticket, App\Domain\Ticketing\Enums\TicketStatus::Backlog, $admin); App\Domain\Ticketing\Actions\ChangeTicketStatus::run($ticket->fresh(), App\Domain\Ticketing\Enums\TicketStatus::Assigned, $admin, ['assignee_id' => $admin->id]); App\Domain\Ticketing\Actions\ChangeTicketStatus::run($ticket->fresh(), App\Domain\Ticketing\Enums\TicketStatus::Todo, $admin);` | Script sopra, eseguito come un unico blocco (senza pause manuali) | Le 3 transizioni completano senza errori |
 | 4 | Entro pochi secondi, controllare in Horizon (tab "Pending"/"Delayed") i job accodati per questo `ticket_id` | — | Esattamente 1 job `RecalculateTicketWorkedTimeJob` per il ticket, non 3 |
 | 5 | Attendere che il job venga eseguito (delay configurato di 5 secondi) e verificare in Horizon che sia passato a "Completed" | — | 1 solo job completato per questo ticket |
@@ -3256,12 +3256,12 @@ Critica
 Customer (parte di verifica onesta da UI) + Developer/Amministratore di sistema (parte di tentativo tecnico di bypass: richiede strumenti di sviluppo del browser o un client HTTP diretto sulla sessione autenticata del Customer)
 
 **Prerequisiti**
-- L'utente `admin@oc.test` è disponibile per predisporre il ticket di test con valori interni noti (Admin ha tutti i permessi, incluso `ticket.manage-internal-fields`).
-- L'utente `customer@oc.test` ha i permessi di ruolo `ticket.update.own`/`ticket.view.own` (matrice Customer, `RolePermissionSeeder`).
+- L'utente `info@montagnaservizi.com` è disponibile per predisporre il ticket di test con valori interni noti (Admin ha tutti i permessi, incluso `ticket.manage-internal-fields`).
+- L'utente `infosentieroitalia@cai.it` ha i permessi di ruolo `ticket.update.own`/`ticket.view.own` (matrice Customer, `RolePermissionSeeder`).
 - Per la parte tecnica del passo 9: un tester con accesso agli strumenti di sviluppo del browser (tab Network/Console) o a un client HTTP (es. Postman/curl) in grado di riutilizzare i cookie di sessione del Customer.
 
 **Dati di test**
-Ticket da creare: titolo `COLL-F1-41-20260726-01 — Verifica campi riservati`, Richiedente = "Socio CAI Collaudo", Tipo = Bug, Priorità = Bassa, Descrizione interna = `descrizione interna originale`, Ore stimate = 3, Assegnatario = (vuoto), Tester = (vuoto), URL staging/produzione = (vuoti).
+Ticket da creare: titolo `COLL-F1-41-20260726-01 — Verifica campi riservati`, Richiedente = "Sentiero Italia CAI - SICAI", Tipo = Bug, Priorità = Bassa, Descrizione interna = `descrizione interna originale`, Ore stimate = 3, Assegnatario = (vuoto), Tester = (vuoto), URL staging/produzione = (vuoti).
 Valori del tentativo di manomissione (identici a quelli del test automatico): Tipo = Feature, Priorità = Alta, Descrizione interna = `descrizione manomessa`, Ore stimate = 99, URL staging = `https://staging.example.test`, URL produzione = `https://prod.example.test`, Assegnatario e Tester = "Manager Collaudo".
 
 **Stato iniziale**
@@ -3271,10 +3271,10 @@ Il ticket `COLL-F1-41-20260726-01` non esiste ancora. Nessuna sessione Customer 
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Aprire `https://ticket-uat.montagnaservizi.com/admin/login` e accedere come Admin | `admin@oc.test` / `password` | Login riuscito, pannello raggiunto |
+| 1 | Aprire `https://ticket-uat.montagnaservizi.com/admin/login` e accedere come Admin | `info@montagnaservizi.com` / `uat` | Login riuscito, pannello raggiunto |
 | 2 | Da "Ticket", aprire "Nuovo" e compilare Titolo, Richiedente, Tipo, Priorità, Descrizione interna, Ore stimate come da Dati di test, lasciando vuoti Assegnatario/Tester/URL staging/URL produzione | valori indicati sopra | Il ticket viene creato senza errori di validazione |
 | 3 | Osservare il badge "Stato" nella scheda appena creata | — | Il badge mostra "Nuovo" |
-| 4 | Disconnettersi e accedere come Customer | `customer@oc.test` / `password` | Login riuscito |
+| 4 | Disconnettersi e accedere come Customer | `infosentieroitalia@cai.it` / `uat` | Login riuscito |
 | 5 | Cercare nell'elenco Ticket il titolo `COLL-F1-41-20260726-01` (campo di ricerca sulla colonna "Titolo") e aprirne il dettaglio | testo di ricerca `COLL-F1-41` | Si apre la pagina di dettaglio del ticket |
 | 6 | Aprire il ticket in modifica (pulsante di modifica in testata) | — | Si apre il form di modifica |
 | 7 | Osservare le sezioni del form presenti | — | È visibile solo la sezione "Ticket" con i campi "Titolo" (in sola lettura), "Stato" (badge) e "Ticket padre"; le sezioni "Assegnazione e classificazione", "Link ambienti", "Tempo" e il campo "Descrizione interna" NON sono presenti in nessuna forma |
@@ -3337,10 +3337,10 @@ Alta
 Customer
 
 **Prerequisiti**
-- Esiste almeno un ticket reale importato dall'ETL con richiedente `customer@oc.test` ("Socio CAI Collaudo"): filtrare l'elenco Ticket per Richiedente = "Socio CAI Collaudo" per trovarne uno, non serve crearne uno nuovo.
+- Esiste almeno un ticket reale importato dall'ETL con richiedente `infosentieroitalia@cai.it` ("Sentiero Italia CAI - SICAI"): filtrare l'elenco Ticket per Richiedente = "Sentiero Italia CAI - SICAI" per trovarne uno, non serve crearne uno nuovo.
 
 **Dati di test**
-Nessun dato nuovo da creare: usare un qualunque ticket esistente con richiedente "Socio CAI Collaudo".
+Nessun dato nuovo da creare: usare un qualunque ticket esistente con richiedente "Sentiero Italia CAI - SICAI".
 
 **Stato iniziale**
 Il dataset importato dall'ETL reale (`v1:import --anonymize`) è già popolato.
@@ -3349,7 +3349,7 @@ Il dataset importato dall'ETL reale (`v1:import --anonymize`) è già popolato.
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Aprire `https://ticket-uat.montagnaservizi.com/admin/login` e accedere come Customer | `customer@oc.test` / `password` | Login riuscito |
+| 1 | Aprire `https://ticket-uat.montagnaservizi.com/admin/login` e accedere come Customer | `infosentieroitalia@cai.it` / `uat` | Login riuscito |
 | 2 | Aprire l'elenco Ticket e aprire in visualizzazione un qualunque ticket proprio | un ticket qualunque dell'elenco | Si apre la pagina di dettaglio del ticket |
 | 3 | Osservare la sezione "Ticket" in alto | — | Sono visibili solo "Titolo", "Stato" (badge) e "Richiedente"; i campi "Tipo" e "Priorità" NON sono presenti |
 | 4 | Osservare la sezione "Riepilogo" | — | Sono visibili solo "Creato il", "Aggiornato il", "Ultimo cambio di stato", "Rilasciato il", "Completato il"; i campi "Ore lavorate" e "Ore stimate" NON sono presenti |
@@ -3412,11 +3412,11 @@ Alta
 Developer
 
 **Prerequisiti**
-- L'utente `admin@oc.test` predispone il ticket di test (Admin per semplicità, ma qualunque utente con `ticket.create`+`ticket.manage-internal-fields` andrebbe bene, incluso lo stesso Developer).
-- L'utente `dev@oc.test` ("Sviluppatore Collaudo") ha i permessi di ruolo `ticket.update.assigned`/`ticket.view.any`/`ticket.manage-internal-fields`, ma NON `ticket.transition.any` (matrice Developer, `RolePermissionSeeder`): condizione necessaria perché l'attore risolto sia `AutoAssigningDeveloper` e non l'admin/manager generico.
+- L'utente `info@montagnaservizi.com` predispone il ticket di test (Admin per semplicità, ma qualunque utente con `ticket.create`+`ticket.manage-internal-fields` andrebbe bene, incluso lo stesso Developer).
+- L'utente `lorena.sava@montagnaservizi.com` ("Lorena Sava") ha i permessi di ruolo `ticket.update.assigned`/`ticket.view.any`/`ticket.manage-internal-fields`, ma NON `ticket.transition.any` (matrice Developer, `RolePermissionSeeder`): condizione necessaria perché l'attore risolto sia `AutoAssigningDeveloper` e non l'admin/manager generico.
 
 **Dati di test**
-Ticket da creare: titolo `COLL-F1-43-20260726-01 — Verifica auto-assegnazione silenziosa`, Richiedente = "Socio CAI Collaudo", Assegnatario e Tester lasciati vuoti.
+Ticket da creare: titolo `COLL-F1-43-20260726-01 — Verifica auto-assegnazione silenziosa`, Richiedente = "Sentiero Italia CAI - SICAI", Assegnatario e Tester lasciati vuoti.
 
 **Stato iniziale**
 Il ticket `COLL-F1-43-20260726-01` non esiste ancora.
@@ -3426,16 +3426,16 @@ Il ticket `COLL-F1-43-20260726-01` non esiste ancora.
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
 | 1 | Accedere come Admin e creare il ticket con i Dati di test indicati, lasciando vuoti Assegnatario/Tester | vedi Dati di test | Ticket creato, badge "Stato" = "Nuovo" |
-| 2 | Disconnettersi e accedere come Developer | `dev@oc.test` / `password` | Login riuscito |
+| 2 | Disconnettersi e accedere come Developer | `lorena.sava@montagnaservizi.com` / `uat` | Login riuscito |
 | 3 | Aprire il ticket `COLL-F1-43-20260726-01` in visualizzazione | — | Si apre la scheda di dettaglio, campo "Assegnatario" mostra "Nessuno" |
 | 4 | Individuare tra i pulsanti di testata quello con etichetta "Assegnato" e cliccarlo | pulsante "Assegnato" | Si apre un modale con titolo `Cambia stato in "Assegnato"` |
 | 5 | Osservare i campi presenti nel modale | — | È presente solo la checkbox "Applica anche ai ticket figli"; NON è presente alcun campo "Assegnatario" |
 | 6 | Confermare l'azione dal modale | — | Compare una notifica di successo con titolo "Stato del ticket aggiornato" |
 | 7 | Osservare il badge "Stato" nella scheda | — | Il badge mostra "Assegnato" |
-| 8 | Osservare il campo "Assegnatario" nella sezione "Assegnazione e classificazione" | — | Il campo mostra "Sviluppatore Collaudo" (il Developer che ha eseguito l'azione), senza che nessuno lo abbia scelto esplicitamente |
+| 8 | Osservare il campo "Assegnatario" nella sezione "Assegnazione e classificazione" | — | Il campo mostra "Lorena Sava" (il Developer che ha eseguito l'azione), senza che nessuno lo abbia scelto esplicitamente |
 
 **Risultato finale atteso**
-Il ticket passa a "Assegnato" con Assegnatario impostato automaticamente allo Sviluppatore Collaudo che ha eseguito la transizione, senza che il modale abbia mai richiesto di scegliere un assegnatario.
+Il ticket passa a "Assegnato" con Assegnatario impostato automaticamente allo Lorena Sava che ha eseguito la transizione, senza che il modale abbia mai richiesto di scegliere un assegnatario.
 
 **Controlli negativi**
 Non previsto per questo test: il test automatico referenziato verifica l'assenza del campo nello schema del modale (`assertSchemaComponentDoesNotExist('assignee_id')`), non un tentativo di forzare comunque un valore diverso.
@@ -3489,7 +3489,7 @@ Critica
 Admin
 
 **Prerequisiti**
-- L'utente `admin@oc.test` ha `ticket.transition.any` (matrice Admin, tutti i permessi).
+- L'utente `info@montagnaservizi.com` ha `ticket.transition.any` (matrice Admin, tutti i permessi).
 - Esiste un ticket in stato "In lavorazione" nel dataset importato dall'ETL: filtrare l'elenco Ticket per "Stato" = "In lavorazione" e scegliere un qualunque risultato (il dataset reale non ha un titolo/assegnatario fisso e predicibile, a differenza del vecchio seed fittizio).
 
 **Dati di test**
@@ -3502,7 +3502,7 @@ Il ticket individuato è in stato "In lavorazione", campo Tester vuoto.
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedere come Admin | `admin@oc.test` / `password` | Login riuscito |
+| 1 | Accedere come Admin | `info@montagnaservizi.com` / `uat` | Login riuscito |
 | 2 | Nell'elenco Ticket, filtrare per "Stato" = "In lavorazione" e aprire in visualizzazione il ticket individuato nei Prerequisiti | filtro "Stato" = "In lavorazione" | Si apre la scheda di dettaglio, badge "Stato" = "In lavorazione" |
 | 3 | Cliccare il pulsante di testata con etichetta "In test" | pulsante "In test" | Si apre un modale con titolo `Cambia stato in "In test"`, contenente il campo "Tester" e la checkbox "Applica anche ai ticket figli" |
 | 4 | Lasciare vuoto il campo "Tester" e confermare l'azione | Tester: (vuoto) | Il modale non si chiude: viene mostrato un errore di validazione sotto il campo "Tester" che ne impedisce l'invio |
@@ -3565,7 +3565,7 @@ Alta
 Admin (parte UI) + Amministratore di sistema (parte tecnica di verifica del messaggio a livello di dominio)
 
 **Prerequisiti**
-- L'utente `admin@oc.test` ha `ticket.transition.any` (tutti i permessi).
+- L'utente `info@montagnaservizi.com` ha `ticket.transition.any` (tutti i permessi).
 - Esiste un ticket in stato "Completato" nel dataset importato dall'ETL: filtrare l'elenco Ticket per "Stato" = "Completato" e scegliere un qualunque risultato (se nessuno esiste nel dump caricato, portarne uno in quello stato con i bottoni di transizione già testati in F1-01), e annotarne l'id per il passo tecnico 4.
 - Per il passo tecnico 4: accesso a `php artisan tinker` sull'ambiente da collaudare.
 
@@ -3582,7 +3582,7 @@ Il ticket individuato è in stato "Completato".
 | 1 | Accedere come Admin e aprire il ticket in stato "Completato" individuato nei Prerequisiti | — | Si apre la scheda di dettaglio, badge "Stato" = "Completato" |
 | 2 | Osservare l'intera testata della pagina, elencando tutti i pulsanti di transizione presenti | — | Nessun pulsante di cambio di stato è disponibile (in particolare, nessun pulsante "Assegnato"): lo stato "Completato" non ha transizioni manuali uscenti definite in tabella |
 | 3 | Tentare di raggiungere una qualunque transizione tramite la tastiera/scorrimento della pagina (per escludere che un pulsante sia semplicemente fuori vista) | — | Conferma che nessun pulsante di transizione esiste nel DOM della pagina |
-| 4 | (Passo tecnico) In `php artisan tinker`, eseguire direttamente la macchina a stati bypassando l'interfaccia: `$ticket = \App\Domain\Ticketing\Models\Ticket::find(<id del ticket individuato nei Prerequisiti>); $admin = \App\Domain\Identity\Models\User::where('email','admin@oc.test')->first(); \App\Domain\Ticketing\Actions\ChangeTicketStatus::run($ticket, \App\Domain\Ticketing\Enums\TicketStatus::Assigned, $admin);` | comando tinker sopra | Il comando lancia una `Illuminate\Validation\ValidationException` con messaggio `La transizione da "Completato" a "Assegnato" non è ammessa.` |
+| 4 | (Passo tecnico) In `php artisan tinker`, eseguire direttamente la macchina a stati bypassando l'interfaccia: `$ticket = \App\Domain\Ticketing\Models\Ticket::find(<id del ticket individuato nei Prerequisiti>); $admin = \App\Domain\Identity\Models\User::where('email','info@montagnaservizi.com')->first(); \App\Domain\Ticketing\Actions\ChangeTicketStatus::run($ticket, \App\Domain\Ticketing\Enums\TicketStatus::Assigned, $admin);` | comando tinker sopra | Il comando lancia una `Illuminate\Validation\ValidationException` con messaggio `La transizione da "Completato" a "Assegnato" non è ammessa.` |
 
 **Risultato finale atteso**
 Da un ticket "Completato" non è raggiungibile da UI onesta alcuna transizione di stato (nessun pulsante esiste); un tentativo tecnico diretto sulla macchina a stati conferma che la stessa transizione è respinta con un messaggio di errore leggibile in italiano.
@@ -3638,7 +3638,7 @@ Alta
 Developer
 
 **Prerequisiti**
-- L'utente `dev@oc.test` ha i permessi di ruolo `ticket.view.any`/`ticket-message.create`.
+- L'utente `lorena.sava@montagnaservizi.com` ha i permessi di ruolo `ticket.view.any`/`ticket-message.create`.
 - Esiste almeno un ticket nel dataset importato dall'ETL.
 
 **Dati di test**
@@ -3651,11 +3651,11 @@ Il ticket individuato non ha ancora il messaggio di test nella propria conversaz
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedere come Developer | `dev@oc.test` / `password` | Login riuscito |
+| 1 | Accedere come Developer | `lorena.sava@montagnaservizi.com` / `uat` | Login riuscito |
 | 2 | Aprire un qualunque ticket dell'elenco in visualizzazione | — | Si apre la scheda di dettaglio |
 | 3 | Cliccare il pulsante di testata "Aggiungi messaggio" | pulsante "Aggiungi messaggio" | Si apre un modale con il campo "Messaggio" (editor di testo ricco) e il campo facoltativo "Allegati" |
 | 4 | Digitare il testo nel campo "Messaggio" e confermare l'azione senza allegare file | `Ciao, come posso aiutarti?` | Compare una notifica di successo con titolo "Messaggio pubblicato" |
-| 5 | Osservare la sezione "Conversazione" nella stessa pagina | — | Compare una nuova riga di conversazione con "Autore" = "Sviluppatore Collaudo" e il testo "Ciao, come posso aiutarti?" visibile |
+| 5 | Osservare la sezione "Conversazione" nella stessa pagina | — | Compare una nuova riga di conversazione con "Autore" = "Lorena Sava" e il testo "Ciao, come posso aiutarti?" visibile |
 
 **Risultato finale atteso**
 Il messaggio digitato compare nella sezione "Conversazione" del ticket, con l'autore corrispondente all'utente che lo ha pubblicato.
@@ -3711,8 +3711,8 @@ Media
 Customer
 
 **Prerequisiti**
-- L'utente `customer@oc.test` non ha `ticket.assign` nella matrice Customer (`RolePermissionSeeder`).
-- Esiste almeno un ticket con richiedente "Socio CAI Collaudo" nel dataset importato dall'ETL.
+- L'utente `infosentieroitalia@cai.it` non ha `ticket.assign` nella matrice Customer (`RolePermissionSeeder`).
+- Esiste almeno un ticket con richiedente "Sentiero Italia CAI - SICAI" nel dataset importato dall'ETL.
 
 **Dati di test**
 Ticket: un qualunque ticket dell'elenco proprio del Customer.
@@ -3724,7 +3724,7 @@ Il dataset importato dall'ETL reale è già popolato.
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedere come Customer | `customer@oc.test` / `password` | Login riuscito |
+| 1 | Accedere come Customer | `infosentieroitalia@cai.it` / `uat` | Login riuscito |
 | 2 | Aprire un qualunque ticket proprio in visualizzazione | — | Si apre la scheda di dettaglio |
 | 3 | Elencare tutti i pulsanti presenti in testata | — | Non è presente alcun pulsante "Aggiungi partecipante" |
 | 4 | Confermare che non è presente nemmeno il pulsante "Rimuovi partecipante" | — | Il pulsante non è presente |
@@ -3782,11 +3782,11 @@ Alta
 Admin
 
 **Prerequisiti**
-- L'utente `admin@oc.test` ha `ticket.update.any`/`ticket.view.any` (tutti i permessi).
+- L'utente `info@montagnaservizi.com` ha `ticket.update.any`/`ticket.view.any` (tutti i permessi).
 - L'ETL reale importa la gerarchia padre/figlio esistente in v1 (`ticket_hierarchy`), ma non è garantito trovare a comando la combinazione esatta necessaria per questo test negativo (un ticket con già figli più un candidato padre valido separato): costruire tre ticket freschi ad hoc mantiene il test deterministico indipendentemente dal dump caricato.
 
 **Dati di test**
-Tre ticket da creare: `COLL-F1-48-20260726-01 — Padre bersaglio` (A, nessun padre), `COLL-F1-48-20260726-02 — Figlio di A` (B, Ticket padre = A), `COLL-F1-48-20260726-03 — Candidato padre valido` (C, nessun padre, nessun figlio). Tutti con Richiedente = "Socio CAI Collaudo".
+Tre ticket da creare: `COLL-F1-48-20260726-01 — Padre bersaglio` (A, nessun padre), `COLL-F1-48-20260726-02 — Figlio di A` (B, Ticket padre = A), `COLL-F1-48-20260726-03 — Candidato padre valido` (C, nessun padre, nessun figlio). Tutti con Richiedente = "Sentiero Italia CAI - SICAI".
 
 **Stato iniziale**
 Nessuno dei tre ticket A/B/C esiste ancora.
@@ -3795,10 +3795,10 @@ Nessuno dei tre ticket A/B/C esiste ancora.
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedere come Admin | `admin@oc.test` / `password` | Login riuscito |
-| 2 | Creare il ticket A: titolo `COLL-F1-48-20260726-01 — Padre bersaglio`, Richiedente = "Socio CAI Collaudo", campo "Ticket padre" lasciato vuoto | vedi Dati di test | Ticket A creato senza errori |
-| 3 | Creare il ticket C: titolo `COLL-F1-48-20260726-03 — Candidato padre valido`, Richiedente = "Socio CAI Collaudo", campo "Ticket padre" lasciato vuoto | vedi Dati di test | Ticket C creato senza errori |
-| 4 | Creare il ticket B: titolo `COLL-F1-48-20260726-02 — Figlio di A`, Richiedente = "Socio CAI Collaudo", campo "Ticket padre" = ticket A | vedi Dati di test | Ticket B creato senza errori: il ticket A ora ha un figlio (B) |
+| 1 | Accedere come Admin | `info@montagnaservizi.com` / `uat` | Login riuscito |
+| 2 | Creare il ticket A: titolo `COLL-F1-48-20260726-01 — Padre bersaglio`, Richiedente = "Sentiero Italia CAI - SICAI", campo "Ticket padre" lasciato vuoto | vedi Dati di test | Ticket A creato senza errori |
+| 3 | Creare il ticket C: titolo `COLL-F1-48-20260726-03 — Candidato padre valido`, Richiedente = "Sentiero Italia CAI - SICAI", campo "Ticket padre" lasciato vuoto | vedi Dati di test | Ticket C creato senza errori |
+| 4 | Creare il ticket B: titolo `COLL-F1-48-20260726-02 — Figlio di A`, Richiedente = "Sentiero Italia CAI - SICAI", campo "Ticket padre" = ticket A | vedi Dati di test | Ticket B creato senza errori: il ticket A ora ha un figlio (B) |
 | 5 | Aprire il ticket A in modifica | — | Si apre il form di modifica di A |
 | 6 | Nel campo "Ticket padre", selezionare il ticket C e confermare il salvataggio | Ticket padre = C | Il salvataggio viene bloccato: compare un errore di validazione sotto il campo "Ticket padre" con il testo esatto `Non è ammessa una gerarchia di ticket a più di un livello.` |
 | 7 | Ricaricare/riaprire il ticket A in visualizzazione e osservare il campo "Ticket padre" nella sezione "Gerarchia" | — | Il campo mostra ancora "Nessuno" (il salvataggio non ha avuto alcun effetto) |
@@ -3857,7 +3857,7 @@ Media
 Developer (parte UI) + Amministratore di sistema (parte di verifica tecnica sul database)
 
 **Prerequisiti**
-- L'utente `dev@oc.test` ha `ticket.view.any` (matrice Developer).
+- L'utente `lorena.sava@montagnaservizi.com` ha `ticket.view.any` (matrice Developer).
 - Scegliere un ticket che il Developer non abbia ancora aperto **oggi** (per non incorrere nella soglia di throttling di 30 minuti, che impedirebbe l'incremento del contatore su una visualizzazione ripetuta): se non è chiaro quale ticket sia idoneo, verificare prima con il passo tecnico 0 sotto.
 - Accesso a `php artisan tinker` (o a una query diretta sul database) per il controllo tecnico complementare.
 
@@ -3865,14 +3865,14 @@ Developer (parte UI) + Amministratore di sistema (parte di verifica tecnica sul 
 Ticket: un qualunque ticket del dataset importato dall'ETL non ancora aperto oggi dal Developer.
 
 **Stato iniziale**
-Nessuna riga `ticket_views` esiste per la coppia (ticket scelto, `dev@oc.test`) con data odierna.
+Nessuna riga `ticket_views` esiste per la coppia (ticket scelto, `lorena.sava@montagnaservizi.com`) con data odierna.
 
 **Procedura di esecuzione**
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 0 | (Facoltativo, verifica preliminare tecnica) In `php artisan tinker`: `\App\Domain\Ticketing\Models\TicketView::where('user_id', \App\Domain\Identity\Models\User::where('email','dev@oc.test')->value('id'))->whereDate('viewed_on', now())->pluck('ticket_id');` | comando tinker sopra | Elenco degli id ticket già visti oggi dal Developer: scegliere un ticket il cui id NON compare in questo elenco |
-| 1 | Accedere come Developer | `dev@oc.test` / `password` | Login riuscito |
+| 0 | (Facoltativo, verifica preliminare tecnica) In `php artisan tinker`: `\App\Domain\Ticketing\Models\TicketView::where('user_id', \App\Domain\Identity\Models\User::where('email','lorena.sava@montagnaservizi.com')->value('id'))->whereDate('viewed_on', now())->pluck('ticket_id');` | comando tinker sopra | Elenco degli id ticket già visti oggi dal Developer: scegliere un ticket il cui id NON compare in questo elenco |
+| 1 | Accedere come Developer | `lorena.sava@montagnaservizi.com` / `uat` | Login riuscito |
 | 2 | Aprire il ticket scelto in visualizzazione | ticket individuato al passo 0 | Si apre la scheda di dettaglio |
 | 3 | (Passo tecnico) In `php artisan tinker`, eseguire: `\App\Domain\Ticketing\Models\TicketView::where('ticket_id', <id_ticket>)->where('user_id', <id_developer>)->whereDate('viewed_on', now())->first(['view_count','last_viewed_at']);` | comando tinker sopra, con gli id del ticket/utente del passo 2 | Il comando restituisce una riga con `view_count = 1` e `last_viewed_at` valorizzato a un istante recente |
 
@@ -3930,7 +3930,7 @@ Alta
 Admin
 
 **Prerequisiti**
-- Accesso a `/admin` come admin@oc.test.
+- Accesso a `/admin` come info@montagnaservizi.com.
 - Dataset importato dall'ETL reale (`v1:import --anonymize`) presente e non alterato: a differenza del vecchio seed fittizio, non ha un conteggio o un contenuto fisso — individuare i ticket idonei con i filtri di Filament invece di assumere un titolo/indice predicibile.
 
 **Dati di test**
@@ -3944,7 +3944,7 @@ Il dataset importato dall'ETL reale è presente: numero e contenuto dei ticket d
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedi a `/admin` e apri la risorsa Ticket | admin@oc.test / password | Lista ticket visibile con le tab dello staff |
+| 1 | Accedi a `/admin` e apri la risorsa Ticket | info@montagnaservizi.com / uat | Lista ticket visibile con le tab dello staff |
 | 2 | Apri la tab "Richieste attive" | — | La lista si filtra |
 | 3 | Cerca per titolo il ticket incluso individuato sopra | Campo ricerca titolo | Il ticket compare nell'elenco |
 | 4 | Cerca per titolo il ticket escluso individuato sopra | Campo ricerca titolo | Il ticket NON compare (nessun risultato nella tab) |
@@ -4004,10 +4004,10 @@ Media
 Admin
 
 **Prerequisiti**
-- Accesso a `/admin` come admin@oc.test.
+- Accesso a `/admin` come info@montagnaservizi.com.
 - Dataset importato dall'ETL reale presente e non alterato: a differenza del vecchio seed fittizio,
   non ha un conteggio o un contenuto fisso — individuare i ticket idonei con i filtri di Filament.
-- Almeno due o tre ticket reali in stato "In attesa", idealmente con richiedente "Socio CAI Collaudo",
+- Almeno due o tre ticket reali in stato "In attesa", idealmente con richiedente "Sentiero Italia CAI - SICAI",
   con valori distinti della colonna "Giorni in stato" (filtrare l'elenco Ticket per Stato = "In
   attesa" e ordinare/osservare quella colonna). Se il dump caricato ne contiene meno di due con valori
   distinguibili, portarne alcuni in "In attesa" con i bottoni di transizione già testati in F1-01,
@@ -4025,7 +4025,7 @@ I ticket individuati sono in stato "In attesa" con `status_changed_at` distinti 
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedi a `/admin` come admin | admin@oc.test | Accesso riuscito |
+| 1 | Accedi a `/admin` come admin | info@montagnaservizi.com | Accesso riuscito |
 | 2 | Apri la tab "In attesa" della lista Ticket | — | Elenco filtrato ai soli ticket "In attesa" |
 | 3 | Annota l'ordine di comparsa dei ticket individuati sopra e il valore della colonna "Giorni in stato" per ciascuno | — | Il ticket con "Giorni in stato" più alto (il più vecchio) compare per primo, poi gli altri in ordine decrescente di quel valore, fino al più recente per ultimo |
 | 4 | Verifica che nessun ticket in altro stato (es. "In lavorazione") compaia nella tab | — | Nessun ticket fuori stato "In attesa" è presente |
@@ -4083,12 +4083,12 @@ Alta
 Developer
 
 **Prerequisiti**
-- Accesso a `/admin` come dev@oc.test.
+- Accesso a `/admin` come lorena.sava@montagnaservizi.com.
 - Dataset importato dall'ETL reale presente e non alterato: individuare i ticket idonei con i filtri Filament (Stato/Assegnatario) invece di assumere titolo/indice fissi.
 
 **Dati di test**
-- Ticket incluso atteso: un ticket reale con assegnatario "Sviluppatore Collaudo" e stato diverso da "Nuovo"/"Completato" (es. "In lavorazione"); se nessuno esiste, assegnarne uno con l'azione di assegnazione già testata e portarlo in quello stato con i bottoni di transizione (mai scrivendo le colonne a mano).
-- Ticket escluso atteso: un ticket reale con lo stesso assegnatario "Sviluppatore Collaudo" ma stato "Nuovo" (stesso assegnatario, ma stato escluso).
+- Ticket incluso atteso: un ticket reale con assegnatario "Lorena Sava" e stato diverso da "Nuovo"/"Completato" (es. "In lavorazione"); se nessuno esiste, assegnarne uno con l'azione di assegnazione già testata e portarlo in quello stato con i bottoni di transizione (mai scrivendo le colonne a mano).
+- Ticket escluso atteso: un ticket reale con lo stesso assegnatario "Lorena Sava" ma stato "Nuovo" (stesso assegnatario, ma stato escluso).
 - Ticket escluso atteso (assegnatario diverso): un ticket reale assegnato a "Manager Collaudo" (qualunque stato).
 
 **Stato iniziale**
@@ -4098,14 +4098,14 @@ Dataset importato dall'ETL reale presente e non alterato.
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedi a `/admin` come Sviluppatore Collaudo | dev@oc.test | Accesso riuscito |
+| 1 | Accedi a `/admin` come Lorena Sava | lorena.sava@montagnaservizi.com | Accesso riuscito |
 | 2 | Apri la tab "Assegnati a me" | — | Elenco filtrato |
 | 3 | Verifica che il ticket incluso individuato sopra sia presente | — | Presente |
 | 4 | Verifica che il ticket escluso individuato sopra (stato Nuovo, stesso assegnatario) NON sia presente | — | Assente |
 | 5 | Verifica che il ticket escluso individuato sopra (assegnato a Manager Collaudo) NON sia presente | — | Assente |
 
 **Risultato finale atteso**
-Solo i ticket assegnati a "Sviluppatore Collaudo" in stato diverso da "Nuovo"/"Completato" compaiono nella tab.
+Solo i ticket assegnati a "Lorena Sava" in stato diverso da "Nuovo"/"Completato" compaiono nella tab.
 
 **Controlli negativi**
 Nessuno applicabile oltre ai due esclusi già verificati ai passi 4-5.
@@ -4117,7 +4117,7 @@ Nessuno applicabile oltre ai due esclusi già verificati ai passi 4-5.
 
 PASS: solo il ticket atteso compare, i due esclusi non compaiono.
 FAIL: uno dei ticket esclusi compare, oppure il ticket atteso è assente.
-BLOCKED: impossibile accedere come Sviluppatore Collaudo.
+BLOCKED: impossibile accedere come Lorena Sava.
 NOT APPLICABLE: Non previsto per questo test.
 
 **Ripristino**
@@ -4157,12 +4157,12 @@ Alta
 Developer
 
 **Prerequisiti**
-- Accesso a `/admin` come dev@oc.test.
-- Dataset importato dall'ETL reale presente e non alterato: individuare i ticket idonei con i filtri Filament (Stato/Tester) invece di assumere titolo/indice fissi; se il dump caricato non ha già un ticket con tester "Sviluppatore Collaudo", impostarlo con l'azione di assegnazione tester già testata nelle story precedenti, mai scrivendo la colonna a mano.
+- Accesso a `/admin` come lorena.sava@montagnaservizi.com.
+- Dataset importato dall'ETL reale presente e non alterato: individuare i ticket idonei con i filtri Filament (Stato/Tester) invece di assumere titolo/indice fissi; se il dump caricato non ha già un ticket con tester "Lorena Sava", impostarlo con l'azione di assegnazione tester già testata nelle story precedenti, mai scrivendo la colonna a mano.
 
 **Dati di test**
-- Ticket incluso atteso: un ticket reale in stato "In test" con tester "Sviluppatore Collaudo".
-- Ticket escluso atteso: un ticket reale in stato "Testato" (non più "In test") con tester comunque "Sviluppatore Collaudo".
+- Ticket incluso atteso: un ticket reale in stato "In test" con tester "Lorena Sava".
+- Ticket escluso atteso: un ticket reale in stato "Testato" (non più "In test") con tester comunque "Lorena Sava".
 
 **Stato iniziale**
 Dataset importato dall'ETL reale presente e non alterato.
@@ -4171,7 +4171,7 @@ Dataset importato dall'ETL reale presente e non alterato.
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedi a `/admin` come Sviluppatore Collaudo | dev@oc.test | Accesso riuscito |
+| 1 | Accedi a `/admin` come Lorena Sava | lorena.sava@montagnaservizi.com | Accesso riuscito |
 | 2 | Apri la tab "Da testare" | — | Elenco filtrato |
 | 3 | Verifica che il ticket incluso individuato sopra (stato "In test") sia presente | — | Presente |
 | 4 | Verifica che il ticket escluso individuato sopra (stato "Testato") NON sia presente | — | Assente |
@@ -4189,7 +4189,7 @@ Nessuno applicabile.
 
 PASS: esito coerente con quanto descritto sopra per entrambi i ticket.
 FAIL: uno dei due esiti è invertito.
-BLOCKED: impossibile accedere come Sviluppatore Collaudo.
+BLOCKED: impossibile accedere come Lorena Sava.
 NOT APPLICABLE: Non previsto per questo test.
 
 **Ripristino**
@@ -4233,7 +4233,7 @@ Manager
 - Dataset importato dall'ETL reale presente e non alterato: individuare i ticket idonei con i filtri Filament (Stato) invece di assumere titolo/indice fissi.
 
 **Dati di test**
-- Ticket incluso atteso: un ticket reale in stato "In test", con un tester diverso dall'utente che esegue il test (es. "Sviluppatore Collaudo").
+- Ticket incluso atteso: un ticket reale in stato "In test", con un tester diverso dall'utente che esegue il test (es. "Lorena Sava").
 - Ticket escluso atteso: un ticket reale in stato "In lavorazione".
 
 **Stato iniziale**
@@ -4301,7 +4301,7 @@ Alta
 Admin
 
 **Prerequisiti**
-- Accesso a `/admin` come admin@oc.test.
+- Accesso a `/admin` come info@montagnaservizi.com.
 - Dataset importato dall'ETL reale presente e non alterato: individuare i ticket idonei con i filtri Filament (Stato) invece di assumere titolo/indice fissi; se il dump caricato non ha un ticket in stato "Problema", portarne uno in quello stato con i bottoni di transizione già testati, mai scrivendo la colonna a mano.
 
 **Dati di test**
@@ -4315,7 +4315,7 @@ Dataset importato dall'ETL reale presente e non alterato.
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedi a `/admin` come admin | admin@oc.test | Accesso riuscito |
+| 1 | Accedi a `/admin` come admin | info@montagnaservizi.com | Accesso riuscito |
 | 2 | Apri la tab "Problemi" | — | Elenco filtrato |
 | 3 | Verifica che il ticket incluso individuato sopra sia presente | — | Presente |
 | 4 | Verifica che il ticket escluso individuato sopra (In attesa) NON sia presente | — | Assente |
@@ -4373,7 +4373,7 @@ Media
 Admin
 
 **Prerequisiti**
-- Accesso a `/admin` come admin@oc.test.
+- Accesso a `/admin` come info@montagnaservizi.com.
 - Dataset importato dall'ETL reale presente e non alterato: individuare i ticket idonei con i filtri Filament (Stato e Richiedente valorizzato) invece di assumere titolo/indice fissi.
 
 **Dati di test**
@@ -4387,7 +4387,7 @@ Dataset importato dall'ETL reale presente e non alterato.
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedi a `/admin` come admin | admin@oc.test | Accesso riuscito |
+| 1 | Accedi a `/admin` come admin | info@montagnaservizi.com | Accesso riuscito |
 | 2 | Apri la tab "Backlog" | — | Elenco filtrato |
 | 3 | Verifica che il ticket incluso individuato sopra sia presente | — | Presente |
 | 4 | Verifica che il ticket escluso individuato sopra (Nuovo) NON sia presente | — | Assente |
@@ -4445,7 +4445,7 @@ Alta
 Admin
 
 **Prerequisiti**
-- Accesso a `/admin` come admin@oc.test.
+- Accesso a `/admin` come info@montagnaservizi.com.
 - Dataset importato dall'ETL reale presente e non alterato: individuare i ticket idonei con i filtri Filament (Stato) invece di assumere titolo/indice fissi.
 
 **Dati di test**
@@ -4460,7 +4460,7 @@ Dataset importato dall'ETL reale presente e non alterato.
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedi a `/admin` come admin | admin@oc.test | Accesso riuscito |
+| 1 | Accedi a `/admin` come admin | info@montagnaservizi.com | Accesso riuscito |
 | 2 | Apri la tab "Archivio" | — | Elenco filtrato |
 | 3 | Verifica che il primo ticket incluso individuato sopra (Completato) sia presente | — | Presente |
 | 4 | Verifica che il secondo ticket incluso individuato sopra (Rifiutato) sia presente | — | Presente |
@@ -4519,11 +4519,11 @@ Alta
 Admin
 
 **Prerequisiti**
-- Accesso a `/admin` come admin@oc.test.
-- Esiste l'utente "Sviluppatore Collaudo" (ruolo Developer, non Customer).
+- Accesso a `/admin` come info@montagnaservizi.com.
+- Esiste l'utente "Lorena Sava" (ruolo Developer, non Customer).
 
 **Dati di test**
-- Nuovo ticket con titolo `COLL-F1-58-20260726-01`, Richiedente = "Sviluppatore Collaudo" (staff, non cliente). Resta in stato "Nuovo" dopo la creazione.
+- Nuovo ticket con titolo `COLL-F1-58-20260726-01`, Richiedente = "Lorena Sava" (staff, non cliente). Resta in stato "Nuovo" dopo la creazione.
 - Ticket escluso atteso: un ticket reale del dataset importato con richiedente esterno (cliente).
 
 **Stato iniziale**
@@ -4533,8 +4533,8 @@ Nessun ticket `COLL-F1-58-20260726-01` presente.
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedi a `/admin` come admin | admin@oc.test | Accesso riuscito |
-| 2 | Crea un nuovo ticket | Titolo `COLL-F1-58-20260726-01`; sezione "Assegnazione e classificazione" → Richiedente = "Sviluppatore Collaudo" | Ticket creato in stato "Nuovo" |
+| 1 | Accedi a `/admin` come admin | info@montagnaservizi.com | Accesso riuscito |
+| 2 | Crea un nuovo ticket | Titolo `COLL-F1-58-20260726-01`; sezione "Assegnazione e classificazione" → Richiedente = "Lorena Sava" | Ticket creato in stato "Nuovo" |
 | 3 | Apri la tab "Interni" | — | Elenco filtrato |
 | 4 | Verifica che `COLL-F1-58-20260726-01` sia presente | — | Presente |
 | 5 | Verifica che il ticket escluso individuato sopra (richiedente cliente) NON sia presente | — | Assente |
@@ -4593,11 +4593,11 @@ Critica
 Customer
 
 **Prerequisiti**
-- Accesso a `/admin` come customer@oc.test.
-- Dataset importato dall'ETL reale presente e non alterato: individuare con l'admin, prima di accedere come cliente, un ticket con richiedente "Socio CAI Collaudo" in stato "In lavorazione" e uno, stesso richiedente, in stato "Completato" (filtri Filament su Richiedente/Stato).
+- Accesso a `/admin` come infosentieroitalia@cai.it.
+- Dataset importato dall'ETL reale presente e non alterato: individuare con l'admin, prima di accedere come cliente, un ticket con richiedente "Sentiero Italia CAI - SICAI" in stato "In lavorazione" e uno, stesso richiedente, in stato "Completato" (filtri Filament su Richiedente/Stato).
 
 **Dati di test**
-- Ticket incluso atteso: un ticket reale con richiedente "Socio CAI Collaudo" (l'utente stesso), stato "In lavorazione".
+- Ticket incluso atteso: un ticket reale con richiedente "Sentiero Italia CAI - SICAI" (l'utente stesso), stato "In lavorazione".
 - Ticket escluso atteso: un ticket reale con lo stesso richiedente, stato "Completato".
 
 **Stato iniziale**
@@ -4607,7 +4607,7 @@ Dataset importato dall'ETL reale presente e non alterato.
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedi a `/admin` come Socio CAI Collaudo | customer@oc.test | Accesso riuscito; solo le tab "I miei ticket"/"Archivio" sono visibili (nessuna tab staff) |
+| 1 | Accedi a `/admin` come Sentiero Italia CAI - SICAI | infosentieroitalia@cai.it | Accesso riuscito; solo le tab "I miei ticket"/"Archivio" sono visibili (nessuna tab staff) |
 | 2 | Apri la tab "I miei ticket" (di norma già selezionata) | — | Elenco filtrato |
 | 3 | Verifica che il ticket incluso individuato sopra sia presente | — | Presente |
 | 4 | Verifica che il ticket escluso individuato sopra (Completato) NON sia presente | — | Assente (si trova invece in "Archivio", F1-60) |
@@ -4616,7 +4616,7 @@ Dataset importato dall'ETL reale presente e non alterato.
 Solo le proprie richieste non concluse compaiono in "I miei ticket".
 
 **Controlli negativi**
-Nessun ticket di un altro richiedente deve mai comparire: individuare come admin un ticket reale con un richiedente diverso da "Socio CAI Collaudo" (il dataset importato dall'ETL reale ne contiene tipicamente molti, a differenza del vecchio seed fittizio che ne aveva uno solo) e verificare che non compaia in "I miei ticket" per l'utente sotto test.
+Nessun ticket di un altro richiedente deve mai comparire: individuare come admin un ticket reale con un richiedente diverso da "Sentiero Italia CAI - SICAI" (il dataset importato dall'ETL reale ne contiene tipicamente molti, a differenza del vecchio seed fittizio che ne aveva uno solo) e verificare che non compaia in "I miei ticket" per l'utente sotto test.
 
 **Evidenze da acquisire**
 - Screenshot della tab "I miei ticket" con il ticket incluso.
@@ -4666,11 +4666,11 @@ Alta
 Customer
 
 **Prerequisiti**
-- Accesso a `/admin` come customer@oc.test.
-- Dataset importato dall'ETL reale presente e non alterato: individuare con l'admin, prima di accedere come cliente, un ticket con richiedente "Socio CAI Collaudo" in stato "Completato" e uno, stesso richiedente, in stato "In lavorazione" (filtri Filament su Richiedente/Stato).
+- Accesso a `/admin` come infosentieroitalia@cai.it.
+- Dataset importato dall'ETL reale presente e non alterato: individuare con l'admin, prima di accedere come cliente, un ticket con richiedente "Sentiero Italia CAI - SICAI" in stato "Completato" e uno, stesso richiedente, in stato "In lavorazione" (filtri Filament su Richiedente/Stato).
 
 **Dati di test**
-- Ticket incluso atteso: un ticket reale con richiedente "Socio CAI Collaudo", stato "Completato".
+- Ticket incluso atteso: un ticket reale con richiedente "Sentiero Italia CAI - SICAI", stato "Completato".
 - Ticket escluso atteso: un ticket reale con lo stesso richiedente, stato "In lavorazione".
 
 **Stato iniziale**
@@ -4680,7 +4680,7 @@ Dataset importato dall'ETL reale presente e non alterato.
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedi a `/admin` come Socio CAI Collaudo | customer@oc.test | Accesso riuscito |
+| 1 | Accedi a `/admin` come Sentiero Italia CAI - SICAI | infosentieroitalia@cai.it | Accesso riuscito |
 | 2 | Apri la tab "Archivio" | — | Elenco filtrato |
 | 3 | Verifica che il ticket incluso individuato sopra sia presente | — | Presente |
 | 4 | Verifica che il ticket escluso individuato sopra (In lavorazione) NON sia presente | — | Assente |
@@ -4738,7 +4738,7 @@ Media
 Admin
 
 **Prerequisiti**
-- Accesso a `/admin` come admin@oc.test.
+- Accesso a `/admin` come info@montagnaservizi.com.
 - Dataset importato dall'ETL reale presente e non alterato: individuare i ticket idonei con i filtri Filament (Stato e Richiedente valorizzato) invece di assumere titolo/indice fissi.
 
 **Dati di test**
@@ -4752,7 +4752,7 @@ Dataset importato dall'ETL reale presente e non alterato.
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedi a `/admin` come admin | admin@oc.test | Accesso riuscito |
+| 1 | Accedi a `/admin` come admin | info@montagnaservizi.com | Accesso riuscito |
 | 2 | Apri la tab "Nuovi" | — | Elenco filtrato |
 | 3 | Verifica che il ticket incluso individuato sopra sia presente | — | Presente |
 | 4 | Verifica che il ticket escluso individuato sopra (Assegnato) NON sia presente | — | Assente |
@@ -4814,7 +4814,7 @@ Manager
 - Dataset importato dall'ETL reale presente e non alterato: individuare i ticket idonei con i filtri Filament (Stato e Assegnatario) invece di assumere titolo/indice fissi.
 
 **Dati di test**
-- Ticket incluso atteso: un ticket reale con richiedente valorizzato in stato "In lavorazione", assegnato a un utente diverso da chi esegue il test (es. "Sviluppatore Collaudo").
+- Ticket incluso atteso: un ticket reale con richiedente valorizzato in stato "In lavorazione", assegnato a un utente diverso da chi esegue il test (es. "Lorena Sava").
 - Ticket escluso atteso: un ticket reale in stato "Da fare".
 
 **Stato iniziale**
@@ -4882,12 +4882,12 @@ Alta
 Admin
 
 **Prerequisiti**
-- Accesso a `/admin` come admin@oc.test.
+- Accesso a `/admin` come info@montagnaservizi.com.
 - Consigliato eseguire questo test dopo F1-58 (riusa lo stesso ticket creato lì come esempio escluso), oppure creare al volo un ticket equivalente se F1-58 non è stato eseguito in questa sessione.
 
 **Dati di test**
-- Ticket incluso atteso: un ticket reale con richiedente "Socio CAI Collaudo" (cliente) in stato "Completato" (filtrare per Richiedente/Stato) — incluso nonostante lo stato concluso.
-- Ticket escluso atteso: `COLL-F1-58-20260726-01` (creato in F1-58) con richiedente "Sviluppatore Collaudo" (non cliente); se non disponibile, crearne uno equivalente con titolo `COLL-F1-63-20260726-01` e Richiedente = "Manager Collaudo".
+- Ticket incluso atteso: un ticket reale con richiedente "Sentiero Italia CAI - SICAI" (cliente) in stato "Completato" (filtrare per Richiedente/Stato) — incluso nonostante lo stato concluso.
+- Ticket escluso atteso: `COLL-F1-58-20260726-01` (creato in F1-58) con richiedente "Lorena Sava" (non cliente); se non disponibile, crearne uno equivalente con titolo `COLL-F1-63-20260726-01` e Richiedente = "Manager Collaudo".
 
 **Stato iniziale**
 Dataset importato dall'ETL reale presente e non alterato (più, se presente, il ticket creato in F1-58).
@@ -4896,7 +4896,7 @@ Dataset importato dall'ETL reale presente e non alterato (più, se presente, il 
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedi a `/admin` come admin | admin@oc.test | Accesso riuscito |
+| 1 | Accedi a `/admin` come admin | info@montagnaservizi.com | Accesso riuscito |
 | 2 | Apri la tab "Tutti i ticket di clienti" | — | Elenco filtrato |
 | 3 | Verifica che il ticket incluso individuato sopra (Completato) sia presente | — | Presente, nonostante lo stato concluso |
 | 4 | Verifica che il ticket con richiedente non-cliente (`COLL-F1-58-...` o equivalente) NON sia presente | — | Assente |
@@ -4956,7 +4956,7 @@ Alta
 Admin
 
 **Prerequisiti**
-- Accesso a `/admin` come admin@oc.test.
+- Accesso a `/admin` come info@montagnaservizi.com.
 - Dataset importato dall'ETL reale presente e non alterato: individuare i ticket idonei con i filtri Filament (Stato) invece di assumere titolo/indice fissi.
 
 **Dati di test**
@@ -4970,7 +4970,7 @@ Dataset importato dall'ETL reale presente e non alterato; tab "Tutti i ticket" a
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedi a `/admin` come admin e apri la lista Ticket (tab "Tutti i ticket") | admin@oc.test | Elenco completo visibile |
+| 1 | Accedi a `/admin` come admin e apri la lista Ticket (tab "Tutti i ticket") | info@montagnaservizi.com | Elenco completo visibile |
 | 2 | Apri il pannello filtri e seleziona nel filtro "Stato" i valori "Nuovo" e "Backlog" | Filtro "Stato" = ["Nuovo", "Backlog"] | Il filtro si applica |
 | 3 | Verifica che i due ticket dei rispettivi stati compaiano | — | Entrambi presenti |
 | 4 | Verifica che il ticket in stato "Completato" non compaia | — | Assente |
@@ -5040,13 +5040,13 @@ Media
 Admin (per la parte UI) + Amministratore di sistema (per lo step tecnico di collegamento)
 
 **Prerequisiti**
-- Accesso a `/admin` come admin@oc.test.
+- Accesso a `/admin` come info@montagnaservizi.com.
 - Accesso tecnico a `php artisan tinker` sull'ambiente UAT (o equivalente, es. un comando one-off).
 
 **Dati di test**
 - Due organizzazioni distinte, una qualunque tra quelle presenti nell'ambiente (dal dump importato).
 - Due utenti richiedenti da associare, uno per organizzazione — se non già associati nel dump,
-  associarli via tinker come sopra (es. "Socio CAI Collaudo" → prima organizzazione; "Manager
+  associarli via tinker come sopra (es. "Sentiero Italia CAI - SICAI" → prima organizzazione; "Manager
   Collaudo" → seconda organizzazione, usato qui solo come secondo richiedente distinto).
 - Due nuovi ticket: `COLL-F1-65-20260726-01` (richiedente il primo utente) e `COLL-F1-65-20260726-02` (richiedente il secondo utente).
 
@@ -5058,7 +5058,7 @@ Nessun utente aggiuntivo è associato a un'organizzazione oltre a quanto già pr
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
 | 1 (tecnico) | Se necessario, da `php artisan tinker`, recupera due organizzazioni e associa i due utenti scelti, una organizzazione ciascuno (`$user->organizations()->syncWithoutDetaching([$org->id])`) | Vedi comando sopra | Le due associazioni sono create senza errori (o già presenti nel dump) |
-| 2 | Accedi a `/admin` come admin | admin@oc.test | Accesso riuscito |
+| 2 | Accedi a `/admin` come admin | info@montagnaservizi.com | Accesso riuscito |
 | 3 | Crea `COLL-F1-65-20260726-01` con Richiedente = il primo utente | — | Ticket creato |
 | 4 | Crea `COLL-F1-65-20260726-02` con Richiedente = il secondo utente | — | Ticket creato |
 | 5 | Applica il filtro "Organizzazione del richiedente" = la prima organizzazione | — | Il filtro si applica |
@@ -5122,7 +5122,7 @@ Media
 Admin (per la parte UI) + Amministratore di sistema (per l'eventuale step tecnico "più di un tag")
 
 **Prerequisiti**
-- Accesso a `/admin` come admin@oc.test.
+- Accesso a `/admin` come info@montagnaservizi.com.
 - Accesso tecnico a `php artisan tinker` (necessario solo se il dump caricato non contiene già un ticket con 2+ tag).
 
 **Dati di test**
@@ -5199,7 +5199,7 @@ Media
 Admin
 
 **Prerequisiti**
-- Accesso a `/admin` come admin@oc.test.
+- Accesso a `/admin` come info@montagnaservizi.com.
 - Il dataset importato dall'ETL reale è stato caricato in una data precedente a quella odierna del
   collaudo (i ticket già presenti hanno quindi `created_at` antecedente a oggi).
 - Almeno due ticket reali in stato "Completato" con date di completamento diverse: filtrare l'elenco
@@ -5283,12 +5283,12 @@ Alta
 Admin
 
 **Prerequisiti**
-- Accesso a `/admin` come admin@oc.test.
+- Accesso a `/admin` come info@montagnaservizi.com.
 - Dataset importato dall'ETL reale presente e non alterato: individuare i ticket idonei con i filtri Filament (Stato/Assegnatario) invece di assumere titolo/indice fissi; se manca una combinazione, assegnarla con l'azione di assegnazione/transizione già testata, mai scrivendo le colonne a mano.
 
 **Dati di test**
-- Ticket incluso atteso: un ticket reale in stato "In lavorazione" con assegnatario "Sviluppatore Collaudo" — soddisfa sia la tab sia il filtro.
-- Ticket escluso atteso (stato sbagliato, stesso assegnatario): un ticket reale in stato "Nuovo" con lo stesso assegnatario "Sviluppatore Collaudo" — soddisfa il filtro ma non la tab.
+- Ticket incluso atteso: un ticket reale in stato "In lavorazione" con assegnatario "Lorena Sava" — soddisfa sia la tab sia il filtro.
+- Ticket escluso atteso (stato sbagliato, stesso assegnatario): un ticket reale in stato "Nuovo" con lo stesso assegnatario "Lorena Sava" — soddisfa il filtro ma non la tab.
 - Ticket escluso atteso (né stato né assegnatario): un ticket reale in stato "Backlog" assegnato a "Manager Collaudo".
 
 **Stato iniziale**
@@ -5298,14 +5298,14 @@ Dataset importato dall'ETL reale presente e non alterato.
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedi a `/admin` come admin e apri la tab "In lavorazione" | admin@oc.test | Elenco filtrato per stato "In lavorazione" |
-| 2 | Applica il filtro "Assegnatario" = "Sviluppatore Collaudo", restando sulla tab | — | Il filtro si applica in aggiunta alla tab |
+| 1 | Accedi a `/admin` come admin e apri la tab "In lavorazione" | info@montagnaservizi.com | Elenco filtrato per stato "In lavorazione" |
+| 2 | Applica il filtro "Assegnatario" = "Lorena Sava", restando sulla tab | — | Il filtro si applica in aggiunta alla tab |
 | 3 | Verifica che il ticket incluso individuato sopra compaia | — | Presente |
 | 4 | Verifica che il ticket escluso individuato sopra (Nuovo, stesso assegnatario) NON compaia | — | Assente: la tab continua a restringere per stato anche col filtro attivo |
 | 5 | Verifica che il ticket escluso individuato sopra (Backlog, altro assegnatario) NON compaia | — | Assente |
 
 **Risultato finale atteso**
-Con tab "In lavorazione" e filtro "Assegnatario" entrambi attivi, compare solo il ticket che soddisfa contemporaneamente stato "In lavorazione" e assegnatario "Sviluppatore Collaudo".
+Con tab "In lavorazione" e filtro "Assegnatario" entrambi attivi, compare solo il ticket che soddisfa contemporaneamente stato "In lavorazione" e assegnatario "Lorena Sava".
 
 **Controlli negativi**
 Rimuovere il filtro "Assegnatario" lasciando solo la tab: il ticket assegnato al Manager in "In lavorazione" (se presente) deve ricomparire, a conferma che il filtro, non la tab, stava escludendolo.
@@ -5350,7 +5350,7 @@ Verificare che la "Vista di lavoro" (WorkBoard) raggruppi i ticket in una colonn
 - Test correlato: F1-70 (selettore assegnatario).
 
 **Nota importante — limite del dataset/ruoli UAT reali**
-Il test automatico costruisce un utente sintetico con **solo** il permesso `ticket.view.assigned` (mai `ticket.view.any`) per dimostrare l'occultamento dei ticket fuori scope. Nella matrice reale di `RolePermissionSeeder` (§9.4), però, sia "developer" sia "manager" (e ovviamente "admin") hanno **sempre anche** `ticket.view.any`: nessuno dei tre utenti staff seedati (Sviluppatore/Manager/Amministratore Collaudo) è quindi mai visibilità-ristretto sulla Vista di lavoro, e con l'interfaccia Filament attuale (nessuna schermata per modificare i permessi di un ruolo — `RoleResource` è di sola lettura) non è possibile costruire, solo da UI, uno staff realmente ristretto a `ticket.view.assigned`. La sola metà "raggruppamento in colonne per stato" dell'AC è quindi pienamente verificabile da UI con gli utenti reali; la metà "occultamento fuori scope" resta verificata in modo affidabile solo dal test automatico citato. **DA VERIFICARE CON IL PRODUCT OWNER** se è prevista, in una fase successiva, la possibilità di creare/modificare ruoli con permessi ridotti dal pannello, utile per un collaudo dal vivo di questo aspetto.
+Il test automatico costruisce un utente sintetico con **solo** il permesso `ticket.view.assigned` (mai `ticket.view.any`) per dimostrare l'occultamento dei ticket fuori scope. Nella matrice reale di `RolePermissionSeeder` (§9.4), però, sia "developer" sia "manager" (e ovviamente "admin") hanno **sempre anche** `ticket.view.any`: nessuno dei tre utenti staff seedati (Sviluppatore/Manager/Montagna Servizi) è quindi mai visibilità-ristretto sulla Vista di lavoro, e con l'interfaccia Filament attuale (nessuna schermata per modificare i permessi di un ruolo — `RoleResource` è di sola lettura) non è possibile costruire, solo da UI, uno staff realmente ristretto a `ticket.view.assigned`. La sola metà "raggruppamento in colonne per stato" dell'AC è quindi pienamente verificabile da UI con gli utenti reali; la metà "occultamento fuori scope" resta verificata in modo affidabile solo dal test automatico citato. **DA VERIFICARE CON IL PRODUCT OWNER** se è prevista, in una fase successiva, la possibilità di creare/modificare ruoli con permessi ridotti dal pannello, utile per un collaudo dal vivo di questo aspetto.
 
 **Modalità di esecuzione**
 MISTO
@@ -5362,7 +5362,7 @@ Alta
 Developer (per la parte UI) — la parte "occultamento fuori scope" richiede l'esecuzione/lettura del test automatico citato, non riproducibile da un tester funzionale con i ruoli UAT reali
 
 **Prerequisiti**
-- Accesso a `/admin` come dev@oc.test.
+- Accesso a `/admin` come lorena.sava@montagnaservizi.com.
 - Dataset importato dall'ETL reale presente e non alterato.
 
 **Dati di test**
@@ -5379,7 +5379,7 @@ Dataset importato dall'ETL reale presente e non alterato.
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedi a `/admin` come Sviluppatore Collaudo | dev@oc.test | Login riuscito, redirect automatico alla "Vista di lavoro" (vedi anche F1-71) |
+| 1 | Accedi a `/admin` come Lorena Sava | lorena.sava@montagnaservizi.com | Login riuscito, redirect automatico alla "Vista di lavoro" (vedi anche F1-71) |
 | 2 | Osserva la vista di lavoro | — | Sono visibili colonne per ogni stato (Nuovo, Backlog, Assegnato, Da fare, In lavorazione, In test, Testato, Rilasciato, Completato, Problema, In attesa, Rifiutato), ciascuna con un contatore |
 | 3 | Verifica che ogni ticket presente nel sistema compaia in una sola colonna, coerente con il proprio stato (es. i ticket "In lavorazione" sono tutti e soli nella colonna "In lavorazione") | — | Nessun ticket duplicato o mancante rispetto al totale visibile nella lista Ticket |
 | 4 | (riferimento, non bloccante) Consultare l'esito del test automatico citato per la parte "occultamento fuori scope" | `php artisan test --filter=WorkBoardTest` | Il test PASSA nell'ultima esecuzione in pipeline |
@@ -5442,7 +5442,7 @@ Manager
 - Dataset importato dall'ETL reale presente e non alterato: individuare i ticket idonei con i filtri Filament (Assegnatario) invece di assumere titolo/indice fissi; se manca la combinazione, assegnarla con l'azione di assegnazione già testata, mai scrivendo la colonna a mano.
 
 **Dati di test**
-- Ticket incluso atteso quando si seleziona "Sviluppatore Collaudo": un ticket reale assegnato a "Sviluppatore Collaudo", in stato "In lavorazione".
+- Ticket incluso atteso quando si seleziona "Lorena Sava": un ticket reale assegnato a "Lorena Sava", in stato "In lavorazione".
 - Ticket escluso atteso: un ticket reale assegnato a "Manager Collaudo".
 
 **Stato iniziale**
@@ -5453,7 +5453,7 @@ Dataset importato dall'ETL reale presente e non alterato; il selettore "Board di
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
 | 1 | Accedi a `/admin` come Manager Collaudo e apri la Vista di lavoro | manager@oc.test | Board con tutti i ticket visibili (Manager ha `ticket.view.any`) |
-| 2 | Nel selettore "Board di" scegli "Sviluppatore Collaudo" | Select "Board di" = Sviluppatore Collaudo | Il board si aggiorna |
+| 2 | Nel selettore "Board di" scegli "Lorena Sava" | Select "Board di" = Lorena Sava | Il board si aggiorna |
 | 3 | Verifica che il ticket incluso individuato sopra compaia nella colonna "In lavorazione" | — | Presente |
 | 4 | Verifica che il ticket escluso individuato sopra (assegnato al Manager) NON compaia in alcuna colonna | — | Assente |
 | 5 | Riporta il selettore su "Tutti" | — | Il ticket del Manager ricompare |
@@ -5465,7 +5465,7 @@ Con il selettore impostato su un collega specifico, ogni colonna mostra solo i t
 Nessuno applicabile.
 
 **Evidenze da acquisire**
-- Screenshot del board con "Board di" = Sviluppatore Collaudo.
+- Screenshot del board con "Board di" = Lorena Sava.
 
 **Criterio di superamento**
 
@@ -5511,7 +5511,7 @@ Critica
 Admin, Manager, Developer, Customer (login separati)
 
 **Prerequisiti**
-- Credenziali dei 4 utenti coinvolti (admin/manager/developer/customer @orchestrator.local, password "password").
+- Credenziali dei 4 utenti coinvolti (le 5 identità di riferimento del punto 9 di 00-istruzioni-generali.md, password "uat").
 
 **Dati di test**
 Nessuno specifico oltre alle credenziali di collaudo.
@@ -5523,10 +5523,10 @@ Nessuna sessione attiva sul pannello.
 
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
-| 1 | Accedi a `/admin` come Amministratore Collaudo | admin@oc.test / password | Subito dopo il login la pagina mostrata è la "Vista di lavoro" (titolo pagina "Vista di lavoro", colonne per stato visibili), non la Dashboard di base |
-| 2 | Disconnetti e accedi come Manager Collaudo | manager@oc.test / password | Stesso risultato: redirect automatico alla "Vista di lavoro" |
-| 3 | Disconnetti e accedi come Sviluppatore Collaudo | dev@oc.test / password | Stesso risultato: redirect automatico alla "Vista di lavoro" |
-| 4 | Disconnetti e accedi come Socio CAI Collaudo | customer@oc.test / password | La pagina mostrata resta la Dashboard di base di Filament (widget standard), NESSUN redirect verso la Vista di lavoro; il menu di navigazione non mostra nemmeno la voce "Vista di lavoro" |
+| 1 | Accedi a `/admin` come Montagna Servizi | info@montagnaservizi.com / uat | Subito dopo il login la pagina mostrata è la "Vista di lavoro" (titolo pagina "Vista di lavoro", colonne per stato visibili), non la Dashboard di base |
+| 2 | Disconnetti e accedi come Manager Collaudo | manager@oc.test / uat | Stesso risultato: redirect automatico alla "Vista di lavoro" |
+| 3 | Disconnetti e accedi come Lorena Sava | lorena.sava@montagnaservizi.com / uat | Stesso risultato: redirect automatico alla "Vista di lavoro" |
+| 4 | Disconnetti e accedi come Sentiero Italia CAI - SICAI | infosentieroitalia@cai.it / uat | La pagina mostrata resta la Dashboard di base di Filament (widget standard), NESSUN redirect verso la Vista di lavoro; il menu di navigazione non mostra nemmeno la voce "Vista di lavoro" |
 
 **Risultato finale atteso**
 I tre profili staff atterrano sempre sulla Vista di lavoro; il cliente atterra sempre sulla Dashboard di base, senza redirect.
@@ -5583,13 +5583,13 @@ Critica
 Admin (creazione/assegnazione) + Developer (lavorazione) + Manager (collaudo interno, come tester)
 
 **Prerequisiti**
-- Accesso a `/admin` come admin@oc.test, dev@oc.test, manager@oc.test.
+- Accesso a `/admin` come info@montagnaservizi.com, lorena.sava@montagnaservizi.com, manager@oc.test.
 - Il worker della coda (`queue:work`) è attivo sull'ambiente UAT, altrimenti il ricalcolo automatico delle "Ore lavorate" (listener asincrono di `TicketStatusChanged`, con debounce) non avviene finché qualcuno non lo forza — in tal caso un tester tecnico può eseguire `php artisan timetracking:recalculate --ticket=<id>` per forzare il ricalcolo.
 - Eseguire l'intero percorso in un solo giorno feriale (lun-ven), per evitare lo scarto weekend nel calcolo delle ore lavorate.
 
 **Dati di test**
 - Nuovo ticket con titolo `COLL-F1-72-20260726-01`.
-- Assegnatario: "Sviluppatore Collaudo". Tester (collaudo interno): "Manager Collaudo".
+- Assegnatario: "Lorena Sava". Tester (collaudo interno): "Manager Collaudo".
 
 **Stato iniziale**
 Nessun ticket `COLL-F1-72-20260726-01` presente.
@@ -5599,12 +5599,12 @@ Nessun ticket `COLL-F1-72-20260726-01` presente.
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
 | 1 | Come admin, crea il ticket | Titolo `COLL-F1-72-20260726-01` | Stato "Nuovo"; Storico: 1 evento di creazione |
-| 2 | Come admin, esegui la transizione verso "Assegnato" | Assegnatario = "Sviluppatore Collaudo" | Stato "Assegnato"; Storico: +1 evento (`Nuovo → Assegnato`) |
+| 2 | Come admin, esegui la transizione verso "Assegnato" | Assegnatario = "Lorena Sava" | Stato "Assegnato"; Storico: +1 evento (`Nuovo → Assegnato`) |
 | 3 | Come admin, esegui la transizione verso "Da fare" | — | Stato "Da fare"; Storico: +1 evento |
-| 4 | Come Sviluppatore Collaudo, esegui la transizione verso "In lavorazione". Annota l'ora esatta del clic | — | Stato "In lavorazione"; Storico: +1 evento |
-| 5 | Attendi almeno alcuni minuti (per avere un intervallo misurabile), poi come Sviluppatore Collaudo esegui la transizione verso "In test", assegnando Tester = "Manager Collaudo". Annota l'ora esatta del clic | Tester = "Manager Collaudo" | Stato "In test"; Storico: +1 evento |
+| 4 | Come Lorena Sava, esegui la transizione verso "In lavorazione". Annota l'ora esatta del clic | — | Stato "In lavorazione"; Storico: +1 evento |
+| 5 | Attendi almeno alcuni minuti (per avere un intervallo misurabile), poi come Lorena Sava esegui la transizione verso "In test", assegnando Tester = "Manager Collaudo". Annota l'ora esatta del clic | Tester = "Manager Collaudo" | Stato "In test"; Storico: +1 evento |
 | 6 | Come Manager Collaudo, esegui la transizione verso "Testato" | — | Stato "Testato"; Storico: +1 evento |
-| 7 | Come Sviluppatore Collaudo (o admin), esegui la transizione verso "Rilasciato" | — | Stato "Rilasciato"; Storico: +1 evento; data di rilascio valorizzata |
+| 7 | Come Lorena Sava (o admin), esegui la transizione verso "Rilasciato" | — | Stato "Rilasciato"; Storico: +1 evento; data di rilascio valorizzata |
 | 8 | Esegui la transizione verso "Completato" | — | Stato "Completato"; Storico: +1 evento; data di completamento valorizzata |
 | 9 | Apri il ticket in modifica e osserva il campo "Ore lavorate" (sezione "Tempo") | — | Il valore mostrato è coerente con la differenza fra gli orari annotati ai passi 4 e 5, arrotondata per difetto alla granularità configurata (nessun conteggio dell'intero tempo di vita del ticket) |
 | 10 | Conta le righe nella sezione "Storico" del ticket | — | Esattamente 8 righe: 1 "Creato" + 7 "Cambio di stato" |
@@ -5663,7 +5663,7 @@ Critica
 Developer (per il percorso UI onesto) + Amministratore di sistema (per il tentativo tecnico di bypass)
 
 **Prerequisiti**
-- Accesso a `/admin` come dev@oc.test.
+- Accesso a `/admin` come lorena.sava@montagnaservizi.com.
 - Accesso tecnico a `php artisan tinker` (o alla suite di test) per la parte B.
 - Esiste un secondo utente qualunque da usare come "altro utente" nel tentativo (es. "Manager Collaudo").
 
@@ -5678,9 +5678,9 @@ Il ticket è "Nuovo", `assignee_id` nullo.
 | Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
 |------:|-------------------|--------------------|------------------|
 | 1 | Come admin, crea il ticket | Titolo `COLL-F1-73-20260726-01` | Stato "Nuovo" |
-| 2 (percorso UI onesto) | Accedi come Sviluppatore Collaudo, apri il ticket e avvia la transizione verso "Assegnato" | — | Il modale si apre |
+| 2 (percorso UI onesto) | Accedi come Lorena Sava, apri il ticket e avvia la transizione verso "Assegnato" | — | Il modale si apre |
 | 3 | Osserva i campi del modale | — | NON è presente alcun campo "Assegnatario" (il developer non ha il permesso di transizione libera: l'auto-assegnazione è silenziosa) — solo il checkbox "Applica anche ai ticket figli" |
-| 4 | Conferma la transizione | — | Il ticket viene assegnato a "Sviluppatore Collaudo" stesso (l'utente che ha eseguito l'azione), mai a un altro utente, anche se il modale non offriva alcuna scelta |
+| 4 | Conferma la transizione | — | Il ticket viene assegnato a "Lorena Sava" stesso (l'utente che ha eseguito l'azione), mai a un altro utente, anche se il modale non offriva alcuna scelta |
 | 5 (tentativo tecnico di bypass) | Su un secondo ticket "Nuovo" di prova, da `php artisan tinker` (o eseguendo il test automatico citato), invoca direttamente `ChangeTicketStatus::run($ticket, TicketStatus::Assigned, $developer, ['assignee_id' => $otherUser->id])`, impersonando un `assignee_id` diverso dal developer autenticato | `$otherUser` = un altro utente qualunque, es. Manager Collaudo | La chiamata lancia `Illuminate\Validation\ValidationException` (errore di validazione localizzato, mai un'eccezione generica) |
 | 6 | Verifica lo stato del ticket dopo il tentativo | — | Il ticket resta in stato "Nuovo", `assignee_id` ancora nullo, e non è stato scritto alcun nuovo evento nello storico |
 
@@ -5738,7 +5738,7 @@ Critica
 Admin (per il percorso UI onesto) + Amministratore di sistema (per il tentativo tecnico)
 
 **Prerequisiti**
-- Accesso a `/admin` come admin@oc.test.
+- Accesso a `/admin` come info@montagnaservizi.com.
 - Accesso tecnico a `php artisan tinker` (o alla suite di test) per la parte tecnica.
 
 **Dati di test**

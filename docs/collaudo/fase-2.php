@@ -16,11 +16,11 @@ return [
         'app_url' => 'https://ticket-uat.montagnaservizi.com',
         'mailpit_url' => 'https://mailpit-ticket-uat.montagnaservizi.com',
         'credenziali' => [
-            ['ruolo' => 'Admin', 'email' => 'admin@oc.test', 'password' => 'password'],
-            ['ruolo' => 'Developer', 'email' => 'dev@oc.test', 'password' => 'password'],
-            ['ruolo' => 'Manager', 'email' => 'manager@oc.test', 'password' => 'password'],
-            ['ruolo' => 'Customer', 'email' => 'customer@oc.test', 'password' => 'password'],
-            ['ruolo' => 'Fundraising', 'email' => 'fr@oc.test', 'password' => 'password'],
+            ['ruolo' => 'Admin', 'email' => 'info@montagnaservizi.com', 'password' => 'uat'],
+            ['ruolo' => 'Developer', 'email' => 'lorena.sava@montagnaservizi.com', 'password' => 'uat'],
+            ['ruolo' => 'Manager', 'email' => 'manager@oc.test', 'password' => 'uat'],
+            ['ruolo' => 'Customer', 'email' => 'infosentieroitalia@cai.it', 'password' => 'uat'],
+            ['ruolo' => 'Fundraising', 'email' => 'sara.mariani@montagnaservizi.com', 'password' => 'uat'],
         ],
     ],
     'topics' => [
@@ -450,17 +450,17 @@ return [
             ],
         ],
         [
-            'titolo' => 'Anonimizzazione (US-217)',
+            'titolo' => 'Password fissa fuori produzione (US-217, ridefinito da US-R08)',
             'test' => [
                 [
                     'id' => 'F2-70',
-                    'descrizione' => 'Lo stesso seed produce sempre lo stesso nome e la stessa email finti',
-                    'test_automatico' => 'tests/Unit/Import/Anonymization/AnonymizerTest.php::the same seed always produces the same fake name and email',
+                    'descrizione' => 'Con --anonymize nome/email/contenuti restano sempre quelli reali del dump v1, mai alterati',
+                    'test_automatico' => 'tests/Feature/Import/Stages/UsersStageTest.php::--anonymize never changes name or email: they always stay the real ones from v1',
                 ],
                 [
                     'id' => 'F2-71',
-                    'descrizione' => "L'email finta è sempre sul dominio di test configurato, mai un dominio reale",
-                    'test_automatico' => 'tests/Unit/Import/Anonymization/AnonymizerTest.php::the fake email is always on the configured test domain, never a real one',
+                    'descrizione' => 'Con --anonymize la password è sempre l\'hash di un valore fisso noto, mai l\'hash v1 reale',
+                    'test_automatico' => 'tests/Unit/Import/Security/FixedPasswordHasherTest.php::hash returns a Laravel hash of the fixed known password, never the raw string',
                 ],
                 [
                     'id' => 'F2-72',

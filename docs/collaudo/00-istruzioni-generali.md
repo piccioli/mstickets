@@ -3,7 +3,7 @@
 ## 1. Titolo, versione, data e stato del documento
 
 - **Titolo**: Documento di collaudo — Fase 0 (Fondazioni) + Fase 1 (Ticketing core) + Fase 1A (Landing, Login, Recupero password)
-- **Versione**: 2.2
+- **Versione**: 2.3
 
   La versione 1 era la matrice sintetica preesistente (`docs/collaudo/fase-0-1.php`, manifest di
   tracciabilità sorgente, più il PDF generato a partire da essa dal comando `php artisan
@@ -14,10 +14,14 @@
   fase del roadmap PRD §14): landing page pubblica, login e recupero password con la nuova identità
   visiva "Montagna Servizi" — manifest dedicato `docs/collaudo/fase-1a.php`, 16 nuovi test. La
   versione 2.2 aggiorna l'intero pacchetto dopo il completamento della **Fase 2 (ETL)**: l'ambiente
-  UAT non usa più un seeder di dati fittizi (`UatSeeder`, rimosso) ma dati reali anonimizzati
-  importati da v1 (`v1:import --anonymize`) — credenziali, meccanismo di popolamento e composizione
-  del dataset aggiornati di conseguenza (punti 4, 6, 9, 13).
-- **Data di stesura**: 26 luglio 2026 (v2.0), 27 luglio 2026 (v2.1), 10 agosto 2026 (v2.2)
+  UAT non usa più un seeder di dati fittizi (`UatSeeder`, rimosso) ma dati reali importati da v1
+  (`v1:import --anonymize`) — credenziali, meccanismo di popolamento e composizione del dataset
+  aggiornati di conseguenza (punti 4, 6, 9, 13). La versione 2.3 (11 agosto 2026) ridefinisce cosa
+  fa `--anonymize` su richiesta del committente: nome/email/ruoli/contenuti restano **sempre** quelli
+  reali del dump v1 (mai anonimizzati, a differenza di quanto descritto nella v2.2), l'unica cosa che
+  cambia è la password, impostata a `uat` per tutti (punto 9).
+- **Data di stesura**: 26 luglio 2026 (v2.0), 27 luglio 2026 (v2.1), 10 agosto 2026 (v2.2), 11 agosto
+  2026 (v2.3)
 - **Data di pubblicazione ufficiale**: DA VERIFICARE CON IL PRODUCT OWNER
 - **Stato**: Bozza per revisione
 
@@ -90,9 +94,9 @@ Sono esplicitamente **fuori scopo** di questa release e di questo collaudo:
   pacchetto di collaudo (manifest dedicato `docs/collaudo/fase-2.php`, non ancora integrato in
   questo manuale generale — il collaudo specifico dell'ETL in sé, es. correttezza di
   `v1:validate`, non è nello scopo di questo documento). Da questa versione, però, i dati presenti
-  in UAT sono **dati reali anonimizzati importati da v1** (`v1:import --anonymize`), non più dati
-  fittizi generati da un seeder: i test di Fase 0/1/1A descritti qui restano gli stessi, eseguiti
-  però su questo nuovo dataset (vedi punto 9 e punto 13).
+  in UAT sono **dati reali importati da v1** (`v1:import --anonymize`, nome/email/contenuti mai
+  alterati), non più dati fittizi generati da un seeder: i test di Fase 0/1/1A descritti qui restano
+  gli stessi, eseguiti però su questo nuovo dataset (vedi punto 9 e punto 13).
 - **Fase 3 — Sottosistema email reale** (invio/ricezione): non costruito. Nel collaudo di questa
   release ogni messaggio di conversazione del ticket viaggia sempre sul canale "web": nessuna email
   reale viene mai inviata o ricevuta.
@@ -148,8 +152,8 @@ Sono esplicitamente **fuori scopo** di questa release e di questo collaudo:
   la scheda di un ticket in un determinato giorno.
 - **Seed/importazione dati**: la procedura automatica che popola il database dell'ambiente UAT
   prima del collaudo. Non è più un seeder di dati fittizi: è l'ETL reale (`v1:import
-  --anonymize`), che importa dal dump di produzione v1 anonimizzando nomi/email/corpo dei
-  messaggi e fissando 5 identità di riferimento sempre uguali (vedi punto 9).
+  --anonymize`), che importa dal dump di produzione v1 senza alterare nomi/email/contenuti (sempre
+  reali) e impone solo una password fissa nota a tutti gli utenti (vedi punto 9).
 - **UAT**: User Acceptance Test, il collaudo di accettazione condotto dall'utente/committente,
   oggetto di questo manuale.
 - **Ambiente di collaudo**: l'installazione dedicata dell'applicazione, separata da sviluppo e
@@ -183,7 +187,8 @@ Sono esplicitamente **fuori scopo** di questa release e di questo collaudo:
 - **URL applicazione**: `https://ticket-uat.montagnaservizi.com` — pannello Filament raggiungibile
   al percorso `/admin` (login: `https://ticket-uat.montagnaservizi.com/admin/login`).
 - **Architettura**: ambiente pubblico dedicato esclusivamente al collaudo, separato dagli ambienti
-  di sviluppo e produzione, con dati fittizi rigenerati ad ogni pubblicazione (vedi punto 13). Non
+  di sviluppo e produzione, con i dati reali reimportati da v1 ad ogni pubblicazione (vedi punto
+  13). Non
   sono qui descritti dettagli infrastrutturali interni (porte, nomi dei container, topologia dei
   servizi): sono note operative per lo sviluppatore, non necessarie al collaudo funzionale.
 - **Stato di attivazione**: **DA VERIFICARE CON IL PRODUCT OWNER** — l'infrastruttura server
@@ -195,25 +200,26 @@ Sono esplicitamente **fuori scopo** di questa release e di questo collaudo:
 ## 9. Credenziali e profili di test
 
 Le identità Admin/Developer/Fundraising/Customer corrispondono a **4 utenti reali del sistema
-v1**, scelti come riferimento fisso e importati con `--anonymize`: l'email in tabella è sempre la
-stessa a ogni reimport (indipendentemente da quale dump sia stato caricato sul server), il nome è
-un'etichetta di ruolo generica, **non** il nome reale della persona dietro quell'account — coerente
-con l'anonimizzazione, anche in questo documento. Il ruolo Manager non esiste in alcun utente v1
-(introdotto solo in questa versione del prodotto): il relativo account è creato appositamente dal
-comando `collaudo:ensure-manager-account`, eseguito automaticamente a fine `make setup` e ad ogni
-deploy UAT. In tutti i casi la password è sempre `password`. Nessuna registrazione manuale è
-necessaria.
+v1**, scelti come riferimento fisso: nome, email, ruolo e ogni contenuto associato (ticket,
+conversazioni, ecc.) sono quelli **reali** del dump — l'ETL (`v1:import --anonymize`) non li altera
+mai (a differenza del design originale di questo progetto: nome/email non vengono più anonimizzati).
+L'unica cosa che `--anonymize` cambia è la password: sempre `uat` per ogni utente importato, mai
+la password v1 reale della persona. Il ruolo Manager non esiste in alcun utente v1 (introdotto solo
+in questa versione del prodotto): il relativo account è creato appositamente dal comando
+`collaudo:ensure-manager-account`, eseguito automaticamente a fine `make setup` e ad ogni deploy
+UAT, con la stessa password fissa `uat`. Nessuna registrazione manuale è necessaria.
 
 | Ruolo | Nome utente | Email | Password |
 |---|---|---|---|
-| Admin | Amministratore Collaudo | admin@oc.test | password |
-| Developer | Sviluppatore Collaudo | dev@oc.test | password |
-| Manager | Manager Collaudo | manager@oc.test | password |
-| Customer | Socio CAI Collaudo | customer@oc.test | password |
-| Fundraising | Referente Fundraising Collaudo | fr@oc.test | password |
+| Admin | Montagna Servizi (account aziendale, non una persona) | info@montagnaservizi.com | uat |
+| Developer | Lorena Sava | lorena.sava@montagnaservizi.com | uat |
+| Manager | Manager Collaudo (account creato ex novo, nessun utente v1 ha questo ruolo) | manager@oc.test | uat |
+| Customer | Sentiero Italia CAI - SICAI | infosentieroitalia@cai.it | uat |
+| Fundraising | Sara Mariani | sara.mariani@montagnaservizi.com | uat |
 
 Questi sono i soli 5 ruoli applicativi esistenti nel sistema: non esiste un ruolo "editor" né altri
-ruoli oltre a questi cinque.
+ruoli oltre a questi cinque. Le identità reali sopra sono persone/enti reali di Montagna Servizi:
+trattare questo documento di conseguenza (uso interno al collaudo, non distribuzione pubblica).
 
 ## 10. Accesso a Mailpit
 
@@ -267,13 +273,15 @@ il fatto che si riparta sempre da zero.
 
 Subito dopo un deploy, l'ambiente contiene sempre:
 
-- **L'intero storico reale (anonimizzato) del sistema v1** al momento dell'ultimo dump caricato sul
-  server: dell'ordine di alcune centinaia di utenti, alcune migliaia di ticket distribuiti su tutti
-  gli stati e tipi realmente occorsi in produzione (non un piccolo campione curato a mano), tag,
-  organizzazioni, pagine di documentazione, report di attività e opportunità/progetti di
-  fundraising reali.
-- Le **5 identità di riferimento** del punto 9 (Admin/Developer/Manager/Customer/Fundraising),
-  sempre con la stessa email indipendentemente da quale dump sia stato importato.
+- **L'intero storico reale del sistema v1** (nomi, email e contenuti reali, mai anonimizzati) al
+  momento dell'ultimo dump caricato sul server: dell'ordine di alcune centinaia di utenti, alcune
+  migliaia di ticket distribuiti su tutti gli stati e tipi realmente occorsi in produzione (non un
+  piccolo campione curato a mano), tag, organizzazioni, pagine di documentazione, report di
+  attività e opportunità/progetti di fundraising reali.
+- Le **5 identità di riferimento** del punto 9 (Admin/Developer/Manager/Customer/Fundraising): per
+  le 4 legate a un utente v1 reale, la stessa email a ogni reimport perché è la loro email reale,
+  invariata nel dump da un dump all'altro (non un'assegnazione fissa artificiale); Manager resta
+  l'unico account creato ex novo con email fissa.
 
 **Cambia rispetto alla versione precedente di questo documento**: la composizione *esatta* del
 dataset (quanti ticket in un determinato stato, quali tag esistono, quali pagine di documentazione)
