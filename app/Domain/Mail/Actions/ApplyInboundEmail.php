@@ -29,11 +29,15 @@ use Throwable;
  * senza creare nulla, dopo aver emesso {@see EmailQuarantined} per la
  * gestione a valle (§7.3.8, US-308).
  *
- * Precondizione allargata a `Quarantined` (oltre a `Classified`): l'azione
- * "associa a utente esistente"/"crea nuovo utente e ticket" di US-322 imposta
- * `user_id` a mano su un messaggio già in quarantena e richiama questa stessa
- * Action per riprocessarlo da `ResolveEmailSender` in poi — nessuna Action
- * dedicata al riprocessamento, per non duplicare l'orchestrazione.
+ * Precondizione allargata a `Quarantined` (oltre a `Classified`): un
+ * riprocessamento amministrativo (US-322, "riprocessa") che parte da un
+ * messaggio ancora in quarantena richiama `run()` invariato, che ritenta
+ * `ResolveEmailSender` da sé (idempotente sullo stato di partenza, US-308).
+ * Quando invece è l'amministrazione stessa ad aver appena assegnato/creato il
+ * mittente ("associa a utente esistente"/"crea nuovo utente e ticket",
+ * US-322), il chiamante usa {@see self::runForResolvedSender()} — MAI `run()`
+ * — per saltare del tutto `ResolveEmailSender`, che altrimenti ri-deriverebbe
+ * il mittente da `from_email` e vanificherebbe l'assegnazione manuale.
  *
  * La creazione/aggiornamento del ticket e l'aggiornamento di
  * `email_messages` (`status = applied`, `ticket_id`) avvengono in UNA SOLA
@@ -54,25 +58,44 @@ final class ApplyInboundEmail
             return $emailMessage;
         }
 
+        $emailMessage = ResolveEmailSender::run($emailMessage);
+
+        if ($emailMessage->status === EmailStatus::Quarantined) {
+            self::queueQuarantineNotification($emailMessage);
+
+            return $emailMessage;
+        }
+
+        $user = $emailMessage->status === EmailStatus::Classified && $emailMessage->user_id !== null
+            ? User::query()->find($emailMessage->user_id)
+            : null;
+
+        if ($user === null) {
+            // ResolveEmailSender è fallita con un'eccezione (status = failed
+            // già impostato lì): niente da fare oltre a quanto già gestito.
+            return $emailMessage;
+        }
+
+        return self::applyForResolvedSender($emailMessage, $user);
+    }
+
+    /**
+     * Punto di ingresso alternativo (US-322, "assegna a utente esistente"/
+     * "crea nuovo utente e ticket"): il mittente è già stato risolto a mano
+     * dall'amministrazione, {@see ResolveEmailSender} va saltato del tutto —
+     * richiamarlo qui ri-deriverebbe il mittente da `from_email` e
+     * vanificherebbe l'assegnazione manuale (un mittente associato a mano non
+     * corrisponde quasi mai a `from_email`: è proprio per questo che il
+     * messaggio era finito in quarantena).
+     */
+    public static function runForResolvedSender(EmailMessage $emailMessage, User $user): EmailMessage
+    {
+        return self::applyForResolvedSender($emailMessage, $user);
+    }
+
+    private static function applyForResolvedSender(EmailMessage $emailMessage, User $user): EmailMessage
+    {
         try {
-            $emailMessage = ResolveEmailSender::run($emailMessage);
-
-            if ($emailMessage->status === EmailStatus::Quarantined) {
-                self::queueQuarantineNotification($emailMessage);
-
-                return $emailMessage;
-            }
-
-            $user = $emailMessage->status === EmailStatus::Classified && $emailMessage->user_id !== null
-                ? User::query()->find($emailMessage->user_id)
-                : null;
-
-            if ($user === null) {
-                // ResolveEmailSender è fallita con un'eccezione (status = failed
-                // già impostato lì): niente da fare oltre a quanto già gestito.
-                return $emailMessage;
-            }
-
             $resolution = ResolveEmailThread::run($emailMessage);
             $isNewTicket = ! $resolution->isMatch();
 
@@ -85,7 +108,7 @@ final class ApplyInboundEmail
                     ], $user, TicketMessageChannel::Email)
                     : Ticket::query()->findOrFail($resolution->ticketId);
 
-                $message = PostTicketMessage::run($ticket, $user, self::bodyHtml($emailMessage), TicketMessageChannel::Email);
+                $message = PostTicketMessage::run($ticket, $user, self::bodyHtml($emailMessage), TicketMessageChannel::Email, $emailMessage);
 
                 ImportInboundEmailAttachments::run($emailMessage, $message);
 

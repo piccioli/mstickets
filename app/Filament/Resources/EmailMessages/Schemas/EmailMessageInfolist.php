@@ -83,6 +83,20 @@ class EmailMessageInfolist
                         TextEntry::make('attempts')->label('Tentativi'),
                         TextEntry::make('failure_reason')->label('Ultimo errore')->placeholder('—')->columnSpanFull(),
                     ]),
+
+                Section::make('Registro azioni')
+                    ->schema([
+                        RepeatableEntry::make('logs')
+                            ->hiddenLabel()
+                            ->schema([
+                                TextEntry::make('action')->label('Azione')->badge(),
+                                TextEntry::make('user.name')->label('Da'),
+                                TextEntry::make('occurred_at')->label('Quando')->dateTime(),
+                                TextEntry::make('notes')->label('Note')->placeholder('—'),
+                            ])
+                            ->columns(4)
+                            ->placeholder('Nessuna azione amministrativa registrata'),
+                    ]),
             ]);
     }
 }

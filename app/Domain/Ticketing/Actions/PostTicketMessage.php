@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Ticketing\Actions;
 
 use App\Domain\Identity\Models\User;
+use App\Domain\Mail\Models\EmailMessage;
 use App\Domain\Ticketing\Enums\TicketLogEvent;
 use App\Domain\Ticketing\Enums\TicketMessageChannel;
 use App\Domain\Ticketing\Enums\TicketMessageVisibility;
@@ -28,6 +29,12 @@ use Illuminate\Support\Facades\DB;
  * vive qui: reagisce all'evento emesso da un listener dedicato, per non mischiare
  * l'orchestrazione della pubblicazione con la regola di cambio di stato — vale
  * indipendentemente dal canale, compreso `email`.
+ *
+ * `$emailMessage` (opzionale, US-322) valorizza `ticket_messages.email_message_id`
+ * (colonna/FK presenti da Fase 0 ma mai scritte prima di questa story — gap
+ * scoperto implementando "collega a ticket"): unico modo per risalire dal
+ * messaggio del ticket all'email inbound che lo ha generato, es. per
+ * ri-collegarlo a un ticket diverso senza duplicare il messaggio.
  */
 final class PostTicketMessage
 {
@@ -36,8 +43,9 @@ final class PostTicketMessage
         User $author,
         string $bodyHtml,
         TicketMessageChannel $channel = TicketMessageChannel::Web,
+        ?EmailMessage $emailMessage = null,
     ): TicketMessage {
-        return DB::transaction(function () use ($ticket, $author, $bodyHtml, $channel): TicketMessage {
+        return DB::transaction(function () use ($ticket, $author, $bodyHtml, $channel, $emailMessage): TicketMessage {
             $sanitizedHtml = TicketMessageSanitizer::sanitize($bodyHtml);
 
             $message = TicketMessage::create([
@@ -47,6 +55,7 @@ final class PostTicketMessage
                 'visibility' => TicketMessageVisibility::Public,
                 'body_html' => $sanitizedHtml,
                 'body_text' => TicketMessageSanitizer::toPlainText($sanitizedHtml),
+                'email_message_id' => $emailMessage?->id,
                 'is_legacy_import' => false,
                 'posted_at' => now(),
             ]);

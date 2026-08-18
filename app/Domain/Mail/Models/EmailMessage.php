@@ -84,4 +84,12 @@ class EmailMessage extends Model
     {
         return $this->hasMany(EmailAttachment::class);
     }
+
+    /**
+     * @return HasMany<EmailMessageLog, $this>
+     */
+    public function logs(): HasMany
+    {
+        return $this->hasMany(EmailMessageLog::class);
+    }
 }

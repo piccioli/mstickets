@@ -8,14 +8,18 @@ use App\Domain\Identity\Models\User;
 use App\Domain\Mail\Enums\EmailAttachmentStatus;
 use App\Domain\Mail\Enums\EmailDirection;
 use App\Domain\Mail\Enums\EmailStatus;
+use App\Domain\Mail\Mailables\NewCustomerTicketStaffMail;
 use App\Domain\Mail\Models\EmailAttachment;
 use App\Domain\Mail\Models\EmailMessage;
+use App\Filament\Pages\EmailQuarantine;
 use App\Filament\Resources\EmailMessages\EmailMessageResource;
 use App\Filament\Resources\EmailMessages\Pages\ListEmailMessages;
 use App\Filament\Resources\EmailMessages\Pages\ViewEmailMessage;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 
@@ -169,4 +173,167 @@ test('viewing a message shows headers, body, attachments and diagnostics', funct
         ->assertSee('documento.pdf')
         ->assertSee('Problema di accesso')
         ->assertSee('Timeout SMTP');
+});
+
+test('a user with only email.view cannot see the administrative actions', function (): void {
+    $user = grantEmailPanelAccess(userWithPermissions(PermissionEnum::EmailView));
+    $message = emailMessageFixture(['status' => EmailStatus::Failed]);
+
+    $this->actingAs($user);
+
+    Livewire::test(ViewEmailMessage::class, ['record' => $message->getKey()])
+        ->assertActionHidden('reprocess')
+        ->assertActionHidden('assign_sender')
+        ->assertActionHidden('link_to_ticket')
+        ->assertActionHidden('discard')
+        ->assertActionHidden('resend');
+});
+
+test('an admin can reprocess a message via the action', function (): void {
+    $user = grantEmailPanelAccess(userWithPermissions(PermissionEnum::EmailView, PermissionEnum::EmailManage));
+    User::factory()->create(['email' => 'mittente@example.com']);
+    $message = emailMessageFixture(['status' => EmailStatus::Failed, 'subject' => 'Richiesta']);
+
+    $this->actingAs($user);
+
+    Livewire::test(ViewEmailMessage::class, ['record' => $message->getKey()])
+        ->assertActionExists('reprocess')
+        ->callAction('reprocess')
+        ->assertHasNoActionErrors();
+
+    expect($message->fresh()->status)->toBe(EmailStatus::Applied);
+});
+
+test('an admin can assign a sender to a quarantined message via the action', function (): void {
+    $user = grantEmailPanelAccess(userWithPermissions(PermissionEnum::EmailView, PermissionEnum::EmailManage));
+    $sender = User::factory()->create();
+    $message = emailMessageFixture(['status' => EmailStatus::Quarantined]);
+
+    $this->actingAs($user);
+
+    Livewire::test(ViewEmailMessage::class, ['record' => $message->getKey()])
+        ->callAction('assign_sender', data: ['user_id' => $sender->id])
+        ->assertHasNoActionErrors();
+
+    expect($message->fresh()->status)->toBe(EmailStatus::Applied)
+        ->and($message->fresh()->user_id)->toBe($sender->id);
+});
+
+test('an admin can link a message to a different ticket via the action', function (): void {
+    $user = grantEmailPanelAccess(userWithPermissions(PermissionEnum::EmailView, PermissionEnum::EmailManage));
+    $sender = User::factory()->create();
+    $targetTicket = ticket(['requester_id' => $sender->id]);
+    $message = emailMessageFixture(['status' => EmailStatus::Classified, 'user_id' => $sender->id, 'body_html' => '<p>Corpo</p>']);
+
+    $this->actingAs($user);
+
+    Livewire::test(ViewEmailMessage::class, ['record' => $message->getKey()])
+        ->callAction('link_to_ticket', data: ['ticket_id' => $targetTicket->id])
+        ->assertHasNoActionErrors();
+
+    expect($message->fresh()->ticket_id)->toBe($targetTicket->id)
+        ->and($message->fresh()->status)->toBe(EmailStatus::Applied);
+});
+
+test('an admin can discard a message via the action', function (): void {
+    $user = grantEmailPanelAccess(userWithPermissions(PermissionEnum::EmailView, PermissionEnum::EmailManage));
+    $message = emailMessageFixture(['status' => EmailStatus::Classified]);
+
+    $this->actingAs($user);
+
+    Livewire::test(ViewEmailMessage::class, ['record' => $message->getKey()])
+        ->callAction('discard', data: ['reason' => 'Spam confermato'])
+        ->assertHasNoActionErrors();
+
+    expect($message->fresh()->status)->toBe(EmailStatus::Discarded)
+        ->and($message->fresh()->failure_reason)->toBe('Spam confermato');
+});
+
+test('an admin can resend a failed outbound message via the action', function (): void {
+    Mail::fake();
+
+    $user = grantEmailPanelAccess(userWithPermissions(PermissionEnum::EmailView, PermissionEnum::EmailManage));
+    $recipient = User::factory()->create();
+    $recipientTicket = ticket(['requester_id' => $recipient->id]);
+
+    $outbound = EmailMessage::query()->forceCreate([
+        'ulid' => strtolower((string) Str::ulid()),
+        'direction' => EmailDirection::Outbound,
+        'message_id' => 'resend-test@example.com',
+        'ticket_id' => $recipientTicket->id,
+        'user_id' => $recipient->id,
+        'from_email' => 'staff@example.com',
+        'to' => [$recipient->email],
+        'subject' => 'Notifica',
+        'status' => EmailStatus::Failed,
+        'mailable_class' => NewCustomerTicketStaffMail::class,
+    ]);
+
+    $this->actingAs($user);
+
+    Livewire::test(ViewEmailMessage::class, ['record' => $outbound->getKey()])
+        ->callAction('resend')
+        ->assertHasNoActionErrors();
+
+    expect($outbound->fresh()->status)->toBe(EmailStatus::Queued);
+
+    Mail::assertQueued(NewCustomerTicketStaffMail::class);
+});
+
+test('a user without email.manage is denied access to the quarantine page', function (): void {
+    $user = grantEmailPanelAccess(userWithPermissions(PermissionEnum::EmailView));
+
+    expect(EmailQuarantine::canAccess())->toBeFalse();
+});
+
+test('the quarantine page lists only quarantined inbound messages', function (): void {
+    $user = grantEmailPanelAccess(userWithPermissions(PermissionEnum::EmailManage));
+    $quarantined = emailMessageFixture(['status' => EmailStatus::Quarantined]);
+    $applied = emailMessageFixture(['status' => EmailStatus::Applied]);
+
+    $this->actingAs($user);
+
+    expect(EmailQuarantine::canAccess())->toBeTrue();
+
+    Livewire::test(EmailQuarantine::class)
+        ->assertOk()
+        ->assertCanSeeTableRecords([$quarantined])
+        ->assertCanNotSeeTableRecords([$applied]);
+});
+
+test('the quarantine page can associate an existing user and reprocess the message', function (): void {
+    $user = grantEmailPanelAccess(userWithPermissions(PermissionEnum::EmailManage));
+    $sender = User::factory()->create();
+    $message = emailMessageFixture(['status' => EmailStatus::Quarantined]);
+
+    $this->actingAs($user);
+
+    Livewire::test(EmailQuarantine::class)
+        ->callTableAction('assign_existing', $message, data: ['user_id' => $sender->id])
+        ->assertHasNoTableActionErrors();
+
+    expect($message->fresh()->status)->toBe(EmailStatus::Applied)
+        ->and($message->fresh()->user_id)->toBe($sender->id);
+});
+
+test('the quarantine page can create a new user and reprocess the message', function (): void {
+    Role::query()->firstOrCreate(['name' => UserRole::Customer->value, 'guard_name' => 'web']);
+
+    $user = grantEmailPanelAccess(userWithPermissions(PermissionEnum::EmailManage));
+    $message = emailMessageFixture([
+        'status' => EmailStatus::Quarantined,
+        'from_email' => 'nuovo.cliente@example.com',
+        'from_name' => 'Nuovo Cliente',
+    ]);
+
+    $this->actingAs($user);
+
+    Livewire::test(EmailQuarantine::class)
+        ->callTableAction('create_and_assign', $message, data: ['name' => 'Nuovo Cliente', 'email' => 'nuovo.cliente@example.com'])
+        ->assertHasNoTableActionErrors();
+
+    expect($message->fresh()->status)->toBe(EmailStatus::Applied);
+
+    $sender = User::query()->where('email', 'nuovo.cliente@example.com')->sole();
+    expect($sender->hasRole(UserRole::Customer->value))->toBeTrue();
 });
