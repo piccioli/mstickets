@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Mail;
 
 uses(RefreshDatabase::class);
 
-test('notifies requester, assignee and tester but excludes the actor who made the change', function (): void {
+test('testing to rejected notifies both the assignee and the requester', function (): void {
     Mail::fake();
 
     $requester = withRole(User::factory()->create(), UserRole::Customer);
@@ -25,21 +25,47 @@ test('notifies requester, assignee and tester but excludes the actor who made th
         'tester_id' => $tester->id,
     ]);
 
-    SendTicketStatusChangedMail::run(new TicketStatusChanged($ticket, TicketStatus::Todo, TicketStatus::Progress, $assignee));
+    SendTicketStatusChangedMail::run(new TicketStatusChanged($ticket, TicketStatus::Testing, TicketStatus::Rejected, $tester));
 
     Mail::assertQueued(TicketStatusChangedMail::class, 2);
-    Mail::assertQueued(TicketStatusChangedMail::class, fn (TicketStatusChangedMail $mail): bool => $mail->newStatus === TicketStatus::Progress
-        && $mail->ticket->is($ticket));
+    Mail::assertQueued(TicketStatusChangedMail::class, fn (TicketStatusChangedMail $mail): bool => $mail->hasTo($requester->email));
+    Mail::assertQueued(TicketStatusChangedMail::class, fn (TicketStatusChangedMail $mail): bool => $mail->hasTo($assignee->email));
+});
+
+test('excludes the actor even when the table would otherwise notify them', function (): void {
+    Mail::fake();
+
+    $assignee = withRole(User::factory()->create(), UserRole::Developer);
+    $ticket = ticket(['assignee_id' => $assignee->id]);
+
+    // Testing -> Tested notifica l'assegnatario: se l'attore è proprio l'assegnatario, nessuna email.
+    SendTicketStatusChangedMail::run(new TicketStatusChanged($ticket, TicketStatus::Testing, TicketStatus::Tested, $assignee));
+
+    Mail::assertNothingQueued();
+});
+
+test('a transition absent from the table sends no notification at all', function (): void {
+    Mail::fake();
+
+    $requester = withRole(User::factory()->create(), UserRole::Customer);
+    $assignee = withRole(User::factory()->create(), UserRole::Developer);
+    $actor = withRole(User::factory()->create(), UserRole::Manager);
+    $ticket = ticket(['requester_id' => $requester->id, 'assignee_id' => $assignee->id]);
+
+    // Todo -> Progress non ha nessuna voce "notifica X" in §6.1.3 (solo il demote).
+    SendTicketStatusChangedMail::run(new TicketStatusChanged($ticket, TicketStatus::Todo, TicketStatus::Progress, $actor));
+
+    Mail::assertNothingQueued();
 });
 
 test('marks the recipient as customer only for a user with the customer role', function (): void {
     Mail::fake();
 
     $requester = withRole(User::factory()->create(), UserRole::Customer);
-    $assignee = withRole(User::factory()->create(), UserRole::Developer);
-    $ticket = ticket(['requester_id' => $requester->id, 'assignee_id' => $assignee->id]);
+    $actor = withRole(User::factory()->create(), UserRole::Manager);
+    $ticket = ticket(['requester_id' => $requester->id]);
 
-    SendTicketStatusChangedMail::run(new TicketStatusChanged($ticket, TicketStatus::Todo, TicketStatus::Progress, $assignee));
+    SendTicketStatusChangedMail::run(new TicketStatusChanged($ticket, TicketStatus::New, TicketStatus::Rejected, $actor));
 
     Mail::assertQueued(
         TicketStatusChangedMail::class,
@@ -47,35 +73,54 @@ test('marks the recipient as customer only for a user with the customer role', f
     );
 });
 
-test('does not notify anyone when the only relevant recipient is the actor', function (): void {
+test('problem notifies every active manager except the actor', function (): void {
     Mail::fake();
 
-    $assignee = withRole(User::factory()->create(), UserRole::Developer);
-    $ticket = ticket(['assignee_id' => $assignee->id]);
+    $actingManager = withRole(User::factory()->create(), UserRole::Manager);
+    $otherManager = withRole(User::factory()->create(), UserRole::Manager);
+    withRole(User::factory()->create(), UserRole::Developer);
+    $ticket = ticket(['problem_reason' => 'Bloccato da un fornitore esterno']);
 
-    SendTicketStatusChangedMail::run(new TicketStatusChanged($ticket, TicketStatus::Todo, TicketStatus::Progress, $assignee));
+    SendTicketStatusChangedMail::run(new TicketStatusChanged($ticket, TicketStatus::Progress, TicketStatus::Problem, $actingManager));
 
-    Mail::assertNothingQueued();
+    Mail::assertQueued(TicketStatusChangedMail::class, 1);
+    Mail::assertQueued(TicketStatusChangedMail::class, fn (TicketStatusChangedMail $mail): bool => $mail->hasTo($otherManager->email));
+    Mail::assertNotQueued(TicketStatusChangedMail::class, fn (TicketStatusChangedMail $mail): bool => $mail->hasTo($actingManager->email));
 });
 
-dataset('relevant status transitions', [
-    'Todo -> Progress' => [TicketStatus::Todo, TicketStatus::Progress],
-    'Progress -> Waiting' => [TicketStatus::Progress, TicketStatus::Waiting],
-    'Testing -> Rejected' => [TicketStatus::Testing, TicketStatus::Rejected],
-    'Tested -> Released' => [TicketStatus::Tested, TicketStatus::Released],
+dataset('table-driven transitions and their expected recipient roles', [
+    'new -> rejected notifies the requester' => [TicketStatus::New, TicketStatus::Rejected, 'requester'],
+    'progress -> testing notifies the tester' => [TicketStatus::Progress, TicketStatus::Testing, 'tester'],
+    'testing -> tested notifies the assignee' => [TicketStatus::Testing, TicketStatus::Tested, 'assignee'],
+    'testing -> todo notifies the assignee (failed test)' => [TicketStatus::Testing, TicketStatus::Todo, 'assignee'],
+    'progress -> waiting notifies the requester' => [TicketStatus::Progress, TicketStatus::Waiting, 'requester'],
+    'backlog -> rejected falls back to the catch-all and notifies the requester' => [TicketStatus::Backlog, TicketStatus::Rejected, 'requester'],
 ]);
 
-test('sends the new status to the requester for each relevant transition', function (TicketStatus $from, TicketStatus $to): void {
+test('sends the notification to the expected role for each table-driven transition', function (TicketStatus $from, TicketStatus $to, string $expectedRole): void {
     Mail::fake();
 
     $requester = withRole(User::factory()->create(), UserRole::Customer);
-    $actor = withRole(User::factory()->create(), UserRole::Developer);
-    $ticket = ticket(['requester_id' => $requester->id, 'status' => $to]);
+    $assignee = withRole(User::factory()->create(), UserRole::Developer);
+    $tester = withRole(User::factory()->create(), UserRole::Developer);
+    $actor = withRole(User::factory()->create(), UserRole::Manager);
+    $ticket = ticket([
+        'requester_id' => $requester->id,
+        'assignee_id' => $assignee->id,
+        'tester_id' => $tester->id,
+        'waiting_reason' => 'In attesa di un fornitore esterno',
+    ]);
+
+    $expectedRecipient = match ($expectedRole) {
+        'requester' => $requester,
+        'assignee' => $assignee,
+        'tester' => $tester,
+    };
 
     SendTicketStatusChangedMail::run(new TicketStatusChanged($ticket, $from, $to, $actor));
 
-    Mail::assertQueued(
-        TicketStatusChangedMail::class,
-        fn (TicketStatusChangedMail $mail): bool => $mail->previousStatus === $from && $mail->newStatus === $to,
-    );
-})->with('relevant status transitions');
+    Mail::assertQueued(TicketStatusChangedMail::class, 1);
+    Mail::assertQueued(TicketStatusChangedMail::class, fn (TicketStatusChangedMail $mail): bool => $mail->hasTo($expectedRecipient->email)
+        && $mail->previousStatus === $from
+        && $mail->newStatus === $to);
+})->with('table-driven transitions and their expected recipient roles');

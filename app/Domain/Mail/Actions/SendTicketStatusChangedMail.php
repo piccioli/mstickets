@@ -8,17 +8,19 @@ use App\Domain\Identity\Enums\UserRole;
 use App\Domain\Mail\Enums\NotificationType;
 use App\Domain\Mail\Mailables\TicketStatusChangedMail;
 use App\Domain\Mail\Models\EmailMessage;
+use App\Domain\Mail\Support\NotificationRecipientResolver;
 use App\Domain\Ticketing\Events\TicketStatusChanged;
 use App\Domain\Ticketing\Models\Ticket;
 
 /**
- * E4 (§7.5.2 del PRD, US-313): notifica ogni destinatario rilevante del ticket
- * (richiedente, assegnatario, tester, partecipanti) di un cambio di stato,
- * ESCLUSO chi ha eseguito l'azione — {@see Ticket::messageRecipients()}
- * (US-106) applica già questa esclusione, sostituto inline della tabella
- * attore×transizione generale di US-318 (non ancora implementata: questa
- * story usa solo la regola "nessuno riceve la notifica di un'azione che ha
- * eseguito lui stesso", US-318 la generalizzerà per il resto del catalogo).
+ * E4 (§7.5.2 del PRD, US-313, destinatari generalizzati da US-318): notifica
+ * SOLO i destinatari previsti dalla tabella esplicita "attore × transizione →
+ * destinatari" di {@see NotificationRecipientResolver} (§6.1.3, colonna
+ * "Effetti") — non più l'intero {@see Ticket::messageRecipients()}
+ * per ogni transizione (comportamento provvisorio di US-313, causa dello
+ * stesso bug v1 di email spurie su ogni salvataggio, problema 12). Una
+ * transizione senza "notifica X" in tabella non invia nessuna email.
+ * L'esclusione di chi ha eseguito l'azione è già applicata dal resolver.
  */
 final class SendTicketStatusChangedMail
 {
@@ -26,7 +28,9 @@ final class SendTicketStatusChangedMail
     {
         $ticket = $event->ticket;
 
-        foreach ($ticket->messageRecipients($event->actor) as $recipient) {
+        $recipients = NotificationRecipientResolver::resolve($ticket, $event->from, $event->to, $event->actor);
+
+        foreach ($recipients as $recipient) {
             $recipientIsCustomer = $recipient->hasRole(UserRole::Customer->value);
 
             SendOutboundTicketMail::run(

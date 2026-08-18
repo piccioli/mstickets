@@ -18,11 +18,11 @@ test('sends E4 to the ticket recipients when the status changes', function (): v
     Mail::fake();
 
     $requester = withRole(User::factory()->create(), UserRole::Customer);
-    $actor = withRole(User::factory()->create(), UserRole::Developer);
+    $actor = withRole(User::factory()->create(), UserRole::Manager);
     $ticket = ticket(['requester_id' => $requester->id]);
 
     (new SendTicketStatusChangedNotification)->handle(
-        new TicketStatusChanged($ticket, TicketStatus::Todo, TicketStatus::Progress, $actor),
+        new TicketStatusChanged($ticket, TicketStatus::New, TicketStatus::Rejected, $actor),
     );
 
     Mail::assertQueued(TicketStatusChangedMail::class);
