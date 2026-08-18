@@ -253,4 +253,19 @@ return [
 
     'notification_preferences_url' => env('MAIL_NOTIFICATION_PREFERENCES_URL', ''),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Voce di menu "Mailpit" (§7.7 del PRD, US-324)
+    |--------------------------------------------------------------------------
+    |
+    | URL della UI Mailpit, mostrato come prima sotto-voce del gruppo di
+    | navigazione "Email" SOLO in ambiente locale/staging (mai in produzione)
+    | e SOLO se questa variabile è valorizzata — vuota di default, mai un link
+    | rotto verso un Mailpit che non esiste in quell'ambiente (vedi
+    | App\Filament\Navigation\MailpitNavigationItem).
+    |
+    */
+
+    'mailpit_url' => env('MAILPIT_URL', ''),
+
 ];
