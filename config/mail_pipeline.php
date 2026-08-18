@@ -129,6 +129,22 @@ return [
     |
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | Risoluzione del thread — euristica di ultimo livello (§7.3.6 del PRD, US-306)
+    |--------------------------------------------------------------------------
+    |
+    | Finestra (giorni) entro cui un `email_threads.last_message_at` è ancora
+    | considerato "aperto" dal livello 4 (euristica: stesso mittente + subject
+    | normalizzato identico), usata SOLO quando nessuno dei tre livelli più
+    | affidabili (VERP, In-Reply-To/References, token subject) produce un match.
+    |
+    */
+
+    'threading' => [
+        'heuristic_window_days' => (int) env('MAIL_THREAD_HEURISTIC_WINDOW_DAYS', 30),
+    ],
+
     'staff_notification_group' => array_values(array_filter(array_map(
         trim(...),
         explode(',', (string) env('MAIL_STAFF_NOTIFICATION_GROUP', '')),

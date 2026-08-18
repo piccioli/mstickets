@@ -60,6 +60,34 @@ test('archivia un nuovo messaggio come .eml prima di creare la riga email_messag
     expect($fake->disconnected)->toBeTrue();
 });
 
+test('to, in_reply_to e references vengono archiviati per la risoluzione del thread (US-306)', function (): void {
+    Storage::fake('raw-emails');
+
+    $raw = rawEmailFixture('richiesta-supporto.eml');
+
+    $fake = new FakeInboundMailTransport([
+        new RawInboundEmail(
+            rawMessage: $raw,
+            imapFolder: 'INBOX',
+            imapUid: 404,
+            fromEmail: 'cliente@example.test',
+            subject: 'Re: [#7] Ticket di test',
+            to: ['ticket+01ARZ3NDEKTSV4RRFFQ69G5FAV@support.example.test'],
+            inReplyTo: 'notifica-precedente@example.test',
+            references: ['altra@example.test', 'notifica-precedente@example.test'],
+        ),
+    ]);
+    $this->app->instance(InboundMailTransport::class, $fake);
+
+    $this->artisan('mail:fetch-inbound')->assertSuccessful();
+
+    $message = EmailMessage::query()->first();
+
+    expect($message->to)->toBe(['ticket+01ARZ3NDEKTSV4RRFFQ69G5FAV@support.example.test'])
+        ->and($message->in_reply_to)->toBe('notifica-precedente@example.test')
+        ->and($message->references)->toBe('altra@example.test notifica-precedente@example.test');
+});
+
 test('un mittente senza Message-ID viene comunque archiviato', function (): void {
     Storage::fake('raw-emails');
 

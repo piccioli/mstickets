@@ -57,9 +57,23 @@ final class WebklexImapTransport implements InboundMailTransport
                 fromEmail: $message->getFrom()->first()?->mail ?: null,
                 fromName: $message->getFrom()->first()?->personal ?: null,
                 subject: $this->attributeToNullableString($message->getSubject()),
+                to: $this->addressesToEmails($message->getTo()),
+                inReplyTo: $this->attributeToNullableString($message->getInReplyTo()),
+                references: array_values(array_filter($message->getReferences()->all())),
             ))
             ->values()
             ->all();
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function addressesToEmails(Attribute $attribute): array
+    {
+        return array_values(array_filter(array_map(
+            static fn (mixed $address): ?string => $address->mail ?? null,
+            $attribute->all(),
+        )));
     }
 
     public function move(string $imapFolder, int $imapUid, ImapFolderRole $targetFolder): void

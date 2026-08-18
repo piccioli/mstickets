@@ -47,6 +47,31 @@ final class SubjectNormalizer
         return new NormalizedSubject($subject, $ticketId);
     }
 
+    /**
+     * Chiave di confronto per il matching euristico del thread (§7.3.6,
+     * US-306, livello 4): a differenza di {@see normalize()}, qui il token
+     * `[#<id>]` viene rimosso (i titoli ticket confrontati non lo contengono
+     * mai) e il risultato è minuscolo/spazi collassati, per essere
+     * confrontabile byte a byte con `email_threads.subject_normalized`
+     * (popolato dallo stesso algoritmo da `App\Import\Stages\DeriveStage`
+     * durante l'ETL — un'unica funzione condivisa, mai due normalizzazioni
+     * leggermente diverse sui due lati del confronto).
+     */
+    public static function normalizeForThreadMatching(?string $subject): string
+    {
+        $subject = trim((string) $subject);
+
+        do {
+            $before = $subject;
+            $subject = self::stripReplyForwardPrefixes($subject);
+            $subject = ltrim((string) preg_replace(self::TICKET_TOKEN_PATTERN, '', $subject));
+        } while ($subject !== $before && $subject !== '');
+
+        $subject = (string) preg_replace('/\s+/', ' ', trim($subject));
+
+        return mb_strtolower($subject);
+    }
+
     private static function decodeMimeEncodedWords(string $subject): string
     {
         if ($subject === '' || ! str_contains($subject, '=?')) {

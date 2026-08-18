@@ -46,6 +46,9 @@ final class StoreRawInboundEmail
             'from_email' => $raw->fromEmail ?? '',
             'from_name' => $raw->fromName,
             'subject' => $raw->subject,
+            'to' => $raw->to,
+            'in_reply_to' => $raw->inReplyTo,
+            'references' => $raw->references === [] ? null : implode(' ', $raw->references),
             'received_at' => now(),
         ]);
     }

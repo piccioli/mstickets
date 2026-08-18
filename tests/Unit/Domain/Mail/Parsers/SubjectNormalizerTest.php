@@ -48,3 +48,17 @@ test('un subject null diventa una stringa vuota senza errori', function (): void
     expect($result->subject)->toBe('')
         ->and($result->ticketId)->toBeNull();
 });
+
+test('normalizeForThreadMatching rimuove prefissi, token [#id], collassa spazi e minuscolo', function (): void {
+    expect(SubjectNormalizer::normalizeForThreadMatching('Re: [#42]   Problema  di Accesso'))
+        ->toBe('problema di accesso');
+});
+
+test('normalizeForThreadMatching produce la stessa chiave usata da DeriveStage per un titolo senza prefissi', function (): void {
+    expect(SubjectNormalizer::normalizeForThreadMatching('Problema di accesso'))
+        ->toBe('problema di accesso');
+});
+
+test('normalizeForThreadMatching su null restituisce una stringa vuota', function (): void {
+    expect(SubjectNormalizer::normalizeForThreadMatching(null))->toBe('');
+});

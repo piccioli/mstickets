@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Import\Stages;
 
+use App\Domain\Mail\Parsers\SubjectNormalizer;
 use App\Domain\Ticketing\Enums\TicketStatus;
 use App\Domain\Ticketing\Models\Ticket;
 use App\Domain\Ticketing\Models\TicketLog;
@@ -363,24 +364,16 @@ final class DeriveStage implements ImportStage
     }
 
     /**
-     * Normalizzazione minima del subject di un ticket per il matching futuro (Fase 3)
-     * con il subject di un'email in arrivo (che avrà invece prefissi "Re:"/"Fwd:" da
-     * spogliare): rimuove ricorsivamente i prefissi di risposta/inoltro, collassa gli
-     * spazi, minuscolo. Il titolo di un ticket storico non ha già questi prefissi: la
-     * funzione resta comunque un no-op sicuro da applicare qui, per essere la STESSA
-     * usata su entrambi i lati del confronto quando Fase 3 la introdurrà lato inbound.
+     * Normalizzazione minima del subject di un ticket per il matching euristico del
+     * thread lato inbound (§7.3.6, US-306, livello 4): delega a
+     * {@see SubjectNormalizer::normalizeForThreadMatching()}, la STESSA funzione usata
+     * da `App\Domain\Mail\Actions\ResolveEmailThread` sul subject dell'email in arrivo —
+     * un'unica normalizzazione condivisa sui due lati del confronto, mai due leggermente
+     * diverse.
      */
     private function normalizeSubject(string $subject): string
     {
-        $normalized = trim($subject);
-
-        while (preg_match('/^(re|r|fwd|fw)\s*:\s*/i', $normalized) === 1) {
-            $normalized = trim((string) preg_replace('/^(re|r|fwd|fw)\s*:\s*/i', '', $normalized, 1));
-        }
-
-        $normalized = (string) preg_replace('/\s+/', ' ', $normalized);
-
-        return mb_strtolower($normalized);
+        return SubjectNormalizer::normalizeForThreadMatching($subject);
     }
 
     private function sameTimestamp(mixed $existing, mixed $new): bool
