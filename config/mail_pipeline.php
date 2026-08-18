@@ -119,6 +119,24 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Bounce/DSN — soglia soft bounce (§7.5.5 del PRD, US-319)
+    |--------------------------------------------------------------------------
+    |
+    | Un hard bounce sospende l'indirizzo subito (email_suppressions,
+    | reason=hard_bounce, permanente finché non rimossa da amministrazione,
+    | US-323). Un soft bounce si limita a incrementare
+    | email_suppressions.bounce_count: la sospensione vera e propria (usata da
+    | EmailSuppression::scopeActive()) scatta solo quando il conteggio
+    | raggiunge questa soglia, non al primo soft bounce.
+    |
+    */
+
+    'bounce' => [
+        'soft_bounce_threshold' => (int) env('MAIL_BOUNCE_SOFT_THRESHOLD', 3),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Notifiche staff e supporto (§7 del PRD)
     |--------------------------------------------------------------------------
     |
