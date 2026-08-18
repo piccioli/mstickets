@@ -60,7 +60,7 @@ final class ChangeTicketStatus
                 self::demoteOtherProgressTickets($ticket, $user);
             }
 
-            event(new TicketStatusChanged($ticket, $from, $to));
+            event(new TicketStatusChanged($ticket, $from, $to, $user));
 
             return $ticket;
         });
@@ -91,7 +91,7 @@ final class ChangeTicketStatus
 
                 self::writeStatusLog($other, $user, $otherFrom, TicketStatus::Todo);
 
-                event(new TicketStatusChanged($other, $otherFrom, TicketStatus::Todo));
+                event(new TicketStatusChanged($other, $otherFrom, TicketStatus::Todo, $user));
             });
     }
 

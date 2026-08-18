@@ -11,6 +11,7 @@ use App\Domain\Mail\Listeners\NotifyStaffOfNewCustomerTicketFromWeb;
 use App\Domain\Mail\Listeners\NotifyStaffOfUnknownSender;
 use App\Domain\Mail\Listeners\SendTicketOpenedFromWebMailNotification;
 use App\Domain\Mail\Listeners\SendTicketReceivedByEmailNotification;
+use App\Domain\Mail\Listeners\SendTicketStatusChangedNotification;
 use App\Domain\Ticketing\Events\TicketCreated;
 use App\Domain\Ticketing\Events\TicketMessagePosted;
 use App\Domain\Ticketing\Events\TicketStatusChanged;
@@ -54,6 +55,10 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(InboundEmailApplied::class, NotifyStaffOfNewCustomerTicketFromEmail::class);
         Event::listen(TicketCreated::class, NotifyStaffOfNewCustomerTicketFromWeb::class);
         Event::listen(EmailQuarantined::class, NotifyStaffOfUnknownSender::class);
+
+        // E4 (§7.5.2, US-313): cambio di stato del ticket, contenuto in base al ruolo
+        // reale del destinatario, escluso chi ha eseguito l'azione.
+        Event::listen(TicketStatusChanged::class, SendTicketStatusChangedNotification::class);
 
         // Guard applicativo §11.8 del PRD (US-217): non un listener di dominio, ma va
         // comunque registrato qui perché Illuminate\Mail\Events\MessageSending non è

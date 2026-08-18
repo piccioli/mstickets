@@ -17,4 +17,5 @@ enum NotificationType: string
     case TicketOpenedFromWeb = 'ticket_opened_from_web';
     case NewCustomerTicketStaff = 'new_customer_ticket_staff';
     case UnknownSenderStaff = 'unknown_sender_staff';
+    case TicketStatusChanged = 'ticket_status_changed';
 }
