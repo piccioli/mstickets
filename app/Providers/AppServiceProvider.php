@@ -10,12 +10,16 @@ use App\Domain\Mail\Listeners\NotifyStaffOfNewCustomerTicketFromEmail;
 use App\Domain\Mail\Listeners\NotifyStaffOfNewCustomerTicketFromWeb;
 use App\Domain\Mail\Listeners\NotifyStaffOfUnknownSender;
 use App\Domain\Mail\Listeners\SendNewTicketMessageNotification;
+use App\Domain\Mail\Listeners\SendTicketAssignedNotification;
 use App\Domain\Mail\Listeners\SendTicketOpenedFromWebMailNotification;
 use App\Domain\Mail\Listeners\SendTicketReceivedByEmailNotification;
 use App\Domain\Mail\Listeners\SendTicketStatusChangedNotification;
+use App\Domain\Mail\Listeners\SendTicketTesterAssignedNotification;
+use App\Domain\Ticketing\Events\TicketAssigned;
 use App\Domain\Ticketing\Events\TicketCreated;
 use App\Domain\Ticketing\Events\TicketMessagePosted;
 use App\Domain\Ticketing\Events\TicketStatusChanged;
+use App\Domain\Ticketing\Events\TicketTesterAssigned;
 use App\Domain\Ticketing\Listeners\RestoreTicketStatusOnRequesterMessage;
 use App\Domain\TimeTracking\Listeners\RecalculateWorkedTimeOnStatusChange;
 use App\Support\Mail\BlockRealRecipientsOutsideProduction;
@@ -65,6 +69,11 @@ class AppServiceProvider extends ServiceProvider
         // Il filtro "mai per un messaggio interno" vive nell'Action, non qui: questo
         // listener reagisce a TicketMessagePosted qualunque sia la visibilità.
         Event::listen(TicketMessagePosted::class, SendNewTicketMessageNotification::class);
+
+        // E6 (§7.5.2, US-315): assegnazione developer/tester, mai verso chi ha
+        // eseguito l'azione (guard nell'Action, non nel listener).
+        Event::listen(TicketAssigned::class, SendTicketAssignedNotification::class);
+        Event::listen(TicketTesterAssigned::class, SendTicketTesterAssignedNotification::class);
 
         // Guard applicativo §11.8 del PRD (US-217): non un listener di dominio, ma va
         // comunque registrato qui perché Illuminate\Mail\Events\MessageSending non è

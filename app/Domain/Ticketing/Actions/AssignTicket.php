@@ -37,7 +37,7 @@ final class AssignTicket
                 'occurred_at' => now(),
             ]);
 
-            event(new TicketAssigned($ticket, $previousAssigneeId, $assignee->id));
+            event(new TicketAssigned($ticket, $previousAssigneeId, $assignee->id, $user));
 
             return $ticket;
         });
