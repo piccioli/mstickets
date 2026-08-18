@@ -32,6 +32,11 @@ use Illuminate\Support\Str;
  * deve restare ispezionabile dall'amministrazione). Il Mailable è accodato
  * SOLO quando il destinatario non è in `email_suppressions` e non ha
  * disattivato questo tipo di notifica in `notification_preferences`.
+ *
+ * `$ticket` è nullable (US-312): una comunicazione del catalogo non sempre
+ * si riferisce a un ticket esistente (es. E9, notifica staff per un mittente
+ * mai identificato — nessun ticket è mai stato creato). `ticket_id` resta
+ * `null` sulla riga outbound in quel caso (colonna nullable da Fase 0).
  */
 final class SendOutboundTicketMail
 {
@@ -39,7 +44,7 @@ final class SendOutboundTicketMail
      * @param  Closure(EmailMessage): MailableContract  $mailableFactory
      */
     public static function run(
-        Ticket $ticket,
+        ?Ticket $ticket,
         User $recipient,
         NotificationType $notificationType,
         string $subject,
@@ -59,7 +64,7 @@ final class SendOutboundTicketMail
             'ulid' => $ulid,
             'direction' => EmailDirection::Outbound,
             'message_id' => "{$ulid}@{$domain}",
-            'ticket_id' => $ticket->id,
+            'ticket_id' => $ticket?->id,
             'user_id' => $recipient->id,
             'from_email' => (string) config('mail.from.address'),
             'from_name' => (string) config('mail.from.name'),

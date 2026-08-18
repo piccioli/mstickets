@@ -204,6 +204,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Quarantena — link diretto dalla notifica E9 (§7.3.8/§7.7 del PRD, US-312)
+    |--------------------------------------------------------------------------
+    |
+    | Base URL della pagina di amministrazione "Quarantena" (US-322, non ancora
+    | costruita in questa fase): finché resta vuota, E9 (UnknownSenderStaffMail)
+    | non mostra nessun link — mai un link rotto verso una pagina che non
+    | esiste ancora (stesso principio già applicato a
+    | notification_preferences_url/US-317 e alla voce di menu Mailpit/US-324).
+    | Quando valorizzata, l'ulid del messaggio in quarantena è appeso come
+    | segmento di path.
+    |
+    */
+
+    'quarantine_review_url' => env('MAIL_QUARANTINE_REVIEW_URL', ''),
+
+    /*
+    |--------------------------------------------------------------------------
     | Layout email — link footer (§7.5.4 del PRD, US-310)
     |--------------------------------------------------------------------------
     |

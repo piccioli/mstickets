@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Domain\Mail\Events\EmailQuarantined;
 use App\Domain\Mail\Events\InboundEmailApplied;
+use App\Domain\Mail\Listeners\NotifyStaffOfNewCustomerTicketFromEmail;
+use App\Domain\Mail\Listeners\NotifyStaffOfNewCustomerTicketFromWeb;
+use App\Domain\Mail\Listeners\NotifyStaffOfUnknownSender;
 use App\Domain\Mail\Listeners\SendTicketOpenedFromWebMailNotification;
 use App\Domain\Mail\Listeners\SendTicketReceivedByEmailNotification;
 use App\Domain\Ticketing\Events\TicketCreated;
@@ -44,6 +48,12 @@ class AppServiceProvider extends ServiceProvider
         // corrispondente a come il ticket è stato creato (email vs web).
         Event::listen(InboundEmailApplied::class, SendTicketReceivedByEmailNotification::class);
         Event::listen(TicketCreated::class, SendTicketOpenedFromWebMailNotification::class);
+
+        // E3/E9 (§7.5.2, US-312): notifica al gruppo staff configurabile per un nuovo
+        // ticket cliente (via web o via email) o per un mittente andato in quarantena.
+        Event::listen(InboundEmailApplied::class, NotifyStaffOfNewCustomerTicketFromEmail::class);
+        Event::listen(TicketCreated::class, NotifyStaffOfNewCustomerTicketFromWeb::class);
+        Event::listen(EmailQuarantined::class, NotifyStaffOfUnknownSender::class);
 
         // Guard applicativo §11.8 del PRD (US-217): non un listener di dominio, ma va
         // comunque registrato qui perché Illuminate\Mail\Events\MessageSending non è

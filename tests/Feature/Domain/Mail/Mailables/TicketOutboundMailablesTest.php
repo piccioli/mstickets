@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Domain\Identity\Models\User;
 use App\Domain\Mail\Enums\EmailDirection;
 use App\Domain\Mail\Enums\EmailStatus;
+use App\Domain\Mail\Mailables\NewCustomerTicketStaffMail;
 use App\Domain\Mail\Mailables\TicketOpenedFromWebMail;
 use App\Domain\Mail\Mailables\TicketReceivedByEmailMail;
 use App\Domain\Mail\Models\EmailMessage;
@@ -30,6 +31,7 @@ function outboundNotificationFor(Ticket $ticket): EmailMessage
 dataset('outbound ticket mailables', [
     'E1 TicketReceivedByEmailMail' => [TicketReceivedByEmailMail::class],
     'E2 TicketOpenedFromWebMail' => [TicketOpenedFromWebMail::class],
+    'E3 NewCustomerTicketStaffMail' => [NewCustomerTicketStaffMail::class],
 ]);
 
 test('renders well-formed HTML with the shared layout components and no parse errors', function (string $mailableClass): void {
