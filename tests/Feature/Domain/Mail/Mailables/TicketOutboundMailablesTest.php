@@ -8,6 +8,7 @@ use App\Domain\Mail\Enums\EmailStatus;
 use App\Domain\Mail\Mailables\NewCustomerTicketStaffMail;
 use App\Domain\Mail\Mailables\TicketOpenedFromWebMail;
 use App\Domain\Mail\Mailables\TicketReceivedByEmailMail;
+use App\Domain\Mail\Mailables\TicketWaitingReminderMail;
 use App\Domain\Mail\Models\EmailMessage;
 use App\Domain\Ticketing\Enums\TicketStatus as TicketStatusEnum;
 use App\Domain\Ticketing\Models\Ticket;
@@ -32,6 +33,7 @@ dataset('outbound ticket mailables', [
     'E1 TicketReceivedByEmailMail' => [TicketReceivedByEmailMail::class],
     'E2 TicketOpenedFromWebMail' => [TicketOpenedFromWebMail::class],
     'E3 NewCustomerTicketStaffMail' => [NewCustomerTicketStaffMail::class],
+    'E7 TicketWaitingReminderMail' => [TicketWaitingReminderMail::class],
 ]);
 
 test('renders well-formed HTML with the shared layout components and no parse errors', function (string $mailableClass): void {
