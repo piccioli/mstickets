@@ -202,4 +202,20 @@ return [
 
     'support_address' => env('MAIL_SUPPORT_ADDRESS', ''),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Layout email — link footer (§7.5.4 del PRD, US-310)
+    |--------------------------------------------------------------------------
+    |
+    | URL della pagina "gestisci le tue preferenze di notifica" linkata dal
+    | footer condiviso (resources/views/emails/layouts/base.blade.php). La UI
+    | per gestirle è fuori scope in questa fase (assegnata alla Fase 6, vedi
+    | prd.json): finché non esiste una pagina reale, il link resta vuoto e il
+    | componente footer lo nasconde — mai un link rotto (stesso principio già
+    | applicato alla voce di menu Mailpit, US-324).
+    |
+    */
+
+    'notification_preferences_url' => env('MAIL_NOTIFICATION_PREFERENCES_URL', ''),
+
 ];
