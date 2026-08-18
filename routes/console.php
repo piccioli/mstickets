@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Console\Commands\MailFetchInboundCommand;
+use App\Console\Commands\MailRetryFailedCommand;
 use App\Console\Commands\TicketsRemindWaitingCommand;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -32,3 +33,13 @@ Schedule::command(TicketsRemindWaitingCommand::class)
     ->cron((string) config('ticketing.waiting_reminder.schedule_cron'))
     ->withoutOverlapping()
     ->when(fn (): bool => (bool) config('orchestrator.features.tickets_waiting_reminders'));
+
+// §7.3.3 del PRD, US-325: reinvio automatico dei messaggi outbound `failed`
+// senza intervento manuale da UI. Dietro il feature flag già presente da
+// Fase 0 (config('orchestrator.features.mail_retry_failed')), disattivato di
+// default. `mail:retry-failed` resta comunque richiamabile manualmente da CLI
+// indipendentemente da questo flag.
+Schedule::command(MailRetryFailedCommand::class)
+    ->cron((string) config('mail_pipeline.retry.schedule_cron'))
+    ->withoutOverlapping()
+    ->when(fn (): bool => (bool) config('orchestrator.features.mail_retry_failed'));

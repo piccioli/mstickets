@@ -268,4 +268,21 @@ return [
 
     'mailpit_url' => env('MAILPIT_URL', ''),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Reinvio outbound falliti (§7.3.3 del PRD, US-325)
+    |--------------------------------------------------------------------------
+    |
+    | Valore di default usato da `mail:retry-failed` quando non si sovrascrive
+    | `--limit` da CLI, e cadenza dello scheduler quando il feature flag
+    | config('orchestrator.features.mail_retry_failed') (già presente da
+    | Fase 0) è attivo.
+    |
+    */
+
+    'retry' => [
+        'default_limit' => (int) env('MAIL_RETRY_DEFAULT_LIMIT', 50),
+        'schedule_cron' => env('MAIL_RETRY_SCHEDULE_CRON', '0 * * * *'),
+    ],
+
 ];
