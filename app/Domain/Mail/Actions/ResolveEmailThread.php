@@ -37,10 +37,14 @@ final class ResolveEmailThread
     }
 
     /**
-     * Livello 1: token `ticket+<ulid>` nel destinatario `To`, dove `<ulid>` è
-     * quello del `ticket_message` a cui una notifica in uscita si riferiva
-     * (plus-addressing/VERP, US-311+). Il livello più affidabile: identifica
-     * direttamente il `ticket_message`, quindi il ticket.
+     * Livello 1: token `ticket+<ulid>` nel destinatario `To`. `<ulid>` può
+     * essere quello di un `ticket_message` (una risposta a un messaggio
+     * reale del ticket) OPPURE quello della riga `email_messages` outbound
+     * della notifica stessa (US-311, {@see SendOutboundTicketMail}
+     * — necessario per E2, che non ha un `ticket_message` a cui riferirsi:
+     * il ticket è appena stato aperto dal pannello web, senza ancora nessun
+     * messaggio). Entrambi restano livello 1 (VERP): è comunque il token più
+     * affidabile, cambia solo dove si trova il ticket collegato.
      */
     private static function byVerp(EmailMessage $emailMessage): ?ThreadResolution
     {
@@ -49,10 +53,19 @@ final class ResolveEmailThread
                 continue;
             }
 
-            $ticketMessage = TicketMessage::query()->whereRaw('lower(ulid) = ?', [strtolower($matches[1])])->first();
+            $ulid = strtolower($matches[1]);
+
+            $ticketMessage = TicketMessage::query()->whereRaw('lower(ulid) = ?', [$ulid])->first();
 
             if ($ticketMessage !== null) {
                 return new ThreadResolution($ticketMessage->ticket_id, ThreadMatchLevel::Verp);
+            }
+
+            $outboundEmail = EmailMessage::query()->whereRaw('lower(ulid) = ?', [$ulid])->with('thread')->first();
+            $ticketId = $outboundEmail !== null ? self::ticketIdOf($outboundEmail) : null;
+
+            if ($ticketId !== null) {
+                return new ThreadResolution($ticketId, ThreadMatchLevel::Verp);
             }
         }
 

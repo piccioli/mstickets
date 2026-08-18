@@ -82,7 +82,7 @@ final class ApplyInboundEmail
                         'title' => (string) $emailMessage->subject,
                         'type' => TicketType::Helpdesk,
                         'requester_id' => $user->id,
-                    ], $user)
+                    ], $user, TicketMessageChannel::Email)
                     : Ticket::query()->findOrFail($resolution->ticketId);
 
                 $message = PostTicketMessage::run($ticket, $user, self::bodyHtml($emailMessage), TicketMessageChannel::Email);

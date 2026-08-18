@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Domain\Mail\Events\InboundEmailApplied;
+use App\Domain\Mail\Listeners\SendTicketOpenedFromWebMailNotification;
+use App\Domain\Mail\Listeners\SendTicketReceivedByEmailNotification;
+use App\Domain\Ticketing\Events\TicketCreated;
 use App\Domain\Ticketing\Events\TicketMessagePosted;
 use App\Domain\Ticketing\Events\TicketStatusChanged;
 use App\Domain\Ticketing\Listeners\RestoreTicketStatusOnRequesterMessage;
@@ -35,6 +39,11 @@ class AppServiceProvider extends ServiceProvider
     {
         Event::listen(TicketMessagePosted::class, RestoreTicketStatusOnRequesterMessage::class);
         Event::listen(TicketStatusChanged::class, RecalculateWorkedTimeOnStatusChange::class);
+
+        // E1/E2 (§7.5.2, US-311): conferma di apertura ticket, sul canale
+        // corrispondente a come il ticket è stato creato (email vs web).
+        Event::listen(InboundEmailApplied::class, SendTicketReceivedByEmailNotification::class);
+        Event::listen(TicketCreated::class, SendTicketOpenedFromWebMailNotification::class);
 
         // Guard applicativo §11.8 del PRD (US-217): non un listener di dominio, ma va
         // comunque registrato qui perché Illuminate\Mail\Events\MessageSending non è

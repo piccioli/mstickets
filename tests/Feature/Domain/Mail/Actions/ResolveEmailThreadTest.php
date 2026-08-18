@@ -67,6 +67,24 @@ test('livello 1 (VERP): il match è case-insensitive sull\'ulid', function (): v
         ->and($result->matchLevel)->toBe(ThreadMatchLevel::Verp);
 });
 
+test('livello 1 (VERP): un token che referenzia l\'ulid di una email_messages outbound (nessun ticket_message, es. E2) risolve comunque il ticket', function (): void {
+    $ticket = makeTicketForThreadResolution();
+    $outboundNotification = EmailMessage::create([
+        'direction' => EmailDirection::Outbound,
+        'status' => EmailStatus::Queued,
+        'from_email' => 'noreply@example.test',
+        'ticket_id' => $ticket->id,
+    ]);
+
+    $email = makeInboundEmail(['to' => ["ticket+{$outboundNotification->ulid}@support.example.test"]]);
+
+    $result = ResolveEmailThread::run($email);
+
+    expect($result->isMatch())->toBeTrue()
+        ->and($result->ticketId)->toBe($ticket->id)
+        ->and($result->matchLevel)->toBe(ThreadMatchLevel::Verp);
+});
+
 test('livello 1 (VERP): un ulid sconosciuto non produce match e si passa al livello successivo', function (): void {
     $email = makeInboundEmail(['to' => ['ticket+'.Str::upper((string) Str::ulid()).'@support.example.test']]);
 
