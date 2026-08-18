@@ -110,6 +110,11 @@ return [
     'rate_limit' => [
         'max_per_hour' => (int) env('MAIL_RATE_LIMIT_PER_HOUR', 3),
         'max_per_day' => (int) env('MAIL_RATE_LIMIT_PER_DAY', 10),
+
+        // Durata (ore) della soppressione applicata a un mittente che supera le
+        // soglie sopra: oltre questo tempo l'indirizzo torna a poter ricevere
+        // auto-reply (App\Domain\Mail\Models\EmailSuppression::scopeActive()).
+        'suppression_hours' => (int) env('MAIL_RATE_LIMIT_SUPPRESSION_HOURS', 24),
     ],
 
     /*
