@@ -2,10 +2,9 @@
 @extends('emails.layouts.base-text')
 
 @section('content')
-Ticket #{{ $ticket->id }} - {{ $ticket->title }}
+{{ __('Ticket #:id', ['id' => $ticket->id]) }} - {{ $ticket->title }}
 
-Il ticket #{{ $ticket->id }} è in attesa di un tuo riscontro da qualche giorno. Se non serve più attenzione
-da parte tua, o se puoi fornirci le informazioni richieste, rispondi a questa email o vai al ticket.
+{{ __('Ticket #:id has been waiting for your feedback for a few days. If it no longer needs your attention, or if you can provide the requested information, reply to this email or go to the ticket.', ['id' => $ticket->id]) }}
 
-Vai al ticket: {{ $portalUrl }}
+{{ __('Go to ticket') }}: {{ $portalUrl }}
 @endsection

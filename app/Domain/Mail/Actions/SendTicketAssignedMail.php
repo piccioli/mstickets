@@ -8,6 +8,7 @@ use App\Domain\Identity\Models\User;
 use App\Domain\Mail\Enums\NotificationType;
 use App\Domain\Mail\Mailables\TicketAssignedMail;
 use App\Domain\Mail\Models\EmailMessage;
+use App\Domain\Mail\Support\RecipientLocale;
 use App\Domain\Ticketing\Models\Ticket;
 
 /**
@@ -33,7 +34,7 @@ final class SendTicketAssignedMail
             ticket: $ticket,
             recipient: $recipient,
             notificationType: NotificationType::TicketAssigned,
-            subject: "[#{$ticket->id}] Ticket assegnato: {$ticket->title}",
+            subject: __('[#:id] Ticket assigned: :title', ['id' => $ticket->id, 'title' => $ticket->title], RecipientLocale::resolve($recipient)),
             mailableClass: TicketAssignedMail::class,
             mailableFactory: fn (EmailMessage $outbound): TicketAssignedMail => new TicketAssignedMail(
                 ticket: $ticket,

@@ -11,6 +11,7 @@ use App\Domain\Mail\Enums\NotificationType;
 use App\Domain\Mail\Models\EmailMessage;
 use App\Domain\Mail\Models\EmailSuppression;
 use App\Domain\Mail\Support\NotificationGate;
+use App\Domain\Mail\Support\RecipientLocale;
 use App\Domain\Ticketing\Models\Ticket;
 use Closure;
 use Illuminate\Contracts\Mail\Mailable as MailableContract;
@@ -77,7 +78,7 @@ final class SendOutboundTicketMail
         ]);
 
         if ($blockedReason === null) {
-            Mail::to($recipient->email)->queue($mailableFactory($outbound));
+            Mail::to($recipient->email)->locale(RecipientLocale::resolve($recipient))->queue($mailableFactory($outbound));
         }
 
         return $outbound;

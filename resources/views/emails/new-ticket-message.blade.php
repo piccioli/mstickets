@@ -9,10 +9,10 @@
     <x-emails.ticket-header :ticket-id="$ticket->id" :title="$ticket->title" />
 
     <p style="margin:0 0 16px;font-size:13.5px;line-height:1.5;color:{{ \App\Support\DesignTokens::get('ms-text-body') }};">
-        Nuovo messaggio sul ticket #{{ $ticket->id }}.
+        {{ __('New message on ticket #:id.', ['id' => $ticket->id]) }}
     </p>
 
     <x-emails.message-block :author-name="$authorName" :occurred-at="$occurredAt" :body-html="$bodyHtml" />
 
-    <x-emails.cta-button label="Vai al ticket" :url="$portalUrl" />
+    <x-emails.cta-button :label="__('Go to ticket')" :url="$portalUrl" />
 @endsection

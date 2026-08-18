@@ -10,6 +10,7 @@ use App\Domain\Mail\Listeners\NotifyStaffOfNewCustomerTicketFromEmail;
 use App\Domain\Mail\Listeners\NotifyStaffOfNewCustomerTicketFromWeb;
 use App\Domain\Mail\Mailables\NewCustomerTicketStaffMail;
 use App\Domain\Mail\Models\EmailMessage;
+use App\Domain\Mail\Support\RecipientLocale;
 use App\Domain\Mail\Support\StaffDatabaseNotification;
 use App\Domain\Mail\Support\StaffNotificationGroup;
 use App\Domain\Ticketing\Models\Ticket;
@@ -45,7 +46,7 @@ final class SendNewCustomerTicketStaffMail
                 ticket: $ticket,
                 recipient: $staffUser,
                 notificationType: NotificationType::NewCustomerTicketStaff,
-                subject: "[#{$ticket->id}] Nuovo ticket cliente: {$ticket->title}",
+                subject: __('[#:id] New customer ticket: :title', ['id' => $ticket->id, 'title' => $ticket->title], RecipientLocale::resolve($staffUser)),
                 mailableClass: NewCustomerTicketStaffMail::class,
                 mailableFactory: fn (EmailMessage $outbound): NewCustomerTicketStaffMail => new NewCustomerTicketStaffMail($ticket, $outbound),
             );

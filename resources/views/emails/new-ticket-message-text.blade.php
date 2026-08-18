@@ -2,12 +2,12 @@
 @extends('emails.layouts.base-text')
 
 @section('content')
-Ticket #{{ $ticket->id }} - {{ $ticket->title }}
+{{ __('Ticket #:id', ['id' => $ticket->id]) }} - {{ $ticket->title }}
 
-Nuovo messaggio sul ticket #{{ $ticket->id }}.
+{{ __('New message on ticket #:id.', ['id' => $ticket->id]) }}
 
 {{ $authorName }} - {{ $occurredAt instanceof \DateTimeInterface ? $occurredAt->format('d/m/Y H:i') : $occurredAt }}
 {{ strip_tags($bodyHtml) }}
 
-Vai al ticket: {{ $portalUrl }}
+{{ __('Go to ticket') }}: {{ $portalUrl }}
 @endsection

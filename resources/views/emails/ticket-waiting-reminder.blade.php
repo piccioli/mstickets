@@ -8,10 +8,8 @@
     <x-emails.ticket-header :ticket-id="$ticket->id" :title="$ticket->title" />
 
     <p style="margin:0 0 20px;font-size:13.5px;line-height:1.5;color:{{ \App\Support\DesignTokens::get('ms-text-body') }};">
-        Il ticket #{{ $ticket->id }} è in attesa di un tuo riscontro da qualche giorno. Se non serve più
-        attenzione da parte tua, o se puoi fornirci le informazioni richieste, rispondi a questa email o
-        vai al ticket.
+        {{ __('Ticket #:id has been waiting for your feedback for a few days. If it no longer needs your attention, or if you can provide the requested information, reply to this email or go to the ticket.', ['id' => $ticket->id]) }}
     </p>
 
-    <x-emails.cta-button label="Vai al ticket" :url="$portalUrl" />
+    <x-emails.cta-button :label="__('Go to ticket')" :url="$portalUrl" />
 @endsection

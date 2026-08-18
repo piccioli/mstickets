@@ -2,14 +2,14 @@
 @extends('emails.layouts.base-text')
 
 @section('content')
-Ticket #{{ $ticket->id }} - {{ $ticket->title }}
-Nuovo stato: {{ mb_strtoupper($newStatus->getLabel()) }}
+{{ __('Ticket #:id', ['id' => $ticket->id]) }} - {{ $ticket->title }}
+{{ __('New status:') }} {{ mb_strtoupper($newStatus->getLabel()) }}
 
 @if ($recipientIsCustomer)
-Il tuo ticket #{{ $ticket->id }} è passato da {{ $previousStatus->getLabel() }} a {{ $newStatus->getLabel() }}.
+{{ __('Your ticket #:id changed from :previous to :new.', ['id' => $ticket->id, 'previous' => $previousStatus->getLabel(), 'new' => $newStatus->getLabel()]) }}
 @else
-Il ticket #{{ $ticket->id }} di {{ $ticket->requester?->name ?? 'un richiedente' }} è passato da {{ $previousStatus->getLabel() }} a {{ $newStatus->getLabel() }}.
+{{ __('Ticket #:id from :requester changed from :previous to :new.', ['id' => $ticket->id, 'requester' => $ticket->requester?->name ?? __('a requester'), 'previous' => $previousStatus->getLabel(), 'new' => $newStatus->getLabel()]) }}
 @endif
 
-Vai al ticket: {{ $portalUrl }}
+{{ __('Go to ticket') }}: {{ $portalUrl }}
 @endsection

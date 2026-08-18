@@ -5,7 +5,7 @@
     <tr>
         <td>
             <p style="margin:0 0 4px;font-size:11.5px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:{{ \App\Support\DesignTokens::get('ms-text-muted') }};">
-                Ticket #{{ $ticketId }}
+                {{ __('Ticket #:id', ['id' => $ticketId]) }}
             </p>
             <h1 style="margin:0;font-size:20px;line-height:1.2;font-weight:800;color:{{ \App\Support\DesignTokens::get('ms-text-heading') }};">
                 {{ $title }}

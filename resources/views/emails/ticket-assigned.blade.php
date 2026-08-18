@@ -9,13 +9,13 @@
 
     @if ($asTester)
         <p style="margin:0 0 20px;font-size:13.5px;line-height:1.5;color:{{ \App\Support\DesignTokens::get('ms-text-body') }};">
-            Ti è stato assegnato come <strong>tester</strong> il ticket #{{ $ticket->id }}.
+            {!! __('You have been assigned as :role to ticket #:id.', ['role' => '<strong>tester</strong>', 'id' => $ticket->id]) !!}
         </p>
     @else
         <p style="margin:0 0 20px;font-size:13.5px;line-height:1.5;color:{{ \App\Support\DesignTokens::get('ms-text-body') }};">
-            Ti è stato assegnato il ticket #{{ $ticket->id }}.
+            {{ __('You have been assigned to ticket #:id.', ['id' => $ticket->id]) }}
         </p>
     @endif
 
-    <x-emails.cta-button label="Vai al ticket" :url="$portalUrl" />
+    <x-emails.cta-button :label="__('Go to ticket')" :url="$portalUrl" />
 @endsection

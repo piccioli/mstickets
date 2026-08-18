@@ -9,6 +9,7 @@ use App\Domain\Mail\Enums\NotificationType;
 use App\Domain\Mail\Mailables\TicketStatusChangedMail;
 use App\Domain\Mail\Models\EmailMessage;
 use App\Domain\Mail\Support\NotificationRecipientResolver;
+use App\Domain\Mail\Support\RecipientLocale;
 use App\Domain\Ticketing\Events\TicketStatusChanged;
 use App\Domain\Ticketing\Models\Ticket;
 
@@ -37,7 +38,7 @@ final class SendTicketStatusChangedMail
                 ticket: $ticket,
                 recipient: $recipient,
                 notificationType: NotificationType::TicketStatusChanged,
-                subject: "[#{$ticket->id}] Stato aggiornato: {$event->to->getLabel()}",
+                subject: __('[#:id] Status updated: :status', ['id' => $ticket->id, 'status' => $event->to->getLabel()], RecipientLocale::resolve($recipient)),
                 mailableClass: TicketStatusChangedMail::class,
                 mailableFactory: fn (EmailMessage $outbound): TicketStatusChangedMail => new TicketStatusChangedMail(
                     ticket: $ticket,

@@ -7,6 +7,7 @@ namespace App\Domain\Mail\Actions;
 use App\Domain\Mail\Enums\NotificationType;
 use App\Domain\Mail\Mailables\NewTicketMessageMail;
 use App\Domain\Mail\Models\EmailMessage;
+use App\Domain\Mail\Support\RecipientLocale;
 use App\Domain\Ticketing\Enums\TicketMessageVisibility;
 use App\Domain\Ticketing\Events\TicketMessagePosted;
 use App\Domain\Ticketing\Models\Ticket;
@@ -47,7 +48,7 @@ final class SendNewTicketMessageMail
                 ticket: $ticket,
                 recipient: $recipient,
                 notificationType: NotificationType::NewTicketMessage,
-                subject: "[#{$ticket->id}] Nuovo messaggio: {$ticket->title}",
+                subject: __('[#:id] New message: :title', ['id' => $ticket->id, 'title' => $ticket->title], RecipientLocale::resolve($recipient)),
                 mailableClass: NewTicketMessageMail::class,
                 mailableFactory: fn (EmailMessage $outbound): NewTicketMessageMail => new NewTicketMessageMail(
                     ticket: $ticket,

@@ -14,13 +14,13 @@
 
     @if ($recipientIsCustomer)
         <p style="margin:0 0 20px;font-size:13.5px;line-height:1.5;color:{{ \App\Support\DesignTokens::get('ms-text-body') }};">
-            Il tuo ticket #{{ $ticket->id }} è passato da <strong>{{ $previousStatus->getLabel() }}</strong> a <strong>{{ $newStatus->getLabel() }}</strong>.
+            {!! __('Your ticket #:id changed from :previous to :new.', ['id' => $ticket->id, 'previous' => '<strong>'.e($previousStatus->getLabel()).'</strong>', 'new' => '<strong>'.e($newStatus->getLabel()).'</strong>']) !!}
         </p>
     @else
         <p style="margin:0 0 20px;font-size:13.5px;line-height:1.5;color:{{ \App\Support\DesignTokens::get('ms-text-body') }};">
-            Il ticket #{{ $ticket->id }} di {{ $ticket->requester?->name ?? 'un richiedente' }} è passato da <strong>{{ $previousStatus->getLabel() }}</strong> a <strong>{{ $newStatus->getLabel() }}</strong>.
+            {!! __('Ticket #:id from :requester changed from :previous to :new.', ['id' => $ticket->id, 'requester' => e($ticket->requester?->name ?? __('a requester')), 'previous' => '<strong>'.e($previousStatus->getLabel()).'</strong>', 'new' => '<strong>'.e($newStatus->getLabel()).'</strong>']) !!}
         </p>
     @endif
 
-    <x-emails.cta-button label="Vai al ticket" :url="$portalUrl" />
+    <x-emails.cta-button :label="__('Go to ticket')" :url="$portalUrl" />
 @endsection

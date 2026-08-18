@@ -8,5 +8,5 @@ P.IVA 11790660960 - SDI: M5UXCR1
 info@montagnaservizi.com
 @php($preferencesUrl = config('mail_pipeline.notification_preferences_url'))
 @if(filled($preferencesUrl))
-Gestisci le preferenze di notifica: {{ $preferencesUrl }}
+{{ __('Manage notification preferences') }}: {{ $preferencesUrl }}
 @endif

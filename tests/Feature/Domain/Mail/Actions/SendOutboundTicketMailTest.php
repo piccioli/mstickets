@@ -117,3 +117,13 @@ test('falls back to the mail.from.address domain when no support address is conf
 
     expect($outbound->reply_to)->toBe("ticket+{$outbound->ulid}@example.com");
 });
+
+test('queues the mailable with the locale resolved from the recipient (§7.6, US-320)', function (): void {
+    Mail::fake();
+
+    $recipient = User::factory()->create(['email' => 'cliente@example.test', 'locale' => 'en']);
+
+    sendOutboundExampleMail($recipient);
+
+    Mail::assertQueued(TicketReceivedByEmailMail::class, fn (TicketReceivedByEmailMail $mail): bool => $mail->locale === 'en');
+});

@@ -2,13 +2,13 @@
 @extends('emails.layouts.base-text')
 
 @section('content')
-Ticket #{{ $ticket->id }} - {{ $ticket->title }}
+{{ __('Ticket #:id', ['id' => $ticket->id]) }} - {{ $ticket->title }}
 
 @if ($asTester)
-Ti è stato assegnato come tester il ticket #{{ $ticket->id }}.
+{{ __('You have been assigned as :role to ticket #:id.', ['role' => 'tester', 'id' => $ticket->id]) }}
 @else
-Ti è stato assegnato il ticket #{{ $ticket->id }}.
+{{ __('You have been assigned to ticket #:id.', ['id' => $ticket->id]) }}
 @endif
 
-Vai al ticket: {{ $portalUrl }}
+{{ __('Go to ticket') }}: {{ $portalUrl }}
 @endsection

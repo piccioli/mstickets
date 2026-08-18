@@ -12,8 +12,8 @@
     </p>
 
     <p style="margin:0 0 20px;font-size:13.5px;line-height:1.5;color:{{ \App\Support\DesignTokens::get('ms-text-body') }};">
-        Abbiamo ricevuto la tua richiesta via email e abbiamo aperto il ticket #{{ $ticket->id }}. Ti aggiorneremo non appena ci sono novità.
+        {{ __('We received your request by email and opened ticket #:id. We will update you as soon as there is news.', ['id' => $ticket->id]) }}
     </p>
 
-    <x-emails.cta-button label="Vai al ticket" :url="$portalUrl" />
+    <x-emails.cta-button :label="__('Go to ticket')" :url="$portalUrl" />
 @endsection

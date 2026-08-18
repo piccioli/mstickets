@@ -9,6 +9,7 @@ use App\Domain\Mail\Enums\NotificationType;
 use App\Domain\Mail\Events\EmailQuarantined;
 use App\Domain\Mail\Mailables\UnknownSenderStaffMail;
 use App\Domain\Mail\Models\EmailMessage;
+use App\Domain\Mail\Support\RecipientLocale;
 use App\Domain\Mail\Support\StaffDatabaseNotification;
 use App\Domain\Mail\Support\StaffNotificationGroup;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -33,7 +34,7 @@ final class NotifyStaffOfUnknownSender implements ShouldQueue
                 ticket: null,
                 recipient: $staffUser,
                 notificationType: NotificationType::UnknownSenderStaff,
-                subject: "Mittente sconosciuto: {$quarantinedMessage->from_email}",
+                subject: __('Unknown sender: :email', ['email' => $quarantinedMessage->from_email], RecipientLocale::resolve($staffUser)),
                 mailableClass: UnknownSenderStaffMail::class,
                 mailableFactory: fn (EmailMessage $outbound): UnknownSenderStaffMail => new UnknownSenderStaffMail($quarantinedMessage, $outbound),
             );

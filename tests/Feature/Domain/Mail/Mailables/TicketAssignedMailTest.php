@@ -77,3 +77,15 @@ test('shows different wording for a tester assignment than for a developer assig
     expect($testerHtml)->toContain('tester')
         ->and($developerHtml)->not->toContain('tester');
 });
+
+test('renders the body in the language set via ->locale(), never a raw untranslated key (§7.6, US-320)', function (): void {
+    $ticket = ticket(['title' => 'Errore login SSO']);
+    $outbound = outboundAssignedNotificationFor($ticket);
+
+    $italianHtml = (new TicketAssignedMail($ticket, false, $outbound))->locale('it')->render();
+    $englishHtml = (new TicketAssignedMail($ticket, false, $outbound))->locale('en')->render();
+
+    expect($italianHtml)->toContain('Ti è stato assegnato il ticket #'.$ticket->id)
+        ->and($englishHtml)->toContain('You have been assigned to ticket #'.$ticket->id)
+        ->and($englishHtml)->not->toContain('You have been assigned to ticket #:id');
+});

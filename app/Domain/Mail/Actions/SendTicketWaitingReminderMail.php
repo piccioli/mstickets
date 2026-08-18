@@ -7,6 +7,7 @@ namespace App\Domain\Mail\Actions;
 use App\Domain\Mail\Enums\NotificationType;
 use App\Domain\Mail\Mailables\TicketWaitingReminderMail;
 use App\Domain\Mail\Models\EmailMessage;
+use App\Domain\Mail\Support\RecipientLocale;
 use App\Domain\Ticketing\Models\Ticket;
 
 /**
@@ -31,7 +32,7 @@ final class SendTicketWaitingReminderMail
             ticket: $ticket,
             recipient: $recipient,
             notificationType: NotificationType::TicketWaitingReminder,
-            subject: "[#{$ticket->id}] Promemoria: ticket in attesa - {$ticket->title}",
+            subject: __('[#:id] Reminder: ticket waiting - :title', ['id' => $ticket->id, 'title' => $ticket->title], RecipientLocale::resolve($recipient)),
             mailableClass: TicketWaitingReminderMail::class,
             mailableFactory: fn (EmailMessage $outbound): TicketWaitingReminderMail => new TicketWaitingReminderMail($ticket, $outbound),
         );

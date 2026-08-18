@@ -20,7 +20,7 @@
             </p>
             @if (filled($preferencesUrl))
                 <p style="margin:0 0 8px;">
-                    <a href="{{ $preferencesUrl }}" style="color:{{ \App\Support\DesignTokens::get('ms-brand') }};text-decoration:none;">Gestisci le preferenze di notifica</a>
+                    <a href="{{ $preferencesUrl }}" style="color:{{ \App\Support\DesignTokens::get('ms-brand') }};text-decoration:none;">{{ __('Manage notification preferences') }}</a>
                 </p>
             @endif
             <p style="margin:0;">&copy; {{ now()->year }} Montagna Servizi SCPA</p>

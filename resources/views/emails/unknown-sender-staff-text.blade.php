@@ -2,14 +2,14 @@
 @extends('emails.layouts.base-text')
 
 @section('content')
-Mittente sconosciuto
-{{ $subject !== '' ? $subject : '(nessun oggetto)' }}
+{{ __('Unknown sender') }}
+{{ $subject !== '' ? $subject : __('(no subject)') }}
 
-Un messaggio da {{ $fromEmail }} non corrisponde a nessun utente registrato ed è stato messo in quarantena.
+{{ __('A message from :email does not match any registered user and has been quarantined.', ['email' => $fromEmail]) }}
 
-{{ $bodyExcerpt !== '' ? $bodyExcerpt : '(corpo vuoto)' }}
+{{ $bodyExcerpt !== '' ? $bodyExcerpt : __('(empty body)') }}
 @if ($reviewUrl !== null)
 
-Vai alla quarantena: {{ $reviewUrl }}
+{{ __('Go to quarantine') }}: {{ $reviewUrl }}
 @endif
 @endsection

@@ -2,10 +2,10 @@
 @extends('emails.layouts.base-text')
 
 @section('content')
-Ticket #{{ $ticket->id }} - {{ $ticket->title }}
-Stato: {{ mb_strtoupper($ticket->status->getLabel()) }}
+{{ __('Ticket #:id', ['id' => $ticket->id]) }} - {{ $ticket->title }}
+{{ __('Status:') }} {{ mb_strtoupper($ticket->status->getLabel()) }}
 
-Un cliente ha aperto il ticket #{{ $ticket->id }}.
+{{ __('A customer opened ticket #:id.', ['id' => $ticket->id]) }}
 
-Vai al ticket: {{ $portalUrl }}
+{{ __('Go to ticket') }}: {{ $portalUrl }}
 @endsection

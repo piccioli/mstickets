@@ -61,3 +61,18 @@ test('does nothing when the given user id does not resolve to an existing user',
 
     Mail::assertNothingQueued();
 });
+
+test('builds the subject in the assignee locale, not always Italian (§7.6, US-320)', function (): void {
+    Mail::fake();
+
+    $actor = User::factory()->create();
+    $assignee = User::factory()->create(['locale' => 'en']);
+    $ticket = ticket(['title' => 'Errore login SSO']);
+
+    SendTicketAssignedMail::run($ticket, $assignee->id, asTester: false, actor: $actor);
+
+    Mail::assertQueued(
+        TicketAssignedMail::class,
+        fn (TicketAssignedMail $mail): bool => $mail->outbound->subject === "[#{$ticket->id}] Ticket assigned: {$ticket->title}",
+    );
+});
