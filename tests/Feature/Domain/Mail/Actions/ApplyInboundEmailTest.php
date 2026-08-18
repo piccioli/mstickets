@@ -6,8 +6,11 @@ use App\Domain\Identity\Models\User;
 use App\Domain\Mail\Actions\ApplyInboundEmail;
 use App\Domain\Mail\Enums\EmailDirection;
 use App\Domain\Mail\Enums\EmailStatus;
+use App\Domain\Mail\Enums\SuppressionReason;
+use App\Domain\Mail\Events\EmailQuarantined;
 use App\Domain\Mail\Events\InboundEmailApplied;
 use App\Domain\Mail\Models\EmailMessage;
+use App\Domain\Mail\Models\EmailSuppression;
 use App\Domain\Ticketing\Enums\TicketMessageChannel;
 use App\Domain\Ticketing\Enums\TicketStatus;
 use App\Domain\Ticketing\Enums\TicketType;
@@ -119,6 +122,67 @@ test('mittente non identificato non crea nessun ticket e lascia il messaggio in 
     expect($result->status)->toBe(EmailStatus::Quarantined)
         ->and($result->ticket_id)->toBeNull()
         ->and(Ticket::count())->toBe(0);
+});
+
+test('un mittente sconosciuto senza soppressioni attive emette EmailQuarantined con auto-reply consentito', function (): void {
+    Event::fake([EmailQuarantined::class]);
+
+    $email = makeClassifiedInboundEmail(['from_email' => 'mai-visto@example.test']);
+
+    ApplyInboundEmail::run($email);
+
+    Event::assertDispatched(
+        EmailQuarantined::class,
+        fn (EmailQuarantined $event): bool => $event->emailMessage->is($email) && $event->autoReplyAllowed === true,
+    );
+});
+
+test('un mittente sconosciuto già soppresso per rate limit (US-304) emette EmailQuarantined senza consentire l\'auto-reply', function (): void {
+    Event::fake([EmailQuarantined::class]);
+
+    EmailSuppression::create([
+        'email' => 'mai-visto@example.test',
+        'reason' => SuppressionReason::LoopProtection,
+        'expires_at' => now()->addHours(24),
+    ]);
+
+    $email = makeClassifiedInboundEmail(['from_email' => 'mai-visto@example.test']);
+
+    ApplyInboundEmail::run($email);
+
+    Event::assertDispatched(
+        EmailQuarantined::class,
+        fn (EmailQuarantined $event): bool => $event->autoReplyAllowed === false,
+    );
+});
+
+test('un fallimento nella notifica di quarantena non cambia lo stato del messaggio (problema 2 del v1)', function (): void {
+    Event::listen(EmailQuarantined::class, function (): void {
+        throw new RuntimeException('invio notifica falsamente non riuscito');
+    });
+
+    $email = makeClassifiedInboundEmail(['from_email' => 'mai-visto@example.test']);
+
+    $result = ApplyInboundEmail::run($email);
+
+    expect($result->status)->toBe(EmailStatus::Quarantined);
+});
+
+test('un messaggio già in quarantena viene riprocessato con successo una volta che il mittente diventa identificabile (US-322)', function (): void {
+    $email = makeClassifiedInboundEmail([
+        'from_email' => 'nuovo-cliente@example.test',
+        'status' => EmailStatus::Quarantined,
+    ]);
+
+    // Simula l'esito dell'azione amministrativa "associa a utente esistente":
+    // una volta che ResolveEmailSender può risolvere il mittente, la pipeline
+    // riparte da sola richiamando di nuovo questa stessa Action.
+    User::factory()->create(['email' => 'nuovo-cliente@example.test']);
+
+    $result = ApplyInboundEmail::run($email);
+
+    expect($result->status)->toBe(EmailStatus::Applied)
+        ->and($result->ticket_id)->not->toBeNull();
 });
 
 test('un\'email non ancora classificata viene ignorata senza effetti', function (): void {

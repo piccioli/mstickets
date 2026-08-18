@@ -23,6 +23,12 @@ use Throwable;
  * `status = quarantined` per la gestione manuale di US-308 (associazione a un
  * utente esistente o creazione di uno nuovo, poi riprocessamento dalla
  * pipeline a partire da questa stessa Action).
+ *
+ * Idempotente rispetto allo stato di partenza (US-308): richiamata su un
+ * messaggio già `quarantined` che ora risolve un mittente (es. dopo l'azione
+ * amministrativa "associa a utente esistente", US-322), riporta esplicitamente
+ * lo `status` a `classified` — senza questo reset la pipeline (`ApplyInboundEmail`)
+ * lo tratterebbe ancora come quarantena nonostante `user_id` sia stato risolto.
  */
 final class ResolveEmailSender
 {
@@ -38,7 +44,7 @@ final class ResolveEmailSender
                 return $emailMessage;
             }
 
-            $emailMessage->forceFill(['user_id' => $user->id])->save();
+            $emailMessage->forceFill(['user_id' => $user->id, 'status' => EmailStatus::Classified])->save();
         } catch (Throwable $exception) {
             Log::warning('mail.resolve_sender.failed', [
                 'email_message_id' => $emailMessage->id,
