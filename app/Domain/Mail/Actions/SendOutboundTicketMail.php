@@ -10,7 +10,7 @@ use App\Domain\Mail\Enums\EmailStatus;
 use App\Domain\Mail\Enums\NotificationType;
 use App\Domain\Mail\Models\EmailMessage;
 use App\Domain\Mail\Models\EmailSuppression;
-use App\Domain\Mail\Models\NotificationPreference;
+use App\Domain\Mail\Support\NotificationGate;
 use App\Domain\Ticketing\Models\Ticket;
 use Closure;
 use Illuminate\Contracts\Mail\Mailable as MailableContract;
@@ -91,13 +91,7 @@ final class SendOutboundTicketMail
             return 'destinatario in email_suppressions';
         }
 
-        $preference = NotificationPreference::query()
-            ->where('user_id', $recipient->id)
-            ->where('notification_type', $notificationType->value)
-            ->where('channel', 'email')
-            ->first();
-
-        if ($preference !== null && ! $preference->enabled) {
+        if (! NotificationGate::allows($recipient, $notificationType)) {
             return 'notifica disabilitata dalle preferenze utente';
         }
 
