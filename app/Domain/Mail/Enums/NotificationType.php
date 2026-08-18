@@ -18,4 +18,5 @@ enum NotificationType: string
     case NewCustomerTicketStaff = 'new_customer_ticket_staff';
     case UnknownSenderStaff = 'unknown_sender_staff';
     case TicketStatusChanged = 'ticket_status_changed';
+    case NewTicketMessage = 'new_ticket_message';
 }

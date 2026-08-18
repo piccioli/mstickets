@@ -9,6 +9,7 @@ use App\Domain\Mail\Events\InboundEmailApplied;
 use App\Domain\Mail\Listeners\NotifyStaffOfNewCustomerTicketFromEmail;
 use App\Domain\Mail\Listeners\NotifyStaffOfNewCustomerTicketFromWeb;
 use App\Domain\Mail\Listeners\NotifyStaffOfUnknownSender;
+use App\Domain\Mail\Listeners\SendNewTicketMessageNotification;
 use App\Domain\Mail\Listeners\SendTicketOpenedFromWebMailNotification;
 use App\Domain\Mail\Listeners\SendTicketReceivedByEmailNotification;
 use App\Domain\Mail\Listeners\SendTicketStatusChangedNotification;
@@ -59,6 +60,11 @@ class AppServiceProvider extends ServiceProvider
         // E4 (§7.5.2, US-313): cambio di stato del ticket, contenuto in base al ruolo
         // reale del destinatario, escluso chi ha eseguito l'azione.
         Event::listen(TicketStatusChanged::class, SendTicketStatusChangedNotification::class);
+
+        // E5 (§7.5.2, US-314): nuovo messaggio PUBBLICO sul ticket, escluso l'autore.
+        // Il filtro "mai per un messaggio interno" vive nell'Action, non qui: questo
+        // listener reagisce a TicketMessagePosted qualunque sia la visibilità.
+        Event::listen(TicketMessagePosted::class, SendNewTicketMessageNotification::class);
 
         // Guard applicativo §11.8 del PRD (US-217): non un listener di dominio, ma va
         // comunque registrato qui perché Illuminate\Mail\Events\MessageSending non è
