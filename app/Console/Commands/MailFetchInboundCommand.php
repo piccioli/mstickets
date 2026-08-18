@@ -4,19 +4,35 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Domain\Mail\Actions\ApplyInboundEmail;
+use App\Domain\Mail\Actions\ClassifyInboundEmail;
+use App\Domain\Mail\Actions\ParseInboundEmail;
+use App\Domain\Mail\Actions\ProcessDeliveryStatusNotification;
 use App\Domain\Mail\Actions\StoreRawInboundEmail;
 use App\Domain\Mail\Contracts\InboundMailTransport;
+use App\Domain\Mail\Enums\EmailDiscardReason;
+use App\Domain\Mail\Enums\EmailStatus;
+use App\Domain\Mail\Models\EmailMessage;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Throwable;
 
 /**
- * Scarica fino a `--limit` messaggi da INBOX e li archivia grezzi PRIMA di
- * qualunque parsing (§7.3.3 del PRD, US-302): mai "tutti gli unseen", rischio
- * OOM già noto del v1. Si ferma alla riga `email_messages` con
- * `status=received`: parsing (US-303), classificazione anti-loop (US-304) e
- * applicazione sul ticket (US-307) arrivano nelle story successive.
+ * Scarica fino a `--limit` messaggi da INBOX, li archivia grezzi PRIMA di
+ * qualunque parsing (§7.3.3 del PRD, US-302: mai "tutti gli unseen", rischio
+ * OOM già noto del v1) e orchestra su ciascun messaggio appena archiviato
+ * l'intera pipeline sincrona parse → classify → (DSN | apply) (US-326,
+ * checkpoint di fine fase): `ParseInboundEmail` (US-303), `ClassifyInboundEmail`
+ * (US-304), poi — a seconda dell'esito della classificazione —
+ * `ProcessDeliveryStatusNotification` (US-319) per un DSN, oppure
+ * `ApplyInboundEmail` (US-307, che a sua volta chiama `ResolveEmailSender`/
+ * US-305 e `ResolveEmailThread`/US-306) per un messaggio classificato o
+ * quarantenato. Un messaggio già presente (stesso `imap_folder`/`imap_uid`,
+ * §US-302) è saltato PRIMA di questa pipeline: non viene mai riprocessato.
+ * Ogni Action della pipeline gestisce già da sé i propri errori (mai
+ * un'eccezione propagata fuori, `status = failed` in caso di fallimento):
+ * un messaggio che fallisce non impedisce l'elaborazione dei successivi.
  */
 final class MailFetchInboundCommand extends Command
 {
@@ -77,13 +93,16 @@ final class MailFetchInboundCommand extends Command
         $skipped = 0;
 
         foreach ($messages as $raw) {
-            if (StoreRawInboundEmail::run($raw) === null) {
+            $emailMessage = StoreRawInboundEmail::run($raw);
+
+            if ($emailMessage === null) {
                 $skipped++;
 
                 continue;
             }
 
             $stored++;
+            $this->processPipeline($emailMessage);
         }
 
         $this->info(sprintf(
@@ -94,5 +113,28 @@ final class MailFetchInboundCommand extends Command
         ));
 
         return self::SUCCESS;
+    }
+
+    private function processPipeline(EmailMessage $emailMessage): void
+    {
+        $emailMessage = ParseInboundEmail::run($emailMessage);
+
+        if ($emailMessage->status !== EmailStatus::Parsed) {
+            return;
+        }
+
+        $emailMessage = ClassifyInboundEmail::run($emailMessage);
+
+        if ($emailMessage->status === EmailStatus::Discarded) {
+            if ($emailMessage->failure_reason === EmailDiscardReason::DeliveryStatusNotification->value) {
+                ProcessDeliveryStatusNotification::run($emailMessage);
+            }
+
+            return;
+        }
+
+        if (in_array($emailMessage->status, [EmailStatus::Classified, EmailStatus::Quarantined], true)) {
+            ApplyInboundEmail::run($emailMessage);
+        }
     }
 }

@@ -45,7 +45,10 @@ test('archivia un nuovo messaggio come .eml prima di creare la riga email_messag
     $message = EmailMessage::query()->first();
 
     expect($message->direction)->toBe(EmailDirection::Inbound)
-        ->and($message->status)->toBe(EmailStatus::Received)
+        // US-326: mail:fetch-inbound orchestra ora l'intera pipeline fino ad
+        // ApplyInboundEmail; questo mittente non corrisponde a nessun utente,
+        // quindi il messaggio finisce in quarantena (mai `received`).
+        ->and($message->status)->toBe(EmailStatus::Quarantined)
         ->and($message->imap_folder)->toBe('INBOX')
         ->and($message->imap_uid)->toBe(101)
         ->and($message->message_id)->toBe('<req-001@example.test>')

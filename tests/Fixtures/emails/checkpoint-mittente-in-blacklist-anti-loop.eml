@@ -1,0 +1,13 @@
+Return-Path: <bounce@dominio-bloccato.test>
+Delivered-To: supporto@example.test
+From: Mittente in Blacklist <bounce@dominio-bloccato.test>
+To: Supporto <supporto@example.test>
+Subject: Risposta automatica ripetuta
+Message-ID: <checkpoint-blacklisted-sender@example.test>
+Date: Mon, 09 Feb 2026 10:30:00 +0100
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+Questo mittente ha già superato la soglia anti-loop (US-304) in una
+precedente esecuzione ed è stato messo in soppressione.
