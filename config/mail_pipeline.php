@@ -145,6 +145,56 @@ return [
         'heuristic_window_days' => (int) env('MAIL_THREAD_HEURISTIC_WINDOW_DAYS', 30),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Allegati inbound (§7.3.9 del PRD, US-309)
+    |--------------------------------------------------------------------------
+    |
+    | Configurazione propria e distinta da config/ticketing.php
+    | (App\Domain\Ticketing\Support\TicketAttachmentTypes, US-107): il contesto
+    | email è deliberatamente più permissivo (mittenti esterni possono allegare
+    | tipi di file che un upload dal portale non ammetterebbe). Gli allegati
+    | inline (loghi/firme, riconosciuti da Content-Disposition: inline) sono
+    | esclusi per default.
+    |
+    */
+
+    'attachments' => [
+        'max_file_size' => (int) env('MAIL_ATTACHMENT_MAX_FILE_SIZE', 26214400), // 25 MB
+        'max_total_size' => (int) env('MAIL_ATTACHMENT_MAX_TOTAL_SIZE', 52428800), // 50 MB
+        'max_count' => (int) env('MAIL_ATTACHMENT_MAX_COUNT', 20),
+        'include_inline' => (bool) env('MAIL_ATTACHMENT_INCLUDE_INLINE', false),
+
+        'allowed_extensions' => array_values(array_filter(array_map(
+            trim(...),
+            explode(',', (string) env(
+                'MAIL_ATTACHMENT_ALLOWED_EXTENSIONS',
+                'pdf,doc,docx,xls,xlsx,ppt,pptx,odt,ods,odp,txt,csv,rtf,eml,msg,'
+                .'jpg,jpeg,png,gif,bmp,webp,heic,tif,tiff,'
+                .'zip,rar,7z,mp3,wav,mp4,mov',
+            )),
+        ))),
+
+        'allowed_mimes' => array_values(array_filter(array_map(
+            trim(...),
+            explode(',', (string) env(
+                'MAIL_ATTACHMENT_ALLOWED_MIMES',
+                'application/pdf,application/msword,'
+                .'application/vnd.openxmlformats-officedocument.wordprocessingml.document,'
+                .'application/vnd.ms-excel,'
+                .'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,'
+                .'application/vnd.ms-powerpoint,'
+                .'application/vnd.openxmlformats-officedocument.presentationml.presentation,'
+                .'application/vnd.oasis.opendocument.text,application/vnd.oasis.opendocument.spreadsheet,'
+                .'application/vnd.oasis.opendocument.presentation,'
+                .'text/plain,text/csv,application/rtf,message/rfc822,application/vnd.ms-outlook,'
+                .'image/jpeg,image/png,image/gif,image/bmp,image/webp,image/heic,image/tiff,'
+                .'application/zip,application/x-rar-compressed,application/vnd.rar,application/x-7z-compressed,'
+                .'audio/mpeg,audio/wav,audio/x-wav,video/mp4,video/quicktime',
+            )),
+        ))),
+    ],
+
     'staff_notification_group' => array_values(array_filter(array_map(
         trim(...),
         explode(',', (string) env('MAIL_STAFF_NOTIFICATION_GROUP', '')),

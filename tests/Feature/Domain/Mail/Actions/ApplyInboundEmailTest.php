@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 use App\Domain\Identity\Models\User;
 use App\Domain\Mail\Actions\ApplyInboundEmail;
+use App\Domain\Mail\Enums\EmailAttachmentStatus;
 use App\Domain\Mail\Enums\EmailDirection;
 use App\Domain\Mail\Enums\EmailStatus;
 use App\Domain\Mail\Enums\SuppressionReason;
 use App\Domain\Mail\Events\EmailQuarantined;
 use App\Domain\Mail\Events\InboundEmailApplied;
+use App\Domain\Mail\Models\EmailAttachment;
 use App\Domain\Mail\Models\EmailMessage;
 use App\Domain\Mail\Models\EmailSuppression;
 use App\Domain\Ticketing\Enums\TicketMessageChannel;
@@ -18,6 +20,8 @@ use App\Domain\Ticketing\Models\Ticket;
 use App\Domain\Ticketing\Models\TicketMessage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 uses(RefreshDatabase::class);
 
@@ -230,4 +234,28 @@ test('un fallimento nella notifica post-commit non annulla il ticket/messaggio g
 
     expect($ticket->messages)->toHaveCount(1)
         ->and(EmailMessage::query()->findOrFail($result->id)->status)->toBe(EmailStatus::Applied);
+});
+
+test('gli allegati non inline del .eml grezzo vengono importati sul ticket_message creato (US-309)', function (): void {
+    Storage::fake('raw-emails');
+    Storage::fake('ticket-attachments');
+
+    User::factory()->create(['email' => 'cliente@example.test']);
+
+    $raw = file_get_contents(base_path('tests/Fixtures/emails/richiesta-con-allegati.eml'))
+        ?: throw new RuntimeException('Fixture .eml mancante');
+    $rawPath = Str::ulid()->toString().'.eml';
+    Storage::disk('raw-emails')->put($rawPath, $raw);
+
+    $email = makeClassifiedInboundEmail(['raw_path' => $rawPath]);
+
+    $result = ApplyInboundEmail::run($email);
+
+    expect($result->status)->toBe(EmailStatus::Applied);
+
+    $message = Ticket::query()->findOrFail($result->ticket_id)->messages->first();
+
+    expect($message->getMedia('attachments'))->toHaveCount(2)
+        ->and(EmailAttachment::query()->where('email_message_id', $email->id)->where('status', EmailAttachmentStatus::Stored)->count())->toBe(2)
+        ->and(EmailAttachment::query()->where('email_message_id', $email->id)->where('filename', 'logo.png')->exists())->toBeFalse();
 });

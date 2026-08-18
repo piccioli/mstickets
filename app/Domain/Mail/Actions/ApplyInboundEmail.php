@@ -85,7 +85,9 @@ final class ApplyInboundEmail
                     ], $user)
                     : Ticket::query()->findOrFail($resolution->ticketId);
 
-                PostTicketMessage::run($ticket, $user, self::bodyHtml($emailMessage), TicketMessageChannel::Email);
+                $message = PostTicketMessage::run($ticket, $user, self::bodyHtml($emailMessage), TicketMessageChannel::Email);
+
+                ImportInboundEmailAttachments::run($emailMessage, $message);
 
                 $emailMessage->forceFill([
                     'status' => EmailStatus::Applied,
