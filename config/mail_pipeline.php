@@ -58,6 +58,43 @@ return [
 
     'fetch' => [
         'default_limit' => (int) env('IMAP_FETCH_DEFAULT_LIMIT', 50),
+
+        // Cadenza dello scheduler (routes/console.php, §10.2 del PRD: "ogni 5
+        // min" di default, ma la story chiede una cadenza configurabile).
+        'schedule_cron' => env('MAIL_FETCH_SCHEDULE_CRON', '*/5 * * * *'),
+
+        // Tempo massimo di esecuzione (secondi) passato a
+        // Schedule::command()->timeout() — evita che una sessione IMAP bloccata
+        // impedisca per sempre l'esecuzione successiva.
+        'timeout' => (int) env('MAIL_FETCH_TIMEOUT', 300),
+
+        // Numero di tentativi (con backoff, via il helper retry()) per la sola
+        // chiamata di rete InboundMailTransport::fetch(): un fallimento
+        // transitorio di connessione IMAP non deve far fallire l'intera
+        // esecuzione schedulata.
+        'tries' => (int) env('MAIL_FETCH_TRIES', 3),
+
+        // Durata (secondi) del lock applicativo che impedisce due esecuzioni
+        // concorrenti di mail:fetch-inbound (WithoutOverlapping, §10.1/§10.2
+        // del PRD): valido sia per due trigger dello scheduler sia per
+        // un'esecuzione manuale in parallelo a quella schedulata.
+        'lock_seconds' => (int) env('MAIL_FETCH_LOCK_SECONDS', 280),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Archiviazione grezza (§7.3.3 del PRD, US-302)
+    |--------------------------------------------------------------------------
+    |
+    | Disco Storage dedicato su cui `mail:fetch-inbound` scrive ogni `.eml`
+    | grezzo PRIMA di qualunque parsing (config('filesystems.disks'), stesso
+    | principio "disco nominato, mai un ADT" di ticket-attachments/import-reports/
+    | legacy-media — così è intercettabile da Storage::fake() nei test).
+    |
+    */
+
+    'storage' => [
+        'raw_disk' => env('MAIL_RAW_STORAGE_DISK', 'raw-emails'),
     ],
 
     /*

@@ -23,3 +23,9 @@ test('move fails fast on a misconfigured target folder role, before ever attempt
     expect(fn () => $transport->move('INBOX', 1, ImapFolderRole::Quarantine))
         ->toThrow(RuntimeException::class, 'Nessuna cartella IMAP configurata per il ruolo [quarantine].');
 });
+
+test('disconnect is a no-op when no connection was ever opened (US-302)', function (): void {
+    $transport = new WebklexImapTransport(accountConfig: [], folders: []);
+
+    $transport->disconnect();
+})->throwsNoExceptions();

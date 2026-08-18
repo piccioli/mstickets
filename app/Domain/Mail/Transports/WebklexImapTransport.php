@@ -9,6 +9,7 @@ use App\Domain\Mail\Enums\ImapFolderRole;
 use App\Domain\Mail\Support\RawInboundEmail;
 use DateTimeInterface;
 use RuntimeException;
+use Webklex\PHPIMAP\Attribute;
 use Webklex\PHPIMAP\Client;
 use Webklex\PHPIMAP\ClientManager;
 use Webklex\PHPIMAP\Message;
@@ -52,6 +53,10 @@ final class WebklexImapTransport implements InboundMailTransport
                 rawMessage: $message->getHeader()?->raw."\r\n\r\n".$message->getRawBody(),
                 imapFolder: $folder->path,
                 imapUid: (int) $message->uid,
+                messageId: $this->attributeToNullableString($message->getMessageId()),
+                fromEmail: $message->getFrom()->first()?->mail ?: null,
+                fromName: $message->getFrom()->first()?->personal ?: null,
+                subject: $this->attributeToNullableString($message->getSubject()),
             ))
             ->values()
             ->all();
@@ -66,6 +71,12 @@ final class WebklexImapTransport implements InboundMailTransport
         $message->move($targetFolderName, expunge: true);
     }
 
+    public function disconnect(): void
+    {
+        $this->client?->disconnect();
+        $this->client = null;
+    }
+
     private function client(): Client
     {
         if ($this->client === null) {
@@ -74,6 +85,15 @@ final class WebklexImapTransport implements InboundMailTransport
         }
 
         return $this->client;
+    }
+
+    private function attributeToNullableString(Attribute $attribute): ?string
+    {
+        if ($attribute->count() === 0) {
+            return null;
+        }
+
+        return $attribute->toString() ?: null;
     }
 
     private function folderName(ImapFolderRole $role): string

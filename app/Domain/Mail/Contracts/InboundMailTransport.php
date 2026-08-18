@@ -34,4 +34,11 @@ interface InboundMailTransport
      * Processed/Errors/Quarantine).
      */
     public function move(string $imapFolder, int $imapUid, ImapFolderRole $targetFolder): void;
+
+    /**
+     * Chiude la connessione se aperta (mai un'eccezione se non lo è mai
+     * stata): il chiamante lo invoca sempre in un `finally`, anche quando
+     * `fetch()`/`move()` hanno lanciato un'eccezione (US-302).
+     */
+    public function disconnect(): void;
 }

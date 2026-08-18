@@ -1,0 +1,24 @@
+Return-Path: <cliente@example.test>
+Delivered-To: supporto@example.test
+Received: from mail.example.test (mail.example.test [127.0.0.1])
+	by mx.example.test with ESMTP id abc123
+	for <supporto@example.test>; Wed, 04 Feb 2026 09:15:00 +0100
+From: Mario Rossi <cliente@example.test>
+To: Supporto <supporto@example.test>
+Subject: Non riesco ad accedere al portale
+Message-ID: <req-001@example.test>
+Date: Wed, 04 Feb 2026 09:14:52 +0100
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+Buongiorno,
+
+da ieri non riesco più ad accedere al portale ticket: il sistema mi
+restituisce sempre un errore di credenziali non valide anche dopo aver
+reimpostato la password.
+
+Potete verificare?
+
+Grazie,
+Mario Rossi

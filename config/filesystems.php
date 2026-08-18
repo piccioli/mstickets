@@ -91,6 +91,20 @@ return [
             'report' => false,
         ],
 
+        // Disco privato dedicato ai `.eml` grezzi scaricati da IMAP prima di
+        // qualunque parsing (§7.3.3 del PRD, US-302): `email_messages.raw_path`
+        // punta sempre a un path su questo disco. Nominato (non un
+        // `Storage::build()` ad-hoc) per essere intercettabile da
+        // `Storage::fake('raw-emails')` nei test, stesso principio già
+        // documentato per "import-reports"/"legacy-media".
+        'raw-emails' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/raw-emails'),
+            'serve' => false,
+            'throw' => false,
+            'report' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),
