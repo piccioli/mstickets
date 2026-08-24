@@ -381,12 +381,33 @@ Ogni fase completata (Fase 2 in poi) deve produrre, prima di essere considerata 
 
 1. `docs/collaudo/fase-<N>.php` — manifest topic → test numerati (es. `F2-01`) → riferimento a un test
    automatico REALMENTE esistente (`php artisan collaudo:verify-manifest <N>` deve passare).
-2. `php artisan collaudo:generate <N>` — PDF di collaudo con carta intestata Montagna Servizi, Parte 1
+2. **Il manuale narrativo di collaudo** (`docs/collaudo/0N-fase-N.md`, stesso formato per-test di
+   `03-fase-1.md`: Obiettivo/Riferimenti/Modalità di esecuzione/Priorità/Ruolo del tester/Prerequisiti/
+   Procedura di esecuzione/Criterio di superamento/Campi di consuntivazione) **è sempre l'ULTIMO passo
+   dello sviluppo di una fase**, dopo che tutte le story della fase sono complete e il manifest del punto 1
+   passa — mai in parallelo alle story, perché ogni test narrativo richiede di leggere il codice/test
+   automatico REALE già scritto per descrivere passi ed esito attesi accurati, non ipotetici. Questa
+   regola vale per ogni fase futura, non solo per quelle già chiuse: prevedere sempre, come task esplicito
+   di fine fase (dopo il checkpoint end-to-end, prima del merge finale), la scrittura di questo manuale.
+   Va aggiornato in coerenza anche il resto del pacchetto cumulativo: `README.md` (indice + riepilogo
+   numerico), `00-istruzioni-generali.md` (§1 versione, §2/§3 ambito incluso, §4 ambito escluso, e ogni
+   altra sezione toccata dalla nuova fase — es. §10 se la fase introduce un nuovo uso reale di Mailpit),
+   `01-matrice-tracciabilita.md` (una riga per test, colonne Area/Titolo/Modalità/Priorità/Ruolo/Test
+   automatico/Stato redazione) e `07-registro-esiti.md` (una riga ID+Titolo per test, generabile
+   meccanicamente dal manifest). Le due fasi Fase 2 e Fase 3 non avevano questo manuale fino al 24 agosto
+   2026 (retrofit fatto in quella data, versione 3.0 del pacchetto): non ripetere questo gap per le fasi
+   successive (Fase 4/5/6).
+3. `php artisan collaudo:generate <N>` — PDF di collaudo con carta intestata Montagna Servizi, Parte 1
    (istruzioni: URL app UAT, URL Mailpit, credenziali) + una sezione per topic con i test numerati.
-3. Il deploy su UAT (automatico al merge su `develop`) deve riflettere lo stato descritto nel manifest:
+   `storage/app/collaudo/` deve contenere **sempre e solo l'ultima versione generata per ciascuna fase**
+   (sia la variante sintetica `collaudo-fase-<N>-*.pdf` sia, quando applicabile, quella dettagliata
+   `collaudo-dettagliato-fase-<N>-*.pdf`): `CollaudoGenerateCommand` cancella da sé ogni PDF precedente
+   della stessa fase/variante prima di scrivere quello nuovo (vedi sezione successiva) — non disabilitare
+   né aggirare questo comportamento, e non lasciare accumulare manualmente PDF vecchi in quella cartella.
+4. Il deploy su UAT (automatico al merge su `develop`) deve riflettere lo stato descritto nel manifest:
    l'ETL reale (`migrate:fresh` → `RolePermissionSeeder` → `v1:import --anonymize`, `deploy/remote-deploy.sh`,
    US-R05/US-R06) gira ad ogni deploy — sostituisce il seed fittizio usato prima di questo PRD.
-4. Se un test del collaudo fallisce durante una sessione di collaudo reale, il test automatico
+5. Se un test del collaudo fallisce durante una sessione di collaudo reale, il test automatico
    corrispondente (dal manifest) va rivisto: non copriva il caso reale che ha fatto fallire il collaudo.
 
 ## Generazione PDF di collaudo via pdfLaTeX (v0.3.2, sostituisce dompdf)

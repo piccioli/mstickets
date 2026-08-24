@@ -2,8 +2,8 @@
 
 ## 1. Titolo, versione, data e stato del documento
 
-- **Titolo**: Documento di collaudo — Fase 0 (Fondazioni) + Fase 1 (Ticketing core) + Fase 1A (Landing, Login, Recupero password)
-- **Versione**: 2.3
+- **Titolo**: Documento di collaudo — Fase 0 (Fondazioni) + Fase 1 (Ticketing core) + Fase 1A (Landing, Login, Recupero password) + Fase 2 (Importazione dal v1 — ETL) + Fase 3 (Sottosistema email)
+- **Versione**: 3.0
 
   La versione 1 era la matrice sintetica preesistente (`docs/collaudo/fase-0-1.php`, manifest di
   tracciabilità sorgente, più il PDF generato a partire da essa dal comando `php artisan
@@ -19,27 +19,38 @@
   aggiornati di conseguenza (punti 4, 6, 9, 13). La versione 2.3 (11 agosto 2026) ridefinisce cosa
   fa `--anonymize` su richiesta del committente: nome/email/ruoli/contenuti restano **sempre** quelli
   reali del dump v1 (mai anonimizzati, a differenza di quanto descritto nella v2.2), l'unica cosa che
-  cambia è la password, impostata a `uat` per tutti (punto 9).
+  cambia è la password, impostata a `uat` per tutti (punto 9). La versione 3.0 (24 agosto 2026) porta
+  finalmente nell'ambito di questo documento le due fasi che le versioni precedenti elencavano come
+  escluse pur essendo nel frattempo state realizzate: **Fase 2 (ETL)**, di cui esisteva già un
+  manifest di tracciabilità (`docs/collaudo/fase-2.php`) ma nessun manuale operativo dettagliato
+  passo-passo, e **Fase 3 (Sottosistema email)**, completata dopo la v2.3 e mai censita fin qui —
+  manifest dedicato `docs/collaudo/fase-3.php`, manuali dettagliati `05-fase-2.md`/`06-fase-3.md`,
+  74 + 113 nuovi test. Il totale del pacchetto passa così da 146 a 333 test; §4 (Ambito escluso) è
+  stato aggiornato di conseguenza (restano escluse solo Fase 4, Fase 5 e Fase 6, non ancora
+  costruite), e §10 (Mailpit) riflette il nuovo uso reale di Mailpit anche per la posta di Fase 3.
 - **Data di stesura**: 26 luglio 2026 (v2.0), 27 luglio 2026 (v2.1), 10 agosto 2026 (v2.2), 11 agosto
-  2026 (v2.3)
+  2026 (v2.3), 24 agosto 2026 (v3.0)
 - **Data di pubblicazione ufficiale**: DA VERIFICARE CON IL PRODUCT OWNER
 - **Stato**: Bozza per revisione
 
 ## 2. Scopo del collaudo
 
-Verificare che il software realizzato in Fase 0 (Fondazioni) e Fase 1 (Ticketing core) rispetti i
-requisiti funzionali e le regole di dominio descritti nel PRD di Orchestrator v2, attraverso un
-collaudo eseguibile sia da personale funzionale (che non deve conoscere il codice) sia da personale
-tecnico (che verifica anche a livello di terminale, database e suite di test automatica).
+Verificare che il software realizzato in Fase 0 (Fondazioni), Fase 1 (Ticketing core), Fase 1A
+(Landing, Login, Recupero password), Fase 2 (Importazione dal v1 — ETL) e Fase 3 (Sottosistema
+email) rispetti i requisiti funzionali e le regole di dominio descritti nel PRD di Orchestrator v2,
+attraverso un collaudo eseguibile sia da personale funzionale (che non deve conoscere il codice) sia
+da personale tecnico (che verifica anche a livello di terminale, database e suite di test
+automatica).
 
-Il collaudo copre 146 casi di test, organizzati in 27 argomenti, tracciati uno a uno nei manifest
-`docs/collaudo/fase-0-1.php` (Fase 0/Fase 1) e `docs/collaudo/fase-1a.php` (Fase 1A) verso un test
-automatico realmente esistente nel repository.
+Il collaudo copre 333 casi di test, organizzati in 71 argomenti, tracciati uno a uno nei manifest
+`docs/collaudo/fase-0-1.php` (Fase 0/Fase 1), `docs/collaudo/fase-1a.php` (Fase 1A),
+`docs/collaudo/fase-2.php` (Fase 2) e `docs/collaudo/fase-3.php` (Fase 3) verso un test automatico
+realmente esistente nel repository.
 
 ## 3. Ambito incluso
 
-Il collaudo copre esattamente i 27 argomenti seguenti (titoli letterali dai manifest di
-tracciabilità), per un totale di 146 test.
+Il collaudo copre esattamente i 71 argomenti seguenti (titoli letterali dai manifest di
+tracciabilità), per un totale di 333 test.
 
 **Fase 0 — Fondazioni** (56 test, F0-01…F0-56):
 
@@ -83,41 +94,97 @@ tracciabilità), per un totale di 146 test.
 | 26 | Recupero password | 7 (F1A-09…F1A-15) |
 | 27 | Identità visiva e separazione dai temi | 1 (F1A-16) |
 
+**Fase 2 — Importazione dal v1 (ETL)** (74 test, F2-01…F2-74):
+
+| # | Argomento | Test |
+|---|---|---|
+| 28 | Scaffold ETL e runner (US-201) | 5 (F2-01…F2-05) |
+| 29 | Utenti e ruoli/permessi (US-202) | 5 (F2-06…F2-10) |
+| 30 | Organizzazioni e membership (US-203) | 3 (F2-11…F2-13) |
+| 31 | Documentazione e tag (US-204) | 4 (F2-14…F2-17) |
+| 32 | Mappatura ticket (US-205) | 5 (F2-18…F2-22) |
+| 33 | Gerarchia dei ticket (US-206) | 3 (F2-23…F2-25) |
+| 34 | Tag e partecipanti dei ticket (US-207) | 4 (F2-26…F2-29) |
+| 35 | Log dei ticket (US-208) | 4 (F2-30…F2-33) |
+| 36 | Visualizzazioni dei ticket (US-209) | 4 (F2-34…F2-37) |
+| 37 | Parser dei messaggi dei ticket (US-210) | 5 (F2-38…F2-42) |
+| 38 | Allegati (US-211) | 4 (F2-43…F2-46) |
+| 39 | Report di attività (US-212) | 4 (F2-47…F2-50) |
+| 40 | Opportunità e punteggi di fundraising (US-213) | 5 (F2-51…F2-55) |
+| 41 | Progetti e partner di fundraising (US-214) | 4 (F2-56…F2-59) |
+| 42 | Derive (US-215) | 5 (F2-60…F2-64) |
+| 43 | Comando v1:validate (US-216) | 5 (F2-65…F2-69) |
+| 44 | Password fissa fuori produzione (US-217, ridefinito da US-R08) | 4 (F2-70…F2-73) |
+| 45 | Fixture CI (US-218) | 1 (F2-74) |
+
+**Fase 3 — Sottosistema email** (113 test, F3-01…F3-113):
+
+| # | Argomento | Test |
+|---|---|---|
+| 46 | Configurazione IMAP e interfaccia InboundMailTransport (US-301) | 4 (F3-01…F3-04) |
+| 47 | Comando mail:fetch-inbound — fetch e archiviazione grezza (US-302) | 4 (F3-05…F3-08) |
+| 48 | Parsing del messaggio — subject, corpo, charset (US-303) | 5 (F3-09…F3-13) |
+| 49 | Classificazione anti-loop e scarti obbligatori (US-304) | 7 (F3-14…F3-20) |
+| 50 | Identificazione del mittente (US-305) | 4 (F3-21…F3-24) |
+| 51 | Risoluzione del thread — VERP, In-Reply-To, subject, euristica (US-306) | 6 (F3-25…F3-30) |
+| 52 | Applicazione — creazione ticket o nuovo messaggio, notifiche post-commit (US-307) | 5 (F3-31…F3-35) |
+| 53 | Mittente non riconosciuto — quarantena (US-308) | 5 (F3-36…F3-40) |
+| 54 | Allegati inbound (US-309) | 5 (F3-41…F3-45) |
+| 55 | Layout email unico e componenti riusabili (US-310) | 4 (F3-46…F3-49) |
+| 56 | Mailable E1/E2 — conferme di ricezione/apertura ticket (US-311) | 5 (F3-50…F3-54) |
+| 57 | Mailable E3/E9 — notifica staff (US-312) | 4 (F3-55…F3-58) |
+| 58 | Mailable E4 — cambio di stato (US-313) | 4 (F3-59…F3-62) |
+| 59 | Mailable E5 — nuovo messaggio sul ticket (US-314) | 3 (F3-63…F3-65) |
+| 60 | Mailable E6 — assegnazione (US-315) | 3 (F3-66…F3-68) |
+| 61 | Mailable E7 — reminder ticket in attesa + scheduling (US-316) | 2 (F3-69…F3-70) |
+| 62 | Preferenze di notifica — applicazione effettiva (US-317) | 2 (F3-71…F3-72) |
+| 63 | Regole di destinazione — attore × transizione → destinatari (US-318) | 3 (F3-73…F3-75) |
+| 64 | Bounce, DSN e soppressioni (US-319) | 6 (F3-76…F3-81) |
+| 65 | Localizzazione reale delle comunicazioni (US-320) | 5 (F3-82…F3-86) |
+| 66 | Amministrazione email — Registro e dettaglio (US-321) | 5 (F3-87…F3-91) |
+| 67 | Amministrazione email — Azioni e quarantena (US-322) | 6 (F3-92…F3-97) |
+| 68 | Amministrazione email — Soppressioni e metriche (US-323) | 4 (F3-98…F3-101) |
+| 69 | Voce di menu Email con Mailpit come prima sotto-voce (US-324) | 3 (F3-102…F3-104) |
+| 70 | Comando mail:retry-failed (US-325) | 3 (F3-105…F3-107) |
+| 71 | Checkpoint di fine fase — verifica end-to-end su dati reali (US-326) | 6 (F3-108…F3-113) |
+
 Il dettaglio di ciascun test (descrizione, passi, esito atteso, campi di consuntivazione) è nei
-file `02-fase-0.md`, `03-fase-1.md` e `04-fase-1a.md` del pacchetto.
+file `02-fase-0.md`, `03-fase-1.md`, `04-fase-1a.md`, `05-fase-2.md` e `06-fase-3.md` del pacchetto.
 
 ## 4. Ambito escluso
 
 Sono esplicitamente **fuori scopo** di questa release e di questo collaudo:
 
-- **Fase 2 — Importazione dati reali dal sistema v1** (ETL): completata separatamente da questo
-  pacchetto di collaudo (manifest dedicato `docs/collaudo/fase-2.php`, non ancora integrato in
-  questo manuale generale — il collaudo specifico dell'ETL in sé, es. correttezza di
-  `v1:validate`, non è nello scopo di questo documento). Da questa versione, però, i dati presenti
-  in UAT sono **dati reali importati da v1** (`v1:import --anonymize`, nome/email/contenuti mai
-  alterati), non più dati fittizi generati da un seeder: i test di Fase 0/1/1A descritti qui restano
-  gli stessi, eseguiti però su questo nuovo dataset (vedi punto 9 e punto 13).
-- **Fase 3 — Sottosistema email reale** (invio/ricezione): non costruito. Nel collaudo di questa
-  release ogni messaggio di conversazione del ticket viaggia sempre sul canale "web": nessuna email
-  reale viene mai inviata o ricevuta.
 - **Fase 4 — Generazione PDF di documentazione/report**: non in ambito.
 - **Fase 5 — UI fundraising completa**: solo lo schema dati e le opportunità/progetti di
-  fundraising creati dal seeder sono verificabili come dati; l'interfaccia utente dedicata al
+  fundraising importati da v1 (Fase 2) sono verificabili come dati; l'interfaccia utente dedicata al
   fundraising non è in ambito di questo collaudo.
-- **Fase 6 — Automazioni schedulate e rifinitura della vista di lavoro** (drag&drop incluso): non
-  in ambito. Le righe della macchina a stati che in futuro serviranno a questi comandi schedulati
-  esistono già a livello di tabella dichiarativa, ma nessun comando/cron gira in questa release.
+- **Fase 6 — Automazioni schedulate del ciclo di vita del ticket e rifinitura della vista di
+  lavoro** (drag&drop incluso, es. `tickets:auto-close-released`): non in ambito. Le righe della
+  macchina a stati che in futuro serviranno a questi comandi schedulati esistono già a livello di
+  tabella dichiarativa, ma nessun comando/cron di questo tipo gira in questa release. Diverso dalle
+  automazioni schedulate del sottosistema email (`mail:fetch-inbound`, il reminder E7,
+  `mail:retry-failed`), introdotte in Fase 3 e quindi **incluse** in questo collaudo (vedi argomenti
+  47, 61 e 70 di §3), oltre a **E8 (digest periodico)**, **E10 (report di attività disponibile)** ed
+  **E11 (developer senza ticket in lavorazione)**, tre comunicazioni del catalogo email assegnate
+  esplicitamente alla Fase 6 e quindi non ancora costruite.
 
 ## 5. Riferimenti tecnici e funzionali
 
 - `../PRD-ORCHESTRATOR-V2.md` — specifica di prodotto completa (nella root del progetto, un
   livello sopra questo repository).
+- `../../tasks/prd-fase-2-etl-import-v1.md` e `../../tasks/prd-fase-3-email-subsystem.md` — PRD
+  specifici di Fase 2 e Fase 3 (due livelli sopra questo repository, cartella `tasks/` del
+  monorepo), con lo user-story-by-user-story dettaglio da cui sono derivati i manifest
+  `fase-2.php`/`fase-3.php` e i manuali `05-fase-2.md`/`06-fase-3.md`.
 - `docs/ticket-lifecycle.md` — descrizione della macchina a stati del ticket, delle transizioni
   ammesse e delle regole di dominio associate.
-- `docs/collaudo/fase-0-1.php` — manifest di tracciabilità sorgente: collega ogni test di questo
+- `docs/collaudo/fase-0-1.php`, `docs/collaudo/fase-1a.php`, `docs/collaudo/fase-2.php`,
+  `docs/collaudo/fase-3.php` — manifest di tracciabilità sorgente: collegano ogni test di questo
   manuale a un test automatico realmente esistente nel repository.
 - `CLAUDE.md` (root del repository) — note tecniche di implementazione per fase/story, utili al
-  tester tecnico per capire le scelte di progettazione sottostanti.
+  tester tecnico per capire le scelte di progettazione sottostanti (per Fase 3 in particolare, le
+  sezioni sulla pipeline email inbound/outbound e sui bug reali già trovati e corretti).
 
 ## 6. Definizioni e glossario
 
@@ -158,8 +225,14 @@ Sono esplicitamente **fuori scopo** di questa release e di questo collaudo:
   oggetto di questo manuale.
 - **Ambiente di collaudo**: l'installazione dedicata dell'applicazione, separata da sviluppo e
   produzione, usata per eseguire i test descritti in questo manuale.
-- **Manifest di tracciabilità**: il file `docs/collaudo/fase-0-1.php`, che collega ogni test
-  numerato (es. F0-01) a un test automatico realmente esistente nel codice.
+- **Manifest di tracciabilità**: i file `docs/collaudo/fase-0-1.php`, `fase-1a.php`, `fase-2.php`,
+  `fase-3.php`, che collegano ogni test numerato (es. F0-01, F2-01, F3-01) a un test automatico
+  realmente esistente nel codice.
+- **Sottosistema email (Fase 3)**: la pipeline che legge le email in arrivo su una casella IMAP
+  (`mail:fetch-inbound`), le trasforma in ticket/messaggi, e invia le comunicazioni automatiche del
+  catalogo E1-E9 in uscita, sempre in coda, mai in modo sincrono. **Mailpit** è l'interfaccia web che
+  intercetta ogni email in uscita dall'ambiente di collaudo (nessuna email esce mai verso un
+  indirizzo reale fuori da questo strumento, vedi punto 10).
 - **Anomalia**: uno scostamento tra il comportamento osservato durante il collaudo e quello atteso,
   da segnalare secondo la procedura del punto 19.
 - **PASS**: il test è stato eseguito e il comportamento osservato corrisponde a quello atteso.
@@ -180,7 +253,7 @@ Sono esplicitamente **fuori scopo** di questa release e di questo collaudo:
   test automatica (Pest).
 - **Product Owner**: approva le classificazioni segnalate come "DA VERIFICARE CON IL PRODUCT
   OWNER" in questo documento e nel resto del pacchetto, e firma il verbale conclusivo di collaudo
-  (`06-verbale-collaudo.md`).
+  (`08-verbale-collaudo.md`).
 
 ## 8. Ambiente UAT
 
@@ -225,14 +298,22 @@ trattare questo documento di conseguenza (uso interno al collaudo, non distribuz
 
 URL: `https://mailpit-ticket-uat.montagnaservizi.com`.
 
-Nessuno dei 130 test di Fase 0/Fase 1 richiede l'uso di Mailpit: il sottosistema email reale
-(invio/ricezione della conversazione del ticket) è fuori scopo (Fase 3, vedi punto 4) e ogni
-messaggio di conversazione del ticket viaggia sempre sul canale "web", mai su un canale email
-reale.
+Nessuno dei 146 test di Fase 0/Fase 1/Fase 1A/Fase 2 relativi alla conversazione del ticket
+richiede Mailpit per quella parte specifica: nel collaudo di Fase 0/1 ogni messaggio di
+conversazione viaggia sempre sul canale "web", mai su un canale email reale (l'unica eccezione già
+presente da subito è la **Fase 1A**, che usa Mailpit per il flusso di recupero password — F1A-09,
+F1A-10, F1A-11 — verificabile in UAT esattamente su questo URL).
 
-La **Fase 1A** introduce il primo uso reale di Mailpit in questo pacchetto: il flusso di recupero
-password invia una email reale (F1A-09, F1A-10, F1A-11), verificabile in UAT esattamente su questo
-URL. Le credenziali di accesso HTTP Basic Auth a Mailpit sono fornite separatamente dal committente
+Con la **Fase 3 (Sottosistema email)**, Mailpit diventa invece centrale: ogni email in uscita
+generata dalla pipeline (conferme di ricezione/apertura ticket, notifiche di cambio stato/nuovo
+messaggio/assegnazione, reminder, notifiche staff) è intercettata qui, mai recapitata a un
+indirizzo reale — è quindi il primo posto da controllare per gran parte dei test manuali "MANUALE
+UI + MAILPIT" di `06-fase-3.md` (in particolare gli argomenti 56-61 e 64, Mailable E1-E7).
+Dal pannello admin, il gruppo di navigazione "Email" espone anche un link diretto "Mailpit" (prima
+sotto-voce, argomento 69, F3-102…F3-104): non serve ricordare a memoria questo URL durante il
+collaudo di Fase 3.
+
+Le credenziali di accesso HTTP Basic Auth a Mailpit sono fornite separatamente dal committente
 (non riportate in questo documento pubblico).
 
 ## 11. Browser e dispositivi supportati
@@ -263,6 +344,14 @@ da database o automatici):
   `vendor/bin/pest`), necessaria per eseguire ed interpretare i test automatici collegati nel
   manifest di tracciabilità.
 
+Aggiuntivi per i test di **Fase 3 (Sottosistema email)** che richiedono un invio reale in ingresso
+(non solo la lettura da Mailpit, già coperta dalle credenziali del punto 9): l'indirizzo email reale
+della casella monitorata da `mail:fetch-inbound` in UAT, fornito separatamente dal committente
+(non riportato in questo documento pubblico) — necessario per i pochi test di `06-fase-3.md` che
+richiedono di inviare davvero un'email verso l'ambiente (es. verifica del plus-addressing
+`ticket+<ulid>@dominio`, argomento 51). La maggioranza dei test di Fase 3 non richiede questo
+accesso: usa invece email già presenti/simulabili come descritto test per test.
+
 ## 13. Preparazione e ripristino dei dati
 
 L'ambiente UAT viene popolato dall'ETL reale (`v1:import --anonymize`, non più un seeder di dati
@@ -287,8 +376,8 @@ Subito dopo un deploy, l'ambiente contiene sempre:
 dataset (quanti ticket in un determinato stato, quali tag esistono, quali pagine di documentazione)
 **non è più fissa e nota in anticipo**: dipende dal dump v1 più recente caricato sul server al
 momento del deploy, e può cambiare quando viene caricato un dump più aggiornato. Un test che nel
-dettaglio (`02-fase-0.md`/`03-fase-1.md`) presuppone "esiste un ticket con questa caratteristica
-specifica" richiede quindi di **verificarlo empiricamente nell'ambiente al momento del collaudo**
+dettaglio (`02-fase-0.md`/`03-fase-1.md`/`05-fase-2.md`/`06-fase-3.md`) presuppone "esiste un
+ticket con questa caratteristica specifica" richiede quindi di **verificarlo empiricamente nell'ambiente al momento del collaudo**
 (es. tramite i filtri della lista ticket, punto 21) invece di assumerlo da un elenco fisso — oppure,
 dove il test lo richiede esplicitamente, di crearlo ad-hoc secondo la convenzione del punto 14.
 
@@ -351,7 +440,7 @@ manualmente.
 
 ## 17. Criteri generali di superamento
 
-Il collaudo nel suo complesso è considerato superato se, al termine dell'esecuzione dei 146 test:
+Il collaudo nel suo complesso è considerato superato se, al termine dell'esecuzione dei 333 test:
 
 - Non è aperta alcuna anomalia classificata come Critica.
 - Almeno il 95% dei test applicabili (esclusi quelli classificati NOT APPLICABLE) è in stato PASS.
@@ -385,5 +474,5 @@ Alla rilevazione di uno scostamento tra comportamento atteso e osservato durante
 7. **Stato**: una delle quattro fasi Aperta → In analisi → Risolta → Chiusa, aggiornata man mano che
    l'anomalia viene lavorata.
 
-Ogni anomalia va registrata nel registro degli esiti (`05-registro-esiti.md`) e richiamata nel
-verbale conclusivo di collaudo (`06-verbale-collaudo.md`).
+Ogni anomalia va registrata nel registro degli esiti (`07-registro-esiti.md`) e richiamata nel
+verbale conclusivo di collaudo (`08-verbale-collaudo.md`).
