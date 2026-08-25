@@ -20,34 +20,73 @@ final class CollaudoGenerateCommand extends Command
     protected $description = 'Genera il PDF di collaudo per la fase indicata, leggendo il manifest in docs/collaudo/';
 
     /**
-     * File del manuale operativo dettagliato (§ collaudo v2), nell'ordine in cui compaiono nel PDF.
-     * Convenzione fissa per ora (non parametrizzata su {fase}): introdotta per la Fase 0-1, estesa
-     * in v0.3.0 con la Fase 1A senza cambiare l'argomento CLI (resta `0-1`), e in v3.0 del pacchetto di
-     * collaudo (docs/collaudo/00-istruzioni-generali.md) con Fase 2 e Fase 3 — il pacchetto di collaudo
-     * è ormai unico e cumulativo per tutte le fasi rilasciate, quindi l'argomento storico `0-1` resta il
-     * trigger per l'INTERO pacchetto, non solo per Fase 0/1. Quando una fase futura richiederà una
-     * convenzione diversa (es. un bundle per-fase invece di uno cumulativo), andrà rivista qui.
+     * File comuni a ogni PDF dettagliato, sempre in testa: indice + istruzioni generali + matrice di
+     * tracciabilità (§ collaudo v2). Non dipendono dalla fase richiesta.
      *
      * @var list<array{file: string, titolo: string}>
      */
-    private const DETAILED_FILES = [
+    private const COMMON_PREFIX_FILES = [
         ['file' => 'README.md', 'titolo' => 'Indice del pacchetto'],
         ['file' => '00-istruzioni-generali.md', 'titolo' => 'Istruzioni generali'],
         ['file' => '01-matrice-tracciabilita.md', 'titolo' => 'Matrice di tracciabilità'],
-        ['file' => '02-fase-0.md', 'titolo' => 'Fase 0 (Fondazioni) — Casi di test dettagliati'],
-        ['file' => '03-fase-1.md', 'titolo' => 'Fase 1 (Ticketing core) — Casi di test dettagliati'],
-        ['file' => '04-fase-1a.md', 'titolo' => 'Fase 1A (Landing, Login, Recupero password) — Casi di test dettagliati'],
-        ['file' => '05-fase-2.md', 'titolo' => 'Fase 2 (Importazione dal v1 — ETL) — Casi di test dettagliati'],
-        ['file' => '06-fase-3.md', 'titolo' => 'Fase 3 (Sottosistema email) — Casi di test dettagliati'],
+    ];
+
+    /**
+     * File comuni a ogni PDF dettagliato, sempre in coda: registro esiti + verbale (§ collaudo v2).
+     * Come i file di cui sopra, elencano l'intero pacchetto cumulativo (tutte le fasi), non solo la
+     * fase richiesta — restano comunque pertinenti in un PDF per singola fase come riferimento.
+     *
+     * @var list<array{file: string, titolo: string}>
+     */
+    private const COMMON_SUFFIX_FILES = [
         ['file' => '07-registro-esiti.md', 'titolo' => 'Registro degli esiti'],
         ['file' => '08-verbale-collaudo.md', 'titolo' => 'Verbale conclusivo di collaudo'],
+    ];
+
+    /**
+     * File narrativi specifici di ciascuna fase (o gruppo di fasi), indicizzati per l'argomento CLI
+     * `{fase}` di `collaudo:generate`. `0-1` è l'argomento storico introdotto per Fase 0/Fase 1 ed
+     * esteso in v0.3.0 con la Fase 1A senza cambiare l'argomento (resta un bundle cumulativo delle tre
+     * fasi in un solo PDF); Fase 2 e Fase 3 (v3.0 del pacchetto di collaudo) hanno invece ciascuna il
+     * proprio PDF dettagliato dedicato, un file narrativo per fase. Una fase qui assente non ha (ancora)
+     * un manuale narrativo: `collaudo:generate` per quell'argomento produce solo la versione sintetica
+     * dal manifest (vedi `buildPdf()`).
+     *
+     * Nota: le chiavi `'2'`/`'3'` sono stringhe numeriche letterali, ma PHP le normalizza a chiavi
+     * intere in un array literal — da qui il tipo `int|string` sotto, non solo `string`.
+     *
+     * @var array<int|string, list<array{file: string, titolo: string}>>
+     */
+    private const FASE_NARRATIVE_FILES = [
+        '0-1' => [
+            ['file' => '02-fase-0.md', 'titolo' => 'Fase 0 (Fondazioni) — Casi di test dettagliati'],
+            ['file' => '03-fase-1.md', 'titolo' => 'Fase 1 (Ticketing core) — Casi di test dettagliati'],
+            ['file' => '04-fase-1a.md', 'titolo' => 'Fase 1A (Landing, Login, Recupero password) — Casi di test dettagliati'],
+        ],
+        '2' => [
+            ['file' => '05-fase-2.md', 'titolo' => 'Fase 2 (Importazione dal v1 — ETL) — Casi di test dettagliati'],
+        ],
+        '3' => [
+            ['file' => '06-fase-3.md', 'titolo' => 'Fase 3 (Sottosistema email) — Casi di test dettagliati'],
+        ],
+    ];
+
+    /**
+     * Titolo di copertina del PDF dettagliato, per argomento CLI (vedi FASE_NARRATIVE_FILES).
+     *
+     * @var array<int|string, string>
+     */
+    private const FASE_TITLES = [
+        '0-1' => 'Fase 0 (Fondazioni) + Fase 1 (Ticketing core) + Fase 1A (Landing, Login, Recupero password)',
+        '2' => 'Fase 2 (Importazione dal v1 — ETL)',
+        '3' => 'Fase 3 (Sottosistema email)',
     ];
 
     public function handle(): int
     {
         $fase = (string) $this->argument('fase');
 
-        if ($fase === '0-1' && $this->hasDetailedDocs()) {
+        if (isset(self::FASE_NARRATIVE_FILES[$fase]) && $this->hasDetailedDocs($fase)) {
             $path = $this->buildDetailedPdf($fase);
             $this->info("PDF dettagliato generato: {$path}");
 
@@ -69,15 +108,27 @@ final class CollaudoGenerateCommand extends Command
         return self::SUCCESS;
     }
 
-    private function hasDetailedDocs(): bool
+    private function hasDetailedDocs(string $fase): bool
     {
-        foreach (self::DETAILED_FILES as $entry) {
+        foreach ($this->detailedFileList($fase) as $entry) {
             if (! file_exists(base_path("docs/collaudo/{$entry['file']}"))) {
                 return false;
             }
         }
 
         return true;
+    }
+
+    /**
+     * @return list<array{file: string, titolo: string}>
+     */
+    private function detailedFileList(string $fase): array
+    {
+        return [
+            ...self::COMMON_PREFIX_FILES,
+            ...self::FASE_NARRATIVE_FILES[$fase],
+            ...self::COMMON_SUFFIX_FILES,
+        ];
     }
 
     /**
@@ -97,13 +148,11 @@ final class CollaudoGenerateCommand extends Command
                     self::stripOwnTitle(file_get_contents(base_path("docs/collaudo/{$entry['file']}"))),
                 ),
             ],
-            self::DETAILED_FILES,
+            $this->detailedFileList($fase),
         );
 
         $tex = view('latex.collaudo-dettagliato', [
-            'titolo' => LatexEscaper::escape(
-                'Fase 0 (Fondazioni) + Fase 1 (Ticketing core) + Fase 1A (Landing, Login, Recupero password)',
-            ),
+            'titolo' => LatexEscaper::escape(self::FASE_TITLES[$fase] ?? $fase),
             'sections' => $sections,
         ])->render();
 
