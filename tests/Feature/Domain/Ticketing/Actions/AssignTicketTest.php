@@ -38,7 +38,7 @@ test('writes an assigned ticket_log with a typed changes DTO recording the previ
         ]);
 });
 
-test('emits TicketAssigned with previous and new assignee ids', function (): void {
+test('emits TicketAssigned with previous and new assignee ids and the actor who assigned', function (): void {
     Event::fake();
 
     $actor = User::factory()->create();
@@ -47,9 +47,10 @@ test('emits TicketAssigned with previous and new assignee ids', function (): voi
 
     $updated = AssignTicket::run($t, $assignee, $actor);
 
-    Event::assertDispatched(TicketAssigned::class, function (TicketAssigned $event) use ($updated, $assignee): bool {
+    Event::assertDispatched(TicketAssigned::class, function (TicketAssigned $event) use ($updated, $assignee, $actor): bool {
         return $event->ticket->is($updated)
             && $event->previousAssigneeId === null
-            && $event->assigneeId === $assignee->id;
+            && $event->assigneeId === $assignee->id
+            && $event->actor->is($actor);
     });
 });

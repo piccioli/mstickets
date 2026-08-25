@@ -7,7 +7,9 @@ namespace App\Domain\Ticketing\Actions;
 use App\Domain\Identity\Models\User;
 use App\Domain\Ticketing\Enums\TicketLogEvent;
 use App\Domain\Ticketing\Enums\TicketStatus;
+use App\Domain\Ticketing\Events\TicketAssigned;
 use App\Domain\Ticketing\Events\TicketStatusChanged;
+use App\Domain\Ticketing\Events\TicketTesterAssigned;
 use App\Domain\Ticketing\Models\Ticket;
 use App\Domain\Ticketing\Models\TicketLog;
 use App\Domain\Ticketing\StateMachine\TicketStateMachine;
@@ -37,6 +39,8 @@ final class ChangeTicketStatus
             $transition = TicketStateMachine::authorize($ticket, $to, $user, $context);
 
             $from = $ticket->status;
+            $previousAssigneeId = $ticket->assignee_id;
+            $previousTesterId = $ticket->tester_id;
 
             $ticket->fill($context);
             $ticket->status = $to;
@@ -60,7 +64,15 @@ final class ChangeTicketStatus
                 self::demoteOtherProgressTickets($ticket, $user);
             }
 
-            event(new TicketStatusChanged($ticket, $from, $to));
+            event(new TicketStatusChanged($ticket, $from, $to, $user));
+
+            if (array_key_exists('assignee_id', $context) && $context['assignee_id'] !== null && $context['assignee_id'] !== $previousAssigneeId) {
+                event(new TicketAssigned($ticket, $previousAssigneeId, (int) $context['assignee_id'], $user));
+            }
+
+            if (array_key_exists('tester_id', $context) && $context['tester_id'] !== null && $context['tester_id'] !== $previousTesterId) {
+                event(new TicketTesterAssigned($ticket, $previousTesterId, (int) $context['tester_id'], $user));
+            }
 
             return $ticket;
         });
@@ -91,7 +103,7 @@ final class ChangeTicketStatus
 
                 self::writeStatusLog($other, $user, $otherFrom, TicketStatus::Todo);
 
-                event(new TicketStatusChanged($other, $otherFrom, TicketStatus::Todo));
+                event(new TicketStatusChanged($other, $otherFrom, TicketStatus::Todo, $user));
             });
     }
 

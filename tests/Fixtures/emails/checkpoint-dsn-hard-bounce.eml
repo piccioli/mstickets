@@ -1,0 +1,30 @@
+From: mailer-daemon@relay.example.test
+To: supporto@example.test
+Subject: Undelivered Mail Returned to Sender
+Content-Type: multipart/report; report-type=delivery-status; boundary="checkpoint-dsn-boundary"
+
+--checkpoint-dsn-boundary
+Content-Type: text/plain
+
+Notifica di mancato recapito permanente.
+
+--checkpoint-dsn-boundary
+Content-Type: message/delivery-status
+
+Reporting-MTA: dns; relay.example.test
+
+Final-Recipient: rfc822; destinatario.rimbalzato@example.test
+Action: failed
+Status: 5.1.1
+
+--checkpoint-dsn-boundary
+Content-Type: message/rfc822
+
+From: supporto@example.test
+To: destinatario.rimbalzato@example.test
+Subject: [#1] Notifica ticket
+Message-ID: <checkpoint-outbound-hard-bounce@example.test>
+
+Corpo originale.
+
+--checkpoint-dsn-boundary--

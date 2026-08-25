@@ -1,0 +1,36 @@
+Return-Path: <cliente@example.test>
+From: Mario Rossi <cliente@example.test>
+To: Supporto <supporto@example.test>
+Subject: Problema con la stampante
+Message-ID: <req-html-001@example.test>
+Date: Wed, 04 Feb 2026 09:15:00 +0100
+Content-Type: multipart/alternative; boundary="BOUNDARY-HTML-PLAIN"
+MIME-Version: 1.0
+
+--BOUNDARY-HTML-PLAIN
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+
+Buongiorno,
+
+la stampante dell'ufficio non risponde più da ieri mattina.
+
+Grazie,
+Mario Rossi
+
+--BOUNDARY-HTML-PLAIN
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+
+<html><body>
+<p>Buongiorno,</p>
+<p>la stampante dell'ufficio non risponde più da ieri mattina.</p>
+<script>alert('xss')</script>
+<p>Grazie,<br>Mario Rossi</p>
+<blockquote>
+<p>Il giorno 03/02/2026, Supporto &lt;supporto@example.test&gt; ha scritto:</p>
+<p>Ticket ricevuto, la ricontatteremo a breve.</p>
+</blockquote>
+</body></html>
+
+--BOUNDARY-HTML-PLAIN--

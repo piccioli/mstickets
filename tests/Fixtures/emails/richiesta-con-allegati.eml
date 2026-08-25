@@ -1,0 +1,43 @@
+Return-Path: <cliente@example.test>
+Delivered-To: supporto@example.test
+From: Mario Rossi <cliente@example.test>
+To: Supporto <supporto@example.test>
+Subject: Richiesta con allegato
+Message-ID: <req-attach-001@example.test>
+Date: Wed, 04 Feb 2026 09:14:52 +0100
+Content-Type: multipart/mixed; boundary="BOUNDARY-us309-001"
+MIME-Version: 1.0
+
+--BOUNDARY-us309-001
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+
+Buongiorno,
+
+in allegato trovate il documento richiesto, una nota e il logo della firma.
+
+Grazie,
+Mario Rossi
+
+--BOUNDARY-us309-001
+Content-Type: application/pdf; name="documento.pdf"
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="documento.pdf"
+
+JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyA+PgplbmRvYmoKdHJhaWxlcgo8PCAv
+Um9vdCAxIDAgUiA+PgolJUVPRg==
+--BOUNDARY-us309-001
+Content-Type: text/plain; name="nota.txt"
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="nota.txt"
+
+bm90YSBicmV2ZQ==
+--BOUNDARY-us309-001
+Content-Type: image/png; name="logo.png"
+Content-Transfer-Encoding: base64
+Content-Disposition: inline; filename="logo.png"
+Content-ID: <logo001>
+
+iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YA
+AAAASUVORK5CYII=
+--BOUNDARY-us309-001--

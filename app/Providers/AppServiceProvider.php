@@ -4,8 +4,22 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Domain\Mail\Events\EmailQuarantined;
+use App\Domain\Mail\Events\InboundEmailApplied;
+use App\Domain\Mail\Listeners\NotifyStaffOfNewCustomerTicketFromEmail;
+use App\Domain\Mail\Listeners\NotifyStaffOfNewCustomerTicketFromWeb;
+use App\Domain\Mail\Listeners\NotifyStaffOfUnknownSender;
+use App\Domain\Mail\Listeners\SendNewTicketMessageNotification;
+use App\Domain\Mail\Listeners\SendTicketAssignedNotification;
+use App\Domain\Mail\Listeners\SendTicketOpenedFromWebMailNotification;
+use App\Domain\Mail\Listeners\SendTicketReceivedByEmailNotification;
+use App\Domain\Mail\Listeners\SendTicketStatusChangedNotification;
+use App\Domain\Mail\Listeners\SendTicketTesterAssignedNotification;
+use App\Domain\Ticketing\Events\TicketAssigned;
+use App\Domain\Ticketing\Events\TicketCreated;
 use App\Domain\Ticketing\Events\TicketMessagePosted;
 use App\Domain\Ticketing\Events\TicketStatusChanged;
+use App\Domain\Ticketing\Events\TicketTesterAssigned;
 use App\Domain\Ticketing\Listeners\RestoreTicketStatusOnRequesterMessage;
 use App\Domain\TimeTracking\Listeners\RecalculateWorkedTimeOnStatusChange;
 use App\Support\Mail\BlockRealRecipientsOutsideProduction;
@@ -35,6 +49,31 @@ class AppServiceProvider extends ServiceProvider
     {
         Event::listen(TicketMessagePosted::class, RestoreTicketStatusOnRequesterMessage::class);
         Event::listen(TicketStatusChanged::class, RecalculateWorkedTimeOnStatusChange::class);
+
+        // E1/E2 (§7.5.2, US-311): conferma di apertura ticket, sul canale
+        // corrispondente a come il ticket è stato creato (email vs web).
+        Event::listen(InboundEmailApplied::class, SendTicketReceivedByEmailNotification::class);
+        Event::listen(TicketCreated::class, SendTicketOpenedFromWebMailNotification::class);
+
+        // E3/E9 (§7.5.2, US-312): notifica al gruppo staff configurabile per un nuovo
+        // ticket cliente (via web o via email) o per un mittente andato in quarantena.
+        Event::listen(InboundEmailApplied::class, NotifyStaffOfNewCustomerTicketFromEmail::class);
+        Event::listen(TicketCreated::class, NotifyStaffOfNewCustomerTicketFromWeb::class);
+        Event::listen(EmailQuarantined::class, NotifyStaffOfUnknownSender::class);
+
+        // E4 (§7.5.2, US-313): cambio di stato del ticket, contenuto in base al ruolo
+        // reale del destinatario, escluso chi ha eseguito l'azione.
+        Event::listen(TicketStatusChanged::class, SendTicketStatusChangedNotification::class);
+
+        // E5 (§7.5.2, US-314): nuovo messaggio PUBBLICO sul ticket, escluso l'autore.
+        // Il filtro "mai per un messaggio interno" vive nell'Action, non qui: questo
+        // listener reagisce a TicketMessagePosted qualunque sia la visibilità.
+        Event::listen(TicketMessagePosted::class, SendNewTicketMessageNotification::class);
+
+        // E6 (§7.5.2, US-315): assegnazione developer/tester, mai verso chi ha
+        // eseguito l'azione (guard nell'Action, non nel listener).
+        Event::listen(TicketAssigned::class, SendTicketAssignedNotification::class);
+        Event::listen(TicketTesterAssigned::class, SendTicketTesterAssignedNotification::class);
 
         // Guard applicativo §11.8 del PRD (US-217): non un listener di dominio, ma va
         // comunque registrato qui perché Illuminate\Mail\Events\MessageSending non è

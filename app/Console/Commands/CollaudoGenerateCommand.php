@@ -9,6 +9,7 @@ use App\Support\Latex\LatexEscaper;
 use App\Support\Latex\LatexPdfCompiler;
 use App\Support\Latex\MarkdownToLatexConverter;
 use Illuminate\Console\Command;
+use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 
@@ -21,8 +22,11 @@ final class CollaudoGenerateCommand extends Command
     /**
      * File del manuale operativo dettagliato (§ collaudo v2), nell'ordine in cui compaiono nel PDF.
      * Convenzione fissa per ora (non parametrizzata su {fase}): introdotta per la Fase 0-1, estesa
-     * in v0.3.0 con la Fase 1A senza cambiare l'argomento CLI (resta `0-1`) — quando una fase futura
-     * richiederà una convenzione diversa, andrà rivista qui.
+     * in v0.3.0 con la Fase 1A senza cambiare l'argomento CLI (resta `0-1`), e in v3.0 del pacchetto di
+     * collaudo (docs/collaudo/00-istruzioni-generali.md) con Fase 2 e Fase 3 — il pacchetto di collaudo
+     * è ormai unico e cumulativo per tutte le fasi rilasciate, quindi l'argomento storico `0-1` resta il
+     * trigger per l'INTERO pacchetto, non solo per Fase 0/1. Quando una fase futura richiederà una
+     * convenzione diversa (es. un bundle per-fase invece di uno cumulativo), andrà rivista qui.
      *
      * @var list<array{file: string, titolo: string}>
      */
@@ -33,8 +37,10 @@ final class CollaudoGenerateCommand extends Command
         ['file' => '02-fase-0.md', 'titolo' => 'Fase 0 (Fondazioni) — Casi di test dettagliati'],
         ['file' => '03-fase-1.md', 'titolo' => 'Fase 1 (Ticketing core) — Casi di test dettagliati'],
         ['file' => '04-fase-1a.md', 'titolo' => 'Fase 1A (Landing, Login, Recupero password) — Casi di test dettagliati'],
-        ['file' => '05-registro-esiti.md', 'titolo' => 'Registro degli esiti'],
-        ['file' => '06-verbale-collaudo.md', 'titolo' => 'Verbale conclusivo di collaudo'],
+        ['file' => '05-fase-2.md', 'titolo' => 'Fase 2 (Importazione dal v1 — ETL) — Casi di test dettagliati'],
+        ['file' => '06-fase-3.md', 'titolo' => 'Fase 3 (Sottosistema email) — Casi di test dettagliati'],
+        ['file' => '07-registro-esiti.md', 'titolo' => 'Registro degli esiti'],
+        ['file' => '08-verbale-collaudo.md', 'titolo' => 'Verbale conclusivo di collaudo'],
     ];
 
     public function handle(): int
@@ -105,6 +111,7 @@ final class CollaudoGenerateCommand extends Command
 
         $filename = sprintf('collaudo-dettagliato-fase-%s-%s.pdf', $fase, now()->format('Ymd-His'));
         $disk = Storage::build(['driver' => 'local', 'root' => storage_path('app')]);
+        self::pruneOldVersions($disk, 'collaudo-dettagliato-fase-'.$fase);
         $disk->put("collaudo/{$filename}", file_get_contents($pdfPath));
         File::delete($pdfPath);
 
@@ -189,9 +196,31 @@ final class CollaudoGenerateCommand extends Command
 
         $filename = sprintf('collaudo-fase-%s-%s.pdf', $fase, now()->format('Ymd-His'));
         $disk = Storage::build(['driver' => 'local', 'root' => storage_path('app')]);
+        self::pruneOldVersions($disk, 'collaudo-fase-'.$fase);
         $disk->put("collaudo/{$filename}", file_get_contents($pdfPath));
         File::delete($pdfPath);
 
         return storage_path("app/collaudo/{$filename}");
+    }
+
+    /**
+     * `storage/app/collaudo/` deve contenere sempre e solo l'ultima versione generata per ciascuna
+     * fase (§ "Processo di collaudo" di CLAUDE.md): cancella ogni PDF preesistente il cui nome
+     * inizia esattamente per `{$prefix}-` (es. `collaudo-fase-2-` o `collaudo-dettagliato-fase-2-`,
+     * mai un prefisso più corto come `collaudo-fase-2` che matcherebbe anche `collaudo-fase-20-...`
+     * se una fase futura avesse quel numero) PRIMA di scrivere il nuovo file, invece di lasciare
+     * accumulare un PDF con timestamp diverso ad ogni esecuzione del comando.
+     */
+    private static function pruneOldVersions(Filesystem $disk, string $prefix): void
+    {
+        $needle = $prefix.'-';
+
+        foreach ($disk->files('collaudo') as $existing) {
+            $basename = basename($existing);
+
+            if (str_starts_with($basename, $needle) && str_ends_with($basename, '.pdf')) {
+                $disk->delete($existing);
+            }
+        }
     }
 }

@@ -81,4 +81,23 @@ return [
         'throttle_minutes' => (int) env('TICKET_VIEW_THROTTLE_MINUTES', 30),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Reminder ticket in attesa (§7.5.2 E7 del PRD, US-316)
+    |--------------------------------------------------------------------------
+    |
+    | Soglia (giorni lavorativi, lun-ven, App\Domain\Ticketing\Support\
+    | WorkingDaysCalculator) di inattività su un ticket `status=waiting` oltre
+    | la quale il richiedente riceve un promemoria via `tickets:remind-waiting`,
+    | e finestra minima (giorni di calendario) tra due promemoria consecutivi
+    | sullo stesso ticket per non duplicarli.
+    |
+    */
+
+    'waiting_reminder' => [
+        'threshold_working_days' => (int) env('TICKET_WAITING_REMINDER_THRESHOLD_DAYS', 3),
+        'cooldown_days' => (int) env('TICKET_WAITING_REMINDER_COOLDOWN_DAYS', 7),
+        'schedule_cron' => env('TICKET_WAITING_REMINDER_SCHEDULE_CRON', '0 6 * * *'),
+    ],
+
 ];
