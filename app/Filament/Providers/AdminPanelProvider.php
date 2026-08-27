@@ -10,6 +10,7 @@ use App\Filament\Auth\Pages\ResetPassword;
 use App\Filament\Navigation\MailpitNavigationItem;
 use App\Filament\Pages\CustomerDashboard;
 use App\Filament\Pages\Dashboard;
+use App\Filament\Pages\NotificationPreferences;
 use App\Filament\Pages\WorkBoard;
 use App\Support\DesignTokens;
 use Filament\Http\Middleware\Authenticate;
@@ -68,6 +69,7 @@ class AdminPanelProvider extends PanelProvider
                 Dashboard::class,
                 WorkBoard::class,
                 CustomerDashboard::class,
+                NotificationPreferences::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
