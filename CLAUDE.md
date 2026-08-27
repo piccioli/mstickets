@@ -864,3 +864,27 @@ verificati esplicitamente, non assunti allineati.
   flusso normale di Livewire. Verificare sempre prima nel catalogo `Permission`/nelle `Policy` esistenti se un
   permesso più specifico di quello che gestisce l'intera Resource è già stato predisposto da una fase precedente,
   prima di riusare quello generico per una sotto-funzionalità che meriterebbe il proprio controllo.
+
+## `view.involved` per-record vs per-modulo, e query "coinvolti" su relazioni multiple (`FundraisingProject`, US-506)
+
+- **`fundraising.view.involved` non ha lo stesso significato su tutti i model del dominio**: su `FundraisingOpportunity`
+  è un OK generico (qualunque customer autenticato vede qualunque opportunità, §6.6.4), ma su `FundraisingProject` è
+  per-record (§6.6.3: solo capofila/partner/responsabile/creatore). `FundraisingProjectPolicy::view()` quindi NON
+  può delegare a `viewAny()` come `FundraisingOpportunityPolicy::view()` fa — verificare sempre nel PRD se
+  "coinvolto" è definito a livello di modulo o di singolo record prima di riusare lo stesso pattern tra due Policy
+  dello stesso dominio che sembrano simili.
+- **Pattern "coinvolti" (OR su più colonne + una pivot)**: `FundraisingProject::scopeInvolving(Builder $query, User $user)`
+  combina `where('lead_user_id', ...)->orWhere('responsible_user_id', ...)->orWhere('created_by', ...)->orWhereHas('partners', ...)`
+  dentro un unico `where(function ...)` innestato, cosi resta sicuro anche se incatenato dopo altri `where()` (stesso
+  idioma di `Ticket::scopeVisibleTo()`). Riusabile in US-507 (filtro "coinvolti" sull'elenco progetti) e US-508
+  (vista cliente) chiamando `FundraisingProject::query()->involving($user)` invece di riscrivere la condizione.
+- **Fix del bug v1 `partnerCustomers()`**: v1 filtrava i partner con ruolo customer con `whereHas('roles', ...)` su
+  una colonna JSON (query non eseguibile). In v2 i ruoli sono la pivot Spatie `model_has_roles`, esposta dalla
+  relazione `roles()` di `HasRoles` sul model `User` — un `whereHas('roles', fn ($q) => $q->where('name', UserRole::Customer->value))`
+  incatenato su una `BelongsToMany` esistente (qui `partners()`) funziona senza bisogno di join manuali.
+- **Macchina a stati "leggera"**: `FundraisingProjectStateMachine` replica solo la parte tabellare/dichiarativa di
+  `TicketStateMachine` (`transitions()`/`canTransitionTo()`/`authorize()` che lancia `ValidationException`), SENZA
+  il livello `TransitionActor`/`effects`/guard-per-transizione: nessun acceptance criteria di US-506 richiede
+  un'autorizzazione differenziata per attore sulla stessa transizione (a differenza dei ticket, dove assignee/tester/
+  admin hanno diritti diversi sullo stesso stato) — l'autorizzazione resta quella uniforme della Policy
+  (`fundraising.update`). Non aggiungere la macchina completa "per coerenza" se l'AC non la richiede.
