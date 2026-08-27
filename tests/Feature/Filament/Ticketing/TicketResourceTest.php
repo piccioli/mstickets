@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Domain\Fundraising\Models\FundraisingOpportunity;
+use App\Domain\Fundraising\Models\FundraisingProject;
 use App\Domain\Identity\Enums\Permission as PermissionEnum;
 use App\Domain\Identity\Enums\UserRole;
 use App\Domain\Identity\Models\User;
@@ -295,6 +297,45 @@ test('an invalid parent selection surfaces the readable TicketParentDepthRule me
         ->assertSee(TicketParentDepthRule::MESSAGE);
 
     expect($target->fresh()->parent_id)->toBeNull();
+});
+
+test('collegare un progetto fundraising a un ticket dalla TicketResource persiste fundraising_project_id', function (): void {
+    $staff = grantTicketPanelRole(userWithPermissions(
+        PermissionEnum::TicketUpdateAny,
+        PermissionEnum::TicketViewAny,
+        PermissionEnum::TicketManageInternalFields,
+        PermissionEnum::FundraisingViewAny,
+    ), UserRole::Admin);
+    $requester = User::factory()->create();
+    $ticketRecord = ticket(['requester_id' => $requester->id]);
+
+    $opportunity = FundraisingOpportunity::create([
+        'name' => 'Bando test',
+        'deadline' => today()->addMonth()->toDateString(),
+        'created_by' => $staff->id,
+        'responsible_user_id' => $staff->id,
+    ]);
+    $project = FundraisingProject::create([
+        'title' => 'Progetto test',
+        'fundraising_opportunity_id' => $opportunity->id,
+        'created_by' => $staff->id,
+    ]);
+
+    $this->actingAs($staff);
+
+    // `fillForm()` non applica correttamente lo stato su questo form in questo
+    // ambiente di test (bug pre-esistente confinato al solo helper di test
+    // `fillFormDataForTesting`, riproducibile anche su test già esistenti e
+    // indipendenti da questa story — es. "reassigning a ticket..." più sotto —
+    // mai investigato, vedi CLAUDE.md): `->set('data.<campo>', ...)` applica lo
+    // stato correttamente ed esercita comunque `handleRecordUpdate()` con dati reali.
+    Livewire::test(EditTicket::class, ['record' => $ticketRecord->getKey()])
+        ->set('data.requester_id', $requester->id)
+        ->set('data.fundraising_project_id', $project->id)
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect($ticketRecord->fresh()->fundraising_project_id)->toBe($project->id);
 });
 
 test('reassigning a ticket through the edit form calls AssignTicket and writes an assigned log', function (): void {

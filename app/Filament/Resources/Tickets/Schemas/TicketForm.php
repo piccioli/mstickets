@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Tickets\Schemas;
 
+use App\Domain\Fundraising\Models\FundraisingProject;
+use App\Domain\Identity\Enums\Permission;
 use App\Domain\Identity\Models\User;
 use App\Domain\Ticketing\Enums\TicketPriority;
 use App\Domain\Ticketing\Enums\TicketType;
@@ -18,6 +20,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\HtmlString;
 
@@ -107,6 +110,11 @@ class TicketForm
                             ->options(collect(TicketPriority::cases())->mapWithKeys(
                                 fn (TicketPriority $priority): array => [$priority->value => $priority->getLabel()],
                             )),
+                        Select::make('fundraising_project_id')
+                            ->label('Progetto fundraising')
+                            ->relationship('fundraisingProject', 'title', modifyQueryUsing: self::visibleFundraisingProjectsQuery(...))
+                            ->searchable()
+                            ->preload(),
                     ]),
 
                 Section::make('Link ambienti')
@@ -150,6 +158,37 @@ class TicketForm
     private static function activeUsersQuery(Builder $query): Builder
     {
         return $query->active();
+    }
+
+    /**
+     * Solo i progetti fundraising visibili all'utente corrente secondo
+     * `FundraisingProjectPolicy` (US-507, §6.6.3): chi ha `fundraising.view.any`
+     * vede tutti i progetti, chi ha solo `fundraising.view.involved` solo quelli
+     * coinvolti ({@see FundraisingProject::scopeInvolving()}, US-506), chi non ha
+     * nessuno dei due permessi non vede alcun progetto in questa select — mai
+     * l'intero elenco indiscriminatamente, anche se il campo vive nella sezione
+     * "interna" già riservata a chi gestisce i ticket a fondo.
+     *
+     * @param  Builder<FundraisingProject>  $query
+     * @return Builder<FundraisingProject>
+     */
+    private static function visibleFundraisingProjectsQuery(Builder $query): Builder
+    {
+        $user = Auth::user();
+
+        if ($user === null) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        if ($user->can(Permission::FundraisingViewAny)) {
+            return $query;
+        }
+
+        if ($user->can(Permission::FundraisingViewInvolved)) {
+            return $query->involving($user);
+        }
+
+        return $query->whereRaw('1 = 0');
     }
 
     private static function statusBadge(?Ticket $record): HtmlString

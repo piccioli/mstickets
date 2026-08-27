@@ -888,3 +888,55 @@ verificati esplicitamente, non assunti allineati.
   un'autorizzazione differenziata per attore sulla stessa transizione (a differenza dei ticket, dove assignee/tester/
   admin hanno diritti diversi sullo stesso stato) — l'autorizzazione resta quella uniforme della Policy
   (`fundraising.update`). Non aggiungere la macchina completa "per coerenza" se l'AC non la richiede.
+
+## Filtri "capofila/partner/coinvolti" su una Resource, secondo RelationManager, select cross-dominio ristretta per Policy (`FundraisingProjectResource`, US-507)
+
+- **`SelectFilter::make(...)->relationship('nomeRelazione', 'colonnaTitolo')` funziona sia su una `BelongsTo`
+  (qui `lead_user_id` → `leadUser`) sia su una `BelongsToMany` (qui `partner` → `partners()`)**: in test,
+  `filterTable('lead_user_id', $id)` / `filterTable('partner', $id)` impostano entrambi `['value' => $id]`
+  (vedi `vendor/filament/tables/src/Testing/TestsFilters.php`), Filament costruisce da sé la `whereHas`
+  giusta in base al tipo di relazione — nessuna differenza nel codice del test tra i due casi.
+- **Filtro booleano "coinvolti" con `Filter::make(...)->toggle()->query(...)`**: in test si usa
+  `filterTable('nome', true)` (imposta `isActive => true`), MAI `filterTable('nome', ['value' => ...])`
+  come per un `SelectFilter`/`TernaryFilter` — sono tre meccanismi di stato diversi nello stesso helper
+  (`value` per `SelectFilter`, `value` anche per `TernaryFilter` ma con default `true` se omesso, `isActive`
+  per un `Filter` generico). La query di un `Filter::make()` riusa direttamente lo scope del model
+  (`->query(fn (Builder $query) => $query->involving(Auth::user()))`), mai una condizione OR riscritta qui.
+- **`Livewire::test(NomeRelationManager::class, [...])->callTableAction('attach', data: [...])` (il pattern
+  documentato sopra per `UsersRelationManager`, US-407) NON funziona più in modo affidabile in questo ambiente**:
+  fallisce con `"mountedActions.0.data.recordId": "The record field is required"` anche passando `recordId`
+  esplicito — stesso sintomo, root cause diversa, della voce sotto su `fillForm()`. Workaround verificato:
+  `mountTableAction('attach')` → `->set('mountedActions.0.data.recordId', $id)` → `callMountedTableAction()`
+  → `assertHasNoTableActionErrors()`. Aggiornare qualunque test futuro su `AttachAction`/azioni con `data`
+  a questo pattern, non al vecchio `callTableAction(..., data: [...])`.
+- **`fillForm()` nei test Livewire NON applica più correttamente lo stato in questo ambiente, su QUALUNQUE
+  form Filament del repo, non solo Fundraising**: verificato isolando la causa a `Filament\Schemas\Concerns\InteractsWithSchemas::fillFormDataForTesting()`
+  (il metodo interno che `fillForm()` chiama per iniettare i dati nei test) — un `->set('data.<campo>', valore)`
+  esplicito applica invece lo stato correttamente e permette comunque di eseguire `->call('create')`/`->call('save')`
+  con dati reali. Confermato con `git stash` che il problema è preesistente al lavoro di Fase 5 (già presente
+  su `TicketResourceTest.php` a HEAD prima di questa story, 7 test su 16 già rotti, mai investigato prima
+  perché nessuna story precedente aveva rilanciato quel file specifico) — root cause non ancora identificata
+  (possibile regressione di una dipendenza `filament/filament`/`livewire/livewire`, mai isolata a un commit
+  preciso). **Per qualunque nuovo test che compila un form Filament**: preferire `->set('data.<campo>', valore)`
+  campo per campo invece di `->fillForm([...])` finché la causa non viene isolata e corretta — è un problema
+  di framework/ambiente più esteso dei "4 fallimenti noti" già documentati altrove in questo file, non solo
+  di Fundraising. Chi riprende in mano questo problema dovrebbe iniziare bisecando le versioni installate di
+  `filament/filament`/`livewire/livewire` in `composer.lock`, non il codice applicativo.
+- **Un `RelationManager` con una sola tabella (nessun tab multiplo) si carica comunque in modo "lazy"
+  via `x-intersect` (IntersectionObserver Alpine.js)**: nell'HTML iniziale appare come un placeholder vuoto
+  `role="status" aria-busy="true"` con altezza fissa, senza alcun errore in console/log — sparisce solo
+  quando il browser rileva che l'elemento è entrato nel viewport e Livewire completa la richiesta AJAX di
+  caricamento. Uno screenshot Playwright `fullPage: true` scattato subito dopo `waitForLoadState('networkidle')`
+  può catturare ancora questo placeholder (falso negativo "il RelationManager non si vede"): prima dello
+  screenshot, `scrollIntoViewIfNeeded()` sull'elemento `[role="status"][aria-busy="true"]` e attendere che
+  sparisca (`waitForSelector(..., { state: 'detached' })`) invece di un semplice `waitForTimeout()`.
+- **Un `Select::make(...)->relationship(..., modifyQueryUsing: ...)` su un model di un dominio DIVERSO da
+  quello della Resource corrente (qui `Ticket` → `FundraisingProject`, mai incontrato prima nel repo) è il
+  posto giusto per applicare lo stesso filtro di visibilità della Policy del dominio target**, replicando a
+  mano la logica di `Policy::view()`/`viewAny()` di quel dominio (qui: `FundraisingViewAny` → tutti,
+  `FundraisingViewInvolved` → solo `->involving($user)`, nessuno dei due → nessuna opzione) invece di esporre
+  l'intero elenco indiscriminatamente solo perché il campo vive in una sezione già gated da un permesso di
+  un dominio diverso (`ticket.manage-internal-fields`). Il `modifyQueryUsing` restringe le opzioni della
+  select, non è (da solo) una validazione server-side dura sul valore salvato — se in futuro serve bloccare
+  anche un ID iniettato via richiesta manipolata, va aggiunta separatamente una regola `exists` scoperta
+  sulla stessa query o un controllo esplicito nell'Action di salvataggio.
