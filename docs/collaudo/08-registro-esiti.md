@@ -5,7 +5,7 @@
 Tabella da compilare durante il collaudo, una riga per test. Il campo "Esito" accetta solo uno tra
 `PASS`, `FAIL`, `BLOCKED`, `NOT APPLICABLE` (vedi §17 di `00-istruzioni-generali.md` per i criteri generali
 e la sezione "Criterio di superamento" di ciascun test in `02-fase-0.md`/`03-fase-1.md`/`04-fase-1a.md`/
-`05-fase-2.md`/`06-fase-3.md` per il criterio specifico). Il campo "Anomalia" riporta l'ID assegnato secondo
+`05-fase-2.md`/`06-fase-3.md`/`07-fase-4.md` per il criterio specifico). Il campo "Anomalia" riporta l'ID assegnato secondo
 §19 di `00-istruzioni-generali.md` (es. `AN-001`), lasciare vuoto se non ci sono anomalie da segnalare per
 quel test.
 
@@ -366,9 +366,57 @@ quel test.
 | F3-111 | Un mittente già in blacklist anti-loop viene scartato e riprocessare lo stesso messaggio non duplica nulla |  |  |  |  |  |  |  |
 | F3-112 | Un mittente sconosciuto va in quarantena e resta ispezionabile in amministrazione (US-321) insieme a un messaggio scartato |  |  |  |  |  |  |  |
 | F3-113 | La conferma di apertura ticket via email arriva nella lingua del richiedente (US-320) attraverso tutta la pipeline end-to-end |  |  |  |  |  |  |  |
+
+## Fase 4 (Tag/commesse, Documentation, Activity Report/Organizations) — 42 test
+
+| ID | Titolo | Esito | Tester | Data | Versione | Evidenza | Anomalia | Note |
+|---|---|---|---|---|---|---|---|---|
+| F4-01 | sal() è null quando la commessa non ha ore stimate |  |  |  |  |  |  |  |
+| F4-02 | sal() somma i minuti lavorati di tutti i ticket collegati e arrotonda a 2 decimali |  |  |  |  |  |  |  |
+| F4-03 | La commessa risulta chiusa solo quando ogni ticket collegato è rilasciato o completato |  |  |  |  |  |  |  |
+| F4-04 | Creare una commessa da un ticket precompila le ore stimate dal ticket e li collega |  |  |  |  |  |  |  |
+| F4-05 | Lo slug generato riceve un suffisso numerico in caso di collisione, incluse le commesse soft-deleted |  |  |  |  |  |  |  |
+| F4-06 | Un utente con tag.create può trasformare un ticket in commessa dalla pagina di visualizzazione |  |  |  |  |  |  |  |
+| F4-07 | Un utente senza tag.create non vede l'azione "crea commessa" |  |  |  |  |  |  |  |
+| F4-08 | L'elenco commesse mostra ore stimate/lavorate, barra SAL e conteggio ticket aperti/chiusi |  |  |  |  |  |  |  |
+| F4-09 | Una commessa senza ore stimate mostra un placeholder SAL invece di un errore di divisione |  |  |  |  |  |  |  |
+| F4-10 | Un utente senza tag.view non accede all'elenco commesse |  |  |  |  |  |  |  |
+| F4-11 | Lo scope di visibilità esclude le pagine interne per chi non ha documentation.view.internal |  |  |  |  |  |  |  |
+| F4-12 | Un cliente non può visualizzare una pagina interna nemmeno richiedendone direttamente l'id |  |  |  |  |  |  |  |
+| F4-13 | Creare una pagina di documentazione crea un tag collegato "Documentation: <titolo>" |  |  |  |  |  |  |  |
+| F4-14 | Rinominare una pagina rinomina il tag collegato esistente senza crearne un duplicato |  |  |  |  |  |  |  |
+| F4-15 | Un utente con documentation.view.customer accede al registro e vede solo le pagine cliente |  |  |  |  |  |  |  |
+| F4-16 | La ricerca full-text trova una pagina da un termine presente solo nel corpo |  |  |  |  |  |  |  |
+| F4-17 | Creare una pagina genera un PDF non vuoto e valorizza pdf_path/pdf_generated_at |  |  |  |  |  |  |  |
+| F4-18 | Modificare il titolo rigenera il PDF con un timestamp più recente |  |  |  |  |  |  |  |
+| F4-19 | Il comando documentation:regenerate-pdfs rigenera il PDF di ogni pagina |  |  |  |  |  |  |  |
+| F4-20 | Un utente che può visualizzare la pagina può scaricarne il PDF |  |  |  |  |  |  |  |
+| F4-21 | Un utente senza il permesso di categoria corrispondente è negato, anche via accesso diretto per id |  |  |  |  |  |  |  |
+| F4-22 | Un utente con organization.view accede al registro organizzazioni |  |  |  |  |  |  |  |
+| F4-23 | Collegare un utente tramite il relation manager "Membri" lo collega all'organizzazione |  |  |  |  |  |  |  |
+| F4-24 | periodStart/periodEnd coprono l'intero mese per un report mensile |  |  |  |  |  |  |  |
+| F4-25 | periodLabel è il nome del mese localizzato e capitalizzato più l'anno per un report mensile |  |  |  |  |  |  |  |
+| F4-26 | syncTickets seleziona solo i ticket del proprietario utente completati nel periodo |  |  |  |  |  |  |  |
+| F4-27 | syncTickets seleziona i ticket richiesti da ogni membro dell'organizzazione proprietaria |  |  |  |  |  |  |  |
+| F4-28 | syncTickets è idempotente se invocato due volte di seguito sullo stesso report |  |  |  |  |  |  |  |
+| F4-29 | Creare il report sincronizza i suoi ticket in un'unica chiamata |  |  |  |  |  |  |  |
+| F4-30 | Un duplicato proprietario/periodo viene rifiutato con un errore leggibile invece della QueryException grezza |  |  |  |  |  |  |  |
+| F4-31 | Generare il PDF del report produce un file non vuoto e valorizza pdf_path/pdf_generated_at |  |  |  |  |  |  |  |
+| F4-32 | Cancellare il report rimuove il PDF generato dallo storage, nessun file orfano |  |  |  |  |  |  |  |
+| F4-33 | activity-report.view.own autorizza un membro dell'organizzazione proprietaria ma non un non-membro |  |  |  |  |  |  |  |
+| F4-34 | Un utente con solo activity-report.view.own può scaricare il proprio report |  |  |  |  |  |  |  |
+| F4-35 | Il comando reports:generate-monthly crea il report per un cliente con un ticket completato nel mese precedente e accoda il PDF |  |  |  |  |  |  |  |
+| F4-36 | Rieseguire il comando non duplica un report già creato per lo stesso proprietario e periodo |  |  |  |  |  |  |  |
+| F4-37 | --dry-run esamina i proprietari attivi senza creare report né accodare PDF |  |  |  |  |  |  |  |
+| F4-38 | view.own vede solo il proprio report come proprietario diretto, mai quello di un altro owner |  |  |  |  |  |  |  |
+| F4-39 | Un cliente con activity-report.view.own vede solo il proprio report nell'elenco "Report Attività" |  |  |  |  |  |  |  |
+| F4-40 | Il SAL è calcolato correttamente su una commessa con ticket collegati (replica automatica della verifica manuale su dati reali v1:import) |  |  |  |  |  |  |  |
+| F4-41 | Una pagina di documentazione genera un PDF scaricabile con la carta intestata Montagna Servizi corretta |  |  |  |  |  |  |  |
+| F4-42 | Un report attività è generato per un proprietario reale con ticket e totali verificati contro i ticket sorgente |  |  |  |  |  |  |  |
+
 ## Riepilogo aggregato (da compilare a collaudo concluso)
 
 | Totale test | PASS | FAIL | BLOCKED | NOT APPLICABLE |
 |---|---|---|---|---|
-| 333 |  |  |  |  |
+| 375 |  |  |  |  |
 

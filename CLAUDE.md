@@ -735,3 +735,57 @@ Ogni fase completata (Fase 2 in poi) deve produrre, prima di essere considerata 
 - **Un'Action "singolo entry point" che già rifiuta i duplicati con un'eccezione (`CreateActivityReport::run()`, US-408) non basta da sola per un comando batch idempotente con `--dry-run`**: il comando deve comunque ripetere lo stesso controllo `exists()` (owner+periodo, stesso pattern `when($valore !== null, where, whereNull)` di US-408) PRIMA di chiamare l'Action, per due motivi — (1) in `--dry-run` non si può invocare l'Action (scriverebbe se non fosse dry-run) solo per scoprire se esiste già; (2) usare l'eccezione come unico segnale di "già esistente" per un batch di N owner renderebbe il conteggio "saltati" indistinguibile da un vero errore nel log strutturato. Il `try/catch` sull'Action resta comunque presente per la vera race condition (owner concorrente tra il check e la creazione), ma non è la via primaria per l'idempotenza attesa dal test.
 - **`ActivityReport::scopeVisibleTo(Builder $query, User $user)` è il query-equivalente di `isOwnedBy()` (US-409)**, stesso principio già documentato sopra per `DocumentationPage`/`Ticket`: un check per-record (`Policy::view()`) e un filtro di lista (Resource Filament `getEloquentQuery()`) non devono mai duplicare la logica di ownership in due posti — se in futuro cambia la definizione di "owner" (es. un'organizzazione può avere un owner secondario), aggiornare solo lo scope e verificare che `isOwnedBy()` non sia rimasta un'implementazione parallela ormai disallineata.
 - **Un'unica Resource Filament in un unico pannello Filament (nessun pannello cliente separato in questo repo, §9.1) può restare "sola lettura" semplicemente non registrando pagine create/edit/delete in `getPages()`**, senza dover azzerare `can*()` come fa `RoleResource` (quello non ha Policy propria): `ActivityReportResource` è Policy-backed come `TicketResource`/`DocumentationPageResource`, il fatto che non esista una pagina "create" la rende sola lettura di per sé, a prescindere da cosa dice `ActivityReportPolicy::create()` (mai invocata perché non c'è un'azione UI che la triggeri).
+
+## Checkpoint di fine fase — pacchetto di collaudo scritto per Fase 4 (US-411, riusabile identico per Fase 5+)
+
+- **Aggiungere un nuovo file narrativo `docs/collaudo/0N-fase-N.md` richiede SEMPRE di rinumerare
+  `07-registro-esiti.md`/`08-verbale-collaudo.md` in avanti** (diventano `08-`/`09-` quando si
+  aggiunge Fase 4, `09-`/`10-` alla Fase 5, ecc. — stesso schema già usato quando fu introdotta
+  Fase 1A): il nuovo file narrativo prende sempre il numero immediatamente successivo all'ultimo file
+  di fase esistente, mai `09-fase-N.md` "per intuito". Verificare SEMPRE con `git log --diff-filter=R
+  --summary --oneline -- docs/collaudo/` per vedere come le fasi precedenti hanno fatto la
+  rinumerazione, invece di indovinare il numero.
+- **`app/Console/Commands/CollaudoGenerateCommand.php` ha 3 costanti hardcoded da aggiornare ad ogni
+  nuova fase**: `COMMON_SUFFIX_FILES` (i nomi rinumerati di registro-esiti/verbale), `FASE_NARRATIVE_FILES`
+  (nuova chiave `'N' => [['file' => '0N-fase-N.md', 'titolo' => '...']]`) e `FASE_TITLES` (titolo di
+  copertina per quella chiave). Senza questo aggiornamento `collaudo:generate N` produce silenziosamente
+  solo la variante sintetica dal manifest invece del PDF dettagliato (perché `hasDetailedDocs($fase)`
+  verifica l'esistenza dei file elencati in `FASE_NARRATIVE_FILES`, che senza la chiave nuova resta
+  vuoto per quella fase) — nessun errore esplicito, solo un PDF diverso da quello atteso.
+- **Gotcha reale, verificato empiricamente su `collaudo:verify-manifest`**: `CollaudoTestReference::description()`
+  fa `str_contains(file_get_contents($testFile), $description)` sui BYTE GREZZI del file PHP sorgente
+  del test, non sulla stringa PHP già valutata. Un nome di test Pest con un apostrofo dentro una stringa
+  a singoli apici (`test('...actor\'s own...', ...)`) contiene letteralmente `\'` (backslash+apice) nei
+  byte grezzi del file, ma lo stesso apostrofo scritto nel manifest `fase-N.php` (altra stringa PHP a
+  singoli apici, es. `'...actor\'s own...'`) viene valutato da PHP a un apice singolo senza backslash
+  prima del confronto — le due stringhe NON combaciano mai, `verify-manifest` segnala sempre
+  "riferimento mancante" anche se il test esiste per davvero. Soluzione più semplice e già applicata:
+  scegliere per il manifest un test REALE equivalente ma senza apostrofo nel nome, invece di provare a
+  scrivere l'escape giusto (richiederebbe `\\\'` nel manifest, fragile e mai verificato oltre questo caso).
+- **Nessun comando `tickets:backfill-dates` esiste in questo repository**: il backfill di
+  `released_at`/`done_at` mancanti dai `ticket_logs` importati è già parte dello stage `derive` di
+  `v1:import` (`App\Import\Stages\DeriveStage::backfillTimestamps()`), eseguito automaticamente ad
+  ogni `v1:import --anonymize` — non c'è un secondo comando da lanciare dopo l'import per popolare quei
+  campi. Se un futuro checkpoint di fine fase menziona di nuovo "post v1:import + tickets:backfill-dates"
+  (probabile copia-incolla da un'istruzione generica), verificare prima con `grep -rn backfill
+  app/Console/Commands` che il comando esista davvero, prima di provare a lanciarlo.
+- **Verifica end-to-end su dati reali importati dal v1 in locale**: `bin/load-v1-dump v1dumps/latest.sql`
+  (carica il dump in `db_legacy`) poi `docker compose exec app php artisan v1:import --anonymize`
+  (idempotente, rilanciabile) popola l'ambiente Docker locale con i dati reali (verificato per Fase 4:
+  40 commesse, 3996 ticket, 550 report attività, 6 pagine di documentazione, 23 organizzazioni). Nessun
+  Tag reale importato dal v1 ha `estimated_hours` valorizzato (concetto introdotto solo da questa fase,
+  non presente nello schema v1): per verificare il SAL su un caso reale, valorizzare temporaneamente
+  `estimated_hours` su una commessa reale esistente via `tinker`, verificare, poi **ripristinare a
+  `null`** subito dopo (mai lasciare un valore fittizio su un record reale). Stesso principio già in uso
+  per la pulizia di record di verifica: usare dati reali quando esistono, ripristinarli esattamente
+  com'erano dopo la verifica.
+- **Il checkpoint di fine fase deve produrre anche un test automatico END-TO-END nuovo** (non solo
+  riusare i test già scritti dalle story precedenti), che replichi in CI il flusso manuale verificato su
+  dati reali: per Fase 4 è `tests/Feature/EndToEnd/Fase4CheckpointEndToEndTest.php` (nuova cartella
+  `tests/Feature/EndToEnd/`, letteralmente per questo scopo — Fase 3 aveva usato
+  `tests/Feature/Console/MailFetchInboundPipelineTest.php` perché lì l'intero flusso passava da un
+  singolo comando artisan; Fase 4 non ha un comando unico che leghi Tag/Documentation/ActivityReport,
+  quindi il test end-to-end vive nella sua directory dedicata). Questi 2-3 test compongono un ultimo
+  topic "Checkpoint di fine fase" nel manifest della fase, mappato a ID dedicati (qui F4-40..F4-42) —
+  mai riusare l'ID di un test già mappato in un topic precedente per lo stesso file, anche se il test
+  automatico è lo stesso.

@@ -2,8 +2,8 @@
 
 ## 1. Titolo, versione, data e stato del documento
 
-- **Titolo**: Documento di collaudo — Fase 0 (Fondazioni) + Fase 1 (Ticketing core) + Fase 1A (Landing, Login, Recupero password) + Fase 2 (Importazione dal v1 — ETL) + Fase 3 (Sottosistema email)
-- **Versione**: 3.0
+- **Titolo**: Documento di collaudo — Fase 0 (Fondazioni) + Fase 1 (Ticketing core) + Fase 1A (Landing, Login, Recupero password) + Fase 2 (Importazione dal v1 — ETL) + Fase 3 (Sottosistema email) + Fase 4 (Tag/commesse, Documentation, Activity Report/Organizations)
+- **Versione**: 4.0
 
   La versione 1 era la matrice sintetica preesistente (`docs/collaudo/fase-0-1.php`, manifest di
   tracciabilità sorgente, più il PDF generato a partire da essa dal comando `php artisan
@@ -27,30 +27,38 @@
   manifest dedicato `docs/collaudo/fase-3.php`, manuali dettagliati `05-fase-2.md`/`06-fase-3.md`,
   74 + 113 nuovi test. Il totale del pacchetto passa così da 146 a 333 test; §4 (Ambito escluso) è
   stato aggiornato di conseguenza (restano escluse solo Fase 4, Fase 5 e Fase 6, non ancora
-  costruite), e §10 (Mailpit) riflette il nuovo uso reale di Mailpit anche per la posta di Fase 3.
+  costruite), e §10 (Mailpit) riflette il nuovo uso reale di Mailpit anche per la posta di Fase 3. La
+  versione 4.0 (27 agosto 2026) aggiunge **Fase 4 (Tag/commesse, Documentation, Activity Report/
+  Organizations)**, scritta da subito (non come retrofit successivo, a differenza di Fase 2/Fase 3):
+  manifest dedicato `docs/collaudo/fase-4.php`, manuale dettagliato `07-fase-4.md`, 42 nuovi test. Il
+  totale del pacchetto passa da 333 a 375 test; §3/§4 sono aggiornati di conseguenza (Fase 4 esce
+  dall'ambito escluso, restano escluse solo Fase 5 e Fase 6, non ancora costruite); `07-registro-esiti.md`
+  e `08-verbale-collaudo.md` sono stati rinumerati rispettivamente a `08-registro-esiti.md` e
+  `09-verbale-collaudo.md` per far posto al nuovo `07-fase-4.md`, stesso schema di rinumerazione già
+  usato quando fu introdotta Fase 1A.
 - **Data di stesura**: 26 luglio 2026 (v2.0), 27 luglio 2026 (v2.1), 10 agosto 2026 (v2.2), 11 agosto
-  2026 (v2.3), 24 agosto 2026 (v3.0)
+  2026 (v2.3), 24 agosto 2026 (v3.0), 27 agosto 2026 (v4.0)
 - **Data di pubblicazione ufficiale**: DA VERIFICARE CON IL PRODUCT OWNER
 - **Stato**: Bozza per revisione
 
 ## 2. Scopo del collaudo
 
 Verificare che il software realizzato in Fase 0 (Fondazioni), Fase 1 (Ticketing core), Fase 1A
-(Landing, Login, Recupero password), Fase 2 (Importazione dal v1 — ETL) e Fase 3 (Sottosistema
-email) rispetti i requisiti funzionali e le regole di dominio descritti nel PRD di Orchestrator v2,
-attraverso un collaudo eseguibile sia da personale funzionale (che non deve conoscere il codice) sia
-da personale tecnico (che verifica anche a livello di terminale, database e suite di test
-automatica).
+(Landing, Login, Recupero password), Fase 2 (Importazione dal v1 — ETL), Fase 3 (Sottosistema
+email) e Fase 4 (Tag/commesse, Documentation, Activity Report/Organizations) rispetti i requisiti
+funzionali e le regole di dominio descritti nel PRD di Orchestrator v2, attraverso un collaudo
+eseguibile sia da personale funzionale (che non deve conoscere il codice) sia da personale tecnico
+(che verifica anche a livello di terminale, database e suite di test automatica).
 
-Il collaudo copre 333 casi di test, organizzati in 71 argomenti, tracciati uno a uno nei manifest
+Il collaudo copre 375 casi di test, organizzati in 75 argomenti, tracciati uno a uno nei manifest
 `docs/collaudo/fase-0-1.php` (Fase 0/Fase 1), `docs/collaudo/fase-1a.php` (Fase 1A),
-`docs/collaudo/fase-2.php` (Fase 2) e `docs/collaudo/fase-3.php` (Fase 3) verso un test automatico
-realmente esistente nel repository.
+`docs/collaudo/fase-2.php` (Fase 2), `docs/collaudo/fase-3.php` (Fase 3) e `docs/collaudo/fase-4.php`
+(Fase 4) verso un test automatico realmente esistente nel repository.
 
 ## 3. Ambito incluso
 
-Il collaudo copre esattamente i 71 argomenti seguenti (titoli letterali dai manifest di
-tracciabilità), per un totale di 333 test.
+Il collaudo copre esattamente i 75 argomenti seguenti (titoli letterali dai manifest di
+tracciabilità), per un totale di 375 test.
 
 **Fase 0 — Fondazioni** (56 test, F0-01…F0-56):
 
@@ -148,14 +156,23 @@ tracciabilità), per un totale di 333 test.
 | 70 | Comando mail:retry-failed (US-325) | 3 (F3-105…F3-107) |
 | 71 | Checkpoint di fine fase — verifica end-to-end su dati reali (US-326) | 6 (F3-108…F3-113) |
 
+**Fase 4 — Tag/commesse, Documentation, Activity Report/Organizations** (42 test, F4-01…F4-42):
+
+| # | Argomento | Test |
+|---|---|---|
+| 72 | Tag / commesse — modello SAL, azione "crea commessa", vista elenco (§6.3, US-401..US-403) | 10 (F4-01…F4-10) |
+| 73 | Documentation — modello, visibilità, Resource, generazione PDF (§6.4, US-404..US-406) | 11 (F4-11…F4-21) |
+| 74 | Activity Report e Organizations — modello, sync, PDF, comando mensile (§6.5, US-407..US-410) | 18 (F4-22…F4-39) |
+| 75 | Checkpoint di fine fase — verifica end-to-end su dati reali (US-411) | 3 (F4-40…F4-42) |
+
 Il dettaglio di ciascun test (descrizione, passi, esito atteso, campi di consuntivazione) è nei
-file `02-fase-0.md`, `03-fase-1.md`, `04-fase-1a.md`, `05-fase-2.md` e `06-fase-3.md` del pacchetto.
+file `02-fase-0.md`, `03-fase-1.md`, `04-fase-1a.md`, `05-fase-2.md`, `06-fase-3.md` e `07-fase-4.md`
+del pacchetto.
 
 ## 4. Ambito escluso
 
 Sono esplicitamente **fuori scopo** di questa release e di questo collaudo:
 
-- **Fase 4 — Generazione PDF di documentazione/report**: non in ambito.
 - **Fase 5 — UI fundraising completa**: solo lo schema dati e le opportunità/progetti di
   fundraising importati da v1 (Fase 2) sono verificabili come dati; l'interfaccia utente dedicata al
   fundraising non è in ambito di questo collaudo.
@@ -173,15 +190,16 @@ Sono esplicitamente **fuori scopo** di questa release e di questo collaudo:
 
 - `../PRD-ORCHESTRATOR-V2.md` — specifica di prodotto completa (nella root del progetto, un
   livello sopra questo repository).
-- `../../tasks/prd-fase-2-etl-import-v1.md` e `../../tasks/prd-fase-3-email-subsystem.md` — PRD
-  specifici di Fase 2 e Fase 3 (due livelli sopra questo repository, cartella `tasks/` del
-  monorepo), con lo user-story-by-user-story dettaglio da cui sono derivati i manifest
-  `fase-2.php`/`fase-3.php` e i manuali `05-fase-2.md`/`06-fase-3.md`.
+- `../../tasks/prd-fase-2-etl-import-v1.md`, `../../tasks/prd-fase-3-email-subsystem.md` e
+  `../../tasks/prd-fase-4-rendicontazione-documentazione-commesse.md` — PRD specifici di Fase 2,
+  Fase 3 e Fase 4 (due livelli sopra questo repository, cartella `tasks/` del monorepo), con lo
+  user-story-by-user-story dettaglio da cui sono derivati i manifest
+  `fase-2.php`/`fase-3.php`/`fase-4.php` e i manuali `05-fase-2.md`/`06-fase-3.md`/`07-fase-4.md`.
 - `docs/ticket-lifecycle.md` — descrizione della macchina a stati del ticket, delle transizioni
   ammesse e delle regole di dominio associate.
 - `docs/collaudo/fase-0-1.php`, `docs/collaudo/fase-1a.php`, `docs/collaudo/fase-2.php`,
-  `docs/collaudo/fase-3.php` — manifest di tracciabilità sorgente: collegano ogni test di questo
-  manuale a un test automatico realmente esistente nel repository.
+  `docs/collaudo/fase-3.php`, `docs/collaudo/fase-4.php` — manifest di tracciabilità sorgente:
+  collegano ogni test di questo manuale a un test automatico realmente esistente nel repository.
 - `CLAUDE.md` (root del repository) — note tecniche di implementazione per fase/story, utili al
   tester tecnico per capire le scelte di progettazione sottostanti (per Fase 3 in particolare, le
   sezioni sulla pipeline email inbound/outbound e sui bug reali già trovati e corretti).
@@ -226,8 +244,11 @@ Sono esplicitamente **fuori scopo** di questa release e di questo collaudo:
 - **Ambiente di collaudo**: l'installazione dedicata dell'applicazione, separata da sviluppo e
   produzione, usata per eseguire i test descritti in questo manuale.
 - **Manifest di tracciabilità**: i file `docs/collaudo/fase-0-1.php`, `fase-1a.php`, `fase-2.php`,
-  `fase-3.php`, che collegano ogni test numerato (es. F0-01, F2-01, F3-01) a un test automatico
-  realmente esistente nel codice.
+  `fase-3.php`, `fase-4.php`, che collegano ogni test numerato (es. F0-01, F2-01, F3-01, F4-01) a un
+  test automatico realmente esistente nel codice.
+- **Commessa (Tag/SAL, Fase 4)**: un `Tag` usato come area di lavoro/commessa, con ore stimate
+  opzionali e uno stato di avanzamento lavori (SAL) calcolato dalle ore effettivamente lavorate sui
+  ticket collegati.
 - **Sottosistema email (Fase 3)**: la pipeline che legge le email in arrivo su una casella IMAP
   (`mail:fetch-inbound`), le trasforma in ticket/messaggi, e invia le comunicazioni automatiche del
   catalogo E1-E9 in uscita, sempre in coda, mai in modo sincrono. **Mailpit** è l'interfaccia web che
@@ -253,7 +274,7 @@ Sono esplicitamente **fuori scopo** di questa release e di questo collaudo:
   test automatica (Pest).
 - **Product Owner**: approva le classificazioni segnalate come "DA VERIFICARE CON IL PRODUCT
   OWNER" in questo documento e nel resto del pacchetto, e firma il verbale conclusivo di collaudo
-  (`08-verbale-collaudo.md`).
+  (`09-verbale-collaudo.md`).
 
 ## 8. Ambiente UAT
 
@@ -440,7 +461,7 @@ manualmente.
 
 ## 17. Criteri generali di superamento
 
-Il collaudo nel suo complesso è considerato superato se, al termine dell'esecuzione dei 333 test:
+Il collaudo nel suo complesso è considerato superato se, al termine dell'esecuzione dei 375 test:
 
 - Non è aperta alcuna anomalia classificata come Critica.
 - Almeno il 95% dei test applicabili (esclusi quelli classificati NOT APPLICABLE) è in stato PASS.
@@ -474,5 +495,5 @@ Alla rilevazione di uno scostamento tra comportamento atteso e osservato durante
 7. **Stato**: una delle quattro fasi Aperta → In analisi → Risolta → Chiusa, aggiornata man mano che
    l'anomalia viene lavorata.
 
-Ogni anomalia va registrata nel registro degli esiti (`07-registro-esiti.md`) e richiamata nel
-verbale conclusivo di collaudo (`08-verbale-collaudo.md`).
+Ogni anomalia va registrata nel registro degli esiti (`08-registro-esiti.md`) e richiamata nel
+verbale conclusivo di collaudo (`09-verbale-collaudo.md`).
