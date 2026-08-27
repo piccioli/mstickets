@@ -24,5 +24,13 @@
     "New message on ticket #:id.": "New message on ticket #:id.",
     "You have been assigned as :role to ticket #:id.": "You have been assigned as :role to ticket #:id.",
     "You have been assigned to ticket #:id.": "You have been assigned to ticket #:id.",
-    "Ticket #:id has been waiting for your feedback for a few days. If it no longer needs your attention, or if you can provide the requested information, reply to this email or go to the ticket.": "Ticket #:id has been waiting for your feedback for a few days. If it no longer needs your attention, or if you can provide the requested information, reply to this email or go to the ticket."
+    "Ticket #:id has been waiting for your feedback for a few days. If it no longer needs your attention, or if you can provide the requested information, reply to this email or go to the ticket.": "Ticket #:id has been waiting for your feedback for a few days. If it no longer needs your attention, or if you can provide the requested information, reply to this email or go to the ticket.",
+
+    "Activity report": "Activity report",
+    "Type": "Type",
+    "Opened on": "Opened on",
+    "Completed on": "Completed on",
+    "Hours": "Hours",
+    "Total hours": "Total hours",
+    "No tickets in this period.": "No tickets in this period."
 }

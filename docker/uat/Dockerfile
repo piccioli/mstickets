@@ -63,6 +63,15 @@ RUN install-php-extensions \
     opcache \
     pcntl
 
+# `chromium`/`font-freefont`: motore di rendering del PDF di documentazione
+# (spatie/laravel-pdf, driver `chrome-php/chrome`, §6.4.3 del PRD, US-406) — a
+# differenza di pdflatex/texlive (solo collaudo, deliberatamente escluso da questa
+# immagine), Chromium headless deve esistere qui: questi PDF si generano in coda
+# per utenti reali in produzione, non solo in sviluppo. Il driver `chrome-php/chrome`
+# è puro PHP (Chrome DevTools Protocol): nessun Node/npm/Puppeteer da installare,
+# solo il binario Chromium + le sue librerie condivise (risolte da `apk` in automatico).
+RUN apk add --no-cache chromium font-freefont
+
 WORKDIR /app
 COPY . /app
 

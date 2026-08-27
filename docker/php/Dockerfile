@@ -6,6 +6,14 @@ FROM php:8.4-fpm-alpine
 ARG UID=1000
 ARG GID=1000
 
+# `chromium`/`font-freefont`: motore di rendering del PDF di documentazione
+# (spatie/laravel-pdf, driver `chrome-php/chrome`, §6.4.3 del PRD, US-406) —
+# a differenza di pdflatex/texlive qui sopra (solo collaudo, escluso dall'immagine
+# UAT/produzione), Chromium headless è un requisito di RUNTIME anche in produzione:
+# questi PDF si generano in coda per utenti reali, non solo in dev. `apk` risolve
+# da solo le librerie condivise necessarie (nss, freetype, harfbuzz, ...), nessun
+# pacchetto Node/npm richiesto: il driver `chrome-php/chrome` è puro PHP (Chrome
+# DevTools Protocol), non passa da Browsershot/Puppeteer.
 RUN apk add --no-cache \
         postgresql-dev \
         libzip-dev \
@@ -23,6 +31,8 @@ RUN apk add --no-cache \
         texmf-dist-plaingeneric \
         texmf-dist-pictures \
         poppler-utils \
+        chromium \
+        font-freefont \
     && apk add --no-cache --virtual .build-deps ${PHPIZE_DEPS} \
     && docker-php-ext-install pdo pdo_pgsql zip intl bcmath opcache pcntl exif \
     && pecl install redis \
