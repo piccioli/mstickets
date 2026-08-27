@@ -6,6 +6,7 @@ namespace App\Domain\Documentation\Actions;
 
 use App\Domain\Documentation\Jobs\GenerateDocumentationPagePdfJob;
 use App\Domain\Documentation\Models\DocumentationPage;
+use App\Support\Pdf\LogoDataUri;
 use Spatie\LaravelPdf\Facades\Pdf;
 
 /**
@@ -25,7 +26,7 @@ final class GenerateDocumentationPagePdf
 
         Pdf::view('pdfs.documentation-page', [
             'page' => $page,
-            'logoDataUri' => self::logoDataUri(),
+            'logoDataUri' => LogoDataUri::resolve(config('documentation.pdf.logo_path')),
             'footer' => (string) config('documentation.pdf.footer'),
         ])
             ->format('a4')
@@ -36,28 +37,5 @@ final class GenerateDocumentationPagePdf
             'pdf_path' => $path,
             'pdf_generated_at' => now(),
         ]);
-    }
-
-    /**
-     * Incorpora il logo come data URI (mai un URL: il job gira in coda, non può
-     * dipendere dalla raggiungibilità HTTP dell'app verso se stessa) — nessun
-     * errore se il file configurato manca, il PDF si genera comunque senza logo.
-     */
-    private static function logoDataUri(): ?string
-    {
-        $path = config('documentation.pdf.logo_path');
-
-        if (! is_string($path) || $path === '' || ! is_file($path)) {
-            return null;
-        }
-
-        $mime = match (strtolower(pathinfo($path, PATHINFO_EXTENSION))) {
-            'svg' => 'image/svg+xml',
-            'jpg', 'jpeg' => 'image/jpeg',
-            'webp' => 'image/webp',
-            default => 'image/png',
-        };
-
-        return 'data:'.$mime.';base64,'.base64_encode((string) file_get_contents($path));
     }
 }

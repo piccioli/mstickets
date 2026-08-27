@@ -85,6 +85,18 @@ return [
             'report' => false,
         ],
 
+        // Disco privato dedicato ai PDF generati dei report di attività (§6.5.3
+        // del PRD, US-409): stesso ragionamento di `documentation-pdfs`, disco
+        // separato per tipo di output generato — il download passa sempre dalla
+        // rotta autorizzata da ActivityReportPolicy::view().
+        'activity-report-pdfs' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/activity-report-pdfs'),
+            'serve' => false,
+            'throw' => false,
+            'report' => false,
+        ],
+
         // Disco nominato radicato su storage/app (non storage/app/private, il default
         // Laravel 11+ del disco "local"): usato dai report v1:inspect/v1:validate
         // (§11.2/§11.7 del PRD), che devono vivere in storage/app/import/ (path

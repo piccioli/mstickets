@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\ActivityReportPdfDownloadController;
 use App\Http\Controllers\DocumentationPagePdfDownloadController;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\TicketAttachmentDownloadController;
@@ -21,3 +22,10 @@ Route::get('/ticket-attachments/{media}', TicketAttachmentDownloadController::cl
 Route::get('/documentation-pages/{documentationPage}/pdf', DocumentationPagePdfDownloadController::class)
     ->middleware('auth')
     ->name('documentation-pages.pdf-download');
+
+// PDF generato di un report di attività (§6.5.3 del PRD, US-409): mai un URL
+// diretto sul disco, l'autorizzazione vive nel controller (delega a
+// ActivityReportPolicy::view()).
+Route::get('/activity-reports/{activityReport}/pdf', ActivityReportPdfDownloadController::class)
+    ->middleware('auth')
+    ->name('activity-reports.pdf-download');
