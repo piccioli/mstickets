@@ -1095,3 +1095,49 @@ verificati esplicitamente, non assunti allineati.
 - Il tooltip è reso da Filament via Alpine (`x-tooltip="{content: '...'}"`, no attributo HTML `title`): per
   verificarlo in browser leggere l'`innerHTML` del nodo badge, uno screenshot statico senza hover reale non
   lo mostra.
+
+## MFA nativa Filament per ruolo — timing di `isRequired`, e una view di login custom che ignorava il challenge (US-606, §6.7.2)
+
+- `Panel::multiFactorAuthentication([...], isRequired: ...)`: il parametro `isRequired` (bool|Closure) è
+  valutato in `routes/web.php` (vendor) alla REGISTRAZIONE delle route — cioè al boot della richiesta,
+  PRIMA che la sessione/il guard `Auth::user()` siano disponibili (la sessione parte dentro la pipeline di
+  middleware 'web', che gira dopo il boot dei provider). Una closure che tenta di leggere il ruolo
+  dell'utente autenticato lì (`fn () => Auth::user()?->hasRole(...)`) vede sempre `null` e non funziona MAI
+  per un controllo per-ruolo — né in produzione né nei test (in test, la `config()` impostata dentro il
+  corpo del test arriva dopo che `setUp()` ha già ri-registrato le route per quella richiesta). La soluzione
+  adottata: `isRequired: true` sempre (così la route "set-up-required" e il middleware esistono sempre per
+  ogni richiesta), e tutta la logica per-ruolo spostata in un middleware custom
+  (`App\Filament\Auth\Middleware\EnsureRoleRequiresMultiFactorAuthentication`, sostituisce
+  `multiFactorAuthenticationRequiredMiddlewareName()`) che legge `config('mfa.required_roles')` e
+  `Filament::auth()->user()` A RUNTIME (dentro `handle()`, quando la sessione è reale) e delega al
+  middleware nativo `EnsureMultiFactorAuthenticationIsEnabled` solo se il ruolo dell'utente è nella lista —
+  altrimenti lascia passare. Con `mfa.required_roles` vuoto di default (nessun env impostato), ogni
+  richiesta esistente resta invariata: zero regressioni sui test HTTP già esistenti con utenti `admin`.
+- **Gotcha scoperto SOLO in verifica browser (i test Pest con `actingAs()` non lo intercettano, perché
+  bypassano interamente `Filament\Auth\Pages\Login::authenticate()`)**: questo repo sostituisce l'intera
+  view della pagina di login (`App\Filament\Auth\Pages\Login::$view = 'filament.auth.login'`, per il brand
+  "Montagna Servizi", da un ciclo precedente a questa MFA) con un blade scritto a mano che renderizza `<form
+  wire:submit="authenticate">` con i soli campi email/password — MAI attraverso il meccanismo
+  `content(Schema $schema)` nativo di Filament, che è quello che normalmente mostra/nasconde condizionalmente
+  il secondo step (`multiFactorChallengeForm`) in base alla proprietà Livewire
+  `$userUndertakingMultiFactorAuthentication`. Risultato: abilitare la MFA sul pannello NON bastava, un
+  utente con la MFA configurata restava bloccato per sempre sulla schermata email/password (il server
+  segnava correttamente lo stato "sfida in corso" ma la view non lo rifletteva mai). Fix: nella stessa view,
+  `@if ($this->userUndertakingMultiFactorAuthentication)` renderizza `{{ $this->multiFactorChallengeForm }}`
+  (la `Schema` di Filament implementa `Htmlable`, si stampa con `{{ }}` senza altro wiring) dentro un secondo
+  `<form wire:submit="authenticate">`, altrimenti il form originale. Ogni futura modifica a una pagina di
+  auth Filament con view completamente custom in questo repo deve verificare se sta bypassando un
+  meccanismo nativo condizionale (MFA, verifica email, ecc.) allo stesso modo.
+- Contratti Filament per l'autenticazione da app (`Filament\Auth\MultiFactor\App\Contracts\
+  HasAppAuthentication`/`HasAppAuthenticationRecovery`) implementati su `User` con cast `encrypted`/
+  `encrypted:array` sulle due nuove colonne (`app_authentication_secret`,
+  `app_authentication_recovery_codes`) — mai in chiaro a riposo, stesso principio delle altre colonne
+  sensibili del progetto.
+- `->profile()` (default `Filament\Auth\Pages\EditProfile`, mai creato prima in questo repo) è
+  l'UNICO punto in cui Filament espone la UI di gestione/setup della MFA (`getManagementSchemaComponents()`
+  per provider, via `content()`): abilitare la MFA senza abilitare anche `->profile()` lascerebbe la
+  configurazione teoricamente attiva ma senza alcuna schermata reale da cui un utente possa impostarla.
+- Verifica in browser end-to-end di un flusso MFA reale (setup + login con sfida) richiede di calcolare un
+  OTP valido per il secret generato: `docker exec <container> php artisan tinker --execute="echo
+  app(PragmaRX\Google2FAQRCode\Google2FA::class)->getCurrentOtp('<secret>');"` — riusabile per qualunque
+  verifica futura che tocchi l'autenticazione da app.
