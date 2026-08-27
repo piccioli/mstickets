@@ -334,6 +334,13 @@ Lo sviluppo di scaffold è stato verificato con PHP 8.5 locale (compatibile con 
   `Role::findOrCreate` + `syncPermissions` su tutti i case di `Permission`, crea il record di dominio serve):
   rimuoverli sempre con `forceDelete()` subito dopo lo screenshot, per non lasciare dati fittizi nel DB di
   sviluppo condiviso.
+- **Selettori Playwright per le tab di un `ListRecords` Filament (`getTabs()`)**: sono `role="tab"`, mai un
+  link/testo generico — `page.getByRole('tab', { name: 'Nome tab' }).click()`. Il bottone che apre il pannello
+  filtri della tabella non ha testo visibile, solo `aria-label="Filtro"` (badge numerico col conteggio filtri
+  attivi accanto): `page.getByRole('button', { name: 'Filtro' }).click()`. Se un selettore per testo esatto va
+  in "strict mode violation" con più corrispondenze, è quasi sempre perché un `<select>` di un `TernaryFilter`
+  contiene un `<option>` con lo stesso testo del bottone/tab cercato (es. opzione "Attive" dentro un filtro
+  "Scaduto") — disambiguare con `getByRole` invece di `getByText`.
 
 ## Pixel-perfect login/recupero password (ciclo `ralph/login-design-pixel-fixes`, US-004+)
 
@@ -826,3 +833,209 @@ verificati esplicitamente, non assunti allineati.
   prima che arrivasse a un deploy reale. Pattern riusabile: qualunque futura estensione PHP aggiunta via
   `docker-php-ext-install` su un'immagine Alpine va verificata per bisogni di `-dev`/`-headers` aggiuntivi, non
   assunta compilabile con i soli `${PHPIZE_DEPS}` già presenti.
+
+## Griglia reattiva (Placeholder + `Get`) e permesso distinto per un'azione dentro una Resource già autorizzata (`FundraisingOpportunityResource`, US-504)
+
+- **Un `Placeholder::make(...)->content(function (Get $get) {...})` SI aggiorna da solo quando un altro campo
+  dello stesso schema ha `->live()`**, senza bisogno di marcare il Placeholder stesso: ogni richiesta Livewire
+  innescata da un campo `->live()` ri-renderizza l'intero schema e rivaluta tutte le closure `content()`/`visible()`
+  con lo stato corrente. Nessun `wire:poll`/computed property extra necessario per un totale calcolato in tempo
+  reale da altri campi del form (pattern generico, non specifico a Fundraising).
+- **Gotcha di verifica Playwright su un campo `->live()` senza `onBlur: true`**: il default (`wire:model.live` su
+  evento `input`, nessun debounce esplicito) parte comunque con un piccolo ritardo lato Livewire. Uno script che fa
+  `fill()` + `blur()` + `waitForLoadState('networkidle')` può leggere `networkidle` PRIMA che la richiesta
+  Livewire sia partita (nessuna richiesta ancora in volo = "idle" falso positivo) e screenshottare lo stato vecchio
+  — successo scoperto verificando US-504, il Placeholder sembrava "non reattivo" ma era solo un problema dello
+  script di verifica, non del codice. Serve un `waitForTimeout(...)` esplicito (800–1200ms) DOPO il cambio,
+  PRIMA di `waitForLoadState('networkidle')`, ogni volta che si verifica in browser un campo `->live()` di
+  Filament senza `onBlur: true`.
+- **`Tabs`/`Tab` di `Filament\Schemas\Components\Tabs` sono puro layout**: non alterano lo state path dei campi
+  annidati, quindi avvolgere un form Filament esistente in `Tabs::make(...)->tabs([...])` non richiede toccare
+  i test esistenti che usano `fillForm(['campo' => ...])` con i nomi originali.
+- **Un tab/azione dentro una Resource già gated da un permesso "generico" (qui `fundraising.update`, che apre la
+  pagina Edit) può richiedere un permesso PIÙ specifico per una singola sotto-funzionalità** (qui
+  `fundraising.evaluate`, distinto e già esistente nel catalogo `Permission`/nella `Policy::evaluate()` da
+  scaffolding precedente, semplicemente mai consumato finché non è arrivata la story che lo richiedeva) —
+  `->visible(fn () => Auth::user()?->can(Permission::X))` sul tab/campo interessato basta come UI gating: Filament
+  esclude i componenti non visibili anche dalla dehydration di `getState()` durante il save, quindi lo stato di un
+  tab nascosto non arriva mai al metodo che salva. Un controllo esplicito lato server (`abort_unless($user->can(...), 403)`
+  nel punto in cui i dati di quel tab vengono effettivamente persistiti) resta comunque la difesa autorevole — non
+  fidarsi della sola visibilità come unico confine di sicurezza, anche se in pratica risulta irraggiungibile dal
+  flusso normale di Livewire. Verificare sempre prima nel catalogo `Permission`/nelle `Policy` esistenti se un
+  permesso più specifico di quello che gestisce l'intera Resource è già stato predisposto da una fase precedente,
+  prima di riusare quello generico per una sotto-funzionalità che meriterebbe il proprio controllo.
+
+## `view.involved` per-record vs per-modulo, e query "coinvolti" su relazioni multiple (`FundraisingProject`, US-506)
+
+- **`fundraising.view.involved` non ha lo stesso significato su tutti i model del dominio**: su `FundraisingOpportunity`
+  è un OK generico (qualunque customer autenticato vede qualunque opportunità, §6.6.4), ma su `FundraisingProject` è
+  per-record (§6.6.3: solo capofila/partner/responsabile/creatore). `FundraisingProjectPolicy::view()` quindi NON
+  può delegare a `viewAny()` come `FundraisingOpportunityPolicy::view()` fa — verificare sempre nel PRD se
+  "coinvolto" è definito a livello di modulo o di singolo record prima di riusare lo stesso pattern tra due Policy
+  dello stesso dominio che sembrano simili.
+- **Pattern "coinvolti" (OR su più colonne + una pivot)**: `FundraisingProject::scopeInvolving(Builder $query, User $user)`
+  combina `where('lead_user_id', ...)->orWhere('responsible_user_id', ...)->orWhere('created_by', ...)->orWhereHas('partners', ...)`
+  dentro un unico `where(function ...)` innestato, cosi resta sicuro anche se incatenato dopo altri `where()` (stesso
+  idioma di `Ticket::scopeVisibleTo()`). Riusabile in US-507 (filtro "coinvolti" sull'elenco progetti) e US-508
+  (vista cliente) chiamando `FundraisingProject::query()->involving($user)` invece di riscrivere la condizione.
+- **Fix del bug v1 `partnerCustomers()`**: v1 filtrava i partner con ruolo customer con `whereHas('roles', ...)` su
+  una colonna JSON (query non eseguibile). In v2 i ruoli sono la pivot Spatie `model_has_roles`, esposta dalla
+  relazione `roles()` di `HasRoles` sul model `User` — un `whereHas('roles', fn ($q) => $q->where('name', UserRole::Customer->value))`
+  incatenato su una `BelongsToMany` esistente (qui `partners()`) funziona senza bisogno di join manuali.
+- **Macchina a stati "leggera"**: `FundraisingProjectStateMachine` replica solo la parte tabellare/dichiarativa di
+  `TicketStateMachine` (`transitions()`/`canTransitionTo()`/`authorize()` che lancia `ValidationException`), SENZA
+  il livello `TransitionActor`/`effects`/guard-per-transizione: nessun acceptance criteria di US-506 richiede
+  un'autorizzazione differenziata per attore sulla stessa transizione (a differenza dei ticket, dove assignee/tester/
+  admin hanno diritti diversi sullo stesso stato) — l'autorizzazione resta quella uniforme della Policy
+  (`fundraising.update`). Non aggiungere la macchina completa "per coerenza" se l'AC non la richiede.
+
+## Filtri "capofila/partner/coinvolti" su una Resource, secondo RelationManager, select cross-dominio ristretta per Policy (`FundraisingProjectResource`, US-507)
+
+- **`SelectFilter::make(...)->relationship('nomeRelazione', 'colonnaTitolo')` funziona sia su una `BelongsTo`
+  (qui `lead_user_id` → `leadUser`) sia su una `BelongsToMany` (qui `partner` → `partners()`)**: in test,
+  `filterTable('lead_user_id', $id)` / `filterTable('partner', $id)` impostano entrambi `['value' => $id]`
+  (vedi `vendor/filament/tables/src/Testing/TestsFilters.php`), Filament costruisce da sé la `whereHas`
+  giusta in base al tipo di relazione — nessuna differenza nel codice del test tra i due casi.
+- **Filtro booleano "coinvolti" con `Filter::make(...)->toggle()->query(...)`**: in test si usa
+  `filterTable('nome', true)` (imposta `isActive => true`), MAI `filterTable('nome', ['value' => ...])`
+  come per un `SelectFilter`/`TernaryFilter` — sono tre meccanismi di stato diversi nello stesso helper
+  (`value` per `SelectFilter`, `value` anche per `TernaryFilter` ma con default `true` se omesso, `isActive`
+  per un `Filter` generico). La query di un `Filter::make()` riusa direttamente lo scope del model
+  (`->query(fn (Builder $query) => $query->involving(Auth::user()))`), mai una condizione OR riscritta qui.
+- **`Livewire::test(NomeRelationManager::class, [...])->callTableAction('attach', data: [...])` (il pattern
+  documentato sopra per `UsersRelationManager`, US-407) NON funziona più in modo affidabile in questo ambiente**:
+  fallisce con `"mountedActions.0.data.recordId": "The record field is required"` anche passando `recordId`
+  esplicito — stesso sintomo, root cause diversa, della voce sotto su `fillForm()`. Workaround verificato:
+  `mountTableAction('attach')` → `->set('mountedActions.0.data.recordId', $id)` → `callMountedTableAction()`
+  → `assertHasNoTableActionErrors()`. Aggiornare qualunque test futuro su `AttachAction`/azioni con `data`
+  a questo pattern, non al vecchio `callTableAction(..., data: [...])`.
+- **`fillForm()` nei test Livewire NON applica più correttamente lo stato in questo ambiente, su QUALUNQUE
+  form Filament del repo, non solo Fundraising**: verificato isolando la causa a `Filament\Schemas\Concerns\InteractsWithSchemas::fillFormDataForTesting()`
+  (il metodo interno che `fillForm()` chiama per iniettare i dati nei test) — un `->set('data.<campo>', valore)`
+  esplicito applica invece lo stato correttamente e permette comunque di eseguire `->call('create')`/`->call('save')`
+  con dati reali. Confermato con `git stash` che il problema è preesistente al lavoro di Fase 5 (già presente
+  su `TicketResourceTest.php` a HEAD prima di questa story, 7 test su 16 già rotti, mai investigato prima
+  perché nessuna story precedente aveva rilanciato quel file specifico) — root cause non ancora identificata
+  (possibile regressione di una dipendenza `filament/filament`/`livewire/livewire`, mai isolata a un commit
+  preciso). **Per qualunque nuovo test che compila un form Filament**: preferire `->set('data.<campo>', valore)`
+  campo per campo invece di `->fillForm([...])` finché la causa non viene isolata e corretta — è un problema
+  di framework/ambiente più esteso dei "4 fallimenti noti" già documentati altrove in questo file, non solo
+  di Fundraising. Chi riprende in mano questo problema dovrebbe iniziare bisecando le versioni installate di
+  `filament/filament`/`livewire/livewire` in `composer.lock`, non il codice applicativo.
+- **Un `RelationManager` con una sola tabella (nessun tab multiplo) si carica comunque in modo "lazy"
+  via `x-intersect` (IntersectionObserver Alpine.js)**: nell'HTML iniziale appare come un placeholder vuoto
+  `role="status" aria-busy="true"` con altezza fissa, senza alcun errore in console/log — sparisce solo
+  quando il browser rileva che l'elemento è entrato nel viewport e Livewire completa la richiesta AJAX di
+  caricamento. Uno screenshot Playwright `fullPage: true` scattato subito dopo `waitForLoadState('networkidle')`
+  può catturare ancora questo placeholder (falso negativo "il RelationManager non si vede"): prima dello
+  screenshot, `scrollIntoViewIfNeeded()` sull'elemento `[role="status"][aria-busy="true"]` e attendere che
+  sparisca (`waitForSelector(..., { state: 'detached' })`) invece di un semplice `waitForTimeout()`.
+- **Un `Select::make(...)->relationship(..., modifyQueryUsing: ...)` su un model di un dominio DIVERSO da
+  quello della Resource corrente (qui `Ticket` → `FundraisingProject`, mai incontrato prima nel repo) è il
+  posto giusto per applicare lo stesso filtro di visibilità della Policy del dominio target**, replicando a
+  mano la logica di `Policy::view()`/`viewAny()` di quel dominio (qui: `FundraisingViewAny` → tutti,
+  `FundraisingViewInvolved` → solo `->involving($user)`, nessuno dei due → nessuna opzione) invece di esporre
+  l'intero elenco indiscriminatamente solo perché il campo vive in una sezione già gated da un permesso di
+  un dominio diverso (`ticket.manage-internal-fields`). Il `modifyQueryUsing` restringe le opzioni della
+  select, non è (da solo) una validazione server-side dura sul valore salvato — se in futuro serve bloccare
+  anche un ID iniettato via richiesta manipolata, va aggiunta separatamente una regola `exists` scoperta
+  sulla stessa query o un controllo esplicito nell'Action di salvataggio.
+
+## Vista cliente in sola lettura come Resource Filament separata dalla Resource staff (`CustomerFundraisingOpportunityResource`/`CustomerFundraisingProjectResource`, US-508)
+
+- **Pattern riusabile "stessa entità, due Resource Filament distinte, staff CRUD vs cliente sola lettura"**:
+  quando un dominio ha sia una Resource di gestione staff (`FundraisingOpportunityResource`/
+  `FundraisingProjectResource`) sia una vista cliente con permessi/scope diversi (§6.6.4), NON provare a far
+  convivere i due casi d'uso in un'unica Resource con `visible()` condizionali sui campi/azioni — creare una
+  seconda Resource dedicata (`Customer<Nome>Resource`), stesso model, `getPages()` che registra SOLO
+  `'index'`/`'view'` (mai `'create'`/`'edit'`/`'delete'`: sola lettura reale, non azioni nascoste in UI),
+  `table()`/`infolist()` con solo i campi previsti per il cliente (mai responsabile/creatore/dati di
+  valutazione interni), `headerActions([])`/`toolbarActions([])` sulla tabella, un solo `ViewAction::make()`
+  come `recordActions()`. Le pagine List/View di sola lettura non hanno bisogno di override di
+  `getHeaderActions()` per `ViewRecord` (default già vuoto, nessuna `EditAction` a meno di aggiungerla
+  esplicitamente come fa `ViewUser`), ma serve per `ListRecords` (default include una `CreateAction`
+  condizionata da `canCreate()`: meglio azzerarla esplicitamente per chiarezza, pattern già usato da
+  `ListActivityReports`).
+- **Evitare due voci di navigazione duplicate per lo stesso dominio quando entrambe le Resource condividono
+  lo stesso `Policy::viewAny()` permissivo**: `FundraisingOpportunityPolicy`/`FundraisingProjectPolicy::viewAny()`
+  ritornano true sia per chi ha `fundraising.view.any` (staff) sia per chi ha solo `fundraising.view.involved`
+  (cliente, US-501/US-506), quindi nessuna delle due Resource può delegare `canViewAny()` al default
+  Filament→Policy. La Resource staff resta ristretta a `->can(FundraisingViewAny)` (già da US-502/US-507); la
+  Resource cliente usa il gate simmetrico e opposto `->can(FundraisingViewInvolved) && ! ->can(FundraisingViewAny)`
+  — nella matrice ruoli attuale (§9.4, `RolePermissionSeeder::ROLE_PERMISSIONS`) l'unico ruolo con
+  `view.involved` ma senza `view.any` è `customer`, quindi ogni altro ruolo vede al massimo una delle due
+  Resource, mai zero e mai due.
+- **Due scope diversi sullo stesso model per due significati diversi di "coinvolto", NON un unico scope
+  riusato ovunque**: `FundraisingProject::scopeInvolving()` (US-506, uso interno staff/filtro §6.6.3) include
+  capofila, partner, responsabile E creatore — semanticamente corretto per un membro dello staff che vuole
+  "i progetti su cui sto lavorando in qualunque ruolo". La vista cliente (§6.6.4) è esplicitamente più
+  stretta: SOLO capofila o partner, responsabile/creatore sono ruoli interni allo staff e non devono mai far
+  apparire un progetto nella lista di un cliente. Riscrivere `scopeInvolving()` per escluderli avrebbe rotto
+  i test di Policy già committati in US-506 (`FundraisingProjectPolicyTest`, che asserisce esplicitamente che
+  un customer impostato come `responsible_user_id`/`created_by` PUÒ vedere il progetto via `Policy::view()` —
+  ability generica, mai raggiunta in pratica da staff perché short-circuita prima su `FundraisingViewAny`).
+  Soluzione: un secondo scope dedicato `scopeInvolvingAsCustomer()` (solo `lead_user_id`/`partners`), usato
+  ESCLUSIVAMENTE da `CustomerFundraisingProjectResource::getEloquentQuery()` — mai dalla Policy generica, che
+  resta quella dello staff. Se compaiono due AC che descrivono "coinvolgimento" con perimetri diversi sullo
+  stesso model, non assumere che debbano condividere lo stesso scope solo perché il nome è simile.
+- **Difesa a due livelli per "il dettaglio non è raggiungibile via URL diretto se non coinvolto" (stesso
+  principio di `DocumentationPageResource`/`ActivityReportResource`)**: `getEloquentQuery()` incatena SEMPRE
+  lo scope di visibilità PRIMA che Filament risolva il route-model-binding di `ViewRecord` — un record fuori
+  scope dà **404** (`ModelNotFoundException`), non 403, perché la richiesta non arriva mai fino al controllo
+  Policy. Il test HTTP corrispondente deve quindi asserire `assertNotFound()`, non `assertForbidden()`, per un
+  record esistente ma fuori dallo scope del cliente corrente (diverso dal caso "nessun permesso sul modulo
+  intero", quello sì `assertForbidden()` su `canViewAny()` a livello di indice/Resource).
+
+## Checkpoint di fine Fase 5 (US-509): riferimento a percorso nudo nel manifest, dati reali senza valutazioni v1
+
+- **Un test Pest con l'apostrofo nella propria descrizione non ha SEMPRE un test equivalente senza
+  apostrofo da usare al suo posto nel manifest** (la soluzione già documentata sopra per Fase 4,
+  "scegliere un test reale equivalente ma senza apostrofo"): `CreateProjectAndTicketActionsTest.php`
+  (US-505) ha tutti e 5 i suoi test con un apostrofo nella descrizione (`un'opportunità`, `l'azione`),
+  nessuna alternativa apostrofo-libera copre lo stesso AC. In questo caso il riferimento
+  `test_automatico` nel manifest può essere il solo percorso del file, SENZA `::descrizione`
+  (`CollaudoTestReference::description()` restituisce `null`, `collaudo:verify-manifest` allora si
+  limita a `file_exists()`, documentato esplicitamente come comportamento supportato, non un
+  workaround): resta un riferimento reale e verificabile, solo più debole (non rileva la cancellazione
+  di un singolo test nel file, solo del file intero). Preferire comunque un test apostrofo-libero
+  quando esiste; usare il percorso nudo solo quando non esiste alternativa.
+- **La griglia di valutazione fundraising (§6.6.2) non ha MAI avuto un solo punteggio reale in tutta
+  la storia v1**, confermato due volte con dati reali indipendenti: prima a livello di schema
+  (`FundraisingScoresStage`, Fase 2/US-213, che rileva dinamicamente l'assenza delle colonne
+  `evaluation_*_score` sul dump v1), poi di nuovo qui con un `v1:import --anonymize` fresco sul dump
+  più recente (`v1dumps/latest.sql`, 27/08/2026): 21 opportunità importate, 33 progetti, 9 partner,
+  **0** righe `fundraising_evaluation_scores`, **0** opportunità con un totale di valutazione non
+  nullo. L'AC "i totali ricalcolati devono coincidere con quelli già presenti dall'ETL" (US-509, §14)
+  è quindi banalmente vero sui dati reali odierni (non c'è nulla da riconciliare) — verificarlo in
+  modo non vacuo richiede di persistere punteggi REALI tramite `SaveEvaluationScores` (il percorso
+  applicativo v2, mai un insert diretto) su un'opportunità importata, non semplicemente rileggere le
+  colonne già nulle. Se in futuro arriva un dump v1 con dati di valutazione storici reali (nessuno
+  visto finora), questo AC diventerebbe finalmente verificabile in modo non vacuo: da segnalare al
+  committente, non un lavoro da anticipare senza quei dati.
+- **Aggiungere/rimuovere un case enum temporaneo per verificare un AC ("un criterio aggiunto a
+  runtime viene incluso nel calcolo") lascia SEMPRE una traccia di verifica con `git diff --stat` sul
+  file dell'enum prima di `git checkout --` per confermare che il ripristino sia stato bit-per-bit
+  identico** (non fidarsi a occhio del diff testuale): lo stesso principio già in uso per i dati di
+  record reali (Fase 4, "ripristinare `estimated_hours` a `null` dopo la verifica") si applica
+  identico al codice, non solo ai dati.
+- **La suite Pest COMPLETA (`vendor/bin/pest` senza filtri) dà esiti stabilmente diversi su host
+  (PHP 8.5.7 macOS) e dentro il container Docker `app` (PHP 8.4.24 Alpine)**, a parità di
+  `phpunit.xml` (stesso `DB_CONNECTION=sqlite`/`DB_DATABASE=:memory:` in entrambi, non è quindi un
+  fattore DB): sull'host, in questa story, solo i 10 test `Collaudo*`/`LatexPdfCompilerTest` già
+  documentati falliscono (mancanza di `pdflatex`, ambientale e noto); dentro il container la suite
+  completa fallisce invece in modo RIPRODUCIBILE (stesso identico conteggio, 50 failed/1332 passed,
+  su due esecuzioni separate — non è flakiness da `--parallel` né da contesa fra processi, verificato
+  eseguendo un solo processo pest alla volta) su un insieme ampio e trasversale di file MAI toccati da
+  Fase 5 (Mail, Ticketing, Identity, Organizations, Documentation, PasswordReset). La maggioranza di
+  questi è la stessa causa radice già documentata per il bug `->fillForm()` (Livewire, "Scoperta
+  significativa" in `scripts/ralph/progress.txt`, US-507): quel bug a quanto pare non si manifesta in
+  modo identico sulle due versioni di PHP, il che spiega perché sull'host la suite `--filter=Fundraising`
+  di questa story risulti 172/172 verde mentre nel container alcuni dei suoi stessi test (quelli con
+  `->fillForm()`/apostrofo già noti: `FundraisingOpportunityResourceTest`, `CreateProjectAndTicketActionsTest`,
+  `FundraisingEvaluationGridTest`) risultino rossi. **Prima di dichiarare una regressione da un cambiamento
+  di questa fase, isolare sempre con `--filter=<Dominio>` sia su host sia nel container**: se il filtro
+  mirato è verde su host e le uniche righe rosse nella suite completa del container ricadono in file mai
+  toccati da questa story, è quasi certamente questo stesso gap ambientale PHP 8.4/8.5, non una
+  regressione — da segnalare al committente/team come debito tecnico esistente (differenza di versione
+  PHP fra ambiente di sviluppo locale e immagine Docker `app`), non da inseguire dentro il budget di un
+  singolo checkpoint di fine fase.

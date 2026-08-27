@@ -7,6 +7,7 @@ namespace App\Domain\Fundraising\Models;
 use App\Domain\Fundraising\Enums\TerritorialScope;
 use App\Domain\Identity\Models\User;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -75,5 +76,28 @@ class FundraisingOpportunity extends Model
     public function projects(): HasMany
     {
         return $this->hasMany(FundraisingProject::class);
+    }
+
+    public function isExpired(): bool
+    {
+        return $this->deadline->lt(today());
+    }
+
+    /**
+     * @param  Builder<FundraisingOpportunity>  $query
+     * @return Builder<FundraisingOpportunity>
+     */
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->whereDate('deadline', '>=', today());
+    }
+
+    /**
+     * @param  Builder<FundraisingOpportunity>  $query
+     * @return Builder<FundraisingOpportunity>
+     */
+    public function scopeExpired(Builder $query): Builder
+    {
+        return $query->whereDate('deadline', '<', today());
     }
 }

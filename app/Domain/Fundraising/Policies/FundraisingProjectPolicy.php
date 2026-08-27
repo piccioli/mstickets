@@ -19,9 +19,25 @@ class FundraisingProjectPolicy
         return $user->canAny([Permission::FundraisingViewAny, Permission::FundraisingViewInvolved]);
     }
 
+    /**
+     * A differenza di FundraisingOpportunityPolicy::view() (§9.4: qualunque customer
+     * vede qualunque opportunità), `view.involved` su un progetto è per-record
+     * (§6.6.3: capofila/partner/responsabile/creatore), mai un OK generico da viewAny().
+     */
     public function view(User $user, FundraisingProject $fundraisingProject): bool
     {
-        return $this->viewAny($user);
+        if ($user->can(Permission::FundraisingViewAny)) {
+            return true;
+        }
+
+        if (! $user->can(Permission::FundraisingViewInvolved)) {
+            return false;
+        }
+
+        return FundraisingProject::query()
+            ->whereKey($fundraisingProject->getKey())
+            ->involving($user)
+            ->exists();
     }
 
     public function create(User $user): bool
