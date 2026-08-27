@@ -68,3 +68,21 @@ test('un utente fundraising può aggiungere e rimuovere un partner dal progetto'
 
     expect($project->partners()->pluck('users.id')->all())->not->toContain($partner->id);
 });
+
+test('un utente disattivato non è allegabile come partner (US-608)', function (): void {
+    $this->seed(RolePermissionSeeder::class);
+    $this->actingAs(withRole(User::factory()->create(), UserRole::Fundraising));
+
+    $project = makeFundraisingProjectForRelationManagerTest();
+    $deactivatedPartner = User::factory()->create(['deactivated_at' => now()]);
+
+    Livewire::test(PartnersRelationManager::class, [
+        'ownerRecord' => $project,
+        'pageClass' => EditFundraisingProject::class,
+    ])
+        ->mountTableAction('attach')
+        ->set('mountedActions.0.data.recordId', $deactivatedPartner->id)
+        ->callMountedTableAction();
+
+    expect($project->partners()->pluck('users.id')->all())->not->toContain($deactivatedPartner->id);
+});

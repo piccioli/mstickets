@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Users\Pages;
 
+use App\Filament\Resources\Users\Support\DeactivateUserAction;
 use App\Filament\Resources\Users\UserResource;
 use Filament\Actions\EditAction;
 use Filament\Facades\Filament;
@@ -26,6 +27,9 @@ class ViewUser extends ViewRecord
             Impersonate::make()
                 ->record($this->getRecord())
                 ->redirectTo(fn (): string => Filament::getCurrentOrDefaultPanel()->getUrl()),
+            // Disattiva/Riattiva (§6.7.5, US-608): vedi DeactivateUserAction per il dettaglio.
+            DeactivateUserAction::make()
+                ->record($this->getRecord()),
         ];
     }
 }

@@ -1178,3 +1178,35 @@ verificati esplicitamente, non assunti allineati.
   (le expectation successive sul metodo `info` contano le invocazioni cumulate, non solo quelle che
   combaciano con la propria closure) — catturare invece la cronologia reale con `Log::listen(function
   ($event) use (&$logs) { $logs[] = [...]; })` e asserire sull'array raccolto.
+
+## Disattivazione utente — un solo choke point per la soppressione email, `recordSelectOptionsQuery` per i picker M:N (US-608, §6.7.5)
+
+- Azione "Disattiva"/"Riattiva" unica (mai due Action separate) estratta in
+  `App\Filament\Resources\Users\Support\DeactivateUserAction::make()`, riusata sia dalla riga di
+  `UsersTable` sia dall'header di `ViewUser` (stesso idioma di `TicketTransitionActions`/`Impersonate`).
+  Autorizzazione delegata interamente a `UserPolicy::deactivate()` (`Permission::UserDeactivate`, unica
+  fonte di verità, nessun controllo di ruolo duplicato nell'Action). Valorizza/azzera `deactivated_at`
+  con un assegnamento diretto di proprietà + `save()`, mai `fill()`/`update()`: la colonna non è nel
+  `#[Fillable]` del model *di proposito* (non deve essere editabile dal form utente), quindi un
+  mass-assignment verrebbe scartato silenziosamente senza errore.
+- **La soppressione delle comunicazioni per un utente disattivato va aggiunta in UN SOLO punto**:
+  `SendOutboundTicketMail::blockedReason()`. È l'unico punto di invio dell'intero catalogo E1-E11
+  (documentato nella classe stessa), quindi un controllo `if ($recipient->deactivated_at !== null)`
+  lì copre automaticamente ogni Mailable futuro, senza dover filtrare a monte ogni possibile fonte del
+  destinatario (`NotificationRecipientResolver::usersForRole()` risolve `Requester`/`Assignee`/`Tester`
+  direttamente dalle relazioni del ticket, SENZA `->active()` — e va bene così: filtrare lì sarebbe
+  ridondante e più fragile di un controllo unico a valle, prima dell'invio vero e proprio).
+- **Verificare ogni picker "utente" prima di dare per scontato che escluda i disattivati**: `Select` su
+  relazioni dirette (`belongsTo`, es. `assignee_id`/`tester_id` di `TicketForm`) si scopano con
+  `->relationship('assignee', 'name', modifyQueryUsing: self::activeUsersQuery(...))`; un `AttachAction`
+  su relazione `belongsToMany` (es. `PartnersRelationManager`, partner ↔ progetto fundraising) è un
+  meccanismo DIVERSO e va scopato con `->recordSelectOptionsQuery(fn (Builder $query) => $query
+  ->active())` — nessuno dei due copre l'altro caso, un audit di "tutti i picker utente pertinenti"
+  deve controllare quale dei due meccanismi usa ciascuna Resource/RelationManager. Effetto lato server
+  gratuito: `AttachAction` ri-applica la stessa query scopata nel proprio `action()` per ri-risolvere il
+  record dal `recordId` inviato — un id di un utente disattivato non viene trovato, quindi non viene
+  mai allegato, anche in un'ipotetica richiesta malformata che aggirasse la UI.
+- Gotcha PHPStan: `Builder $query` (non generico) non porta il tipo del model collegato, quindi
+  `$query->active()` (local scope di `User`) risulta "metodo indefinito" — va estratto in un metodo
+  privato tipizzato `@param Builder<User> $query` / `@return Builder<User>` (mai una closure inline),
+  stesso pattern già in uso da `TicketForm::activeUsersQuery()`.

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources\Users\Tables;
 
 use App\Domain\Identity\Enums\UserRole;
+use App\Filament\Resources\Users\Support\DeactivateUserAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -52,6 +53,8 @@ class UsersTable
                 // ruolo (US-602, `Dashboard::mount()`).
                 Impersonate::make()
                     ->redirectTo(fn (): string => Filament::getCurrentOrDefaultPanel()->getUrl()),
+                // Disattiva/Riattiva (§6.7.5, US-608): vedi DeactivateUserAction per il dettaglio.
+                DeactivateUserAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

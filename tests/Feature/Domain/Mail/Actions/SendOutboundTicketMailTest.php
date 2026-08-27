@@ -76,6 +76,19 @@ test('does not queue the mailable and marks the row suppressed when the recipien
     Mail::assertNothingQueued();
 });
 
+test('does not queue the mailable and marks the row suppressed when the recipient is deactivated (US-608)', function (): void {
+    Mail::fake();
+
+    $recipient = User::factory()->create(['email' => 'cliente@example.test', 'deactivated_at' => now()]);
+
+    $outbound = sendOutboundExampleMail($recipient);
+
+    expect($outbound->status)->toBe(EmailStatus::Suppressed)
+        ->and($outbound->failure_reason)->not->toBeNull();
+
+    Mail::assertNothingQueued();
+});
+
 test('does not queue the mailable when the recipient disabled this notification type', function (): void {
     Mail::fake();
 

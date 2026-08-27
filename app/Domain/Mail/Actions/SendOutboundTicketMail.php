@@ -31,8 +31,9 @@ use Illuminate\Support\Str;
  * La riga `email_messages` outbound è SEMPRE creata, anche quando l'invio è
  * bloccato (`status = Suppressed`, mai un salto silenzioso: §7.7, ogni email
  * deve restare ispezionabile dall'amministrazione). Il Mailable è accodato
- * SOLO quando il destinatario non è in `email_suppressions` e non ha
- * disattivato questo tipo di notifica in `notification_preferences`.
+ * SOLO quando il destinatario non è disattivato (`deactivated_at`, US-608),
+ * non è in `email_suppressions` e non ha disattivato questo tipo di notifica
+ * in `notification_preferences`.
  *
  * `$ticket` è nullable (US-312): una comunicazione del catalogo non sempre
  * si riferisce a un ticket esistente (es. E9, notifica staff per un mittente
@@ -87,6 +88,14 @@ final class SendOutboundTicketMail
     private static function blockedReason(User $recipient, NotificationType $notificationType): ?string
     {
         $email = mb_strtolower($recipient->email);
+
+        // US-608, §6.7.5: un controllo aggiuntivo, non una nuova soppressione — un
+        // destinatario disattivato non riceve più nessuna comunicazione del catalogo
+        // E1-E11, a prescindere dal ruolo con cui è stato risolto (richiedente,
+        // assegnatario, tester, gruppo staff, ...).
+        if ($recipient->deactivated_at !== null) {
+            return 'destinatario disattivato';
+        }
 
         if (EmailSuppression::query()->active()->whereRaw('lower(email) = ?', [$email])->exists()) {
             return 'destinatario in email_suppressions';
