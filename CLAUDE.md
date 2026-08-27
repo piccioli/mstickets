@@ -833,3 +833,34 @@ verificati esplicitamente, non assunti allineati.
   prima che arrivasse a un deploy reale. Pattern riusabile: qualunque futura estensione PHP aggiunta via
   `docker-php-ext-install` su un'immagine Alpine va verificata per bisogni di `-dev`/`-headers` aggiuntivi, non
   assunta compilabile con i soli `${PHPIZE_DEPS}` già presenti.
+
+## Griglia reattiva (Placeholder + `Get`) e permesso distinto per un'azione dentro una Resource già autorizzata (`FundraisingOpportunityResource`, US-504)
+
+- **Un `Placeholder::make(...)->content(function (Get $get) {...})` SI aggiorna da solo quando un altro campo
+  dello stesso schema ha `->live()`**, senza bisogno di marcare il Placeholder stesso: ogni richiesta Livewire
+  innescata da un campo `->live()` ri-renderizza l'intero schema e rivaluta tutte le closure `content()`/`visible()`
+  con lo stato corrente. Nessun `wire:poll`/computed property extra necessario per un totale calcolato in tempo
+  reale da altri campi del form (pattern generico, non specifico a Fundraising).
+- **Gotcha di verifica Playwright su un campo `->live()` senza `onBlur: true`**: il default (`wire:model.live` su
+  evento `input`, nessun debounce esplicito) parte comunque con un piccolo ritardo lato Livewire. Uno script che fa
+  `fill()` + `blur()` + `waitForLoadState('networkidle')` può leggere `networkidle` PRIMA che la richiesta
+  Livewire sia partita (nessuna richiesta ancora in volo = "idle" falso positivo) e screenshottare lo stato vecchio
+  — successo scoperto verificando US-504, il Placeholder sembrava "non reattivo" ma era solo un problema dello
+  script di verifica, non del codice. Serve un `waitForTimeout(...)` esplicito (800–1200ms) DOPO il cambio,
+  PRIMA di `waitForLoadState('networkidle')`, ogni volta che si verifica in browser un campo `->live()` di
+  Filament senza `onBlur: true`.
+- **`Tabs`/`Tab` di `Filament\Schemas\Components\Tabs` sono puro layout**: non alterano lo state path dei campi
+  annidati, quindi avvolgere un form Filament esistente in `Tabs::make(...)->tabs([...])` non richiede toccare
+  i test esistenti che usano `fillForm(['campo' => ...])` con i nomi originali.
+- **Un tab/azione dentro una Resource già gated da un permesso "generico" (qui `fundraising.update`, che apre la
+  pagina Edit) può richiedere un permesso PIÙ specifico per una singola sotto-funzionalità** (qui
+  `fundraising.evaluate`, distinto e già esistente nel catalogo `Permission`/nella `Policy::evaluate()` da
+  scaffolding precedente, semplicemente mai consumato finché non è arrivata la story che lo richiedeva) —
+  `->visible(fn () => Auth::user()?->can(Permission::X))` sul tab/campo interessato basta come UI gating: Filament
+  esclude i componenti non visibili anche dalla dehydration di `getState()` durante il save, quindi lo stato di un
+  tab nascosto non arriva mai al metodo che salva. Un controllo esplicito lato server (`abort_unless($user->can(...), 403)`
+  nel punto in cui i dati di quel tab vengono effettivamente persistiti) resta comunque la difesa autorevole — non
+  fidarsi della sola visibilità come unico confine di sicurezza, anche se in pratica risulta irraggiungibile dal
+  flusso normale di Livewire. Verificare sempre prima nel catalogo `Permission`/nelle `Policy` esistenti se un
+  permesso più specifico di quello che gestisce l'intera Resource è già stato predisposto da una fase precedente,
+  prima di riusare quello generico per una sotto-funzionalità che meriterebbe il proprio controllo.
