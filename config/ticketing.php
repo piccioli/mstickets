@@ -100,4 +100,19 @@ return [
         'schedule_cron' => env('TICKET_WAITING_REMINDER_SCHEDULE_CRON', '0 6 * * *'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Badge di navigazione (§8.4 del PRD, US-604)
+    |--------------------------------------------------------------------------
+    |
+    | TTL della cache dei conteggi "in attesa"/"problemi"/"da testare" mostrati
+    | sulla voce di menu Ticket: evita una query sincrona a ogni caricamento di
+    | pagina, per utente autenticato (chiave di cache scoped su user id).
+    |
+    */
+
+    'navigation_badges' => [
+        'cache_ttl_seconds' => (int) env('TICKET_NAVIGATION_BADGE_TTL', 60),
+    ],
+
 ];

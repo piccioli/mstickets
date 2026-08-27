@@ -1070,3 +1070,28 @@ verificati esplicitamente, non assunti allineati.
   viene reindirizzato altrove nel suo `mount()` (dopo US-602 anche customer e fundraising, prima di allora
   solo staff): altrimenti resta una voce "Dashboard" cliccabile che si limita a rimbalzare l'utente altrove,
   duplicando la voce "Dashboard" reale (`CustomerDashboard`) per un customer.
+
+## Badge di navigazione combinato con cache — `getNavigationBadge()` su una Resource singola (`TicketResource`, US-604, §8.4)
+
+- `TicketResource` è l'UNICA voce di menu per i ticket (US-110, AC #1: "nessuna sottoclasse per filtro" —
+  ogni vista per stato è una tab di `ListTickets`, mai una Resource/Page dedicata). Un requisito che chiede
+  un badge "per voce di menu" su più stati (qui: in attesa/problema/da testare) non può tradursi in tre
+  `getNavigationBadge()` distinti, perché non esistono tre voci — la soluzione è UN SOLO badge con il
+  conteggio combinato (somma) più `getNavigationBadgeColor()`/`getNavigationBadgeTooltip()` per comunicare
+  il dettaglio per categoria (colore = categoria più urgente presente, tooltip = riga con i tre conteggi).
+  Riusare questo stesso schema per qualunque futuro badge "per stato" su una Resource a viste-come-tab.
+- I conteggi riusano direttamente i query object esistenti (`WaitingQuery`/`ProblemTicketsQuery`/
+  `ToTestByMeQuery` in `App\Domain\Ticketing\Queries`, già scoped per Policy/`tester_id`) — mai una nuova
+  query duplicata solo per il badge.
+- Cache: UNA sola chiamata `Cache::remember()` per tutti e tre i conteggi insieme (array associativo),
+  chiave scoped per utente (`ticket-navigation-badge-counts:{user_id}`), TTL da
+  `config('ticketing.navigation_badges.cache_ttl_seconds')` (env `TICKET_NAVIGATION_BADGE_TTL`). I tre
+  metodi `getNavigationBadge*()` chiamano lo stesso helper privato: nessuna query duplicata anche se
+  Filament invoca badge/colore/tooltip separatamente nello stesso render.
+- Gotcha PHPStan: un metodo static **privato** chiamato con `static::` (non `self::`) dentro la stessa
+  classe genera `staticClassAccess.privateMethod` ("Unsafe call to private method ... through static.") —
+  usare sempre `self::` per chiamate a metodi privati statici, `static::` è per late static binding su
+  metodi che possono essere sovrascritti (non il caso di un helper privato).
+- Il tooltip è reso da Filament via Alpine (`x-tooltip="{content: '...'}"`, no attributo HTML `title`): per
+  verificarlo in browser leggere l'`innerHTML` del nodo badge, uno screenshot statico senza hover reale non
+  lo mostra.
