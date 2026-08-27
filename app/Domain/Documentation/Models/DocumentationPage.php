@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
@@ -59,11 +60,16 @@ class DocumentationPage extends Model implements HasMedia
     }
 
     /**
+     * FK esplicita: la colonna è `tags.documentation_id` (non la convenzione
+     * Eloquent `documentation_page_id` che il nome corto del model
+     * `DocumentationPage` produrrebbe), stessa colonna già usata da
+     * {@see Tag::documentationPage()}.
+     *
      * @return HasMany<Tag, $this>
      */
     public function tags(): HasMany
     {
-        return $this->hasMany(Tag::class);
+        return $this->hasMany(Tag::class, 'documentation_id');
     }
 
     /**
@@ -88,5 +94,28 @@ class DocumentationPage extends Model implements HasMedia
         }
 
         return $query->whereIn('category', $visibleCategories);
+    }
+
+    /**
+     * Genera lo slug da `$title` alla creazione (mai un campo del form, US-405
+     * AC #1: il form espone solo title/body/category/media; una rinomina
+     * successiva del titolo non tocca lo slug, per non invalidare link/PDF già
+     * generati verso lo slug originale). Stesso algoritmo di
+     * {@see Tag::uniqueSlug()} — suffisso numerico progressivo sui duplicati,
+     * incluse le righe soft-deleted.
+     */
+    public static function uniqueSlug(string $title): string
+    {
+        $base = Str::slug($title);
+        $base = $base === '' ? 'n-a' : $base;
+        $slug = $base;
+        $suffix = 1;
+
+        while (self::withTrashed()->where('slug', $slug)->exists()) {
+            $suffix++;
+            $slug = "{$base}-{$suffix}";
+        }
+
+        return $slug;
     }
 }

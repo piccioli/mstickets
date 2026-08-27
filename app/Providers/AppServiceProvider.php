@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Domain\Documentation\Events\DocumentationPageCreated;
+use App\Domain\Documentation\Events\DocumentationPageRenamed;
 use App\Domain\Mail\Events\EmailQuarantined;
 use App\Domain\Mail\Events\InboundEmailApplied;
 use App\Domain\Mail\Listeners\NotifyStaffOfNewCustomerTicketFromEmail;
@@ -15,6 +17,8 @@ use App\Domain\Mail\Listeners\SendTicketOpenedFromWebMailNotification;
 use App\Domain\Mail\Listeners\SendTicketReceivedByEmailNotification;
 use App\Domain\Mail\Listeners\SendTicketStatusChangedNotification;
 use App\Domain\Mail\Listeners\SendTicketTesterAssignedNotification;
+use App\Domain\Tags\Listeners\CreateTagForDocumentationPage;
+use App\Domain\Tags\Listeners\RenameTagForDocumentationPage;
 use App\Domain\Ticketing\Events\TicketAssigned;
 use App\Domain\Ticketing\Events\TicketCreated;
 use App\Domain\Ticketing\Events\TicketMessagePosted;
@@ -74,6 +78,11 @@ class AppServiceProvider extends ServiceProvider
         // eseguito l'azione (guard nell'Action, non nel listener).
         Event::listen(TicketAssigned::class, SendTicketAssignedNotification::class);
         Event::listen(TicketTesterAssigned::class, SendTicketTesterAssignedNotification::class);
+
+        // §6.4.2 (US-405): auto-tag di una pagina di documentazione — mai un hook
+        // Eloquent sul model DocumentationPage, listener di dominio esplicito.
+        Event::listen(DocumentationPageCreated::class, CreateTagForDocumentationPage::class);
+        Event::listen(DocumentationPageRenamed::class, RenameTagForDocumentationPage::class);
 
         // Guard applicativo §11.8 del PRD (US-217): non un listener di dominio, ma va
         // comunque registrato qui perché Illuminate\Mail\Events\MessageSending non è

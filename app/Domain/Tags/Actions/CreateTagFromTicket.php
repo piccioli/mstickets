@@ -7,7 +7,6 @@ namespace App\Domain\Tags\Actions;
 use App\Domain\Tags\Models\Tag;
 use App\Domain\Ticketing\Models\Ticket;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 /**
  * Unico punto di ingresso per trasformare un ticket in una commessa (US-402,
@@ -23,7 +22,7 @@ final class CreateTagFromTicket
         return DB::transaction(function () use ($ticket, $name, $estimatedHours): Tag {
             $tag = Tag::create([
                 'name' => $name,
-                'slug' => self::uniqueSlug($name),
+                'slug' => Tag::uniqueSlug($name),
                 'estimated_hours' => $estimatedHours ?? ($ticket->estimated_hours !== null ? (float) $ticket->estimated_hours : null),
             ]);
 
@@ -31,20 +30,5 @@ final class CreateTagFromTicket
 
             return $tag;
         });
-    }
-
-    private static function uniqueSlug(string $name): string
-    {
-        $base = Str::slug($name);
-        $base = $base === '' ? 'n-a' : $base;
-        $slug = $base;
-        $suffix = 1;
-
-        while (Tag::withTrashed()->where('slug', $slug)->exists()) {
-            $suffix++;
-            $slug = "{$base}-{$suffix}";
-        }
-
-        return $slug;
     }
 }
