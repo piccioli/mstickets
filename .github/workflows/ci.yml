@@ -51,13 +51,21 @@ jobs:
             texlive-plain-generic texlive-pictures poppler-utils
 
       # Motore di rendering del PDF di documentazione (spatie/laravel-pdf, driver
-      # chrome-php/chrome, §6.4.3 del PRD, US-406): esplicito, non un'assunzione
-      # sull'immagine ubuntu-latest — chrome-php auto-scopre il binario cercando
-      # google-chrome/chromium-browser/chrome/chromium nel PATH (stesso meccanismo
-      # usato in docker/php/Dockerfile e docker/uat/Dockerfile, dove il binario è
-      # invece `chromium` da apk).
+      # chrome-php/chrome, §6.4.3 del PRD, US-406). L'auto-discovery di chrome-php
+      # (ricerca di google-chrome/chromium-browser/chrome/chromium nel PATH) NON
+      # trova il binario installato da browser-actions/setup-chrome su runner
+      # ubuntu-latest (verificato: `proc_open` riceve un command array vuoto,
+      # "First element must contain a non-empty program name" su ogni test che
+      # genera davvero un PDF) — a differenza delle immagini Docker (dev/UAT), dove
+      # `chromium` da apk è in un percorso che l'auto-discovery trova. Il path va
+      # quindi passato esplicitamente via LARAVEL_PDF_CHROME_BINARY, non lasciato
+      # all'auto-discovery in questo runner.
       - name: Setup Chrome
+        id: setup-chrome
         uses: browser-actions/setup-chrome@v1
+
+      - name: Configure Chrome binary path for laravel-pdf
+        run: echo "LARAVEL_PDF_CHROME_BINARY=${{ steps.setup-chrome.outputs.chrome-path }}" >> .env
 
       - name: Pint
         run: vendor/bin/pint --test
