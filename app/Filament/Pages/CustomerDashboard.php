@@ -32,9 +32,9 @@ use UnitEnum;
  * chat di supporto (`help_desk_chat_url` non confermato dal committente,
  * fuori scope, §PRD Fase 6).
  *
- * Questa story crea SOLO la pagina: il redirect di ruolo su
- * {@see Dashboard::mount()} è US-602, story successiva, per non duplicare
- * lavoro — {@see self::canAccess()} è comunque il gate reale per l'accesso
+ * Il redirect di ruolo su {@see Dashboard::mount()} è US-602, che raggruppa
+ * anche questa pagina sotto "Area cliente" in navigazione —
+ * {@see self::canAccess()} resta comunque il gate reale per l'accesso
  * diretto via URL.
  *
  * `canAccess()` riusa lo stesso idioma già in uso altrove nel dominio Mail
@@ -53,7 +53,7 @@ class CustomerDashboard extends Page
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedHome;
 
-    protected static string|UnitEnum|null $navigationGroup = null;
+    protected static string|UnitEnum|null $navigationGroup = 'Area cliente';
 
     protected static ?string $navigationLabel = 'Dashboard';
 

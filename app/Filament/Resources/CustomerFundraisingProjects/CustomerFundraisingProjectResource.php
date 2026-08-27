@@ -42,7 +42,7 @@ class CustomerFundraisingProjectResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedFolderOpen;
 
-    protected static UnitEnum|string|null $navigationGroup = 'Fundraising';
+    protected static UnitEnum|string|null $navigationGroup = 'Area cliente';
 
     protected static ?string $navigationLabel = 'Progetti';
 

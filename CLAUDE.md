@@ -1039,3 +1039,34 @@ verificati esplicitamente, non assunti allineati.
   regressione — da segnalare al committente/team come debito tecnico esistente (differenza di versione
   PHP fra ambiente di sviluppo locale e immagine Docker `app`), non da inseguire dentro il budget di un
   singolo checkpoint di fine fase.
+
+## Gruppo di navigazione condiviso staff/cliente — `getNavigationGroup()` dinamico, non `$navigationGroup` statico (US-602, §8.4)
+
+- **Quando una Resource è visibile sia allo staff sia al customer** (`TicketResource`, `ActivityReportResource`,
+  `DocumentationPageResource` — tutte policy-backed su permessi che *entrambi* i tipi di utente possono avere,
+  es. `TicketViewOwn`/`ActivityReportViewOwn` per customer e `TicketViewAny`/`ActivityReportViewAny` per
+  staff), il gruppo di navigazione **non può essere la proprietà statica** `protected static
+  UnitEnum|string|null $navigationGroup`: quella è condivisa da TUTTI gli utenti, staff compreso. Va
+  sovrascritto `public static function getNavigationGroup(): string|UnitEnum|null` (firma esatta di
+  `Filament\Resources\Resource`/`Filament\Pages\Page`) che ramifica su
+  `Auth::user()?->hasRole(UserRole::Customer->value)` — stesso idioma già in uso in
+  `CustomerDashboard::canAccess()` — restituendo `'Area cliente'` per un customer, il gruppo originale
+  altrimenti. Per una Resource **esclusivamente** customer (`canViewAny()`/`canAccess()` già vero SOLO per
+  quel ruolo, es. `CustomerFundraisingProjectResource`/`CustomerFundraisingOpportunityResource`,
+  `CustomerDashboard`) la proprietà statica resta corretta e più semplice: non serve il metodo dinamico se
+  nessun altro ruolo vedrà mai quella voce.
+- **Ogni voce di navigazione registrata globalmente in `AdminPanelProvider` va riverificata contro un login
+  reale da customer**, non solo le Resource toccate dalla story: la voce "Mailpit" (`->navigationItems()`,
+  US-324) era gated SOLO su `app()->environment(['local','staging'])` + URL configurato, **nessun controllo
+  di ruolo** — quindi visibile anche a un customer in locale/staging, violando silenziosamente l'AC "nessuna
+  voce dei gruppi staff visibile a un cliente". Scoperto SOLO nello screenshot di verifica browser richiesto
+  dalla story (mai dai test, che non toccavano quella classe): `MailpitNavigationItem::isVisible()` ora nega
+  esplicitamente se l'utente corrente ha il ruolo customer, PRIMA del check su ambiente/URL. Lezione
+  generale: la verifica in browser di una story di navigazione deve controllare l'INTERA sidebar per il
+  ruolo target, non solo le voci esplicitamente elencate nell'AC — un item pre-esistente e apparentemente
+  non correlato può violare la stessa regola.
+- La pagina `App\Filament\Pages\Dashboard` (root `/`, landing per ruolo) va tenuta fuori da qualunque voce di
+  navigazione (`protected static bool $shouldRegisterNavigation = false;`) da quando OGNI ruolo autenticato
+  viene reindirizzato altrove nel suo `mount()` (dopo US-602 anche customer e fundraising, prima di allora
+  solo staff): altrimenti resta una voce "Dashboard" cliccabile che si limita a rimbalzare l'utente altrove,
+  duplicando la voce "Dashboard" reale (`CustomerDashboard`) per un customer.

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Tickets;
 
+use App\Domain\Identity\Enums\UserRole;
 use App\Domain\Identity\Models\User;
 use App\Domain\Ticketing\Models\Ticket;
 use App\Filament\Resources\Tickets\Pages\CreateTicket;
@@ -39,11 +40,23 @@ class TicketResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTicket;
 
-    protected static UnitEnum|string|null $navigationGroup = 'Ticket';
-
     protected static ?string $modelLabel = 'ticket';
 
     protected static ?string $pluralModelLabel = 'ticket';
+
+    /**
+     * Gruppo dinamico (US-602): un customer vede questa risorsa sotto "Area
+     * cliente" insieme a Dashboard/Report/Documentazione/Fundraising —
+     * staff (admin/manager/developer) resta sotto "Ticket" come prima.
+     */
+    public static function getNavigationGroup(): string|UnitEnum|null
+    {
+        $user = Auth::user();
+
+        return $user instanceof User && $user->hasRole(UserRole::Customer->value)
+            ? 'Area cliente'
+            : 'Ticket';
+    }
 
     public static function form(Schema $schema): Schema
     {
