@@ -311,6 +311,30 @@ Lo sviluppo di scaffold è stato verificato con PHP 8.5 locale (compatibile con 
 - **Un log identificato solo da `to_status` non è univoco quando lo stesso stato di destinazione viene raggiunto più volte nello stesso test** (es. `to_status = todo` sia dalla transizione ordinaria `assigned → todo` sia da una demozione `progress → todo` successiva): filtrare sempre anche su `from_status` prima di uno `->sole()`, mai un `->latest(...)->sole()` (`sole()` conta l'intero risultato della query, l'ordinamento non lo riduce a una riga).
 - **Due livelli di difesa distinti contro una transizione/contesto manipolato, da testare separatamente**: (1) Filament risolve `$data` di un'action dallo **stato dello schema dichiarato**, non dall'array grezzo — un campo iniettato via `setActionData()` ma assente dallo schema (es. `assignee_id` quando l'attore si auto-assegna, US-110) viene ignorato, non genera un errore; (2) `TicketStateMachine::authorize()`/i guard degli attori (es. `AutoAssigningDeveloper::authorize()`, US-101) restano comunque la difesa "vera", verificabile chiamando `ChangeTicketStatus::run()` direttamente con un `context` impersonato, indipendentemente da qualunque comportamento di Filament. Un test che assume che (1) da solo basti a dimostrare la sicurezza è un test debole: verificare sempre anche (2).
 
+## Verifica in browser di un'Action Filament autenticata (US-402)
+
+- **Lo screenshot statico via `chrome --headless --screenshot` (vedi nota sotto) basta per una pagina pubblica
+  (login), ma NON permette di cliccare un bottone/riempire un modale**: è un singolo page-load, nessuna
+  interazione JS scriptabile da CLI. Per verificare un'Action Filament/Livewire autenticata (aprire il modale,
+  compilare i campi precompilati, inviare, controllare la notifica di successo) serve un vero driver browser:
+  Playwright è già installabile via `npx --yes playwright install chromium` (cache in
+  `~/Library/Caches/ms-playwright/`, non richiede un tool MCP dedicato) e uno script `.mjs` in `/tmp` (mai nel
+  repo) con `chromium.launch()` → `page.goto('/admin/login')` → `fill`/`click` sulle credenziali → naviga alla
+  pagina/record target → `click` sul bottone dell'action per aprire il modale → `click` sul bottone di submit
+  DENTRO al modale (selettore per testo del bottone reale nel modale, es. "Invia", non il bottone trigger
+  dietro — il trigger ha lo stesso testo dell'action e Playwright altrimenti clicca quello sbagliato/bloccato
+  dall'overlay) → screenshot con `Read`.
+- **I container Docker di questo progetto (`app`/`web`/`db`) non sono necessariamente già `Up`**: solo
+  `queue`/`scheduler`/`redis` girano di default su questa macchina (altri servizi condivisi con altri
+  progetti restano avviati separatamente). Verificare con `docker compose ps` prima di assumere che
+  `http://localhost:8080` risponda, ed eventualmente avviare con `docker compose up -d app web db` (porta
+  pubblicata da `web`, non da `app`: il servizio `db` non pubblica una porta host, quindi `php artisan serve`
+  lato host con `DB_HOST=db` non funziona — usare sempre i container per una verifica autenticata completa).
+- **Utente/dati di verifica creati via `docker compose exec -T app php artisan tinker`** (assegna un ruolo con
+  `Role::findOrCreate` + `syncPermissions` su tutti i case di `Permission`, crea il record di dominio serve):
+  rimuoverli sempre con `forceDelete()` subito dopo lo screenshot, per non lasciare dati fittizi nel DB di
+  sviluppo condiviso.
+
 ## Pixel-perfect login/recupero password (ciclo `ralph/login-design-pixel-fixes`, US-004+)
 
 - **Verifica visiva reale disponibile, non solo `curl`**: su questa macchina è installato `Google Chrome.app`

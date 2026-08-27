@@ -10,6 +10,7 @@ use App\Domain\Ticketing\Actions\AddTicketAttachment;
 use App\Domain\Ticketing\Actions\PostTicketMessage;
 use App\Domain\Ticketing\Actions\RecordTicketView;
 use App\Domain\Ticketing\Models\Ticket;
+use App\Filament\Resources\Tickets\Support\CreateCommessaAction;
 use App\Filament\Resources\Tickets\Support\TicketTransitionActions;
 use App\Filament\Resources\Tickets\TicketResource;
 use Filament\Actions\Action;
@@ -63,11 +64,14 @@ class ViewTicket extends ViewRecord
 
         abort_unless($ticket instanceof Ticket, 404);
 
+        $createCommessaAction = CreateCommessaAction::build($ticket);
+
         return [
             EditAction::make(),
             ...TicketTransitionActions::build($ticket),
             $this->postMessageAction($ticket),
             ...$this->participantActions($ticket),
+            ...($createCommessaAction !== null ? [$createCommessaAction] : []),
         ];
     }
 

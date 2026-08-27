@@ -7,6 +7,7 @@ namespace App\Filament\Resources\Tickets\Pages;
 use App\Domain\Identity\Models\User;
 use App\Domain\Ticketing\Actions\AssignTicket;
 use App\Domain\Ticketing\Models\Ticket;
+use App\Filament\Resources\Tickets\Support\CreateCommessaAction;
 use App\Filament\Resources\Tickets\Support\TicketTransitionActions;
 use App\Filament\Resources\Tickets\TicketResource;
 use Filament\Actions\ViewAction;
@@ -32,9 +33,12 @@ class EditTicket extends EditRecord
 
         abort_unless($record instanceof Ticket, 404);
 
+        $createCommessaAction = CreateCommessaAction::build($record);
+
         return [
             ViewAction::make(),
             ...TicketTransitionActions::build($record),
+            ...($createCommessaAction !== null ? [$createCommessaAction] : []),
         ];
     }
 
