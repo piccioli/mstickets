@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Tags\Models;
 
 use App\Domain\Documentation\Models\DocumentationPage;
+use App\Domain\Ticketing\Enums\TicketStatus;
 use App\Domain\Ticketing\Models\Ticket;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
@@ -41,5 +42,34 @@ class Tag extends Model
     public function tickets(): BelongsToMany
     {
         return $this->belongsToMany(Ticket::class, 'ticket_tag')->withTimestamps();
+    }
+
+    public function workedMinutes(): int
+    {
+        return (int) $this->tickets()->sum('worked_minutes');
+    }
+
+    public function sal(): ?float
+    {
+        $estimatedHours = $this->estimated_hours === null ? null : (float) $this->estimated_hours;
+
+        if ($estimatedHours === null || $estimatedHours === 0.0) {
+            return null;
+        }
+
+        $workedHours = $this->workedMinutes() / 60;
+
+        return round($workedHours / $estimatedHours * 100, 2);
+    }
+
+    public function isClosed(): bool
+    {
+        if ($this->tickets()->doesntExist()) {
+            return false;
+        }
+
+        return $this->tickets()
+            ->whereNotIn('status', [TicketStatus::Released, TicketStatus::Done])
+            ->doesntExist();
     }
 }
