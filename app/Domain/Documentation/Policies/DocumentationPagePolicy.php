@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Domain\Documentation\Policies;
 
-use App\Domain\Documentation\Enums\DocumentationCategory;
 use App\Domain\Documentation\Models\DocumentationPage;
 use App\Domain\Identity\Enums\Permission;
 use App\Domain\Identity\Models\User;
@@ -18,10 +17,7 @@ class DocumentationPagePolicy
 
     public function view(User $user, DocumentationPage $documentationPage): bool
     {
-        return match ($documentationPage->category) {
-            DocumentationCategory::Customer => $user->can(Permission::DocumentationViewCustomer),
-            DocumentationCategory::Internal => $user->can(Permission::DocumentationViewInternal),
-        };
+        return DocumentationPage::query()->whereKey($documentationPage->getKey())->visibleTo($user)->exists();
     }
 
     public function create(User $user): bool

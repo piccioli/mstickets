@@ -59,6 +59,19 @@ return [
             'report' => false,
         ],
 
+        // Disco privato dedicato agli allegati (media collection "documents"/"images")
+        // delle pagine di documentazione (§6.4.1 del PRD, US-404): mai `public`, altrimenti
+        // un allegato di una pagina `category=internal` sarebbe raggiungibile via URL diretto
+        // indipendentemente dalla DocumentationPagePolicy, stesso ragionamento già applicato
+        // a `ticket-attachments` qui sopra.
+        'documentation-attachments' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/documentation-attachments'),
+            'serve' => false,
+            'throw' => false,
+            'report' => false,
+        ],
+
         // Disco nominato radicato su storage/app (non storage/app/private, il default
         // Laravel 11+ del disco "local"): usato dai report v1:inspect/v1:validate
         // (§11.2/§11.7 del PRD), che devono vivere in storage/app/import/ (path
