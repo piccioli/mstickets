@@ -8,6 +8,7 @@ use App\Filament\Auth\Pages\Login;
 use App\Filament\Auth\Pages\RequestPasswordReset;
 use App\Filament\Auth\Pages\ResetPassword;
 use App\Filament\Navigation\MailpitNavigationItem;
+use App\Filament\Pages\CustomerDashboard;
 use App\Filament\Pages\Dashboard;
 use App\Filament\Pages\WorkBoard;
 use App\Support\DesignTokens;
@@ -66,6 +67,7 @@ class AdminPanelProvider extends PanelProvider
             ->pages([
                 Dashboard::class,
                 WorkBoard::class,
+                CustomerDashboard::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
