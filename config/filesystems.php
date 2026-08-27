@@ -72,6 +72,19 @@ return [
             'report' => false,
         ],
 
+        // Disco privato dedicato ai PDF generati delle pagine di documentazione
+        // (§6.4.3 del PRD, US-406): separato da `documentation-attachments` (quello
+        // è per i documenti/immagini caricati dall'utente, non per l'output generato
+        // dal job di rendering) — stesso motivo per cui `ticket-attachments` non
+        // ospita anche gli allegati email in Fase 3.
+        'documentation-pdfs' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/documentation-pdfs'),
+            'serve' => false,
+            'throw' => false,
+            'report' => false,
+        ],
+
         // Disco nominato radicato su storage/app (non storage/app/private, il default
         // Laravel 11+ del disco "local"): usato dai report v1:inspect/v1:validate
         // (§11.2/§11.7 del PRD), che devono vivere in storage/app/import/ (path

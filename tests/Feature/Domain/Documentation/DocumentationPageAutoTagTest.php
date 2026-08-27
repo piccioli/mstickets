@@ -6,8 +6,14 @@ use App\Domain\Documentation\Actions\CreateDocumentationPage;
 use App\Domain\Documentation\Actions\UpdateDocumentationPage;
 use App\Domain\Tags\Models\Tag;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 
 uses(RefreshDatabase::class);
+
+// Questi test riguardano solo il Tag auto-generato, non il PDF (US-406): la coda
+// è fake per non dipendere da un vero avvio di Chromium qui, che viene invece
+// esercitato per davvero da DocumentationPagePdfTest.
+beforeEach(fn () => Queue::fake());
 
 test('creating a documentation page creates a linked tag named "Documentation: <title>"', function (): void {
     $page = CreateDocumentationPage::run(['title' => 'Guida al portale', 'body' => 'Contenuto']);

@@ -7,11 +7,13 @@
     "license": "MIT",
     "require": {
         "php": "^8.4",
+        "chrome-php/chrome": "^1.16",
         "filament/filament": "^4.0",
         "laravel/framework": "^13.8",
         "laravel/horizon": "^5.0",
         "laravel/tinker": "^3.0",
         "spatie/laravel-medialibrary": "^11.0",
+        "spatie/laravel-pdf": "^2.13",
         "spatie/laravel-permission": "^6.0",
         "symfony/html-sanitizer": "^8.1",
         "webklex/php-imap": "^6.2"

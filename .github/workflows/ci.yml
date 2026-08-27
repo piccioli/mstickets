@@ -50,6 +50,15 @@ jobs:
             texlive-fonts-recommended texlive-fonts-extra texlive-lang-italian \
             texlive-plain-generic texlive-pictures poppler-utils
 
+      # Motore di rendering del PDF di documentazione (spatie/laravel-pdf, driver
+      # chrome-php/chrome, §6.4.3 del PRD, US-406): esplicito, non un'assunzione
+      # sull'immagine ubuntu-latest — chrome-php auto-scopre il binario cercando
+      # google-chrome/chromium-browser/chrome/chromium nel PATH (stesso meccanismo
+      # usato in docker/php/Dockerfile e docker/uat/Dockerfile, dove il binario è
+      # invece `chromium` da apk).
+      - name: Setup Chrome
+        uses: browser-actions/setup-chrome@v1
+
       - name: Pint
         run: vendor/bin/pint --test
 

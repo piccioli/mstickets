@@ -11,12 +11,18 @@ use App\Filament\Resources\DocumentationPages\Pages\CreateDocumentationPage as C
 use App\Filament\Resources\DocumentationPages\Pages\ListDocumentationPages;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
     Filament::setCurrentPanel('admin');
+
+    // Questi test riguardano la Resource (visibilità, ricerca, creazione), non il
+    // PDF (US-406): la coda è fake per non dipendere da un vero avvio di Chromium
+    // qui, che viene invece esercitato per davvero da DocumentationPagePdfTest.
+    Queue::fake();
 });
 
 function createTestDocumentationPage(string $title, string $body, DocumentationCategory $category = DocumentationCategory::Customer): DocumentationPage

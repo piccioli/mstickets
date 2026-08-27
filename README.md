@@ -176,6 +176,46 @@ dominio non è in `MAIL_TEST_DOMAINS` (`.env`) quando `APP_ENV !== production`: 
 hanno ora email reali, questo guard è la sola protezione contro l'invio accidentale di una notifica verso
 un cliente/collega reale durante un test/uno sviluppo locale.
 
+## Generazione PDF
+
+I PDF applicativi (documentazione, §6.4.3 del PRD; report attività) usano
+[`spatie/laravel-pdf`](https://spatie.be/docs/laravel-pdf) con il driver
+[`chrome-php/chrome`](https://github.com/chrome-php/chrome) — non `browsershot`
+(il driver predefinito del pacchetto), non `barryvdh/laravel-dompdf`, non
+`pdflatex`. Motivazione della scelta:
+
+- **`dompdf` è stato scartato**: in questo stesso repository è già stato
+  abbandonato per il PDF di collaudo perché incapace di riprodurre fedelmente
+  la carta intestata Montagna Servizi (CSS moderno/flexbox renderizzato in modo
+  approssimativo). La sua sostituzione lì, `pdflatex`, non è un'opzione qui:
+  è deliberatamente escluso dall'immagine UAT/produzione (solo `docker/php/Dockerfile`
+  di sviluppo lo include), mentre questi PDF devono generarsi in coda in
+  produzione per utenti reali, non solo in fase di collaudo manuale.
+- **`browsershot` (Chromium via Node.js/Puppeteer) è stato scartato** a favore
+  di `chrome-php/chrome`: entrambi guidano Chromium headless e renderizzano
+  correttamente CSS moderno riusando gli stessi componenti/stili del design
+  system (`resources/css/theme.css` via `App\Support\DesignTokens`, la stessa
+  fonte già usata dal layout email), ma `chrome-php/chrome` parla il Chrome
+  DevTools Protocol in **puro PHP**: l'unica dipendenza di runtime è il binario
+  Chromium stesso, senza un secondo runtime Node.js/Puppeteer da mantenere nelle
+  immagini Docker. Node.js esiste già in questo repo, ma solo come stage di
+  build (`docker/uat/Dockerfile`, compilazione degli asset Vite) scartato prima
+  dell'immagine finale — reintrodurlo a runtime solo per i PDF avrebbe
+  appesantito l'immagine di produzione senza necessità.
+
+Chromium headless è installato in entrambe le immagini (`apk add chromium`):
+`docker/php/Dockerfile` (sviluppo) e `docker/uat/Dockerfile` (produzione, stage
+finale FrankenPHP). Il percorso del binario è auto-scoperto da `chrome-php`
+(`LARAVEL_PDF_CHROME_BINARY` vuoto in `.env.example`): funziona così sia dentro
+i container Alpine sia su un Mac di sviluppo con Google Chrome installato, senza
+un percorso hardcoded. `LARAVEL_PDF_CHROME_NO_SANDBOX=true` è necessario in
+qualunque container, incluso quello di sviluppo che gira come `www-data` non
+root (`docker/php/Dockerfile:50`): il sandbox di Chrome richiede di creare
+user/PID namespace, syscall che il runtime container nega di norma a prescindere
+dall'utente — non un problema specifico di root, verificato di persona durante
+la verifica in browser di questa story (il job falliva con "Operation not
+permitted" sulla creazione del namespace anche da `www-data`).
+
 ## Punto di controllo obbligatorio prima della Fase 1
 
 La Fase 0 (Fondazioni) non introduce nessuna business logic di dominio: prima di iniziare la Fase 1

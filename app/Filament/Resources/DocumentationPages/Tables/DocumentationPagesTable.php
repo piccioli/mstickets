@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Filament\Resources\DocumentationPages\Tables;
 
 use App\Domain\Documentation\Enums\DocumentationCategory;
+use App\Domain\Documentation\Models\DocumentationPage;
+use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
@@ -43,6 +45,12 @@ class DocumentationPagesTable
                     )),
             ])
             ->recordActions([
+                Action::make('downloadPdf')
+                    ->label('Scarica PDF')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->visible(fn (DocumentationPage $record): bool => $record->pdf_path !== null)
+                    ->url(fn (DocumentationPage $record): string => route('documentation-pages.pdf-download', $record))
+                    ->openUrlInNewTab(),
                 EditAction::make(),
                 DeleteAction::make(),
             ]);
