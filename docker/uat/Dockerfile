@@ -52,6 +52,13 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 # pcntl e' richiesta da "php artisan queue:work"/"schedule:work" (gestione
 # graceful shutdown su SIGTERM, importante per il worker container, vedi
 # docker/uat/worker-entrypoint.sh) e non era nell'elenco di esempio del brief.
+# sockets: chrome-php/wrench (dipendenza di chrome-php/chrome, driver PDF di
+# US-406) parla col protocollo DevTools di Chrome via websocket usando le
+# funzioni ext-sockets — senza, `composer install --no-dev` in questo stage
+# finale (nessun --ignore-platform-reqs, a differenza dello stage `vendor` sopra)
+# fallisce con "ext-sockets missing" (scoperto sul primo deploy UAT reale di
+# Fase 4, mai emerso in CI perché il runner ubuntu-latest ha ext-sockets
+# preinstallata di default).
 RUN install-php-extensions \
     pdo \
     pdo_pgsql \
@@ -61,7 +68,8 @@ RUN install-php-extensions \
     bcmath \
     intl \
     opcache \
-    pcntl
+    pcntl \
+    sockets
 
 # `chromium`/`font-freefont`: motore di rendering del PDF di documentazione
 # (spatie/laravel-pdf, driver `chrome-php/chrome`, §6.4.3 del PRD, US-406) — a

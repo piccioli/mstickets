@@ -789,3 +789,40 @@ Ogni fase completata (Fase 2 in poi) deve produrre, prima di essere considerata 
   topic "Checkpoint di fine fase" nel manifest della fase, mappato a ID dedicati (qui F4-40..F4-42) —
   mai riusare l'ID di un test già mappato in un topic precedente per lo stesso file, anche se il test
   automatico è lo stesso.
+
+## Chrome/ext-sockets — 3 gotcha distinti scoperti solo al primo merge/deploy reale di Fase 4 (US-406, §6.4.3)
+
+I test locali/CI di US-406 (PDF via `spatie/laravel-pdf`, driver `chrome-php/chrome`) passavano tutti prima del
+merge della PR di Fase 4 (PR #9): questi 3 problemi sono emersi **solo** al primo giro reale di CI su GitHub-hosted
+runner e al primo deploy UAT reale, mai prima — nessuno dei due ambienti era mai stato esercitato end-to-end con
+questa nuova dipendenza prima di allora. Pattern generale per qualunque futura dipendenza di sistema aggiunta a
+`composer.json`/Docker: "i test passano in dev" non è prova che CI e l'immagine di produzione la vedano — vanno
+verificati esplicitamente, non assunti allineati.
+
+- **Auto-discovery di chrome-php su GitHub Actions (`ubuntu-latest`)**: `chrome-php/chrome` cerca da solo
+  `google-chrome`/`chromium-browser`/`chrome`/`chromium` nel `PATH`, e questo funziona nelle immagini Docker
+  (`chromium` da `apk`, in un percorso standard) ma **non** trova il binario installato da
+  `browser-actions/setup-chrome@v1` sul runner CI — `proc_open` riceve un command array vuoto e fallisce con
+  `ValueError: First element must contain a non-empty program name` su ogni test che genera davvero un PDF. Fix:
+  passare esplicitamente `LARAVEL_PDF_CHROME_BINARY` in `.env` dall'output (`chrome-path`) dello step
+  `Setup Chrome` (serve un `id:` su quello step per poterne leggere l'output), non fare affidamento
+  sull'auto-discovery in questo runner specifico.
+- **`ext-sockets` mancante sia in `docker/php/Dockerfile` (dev) sia in `docker/uat/Dockerfile` (UAT/produzione)**:
+  `chrome-php/wrench` (dipendenza di `chrome-php/chrome`, parla col protocollo DevTools via websocket) la
+  richiede davvero a runtime, non solo a livello di dichiarazione Composer. Il gap è passato inosservato in CI
+  (job "Pint, Larastan, Pest") perché il runner `ubuntu-latest` di `shivammathur/setup-php` ha `ext-sockets`
+  preinstallata di default — **stesso identico pattern** già documentato altrove in questo file per bug
+  Postgres-only mai intercettati da sqlite: un ambiente più permissivo/completo del necessario nasconde un gap
+  reale che un ambiente più minimale (qui: le immagini Alpine) espone. Il fallimento reale è arrivato al primo
+  deploy UAT: lo stage finale di `docker/uat/Dockerfile` fa `composer install --no-dev` **senza**
+  `--ignore-platform-reqs` (a differenza dello stage `vendor` sopra, che lo usa deliberatamente solo per
+  scaricare i pacchetti), quindi verifica per davvero i requisiti di piattaforma contro le estensioni PHP
+  effettivamente installate nell'immagine finale. Aggiunta `sockets` a entrambi i Dockerfile e, per non restare
+  una parità "per fortuna del runner", anche esplicitamente all'elenco `extensions` di entrambi i job `ci.yml`.
+- **Compilare `ext-sockets` su Alpine richiede `linux-headers` nei build-deps**: senza, `docker-php-ext-install
+  sockets` fallisce in compilazione con `linux/sock_diag.h: No such file or directory` (`sockets.c` lo include
+  direttamente) — mai emerso finora perché nessuna estensione precedente in questo Dockerfile ne aveva bisogno.
+  Il job CI "Build Docker containers" (`docker compose build app`, usa `docker/php/Dockerfile`) l'ha intercettato
+  prima che arrivasse a un deploy reale. Pattern riusabile: qualunque futura estensione PHP aggiunta via
+  `docker-php-ext-install` su un'immagine Alpine va verificata per bisogni di `-dev`/`-headers` aggiuntivi, non
+  assunta compilabile con i soli `${PHPIZE_DEPS}` già presenti.

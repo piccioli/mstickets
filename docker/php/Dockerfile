@@ -14,6 +14,11 @@ ARG GID=1000
 # da solo le librerie condivise necessarie (nss, freetype, harfbuzz, ...), nessun
 # pacchetto Node/npm richiesto: il driver `chrome-php/chrome` è puro PHP (Chrome
 # DevTools Protocol), non passa da Browsershot/Puppeteer.
+# `sockets` (richiesta da chrome-php/wrench per parlare col protocollo DevTools
+# via websocket): `linux-headers` va aggiunto ai build-deps, altrimenti la
+# compilazione fallisce con "linux/sock_diag.h: No such file or directory"
+# (sockets.c ne dipende direttamente) — gotcha Alpine scoperto sul primo build
+# reale con questa estensione.
 RUN apk add --no-cache \
         postgresql-dev \
         libzip-dev \
@@ -33,8 +38,8 @@ RUN apk add --no-cache \
         poppler-utils \
         chromium \
         font-freefont \
-    && apk add --no-cache --virtual .build-deps ${PHPIZE_DEPS} \
-    && docker-php-ext-install pdo pdo_pgsql zip intl bcmath opcache pcntl exif \
+    && apk add --no-cache --virtual .build-deps ${PHPIZE_DEPS} linux-headers \
+    && docker-php-ext-install pdo pdo_pgsql zip intl bcmath opcache pcntl exif sockets \
     && pecl install redis \
     && docker-php-ext-enable redis \
     && groupmod -o -g "${GID}" www-data \
