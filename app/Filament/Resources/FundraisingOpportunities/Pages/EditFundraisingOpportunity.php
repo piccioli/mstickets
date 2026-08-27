@@ -10,6 +10,8 @@ use App\Domain\Fundraising\Models\FundraisingOpportunity;
 use App\Domain\Identity\Enums\Permission;
 use App\Domain\Identity\Models\User;
 use App\Filament\Resources\FundraisingOpportunities\FundraisingOpportunityResource;
+use App\Filament\Resources\FundraisingOpportunities\Support\CreateFundraisingProjectAction;
+use App\Filament\Resources\FundraisingOpportunities\Support\CreateTicketFromOpportunityAction;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
@@ -22,6 +24,11 @@ use Illuminate\Support\Facades\Auth;
  * d'ingresso per quel salvataggio. Richiede esplicitamente il permesso `fundraising.evaluate`
  * (distinto da `fundraising.update`, con cui si può aprire questa pagina): il tab lo nasconde
  * già in UI a chi non ce l'ha, questo controllo è la seconda barriera lato server.
+ *
+ * Nessuna pagina "view" separata esiste per questa Resource (solo index/create/edit,
+ * come `FundraisingOpportunityResource::getPages()`): questa pagina Edit è il de facto
+ * pagina di dettaglio di un'opportunità, quindi le azioni "Crea progetto"/"Crea ticket"
+ * di US-505 (§6.6.1, testo "su FundraisingOpportunityResource (view)") vivono qui.
  */
 class EditFundraisingOpportunity extends EditRecord
 {
@@ -29,8 +36,17 @@ class EditFundraisingOpportunity extends EditRecord
 
     protected function getHeaderActions(): array
     {
+        $opportunity = $this->getRecord();
+
+        abort_unless($opportunity instanceof FundraisingOpportunity, 404);
+
+        $createProjectAction = CreateFundraisingProjectAction::build($opportunity);
+        $createTicketAction = CreateTicketFromOpportunityAction::build($opportunity);
+
         return [
             DeleteAction::make(),
+            ...($createProjectAction !== null ? [$createProjectAction] : []),
+            ...($createTicketAction !== null ? [$createTicketAction] : []),
         ];
     }
 
