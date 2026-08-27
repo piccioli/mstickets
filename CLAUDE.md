@@ -334,6 +334,13 @@ Lo sviluppo di scaffold è stato verificato con PHP 8.5 locale (compatibile con 
   `Role::findOrCreate` + `syncPermissions` su tutti i case di `Permission`, crea il record di dominio serve):
   rimuoverli sempre con `forceDelete()` subito dopo lo screenshot, per non lasciare dati fittizi nel DB di
   sviluppo condiviso.
+- **Selettori Playwright per le tab di un `ListRecords` Filament (`getTabs()`)**: sono `role="tab"`, mai un
+  link/testo generico — `page.getByRole('tab', { name: 'Nome tab' }).click()`. Il bottone che apre il pannello
+  filtri della tabella non ha testo visibile, solo `aria-label="Filtro"` (badge numerico col conteggio filtri
+  attivi accanto): `page.getByRole('button', { name: 'Filtro' }).click()`. Se un selettore per testo esatto va
+  in "strict mode violation" con più corrispondenze, è quasi sempre perché un `<select>` di un `TernaryFilter`
+  contiene un `<option>` con lo stesso testo del bottone/tab cercato (es. opzione "Attive" dentro un filtro
+  "Scaduto") — disambiguare con `getByRole` invece di `getByText`.
 
 ## Pixel-perfect login/recupero password (ciclo `ralph/login-design-pixel-fixes`, US-004+)
 
