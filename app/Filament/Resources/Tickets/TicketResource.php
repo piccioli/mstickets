@@ -20,6 +20,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use UnitEnum;
 
@@ -104,5 +105,43 @@ class TicketResource extends Resource
         }
 
         return $query->visibleTo($user);
+    }
+
+    /**
+     * Ricerca globale (US-603, §8.7): keyword-based su id/titolo/richiedente/corpo
+     * messaggi. Nessun override di `getGlobalSearchEloquentQuery()` — il default di
+     * Filament delega a `getEloquentQuery()` sopra, quindi lo scoping per Policy
+     * (`Ticket::scopeVisibleTo()`) si applica automaticamente anche qui: un cliente
+     * non trova mai ticket di altri nei risultati.
+     *
+     * @return array<string>
+     */
+    public static function getGloballySearchableAttributes(): array
+    {
+        return ['id', 'title', 'requester.name', 'requester.email', 'messages.body_text'];
+    }
+
+    public static function getGlobalSearchResultTitle(Model $record): string
+    {
+        /** @var Ticket $record */
+        return "#{$record->id} — {$record->title}";
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function getGlobalSearchResultDetails(Model $record): array
+    {
+        /** @var Ticket $record */
+        return array_filter([
+            'Richiedente' => $record->requester?->name,
+            'Stato' => $record->status->getLabel(),
+        ]);
+    }
+
+    public static function getGlobalSearchResultUrl(Model $record): ?string
+    {
+        /** @var Ticket $record */
+        return static::canView($record) ? static::getUrl('view', ['record' => $record]) : null;
     }
 }
