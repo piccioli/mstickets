@@ -39,8 +39,8 @@ final class CollaudoGenerateCommand extends Command
      * @var list<array{file: string, titolo: string}>
      */
     private const COMMON_SUFFIX_FILES = [
-        ['file' => '08-registro-esiti.md', 'titolo' => 'Registro degli esiti'],
-        ['file' => '09-verbale-collaudo.md', 'titolo' => 'Verbale conclusivo di collaudo'],
+        ['file' => '11-registro-esiti.md', 'titolo' => 'Registro degli esiti'],
+        ['file' => '12-verbale-collaudo.md', 'titolo' => 'Verbale conclusivo di collaudo'],
     ];
 
     /**
@@ -72,6 +72,9 @@ final class CollaudoGenerateCommand extends Command
         '4' => [
             ['file' => '07-fase-4.md', 'titolo' => 'Fase 4 (Tag/commesse, Documentation, Activity Report/Organizations) — Casi di test dettagliati'],
         ],
+        '5' => [
+            ['file' => '10-fase-5.md', 'titolo' => 'Fase 5 (Fundraising — opportunità/bandi, griglia di valutazione, progetti e vista cliente) — Casi di test dettagliati'],
+        ],
     ];
 
     /**
@@ -84,6 +87,7 @@ final class CollaudoGenerateCommand extends Command
         '2' => 'Fase 2 (Importazione dal v1 — ETL)',
         '3' => 'Fase 3 (Sottosistema email)',
         '4' => 'Fase 4 (Tag/commesse, Documentation, Activity Report/Organizations)',
+        '5' => 'Fase 5 (Fundraising — opportunità/bandi, griglia di valutazione, progetti e vista cliente)',
     ];
 
     public function handle(): int

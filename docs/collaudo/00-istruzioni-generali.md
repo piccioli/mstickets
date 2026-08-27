@@ -2,8 +2,8 @@
 
 ## 1. Titolo, versione, data e stato del documento
 
-- **Titolo**: Documento di collaudo — Fase 0 (Fondazioni) + Fase 1 (Ticketing core) + Fase 1A (Landing, Login, Recupero password) + Fase 2 (Importazione dal v1 — ETL) + Fase 3 (Sottosistema email) + Fase 4 (Tag/commesse, Documentation, Activity Report/Organizations)
-- **Versione**: 4.0
+- **Titolo**: Documento di collaudo — Fase 0 (Fondazioni) + Fase 1 (Ticketing core) + Fase 1A (Landing, Login, Recupero password) + Fase 2 (Importazione dal v1 — ETL) + Fase 3 (Sottosistema email) + Fase 4 (Tag/commesse, Documentation, Activity Report/Organizations) + Fase 5 (Fundraising — opportunità/bandi, griglia di valutazione, progetti e vista cliente)
+- **Versione**: 5.0
 
   La versione 1 era la matrice sintetica preesistente (`docs/collaudo/fase-0-1.php`, manifest di
   tracciabilità sorgente, più il PDF generato a partire da essa dal comando `php artisan
@@ -35,9 +35,16 @@
   dall'ambito escluso, restano escluse solo Fase 5 e Fase 6, non ancora costruite); `07-registro-esiti.md`
   e `08-verbale-collaudo.md` sono stati rinumerati rispettivamente a `08-registro-esiti.md` e
   `09-verbale-collaudo.md` per far posto al nuovo `07-fase-4.md`, stesso schema di rinumerazione già
-  usato quando fu introdotta Fase 1A.
+  usato quando fu introdotta Fase 1A. La versione 5.0 (27 agosto 2026) aggiunge **Fase 5 (Fundraising
+  — opportunità/bandi, griglia di valutazione, progetti e vista cliente)**, anch'essa scritta da
+  subito come fine-fase (checkpoint US-509): manifest dedicato `docs/collaudo/fase-5.php`, manuale
+  dettagliato `10-fase-5.md`, 60 nuovi test. Il totale del pacchetto passa da 375 a 435 test; §3/§4
+  sono aggiornati di conseguenza (Fase 5 esce dall'ambito escluso, resta esclusa solo Fase 6, non
+  ancora costruita); `08-registro-esiti.md` e `09-verbale-collaudo.md` sono stati rinumerati
+  rispettivamente a `11-registro-esiti.md` e `12-verbale-collaudo.md` per far posto al nuovo
+  `10-fase-5.md` (i numeri 08/09 restano liberi in questa numerazione: nessun file li usa più).
 - **Data di stesura**: 26 luglio 2026 (v2.0), 27 luglio 2026 (v2.1), 10 agosto 2026 (v2.2), 11 agosto
-  2026 (v2.3), 24 agosto 2026 (v3.0), 27 agosto 2026 (v4.0)
+  2026 (v2.3), 24 agosto 2026 (v3.0), 27 agosto 2026 (v4.0), 27 agosto 2026 (v5.0)
 - **Data di pubblicazione ufficiale**: DA VERIFICARE CON IL PRODUCT OWNER
 - **Stato**: Bozza per revisione
 
@@ -45,20 +52,22 @@
 
 Verificare che il software realizzato in Fase 0 (Fondazioni), Fase 1 (Ticketing core), Fase 1A
 (Landing, Login, Recupero password), Fase 2 (Importazione dal v1 — ETL), Fase 3 (Sottosistema
-email) e Fase 4 (Tag/commesse, Documentation, Activity Report/Organizations) rispetti i requisiti
+email), Fase 4 (Tag/commesse, Documentation, Activity Report/Organizations) e Fase 5 (Fundraising
+— opportunità/bandi, griglia di valutazione, progetti e vista cliente) rispetti i requisiti
 funzionali e le regole di dominio descritti nel PRD di Orchestrator v2, attraverso un collaudo
 eseguibile sia da personale funzionale (che non deve conoscere il codice) sia da personale tecnico
 (che verifica anche a livello di terminale, database e suite di test automatica).
 
-Il collaudo copre 375 casi di test, organizzati in 75 argomenti, tracciati uno a uno nei manifest
+Il collaudo copre 435 casi di test, organizzati in 80 argomenti, tracciati uno a uno nei manifest
 `docs/collaudo/fase-0-1.php` (Fase 0/Fase 1), `docs/collaudo/fase-1a.php` (Fase 1A),
-`docs/collaudo/fase-2.php` (Fase 2), `docs/collaudo/fase-3.php` (Fase 3) e `docs/collaudo/fase-4.php`
-(Fase 4) verso un test automatico realmente esistente nel repository.
+`docs/collaudo/fase-2.php` (Fase 2), `docs/collaudo/fase-3.php` (Fase 3), `docs/collaudo/fase-4.php`
+(Fase 4) e `docs/collaudo/fase-5.php` (Fase 5) verso un test automatico realmente esistente nel
+repository.
 
 ## 3. Ambito incluso
 
-Il collaudo copre esattamente i 75 argomenti seguenti (titoli letterali dai manifest di
-tracciabilità), per un totale di 375 test.
+Il collaudo copre esattamente gli 80 argomenti seguenti (titoli letterali dai manifest di
+tracciabilità), per un totale di 435 test.
 
 **Fase 0 — Fondazioni** (56 test, F0-01…F0-56):
 
@@ -165,17 +174,24 @@ tracciabilità), per un totale di 375 test.
 | 74 | Activity Report e Organizations — modello, sync, PDF, comando mensile (§6.5, US-407..US-410) | 18 (F4-22…F4-39) |
 | 75 | Checkpoint di fine fase — verifica end-to-end su dati reali (US-411) | 3 (F4-40…F4-42) |
 
+**Fase 5 — Fundraising (opportunità/bandi, griglia di valutazione, progetti, vista cliente)** (60 test, F5-01…F5-60):
+
+| # | Argomento | Test |
+|---|---|---|
+| 76 | Opportunità di fundraising — modello, Policy, elenco/archivio, filtri, azioni collegate (§6.6.1, US-501/502/505) | 13 (F5-01…F5-13) |
+| 77 | Griglia di valutazione — catalogo criteri e calcolo dei totali (§6.6.2, US-503/504) | 17 (F5-14…F5-30) |
+| 78 | Progetti di fundraising — stato, partner, Policy, elenco/filtri, collegamento ticket (§6.6.3, US-506/507) | 16 (F5-31…F5-46) |
+| 79 | Vista cliente — opportunità e progetti coinvolti, in sola lettura (§6.6.4, US-508) | 11 (F5-47…F5-57) |
+| 80 | Checkpoint di fine fase — verifica end-to-end su dati reali (US-509) | 3 (F5-58…F5-60) |
+
 Il dettaglio di ciascun test (descrizione, passi, esito atteso, campi di consuntivazione) è nei
-file `02-fase-0.md`, `03-fase-1.md`, `04-fase-1a.md`, `05-fase-2.md`, `06-fase-3.md` e `07-fase-4.md`
-del pacchetto.
+file `02-fase-0.md`, `03-fase-1.md`, `04-fase-1a.md`, `05-fase-2.md`, `06-fase-3.md`, `07-fase-4.md`
+e `10-fase-5.md` del pacchetto.
 
 ## 4. Ambito escluso
 
 Sono esplicitamente **fuori scopo** di questa release e di questo collaudo:
 
-- **Fase 5 — UI fundraising completa**: solo lo schema dati e le opportunità/progetti di
-  fundraising importati da v1 (Fase 2) sono verificabili come dati; l'interfaccia utente dedicata al
-  fundraising non è in ambito di questo collaudo.
 - **Fase 6 — Automazioni schedulate del ciclo di vita del ticket e rifinitura della vista di
   lavoro** (drag&drop incluso, es. `tickets:auto-close-released`): non in ambito. Le righe della
   macchina a stati che in futuro serviranno a questi comandi schedulati esistono già a livello di
@@ -190,16 +206,18 @@ Sono esplicitamente **fuori scopo** di questa release e di questo collaudo:
 
 - `../PRD-ORCHESTRATOR-V2.md` — specifica di prodotto completa (nella root del progetto, un
   livello sopra questo repository).
-- `../../tasks/prd-fase-2-etl-import-v1.md`, `../../tasks/prd-fase-3-email-subsystem.md` e
-  `../../tasks/prd-fase-4-rendicontazione-documentazione-commesse.md` — PRD specifici di Fase 2,
-  Fase 3 e Fase 4 (due livelli sopra questo repository, cartella `tasks/` del monorepo), con lo
-  user-story-by-user-story dettaglio da cui sono derivati i manifest
-  `fase-2.php`/`fase-3.php`/`fase-4.php` e i manuali `05-fase-2.md`/`06-fase-3.md`/`07-fase-4.md`.
+- `../../tasks/prd-fase-2-etl-import-v1.md`, `../../tasks/prd-fase-3-email-subsystem.md`,
+  `../../tasks/prd-fase-4-rendicontazione-documentazione-commesse.md` e
+  `../../tasks/prd-fase-5-fundraising.md` — PRD specifici di Fase 2, Fase 3, Fase 4 e Fase 5 (due
+  livelli sopra questo repository, cartella `tasks/` del monorepo), con lo user-story-by-user-story
+  dettaglio da cui sono derivati i manifest `fase-2.php`/`fase-3.php`/`fase-4.php`/`fase-5.php` e i
+  manuali `05-fase-2.md`/`06-fase-3.md`/`07-fase-4.md`/`10-fase-5.md`.
 - `docs/ticket-lifecycle.md` — descrizione della macchina a stati del ticket, delle transizioni
   ammesse e delle regole di dominio associate.
 - `docs/collaudo/fase-0-1.php`, `docs/collaudo/fase-1a.php`, `docs/collaudo/fase-2.php`,
-  `docs/collaudo/fase-3.php`, `docs/collaudo/fase-4.php` — manifest di tracciabilità sorgente:
-  collegano ogni test di questo manuale a un test automatico realmente esistente nel repository.
+  `docs/collaudo/fase-3.php`, `docs/collaudo/fase-4.php`, `docs/collaudo/fase-5.php` — manifest di
+  tracciabilità sorgente: collegano ogni test di questo manuale a un test automatico realmente
+  esistente nel repository.
 - `CLAUDE.md` (root del repository) — note tecniche di implementazione per fase/story, utili al
   tester tecnico per capire le scelte di progettazione sottostanti (per Fase 3 in particolare, le
   sezioni sulla pipeline email inbound/outbound e sui bug reali già trovati e corretti).
@@ -244,8 +262,8 @@ Sono esplicitamente **fuori scopo** di questa release e di questo collaudo:
 - **Ambiente di collaudo**: l'installazione dedicata dell'applicazione, separata da sviluppo e
   produzione, usata per eseguire i test descritti in questo manuale.
 - **Manifest di tracciabilità**: i file `docs/collaudo/fase-0-1.php`, `fase-1a.php`, `fase-2.php`,
-  `fase-3.php`, `fase-4.php`, che collegano ogni test numerato (es. F0-01, F2-01, F3-01, F4-01) a un
-  test automatico realmente esistente nel codice.
+  `fase-3.php`, `fase-4.php`, `fase-5.php`, che collegano ogni test numerato (es. F0-01, F2-01,
+  F3-01, F4-01, F5-01) a un test automatico realmente esistente nel codice.
 - **Commessa (Tag/SAL, Fase 4)**: un `Tag` usato come area di lavoro/commessa, con ore stimate
   opzionali e uno stato di avanzamento lavori (SAL) calcolato dalle ore effettivamente lavorate sui
   ticket collegati.
@@ -254,6 +272,20 @@ Sono esplicitamente **fuori scopo** di questa release e di questo collaudo:
   catalogo E1-E9 in uscita, sempre in coda, mai in modo sincrono. **Mailpit** è l'interfaccia web che
   intercetta ogni email in uscita dall'ambiente di collaudo (nessuna email esce mai verso un
   indirizzo reale fuori da questo strumento, vedi punto 10).
+- **Opportunità di fundraising / bando (Fase 5)**: un'occasione di finanziamento esterno (bando,
+  avviso, fondo) tracciata con scadenza, ente finanziatore ed eventuale quota di cofinanziamento;
+  attiva se la scadenza non è ancora passata, archiviata (scaduta) altrimenti.
+- **Griglia di valutazione (Fase 5)**: la scheda di punteggi assegnati a un'opportunità su 26
+  criteri raggruppati in 5 blocchi (Criteri principali, Requisiti base, Qualitativi, Premiali,
+  Rischi), da cui si ricavano i totali `evaluation_positive_total`/`evaluation_negative_total`/
+  `evaluation_total`.
+- **Progetto di fundraising (Fase 5)**: la candidatura avviata a partire da un'opportunità, con un
+  ciclo di vita a stati espliciti (bozza -> presentato -> approvato/respinto -> concluso), un
+  capofila (`lead_user_id`), un responsabile e uno o più partner.
+- **Capofila / Partner (Fase 5)**: il capofila è l'utente responsabile della candidatura di un
+  progetto; i partner sono gli altri utenti/organizzazioni collegati al progetto tramite la pivot
+  `fundraising_project_partners`. Nella vista cliente (§6.6.4) solo capofila e partner contano come
+  "coinvolti", mai responsabile/creatore (ruoli riservati allo staff).
 - **Anomalia**: uno scostamento tra il comportamento osservato durante il collaudo e quello atteso,
   da segnalare secondo la procedura del punto 19.
 - **PASS**: il test è stato eseguito e il comportamento osservato corrisponde a quello atteso.
@@ -461,7 +493,7 @@ manualmente.
 
 ## 17. Criteri generali di superamento
 
-Il collaudo nel suo complesso è considerato superato se, al termine dell'esecuzione dei 375 test:
+Il collaudo nel suo complesso è considerato superato se, al termine dell'esecuzione dei 435 test:
 
 - Non è aperta alcuna anomalia classificata come Critica.
 - Almeno il 95% dei test applicabili (esclusi quelli classificati NOT APPLICABLE) è in stato PASS.

@@ -5,7 +5,7 @@
 Tabella da compilare durante il collaudo, una riga per test. Il campo "Esito" accetta solo uno tra
 `PASS`, `FAIL`, `BLOCKED`, `NOT APPLICABLE` (vedi §17 di `00-istruzioni-generali.md` per i criteri generali
 e la sezione "Criterio di superamento" di ciascun test in `02-fase-0.md`/`03-fase-1.md`/`04-fase-1a.md`/
-`05-fase-2.md`/`06-fase-3.md`/`07-fase-4.md` per il criterio specifico). Il campo "Anomalia" riporta l'ID assegnato secondo
+`05-fase-2.md`/`06-fase-3.md`/`07-fase-4.md`/`10-fase-5.md` per il criterio specifico). Il campo "Anomalia" riporta l'ID assegnato secondo
 §19 di `00-istruzioni-generali.md` (es. `AN-001`), lasciare vuoto se non ci sono anomalie da segnalare per
 quel test.
 
@@ -414,9 +414,74 @@ quel test.
 | F4-41 | Una pagina di documentazione genera un PDF scaricabile con la carta intestata Montagna Servizi corretta |  |  |  |  |  |  |  |
 | F4-42 | Un report attività è generato per un proprietario reale con ticket e totali verificati contro i ticket sorgente |  |  |  |  |  |  |  |
 
+## Fase 5 (Fundraising — opportunità/bandi, griglia di valutazione, progetti e vista cliente) — 60 test
+
+| ID | Titolo | Esito | Tester | Data | Versione | Evidenza | Anomalia | Note |
+|---|---|---|---|---|---|---|---|---|
+| F5-01 | isExpired() è false quando la scadenza è oggi |  |  |  |  |  |  |  |
+| F5-02 | isExpired() è true quando la scadenza è ieri |  |  |  |  |  |  |  |
+| F5-03 | Lo scope active() restituisce le opportunità con scadenza odierna o futura |  |  |  |  |  |  |  |
+| F5-04 | Lo scope expired() restituisce le opportunità con scadenza passata |  |  |  |  |  |  |  |
+| F5-05 | Un utente senza alcun permesso fundraising.* è negato su ogni abilità della Policy opportunità |  |  |  |  |  |  |  |
+| F5-06 | FundraisingOpportunityPolicy verificata riga per riga per ogni ruolo (§9.4) |  |  |  |  |  |  |  |
+| F5-07 | La Resource opportunità è visibile in navigazione solo ad admin/fundraising, mai a manager/developer/customer |  |  |  |  |  |  |  |
+| F5-08 | L'elenco mostra di default solo le opportunità attive, l'Archivio mostra solo le scadute |  |  |  |  |  |  |  |
+| F5-09 | Il filtro per ambito territoriale produce il sottoinsieme atteso di opportunità |  |  |  |  |  |  |  |
+| F5-10 | Il filtro cofinanziamento con/senza quota produce il sottoinsieme atteso di opportunità |  |  |  |  |  |  |  |
+| F5-11 | Il filtro scaduto/attivo produce il sottoinsieme atteso di opportunità |  |  |  |  |  |  |  |
+| F5-12 | created_by si valorizza automaticamente con l'utente autenticato e non è più alterabile |  |  |  |  |  |  |  |
+| F5-13 | Le azioni "Crea progetto" e "Crea ticket" da un'opportunità creano il record collegato correttamente |  |  |  |  |  |  |  |
+| F5-14 | Il catalogo contiene esattamente i 26 criteri di §6.6.2, sui 5 blocchi previsti |  |  |  |  |  |  |  |
+| F5-15 | I criteri principali hanno range di punteggio 0-5 |  |  |  |  |  |  |  |
+| F5-16 | I criteri del blocco Rischi consentono punteggi negativi, unico blocco a farlo |  |  |  |  |  |  |  |
+| F5-17 | CalculateEvaluationTotals somma nel totale positivo solo i punteggi >= 0 |  |  |  |  |  |  |  |
+| F5-18 | CalculateEvaluationTotals somma nel totale negativo il valore assoluto dei punteggi < 0 |  |  |  |  |  |  |  |
+| F5-19 | Il totale complessivo è positivo meno negativo |  |  |  |  |  |  |  |
+| F5-20 | Il calcolo gestisce correttamente il valore minimo e massimo di ogni range del catalogo |  |  |  |  |  |  |  |
+| F5-21 | Un criterio aggiunto al catalogo solo a runtime viene incluso correttamente nel calcolo dei totali |  |  |  |  |  |  |  |
+| F5-22 | SaveEvaluationScores persiste una riga per criterio e calcola i totali da tutti i punteggi persistiti |  |  |  |  |  |  |  |
+| F5-23 | Un punteggio sotto il minimo del catalogo per quel criterio viene rifiutato |  |  |  |  |  |  |  |
+| F5-24 | Un punteggio sopra il massimo del catalogo per quel criterio viene rifiutato |  |  |  |  |  |  |  |
+| F5-25 | evaluated_by/evaluated_at si valorizzano al primo punteggio salvato |  |  |  |  |  |  |  |
+| F5-26 | evaluated_by/evaluated_at non vengono mai sovrascritti dai salvataggi successivi al primo |  |  |  |  |  |  |  |
+| F5-27 | Compilare la griglia dalla pagina Edit persiste i punteggi e aggiorna i totali coerentemente col service |  |  |  |  |  |  |  |
+| F5-28 | Un punteggio fuori dal range del criterio produce un errore di validazione leggibile in UI |  |  |  |  |  |  |  |
+| F5-29 | Il tab "Valutazione" non è visibile a chi ha solo fundraising.update, senza fundraising.evaluate |  |  |  |  |  |  |  |
+| F5-30 | La griglia riprende correttamente i punteggi già persistiti quando si riapre la pagina Edit |  |  |  |  |  |  |  |
+| F5-31 | Ogni transizione ammessa della macchina a stati del progetto può essere eseguita |  |  |  |  |  |  |  |
+| F5-32 | Ogni altra transizione non elencata in tabella è vietata |  |  |  |  |  |  |  |
+| F5-33 | Gli stati terminali (rejected/completed) non hanno alcuna transizione uscente |  |  |  |  |  |  |  |
+| F5-34 | scopeInvolving trova il progetto per capofila, partner, responsabile o creatore |  |  |  |  |  |  |  |
+| F5-35 | partnerCustomers() restituisce solo i partner con ruolo customer |  |  |  |  |  |  |  |
+| F5-36 | FundraisingProjectPolicy verificata riga per riga per ogni ruolo (§9.4), caso non coinvolto |  |  |  |  |  |  |  |
+| F5-37 | Un customer coinvolto come capofila vede il progetto ma non può scriverlo |  |  |  |  |  |  |  |
+| F5-38 | Un customer non coinvolto in nessun modo non vede il progetto, nemmeno via URL diretto |  |  |  |  |  |  |  |
+| F5-39 | La Resource progetti è visibile in navigazione solo ad admin/fundraising, mai a manager/developer/customer |  |  |  |  |  |  |  |
+| F5-40 | Il filtro per stato produce il sottoinsieme atteso di progetti |  |  |  |  |  |  |  |
+| F5-41 | Il filtro per capofila produce il sottoinsieme atteso di progetti |  |  |  |  |  |  |  |
+| F5-42 | Il filtro per partner produce il sottoinsieme atteso di progetti |  |  |  |  |  |  |  |
+| F5-43 | Il filtro "coinvolti" produce il sottoinsieme atteso di progetti |  |  |  |  |  |  |  |
+| F5-44 | created_by si valorizza automaticamente con l'utente autenticato alla creazione di un progetto |  |  |  |  |  |  |  |
+| F5-45 | Un utente fundraising può aggiungere e rimuovere un partner dal progetto |  |  |  |  |  |  |  |
+| F5-46 | Un ticket esistente può essere collegato a un progetto di fundraising |  |  |  |  |  |  |  |
+| F5-47 | CustomerFundraisingOpportunityResource è visibile in navigazione solo al ruolo customer |  |  |  |  |  |  |  |
+| F5-48 | Qualunque customer vede qualunque opportunità nell'elenco e ne apre il dettaglio in sola lettura |  |  |  |  |  |  |  |
+| F5-49 | CustomerFundraisingOpportunityResource non registra alcuna pagina di scrittura |  |  |  |  |  |  |  |
+| F5-50 | La Resource opportunità riservata allo staff resta invisibile a un customer |  |  |  |  |  |  |  |
+| F5-51 | CustomerFundraisingProjectResource è visibile in navigazione solo al ruolo customer |  |  |  |  |  |  |  |
+| F5-52 | Un customer capofila o partner vede il proprio progetto nell'elenco, uno non coinvolto no |  |  |  |  |  |  |  |
+| F5-53 | scopeInvolvingAsCustomer trova il progetto SOLO per capofila o partner |  |  |  |  |  |  |  |
+| F5-54 | Essere solo responsabile o creatore non basta a far vedere il progetto a un customer |  |  |  |  |  |  |  |
+| F5-55 | Il dettaglio di un progetto è raggiungibile da un customer coinvolto |  |  |  |  |  |  |  |
+| F5-56 | Il dettaglio di un progetto non coinvolto non è raggiungibile via URL diretto |  |  |  |  |  |  |  |
+| F5-57 | CustomerFundraisingProjectResource non registra alcuna pagina di scrittura |  |  |  |  |  |  |  |
+| F5-58 | I totali di valutazione ricalcolati coincidono con quelli persistiti da SaveEvaluationScores (replica automatica della verifica manuale su dati reali v1:import) |  |  |  |  |  |  |  |
+| F5-59 | Un criterio aggiunto al catalogo a runtime viene incluso correttamente in un totale di valutazione reale, senza lasciare traccia permanente |  |  |  |  |  |  |  |
+| F5-60 | Il flusso completo opportunità -> progetto -> partner -> transizione di stato funziona end-to-end |  |  |  |  |  |  |  |
+
 ## Riepilogo aggregato (da compilare a collaudo concluso)
 
 | Totale test | PASS | FAIL | BLOCKED | NOT APPLICABLE |
 |---|---|---|---|---|
-| 375 |  |  |  |  |
+| 435 |  |  |  |  |
 

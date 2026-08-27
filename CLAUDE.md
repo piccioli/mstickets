@@ -985,3 +985,57 @@ verificati esplicitamente, non assunti allineati.
   Policy. Il test HTTP corrispondente deve quindi asserire `assertNotFound()`, non `assertForbidden()`, per un
   record esistente ma fuori dallo scope del cliente corrente (diverso dal caso "nessun permesso sul modulo
   intero", quello sì `assertForbidden()` su `canViewAny()` a livello di indice/Resource).
+
+## Checkpoint di fine Fase 5 (US-509): riferimento a percorso nudo nel manifest, dati reali senza valutazioni v1
+
+- **Un test Pest con l'apostrofo nella propria descrizione non ha SEMPRE un test equivalente senza
+  apostrofo da usare al suo posto nel manifest** (la soluzione già documentata sopra per Fase 4,
+  "scegliere un test reale equivalente ma senza apostrofo"): `CreateProjectAndTicketActionsTest.php`
+  (US-505) ha tutti e 5 i suoi test con un apostrofo nella descrizione (`un'opportunità`, `l'azione`),
+  nessuna alternativa apostrofo-libera copre lo stesso AC. In questo caso il riferimento
+  `test_automatico` nel manifest può essere il solo percorso del file, SENZA `::descrizione`
+  (`CollaudoTestReference::description()` restituisce `null`, `collaudo:verify-manifest` allora si
+  limita a `file_exists()`, documentato esplicitamente come comportamento supportato, non un
+  workaround): resta un riferimento reale e verificabile, solo più debole (non rileva la cancellazione
+  di un singolo test nel file, solo del file intero). Preferire comunque un test apostrofo-libero
+  quando esiste; usare il percorso nudo solo quando non esiste alternativa.
+- **La griglia di valutazione fundraising (§6.6.2) non ha MAI avuto un solo punteggio reale in tutta
+  la storia v1**, confermato due volte con dati reali indipendenti: prima a livello di schema
+  (`FundraisingScoresStage`, Fase 2/US-213, che rileva dinamicamente l'assenza delle colonne
+  `evaluation_*_score` sul dump v1), poi di nuovo qui con un `v1:import --anonymize` fresco sul dump
+  più recente (`v1dumps/latest.sql`, 27/08/2026): 21 opportunità importate, 33 progetti, 9 partner,
+  **0** righe `fundraising_evaluation_scores`, **0** opportunità con un totale di valutazione non
+  nullo. L'AC "i totali ricalcolati devono coincidere con quelli già presenti dall'ETL" (US-509, §14)
+  è quindi banalmente vero sui dati reali odierni (non c'è nulla da riconciliare) — verificarlo in
+  modo non vacuo richiede di persistere punteggi REALI tramite `SaveEvaluationScores` (il percorso
+  applicativo v2, mai un insert diretto) su un'opportunità importata, non semplicemente rileggere le
+  colonne già nulle. Se in futuro arriva un dump v1 con dati di valutazione storici reali (nessuno
+  visto finora), questo AC diventerebbe finalmente verificabile in modo non vacuo: da segnalare al
+  committente, non un lavoro da anticipare senza quei dati.
+- **Aggiungere/rimuovere un case enum temporaneo per verificare un AC ("un criterio aggiunto a
+  runtime viene incluso nel calcolo") lascia SEMPRE una traccia di verifica con `git diff --stat` sul
+  file dell'enum prima di `git checkout --` per confermare che il ripristino sia stato bit-per-bit
+  identico** (non fidarsi a occhio del diff testuale): lo stesso principio già in uso per i dati di
+  record reali (Fase 4, "ripristinare `estimated_hours` a `null` dopo la verifica") si applica
+  identico al codice, non solo ai dati.
+- **La suite Pest COMPLETA (`vendor/bin/pest` senza filtri) dà esiti stabilmente diversi su host
+  (PHP 8.5.7 macOS) e dentro il container Docker `app` (PHP 8.4.24 Alpine)**, a parità di
+  `phpunit.xml` (stesso `DB_CONNECTION=sqlite`/`DB_DATABASE=:memory:` in entrambi, non è quindi un
+  fattore DB): sull'host, in questa story, solo i 10 test `Collaudo*`/`LatexPdfCompilerTest` già
+  documentati falliscono (mancanza di `pdflatex`, ambientale e noto); dentro il container la suite
+  completa fallisce invece in modo RIPRODUCIBILE (stesso identico conteggio, 50 failed/1332 passed,
+  su due esecuzioni separate — non è flakiness da `--parallel` né da contesa fra processi, verificato
+  eseguendo un solo processo pest alla volta) su un insieme ampio e trasversale di file MAI toccati da
+  Fase 5 (Mail, Ticketing, Identity, Organizations, Documentation, PasswordReset). La maggioranza di
+  questi è la stessa causa radice già documentata per il bug `->fillForm()` (Livewire, "Scoperta
+  significativa" in `scripts/ralph/progress.txt`, US-507): quel bug a quanto pare non si manifesta in
+  modo identico sulle due versioni di PHP, il che spiega perché sull'host la suite `--filter=Fundraising`
+  di questa story risulti 172/172 verde mentre nel container alcuni dei suoi stessi test (quelli con
+  `->fillForm()`/apostrofo già noti: `FundraisingOpportunityResourceTest`, `CreateProjectAndTicketActionsTest`,
+  `FundraisingEvaluationGridTest`) risultino rossi. **Prima di dichiarare una regressione da un cambiamento
+  di questa fase, isolare sempre con `--filter=<Dominio>` sia su host sia nel container**: se il filtro
+  mirato è verde su host e le uniche righe rosse nella suite completa del container ricadono in file mai
+  toccati da questa story, è quasi certamente questo stesso gap ambientale PHP 8.4/8.5, non una
+  regressione — da segnalare al committente/team come debito tecnico esistente (differenza di versione
+  PHP fra ambiente di sviluppo locale e immagine Docker `app`), non da inseguire dentro il budget di un
+  singolo checkpoint di fine fase.
