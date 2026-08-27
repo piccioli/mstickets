@@ -8,6 +8,8 @@ use App\Domain\Documentation\Events\DocumentationPageContentChanged;
 use App\Domain\Documentation\Events\DocumentationPageCreated;
 use App\Domain\Documentation\Events\DocumentationPageRenamed;
 use App\Domain\Documentation\Listeners\GenerateDocumentationPagePdfOnChange;
+use App\Domain\Identity\Listeners\LogImpersonationStarted;
+use App\Domain\Identity\Listeners\LogImpersonationStopped;
 use App\Domain\Mail\Events\EmailQuarantined;
 use App\Domain\Mail\Events\InboundEmailApplied;
 use App\Domain\Mail\Listeners\NotifyStaffOfNewCustomerTicketFromEmail;
@@ -34,6 +36,8 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use STS\FilamentImpersonate\Events\EnterImpersonation;
+use STS\FilamentImpersonate\Events\LeaveImpersonation;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -97,6 +101,12 @@ class AppServiceProvider extends ServiceProvider
         // comunque registrato qui perché Illuminate\Mail\Events\MessageSending non è
         // nella scansione di auto-discovery (nessuna classe App\Listeners\* nel repo).
         Event::listen(MessageSending::class, BlockRealRecipientsOutsideProduction::class);
+
+        // Log strutturato dell'impersonation (§6.7.2, US-607): stesso pattern
+        // `Log::info('dominio.azione.evento', [...])` dei comandi schedulati, nessuna
+        // tabella dedicata (l'impersonation non è legata a un ticket).
+        Event::listen(EnterImpersonation::class, LogImpersonationStarted::class);
+        Event::listen(LeaveImpersonation::class, LogImpersonationStopped::class);
 
         // Le viste LaTeX vivono in resources/views/latex/*.tex.blade.php (estensione doppia,
         // per distinguerle a colpo d'occhio dalle viste HTML "*.blade.php"): il resolver di

@@ -6,6 +6,7 @@ namespace App\Domain\Identity\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Domain\Identity\Enums\UserRole;
+use App\Domain\Identity\Policies\UserPolicy;
 use Database\Factories\UserFactory;
 use Filament\Auth\MultiFactor\App\Contracts\HasAppAuthentication;
 use Filament\Auth\MultiFactor\App\Contracts\HasAppAuthenticationRecovery;
@@ -19,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Gate;
 use SensitiveParameter;
 use Spatie\Permission\Traits\HasRoles;
 
@@ -148,5 +150,32 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
     {
         $this->app_authentication_recovery_codes = $codes;
         $this->save();
+    }
+
+    /**
+     * Contratto di `stechstudio/filament-impersonate` (§6.7.2, US-607): il pacchetto verifica
+     * questi due metodi tramite `method_exists()`, nessuna interfaccia/trait da implementare.
+     * Delega a {@see UserPolicy::impersonate()} via Gate — unica
+     * fonte di verità per il permesso (`Permission::UserImpersonate`, §9.4: solo admin), mai
+     * un controllo di ruolo duplicato qui. La Policy accetta anche un $model, ma oggi il
+     * permesso non varia per bersaglio: passare $this come bersaglio fittizio (nessun bersaglio
+     * reale è disponibile in questo metodo, che il pacchetto chiama senza argomenti) è quindi
+     * equivalente al comportamento reale. Se la Policy venisse mai estesa per dipendere
+     * davvero da $model, questo metodo andrebbe rivisto.
+     */
+    public function canImpersonate(): bool
+    {
+        return Gate::forUser($this)->check('impersonate', $this);
+    }
+
+    /**
+     * Lato bersaglio del contratto sopra: il pacchetto chiama questo metodo sull'utente da
+     * impersonare, senza alcun contesto sull'attore (il permesso dell'attore è già verificato
+     * da {@see self::canImpersonate()}). Esprime solo un vincolo indipendente dall'attore: un
+     * utente disattivato non è mai impersonabile.
+     */
+    public function canBeImpersonated(): bool
+    {
+        return $this->deactivated_at === null;
     }
 }

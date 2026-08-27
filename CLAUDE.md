@@ -1141,3 +1141,40 @@ verificati esplicitamente, non assunti allineati.
   OTP valido per il secret generato: `docker exec <container> php artisan tinker --execute="echo
   app(PragmaRX\Google2FAQRCode\Google2FA::class)->getCurrentOtp('<secret>');"` — riusabile per qualunque
   verifica futura che tocchi l'autenticazione da app.
+
+## Impersonation — guardia `Impersonation::isImpersonating()` in `UserPolicy::viewAny()`, effetto collaterale noto (US-607, §6.7.2)
+
+- `stechstudio/filament-impersonate` richiede, per il proprio bug noto (documentato nel README del
+  pacchetto, sezione "Potential Issues and Workarounds — 403 when a ListUsers widget has
+  `InteractsWithPageTable`"), un guard esplicito in cima a `UserPolicy::viewAny()`:
+  `if (Impersonation::isImpersonating()) { return true; }`. Senza questo guard, il redirect
+  post-impersonation genera un 403 spurio perché i componenti Livewire della tabella tentano un
+  re-render con l'utente appena impersonato prima che il browser navighi via.
+- **Effetto collaterale accettato consapevolmente, non un bug di questa story**: finché
+  un'impersonation è attiva, QUALUNQUE utente impersonato (anche un customer) può navigare
+  direttamente a `/admin/users` e vedere l'elenco completo di tutti gli utenti reali — perché il guard
+  è cieco rispetto a CHI è impersonato, controlla solo "è in corso un'impersonation nella sessione".
+  Verificato in browser: un customer impersonato da un admin raggiunge `/admin/users` e vede anche
+  l'email dell'admin che lo sta impersonando. Non è uno sfruttamento praticabile da un attaccante reale
+  (la sessione è comunque guidata dall'admin che ha già il permesso `UserImpersonate` ed è quindi già
+  un utente privilegiato), ma rompe la premessa "vedere il pannello con gli occhi dell'altro utente" per
+  questa specifica Resource. Rimuovere il guard reintroduce il 403 spurio documentato dal pacchetto —
+  nessuna soluzione pulita nota che eviti entrambi i problemi con l'API pubblica del pacchetto. Flaggato
+  per revisione esplicita col committente al checkpoint US-618, non silenziato.
+- Metodi di contratto del pacchetto (`User::canImpersonate()`/`canBeImpersonated()`, rilevati via
+  `method_exists()`, nessuna interfaccia da implementare): `canImpersonate()` delega a
+  `Gate::forUser($this)->check('impersonate', $this)` (unica fonte di verità in
+  `UserPolicy::impersonate()`, mai un controllo di ruolo duplicato); `canBeImpersonated()` esprime solo
+  il vincolo indipendente dall'attore (`deactivated_at === null`).
+- Log strutturato tramite gli eventi nativi del pacchetto (`STS\FilamentImpersonate\Events\
+  EnterImpersonation`/`LeaveImpersonation`), NON un observer/hook Eloquent: due nuovi listener
+  (`App\Domain\Identity\Listeners\LogImpersonationStarted`/`LogImpersonationStopped`) registrati in
+  `AppServiceProvider::boot()`, stesso pattern `Log::info('dominio.azione.evento', [...])` già in uso
+  dai comandi schedulati — nessuna nuova tabella dedicata (l'impersonation non è legata a un ticket).
+  `LeaveImpersonation::$impersonated` è nullable nell'evento del pacchetto (sessione ripulita da un
+  guard esterno, es. logout): gestito come opzionale nel log, mai un accesso diretto che esploda.
+- Test dell'intero ciclo (impersona → banner → log → esci) NON affidabile con `Log::spy()->
+  shouldHaveReceived(...)->once()` quando lo stesso metodo viene invocato più volte nello stesso test
+  (le expectation successive sul metodo `info` contano le invocazioni cumulate, non solo quelle che
+  combaciano con la propria closure) — catturare invece la cronologia reale con `Log::listen(function
+  ($event) use (&$logs) { $logs[] = [...]; })` e asserire sull'array raccolto.
