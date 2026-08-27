@@ -19,11 +19,12 @@ use Illuminate\Validation\ValidationException;
  *
  * Tutta la logica di transizione vive in {@see self::transitions()}: nessun `if` sparso
  * altrove. Copre le transizioni "manuali" del percorso principale/senza-testing,
- * waiting/problem e il relativo ripristino, e il catch-all verso `rejected`. ESCLUDE
- * deliberatamente le righe riservate a comandi schedulati non ancora esistenti (§6.1.5):
- * T3 (`tickets:progress-to-todo`), T4 (`tickets:auto-close-released`), T5
- * (`tickets:close-scrum`, riga `* → done` guardata da `type = scrum`) — arrivano in
- * Fase 6 insieme ai comandi artisan corrispondenti.
+ * waiting/problem e il relativo ripristino, e il catch-all verso `rejected`. Le righe
+ * T3 (`progress → todo`) e T4 (`released → done`, aggiunta in Fase 6/US-610) hanno
+ * `TransitionActor::System` fra gli attori ammessi, per i comandi schedulati
+ * `tickets:progress-to-todo`/`tickets:auto-close-released` (§6.1.5, §10.2). ESCLUDE
+ * ancora deliberatamente T5 (`tickets:close-scrum`, riga `* → done` guardata da
+ * `type = scrum`) — arriva con US-611.
  *
  * Decisione Q4: nessuna riga per T2 (azzeramento di `assignee_id` su cambio di stato
  * manuale di un ticket `new`) — comportamento esplicitamente diverso dal v1.
@@ -139,7 +140,7 @@ final class TicketStateMachine
             new Transition(
                 from: [TicketStatus::Released],
                 to: TicketStatus::Done,
-                actors: [TransitionActor::AdminOrManager, TransitionActor::Assignee],
+                actors: [TransitionActor::AdminOrManager, TransitionActor::Assignee, TransitionActor::System],
                 effects: [TransitionEffect::SetDoneAt],
             ),
             new Transition(

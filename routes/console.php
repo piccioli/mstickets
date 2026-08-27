@@ -5,6 +5,8 @@ declare(strict_types=1);
 use App\Console\Commands\MailFetchInboundCommand;
 use App\Console\Commands\MailRetryFailedCommand;
 use App\Console\Commands\ReportsGenerateMonthlyCommand;
+use App\Console\Commands\TicketsAutoCloseReleasedCommand;
+use App\Console\Commands\TicketsProgressToTodoCommand;
 use App\Console\Commands\TicketsRemindWaitingCommand;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -55,3 +57,20 @@ Schedule::command(ReportsGenerateMonthlyCommand::class)
     ->cron((string) config('reporting.monthly_schedule_cron'))
     ->withoutOverlapping()
     ->when(fn (): bool => (bool) config('orchestrator.features.reports_monthly'));
+
+// T3 (§6.1.5/§10.2 del PRD, US-610): riporta in "todo" i ticket rimasti "progress"
+// a fine giornata. Cadenza configurabile da config('ticketing.progress_to_todo.schedule_cron'),
+// dietro il feature flag già presente da Fase 0 (config('orchestrator.features.tickets_progress_to_todo')).
+Schedule::command(TicketsProgressToTodoCommand::class)
+    ->cron((string) config('ticketing.progress_to_todo.schedule_cron'))
+    ->withoutOverlapping()
+    ->when(fn (): bool => (bool) config('orchestrator.features.tickets_progress_to_todo'));
+
+// T4 (§6.1.5/§10.2 del PRD, US-610): chiude in "done" i ticket "released" da almeno
+// config('ticketing.auto_close_released.threshold_working_days') giorni lavorativi.
+// Cadenza configurabile da config('ticketing.auto_close_released.schedule_cron'),
+// dietro il feature flag già presente da Fase 0 (config('orchestrator.features.tickets_auto_close_released')).
+Schedule::command(TicketsAutoCloseReleasedCommand::class)
+    ->cron((string) config('ticketing.auto_close_released.schedule_cron'))
+    ->withoutOverlapping()
+    ->when(fn (): bool => (bool) config('orchestrator.features.tickets_auto_close_released'));

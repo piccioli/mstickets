@@ -1210,3 +1210,28 @@ verificati esplicitamente, non assunti allineati.
   `$query->active()` (local scope di `User`) risulta "metodo indefinito" — va estratto in un metodo
   privato tipizzato `@param Builder<User> $query` / `@return Builder<User>` (mai una closure inline),
   stesso pattern già in uso da `TicketForm::activeUsersQuery()`.
+
+## Comandi schedulati T3/T4 — `TransitionActor::System` spesso già pre-wired in `TicketStateMachine` (`tickets:progress-to-todo`/`tickets:auto-close-released`, US-610, §6.1.5/§10.2)
+
+- **Prima di aggiungere un attore a una riga della tabella dichiarativa, verificare se è già lì**: la riga
+  `progress → todo` (T3) aveva già `TransitionActor::System` fra gli attori ammessi fin da US-106 (aggiunto
+  per un motivo estraneo a questa story), quindi `tickets:progress-to-todo` non ha richiesto alcuna
+  modifica alla macchina a stati — solo il comando artisan che delega a `ChangeTicketStatus` con
+  `User::system()`. La riga `released → done` (T4) invece NON l'aveva: aggiunta qui
+  (`TicketStateMachine::transitions()`), unica modifica allo stato machine per questa story. Non fidarsi
+  del commento di classe che elenca "righe non ancora esistenti": può essere rimasto indietro rispetto al
+  codice reale, controllare sempre `transitions()` riga per riga.
+- Pattern comando ormai consolidato per queste automazioni (stesso schema di `mail:retry-failed`/
+  `reports:generate-monthly`): `User::system()` come attore, delega totale a `ChangeTicketStatus::run()`
+  (mai un update diretto su `status`/`done_at`/`previous_status` — gli `effects` della transizione e
+  `writeStatusLog()` con `is_system = $user->isSystem()` arrivano gratis), `--dry-run` che non chiama mai
+  l'Action, log strutturato `started`/`item_failed`/`finished`, idempotenza per costruzione (la query
+  `where('status', ...)` non seleziona più un ticket già transitato alla ri-esecuzione, nessun flag
+  "già processato" da gestire a mano).
+- I feature flag (`config('orchestrator.features.tickets_progress_to_todo')`/
+  `tickets_auto_close_released`) e le relative env var erano già scaffoldati in `config/orchestrator.php`/
+  `.env.example` da Fase 0: nessuna nuova voce lì, solo la cadenza cron (nuova sezione
+  `config('ticketing.progress_to_todo'/'auto_close_released')`, stesso env pattern
+  `*_SCHEDULE_CRON` di `reports.php`) e la soglia giorni lavorativi per T4 (riuso diretto di
+  `WorkingDaysCalculator::haveElapsed()`, stesso calcolo del reminder E7/US-316, mai una nuova
+  implementazione del conteggio giorni lavorativi).

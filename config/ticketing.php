@@ -115,4 +115,28 @@ return [
         'cache_ttl_seconds' => (int) env('TICKET_NAVIGATION_BADGE_TTL', 60),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Automazioni schedulate T3/T4 (§6.1.5, §10.2 del PRD, US-610)
+    |--------------------------------------------------------------------------
+    |
+    | Cadenza di `tickets:progress-to-todo` (18:00, tutti i ticket `progress` →
+    | `todo`) e di `tickets:auto-close-released` (07:45, ticket `released` da
+    | almeno `threshold_working_days` giorni lavorativi — App\Domain\Ticketing\
+    | Support\WorkingDaysCalculator, stesso calcolo del reminder E7 — → `done`).
+    | Dietro i feature flag già presenti da Fase 0
+    | (config('orchestrator.features.tickets_progress_to_todo')/
+    | tickets_auto_close_released), disattivati di default.
+    |
+    */
+
+    'progress_to_todo' => [
+        'schedule_cron' => env('TICKET_PROGRESS_TO_TODO_SCHEDULE_CRON', '0 18 * * *'),
+    ],
+
+    'auto_close_released' => [
+        'threshold_working_days' => (int) env('TICKET_AUTO_CLOSE_RELEASED_THRESHOLD_DAYS', 3),
+        'schedule_cron' => env('TICKET_AUTO_CLOSE_RELEASED_SCHEDULE_CRON', '45 7 * * *'),
+    ],
+
 ];
