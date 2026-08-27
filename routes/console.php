@@ -5,7 +5,9 @@ declare(strict_types=1);
 use App\Console\Commands\MailFetchInboundCommand;
 use App\Console\Commands\MailRetryFailedCommand;
 use App\Console\Commands\ReportsGenerateMonthlyCommand;
+use App\Console\Commands\TicketsArchiveScrumCommand;
 use App\Console\Commands\TicketsAutoCloseReleasedCommand;
+use App\Console\Commands\TicketsCloseScrumCommand;
 use App\Console\Commands\TicketsProgressToTodoCommand;
 use App\Console\Commands\TicketsRemindWaitingCommand;
 use Illuminate\Foundation\Inspiring;
@@ -74,3 +76,21 @@ Schedule::command(TicketsAutoCloseReleasedCommand::class)
     ->cron((string) config('ticketing.auto_close_released.schedule_cron'))
     ->withoutOverlapping()
     ->when(fn (): bool => (bool) config('orchestrator.features.tickets_auto_close_released'));
+
+// T5 (§6.1.5/§10.2 del PRD, US-611): chiude in "done" i ticket "scrum" creati/aggiornati
+// oggi. Cadenza configurabile da config('ticketing.close_scrum.schedule_cron'), dietro
+// il feature flag già presente da Fase 0 (config('orchestrator.features.tickets_close_scrum')).
+Schedule::command(TicketsCloseScrumCommand::class)
+    ->cron((string) config('ticketing.close_scrum.schedule_cron'))
+    ->withoutOverlapping()
+    ->when(fn (): bool => (bool) config('orchestrator.features.tickets_close_scrum'));
+
+// §10.2 del PRD (Q9), US-611: archivia i ticket "scrum" chiusi da abbastanza giorni
+// (lettura conservativa del comportamento v1, non recuperabile con certezza dal dump —
+// vedi config/ticketing.php). Cadenza configurabile da
+// config('ticketing.archive_scrum.schedule_cron'), dietro il feature flag già presente
+// da Fase 0 (config('orchestrator.features.tickets_archive_scrum')).
+Schedule::command(TicketsArchiveScrumCommand::class)
+    ->cron((string) config('ticketing.archive_scrum.schedule_cron'))
+    ->withoutOverlapping()
+    ->when(fn (): bool => (bool) config('orchestrator.features.tickets_archive_scrum'));

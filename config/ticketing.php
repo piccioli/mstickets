@@ -139,4 +139,42 @@ return [
         'schedule_cron' => env('TICKET_AUTO_CLOSE_RELEASED_SCHEDULE_CRON', '45 7 * * *'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Automazione schedulata T5 (§6.1.5, §10.2 del PRD, US-611)
+    |--------------------------------------------------------------------------
+    |
+    | Cadenza di `tickets:close-scrum` (16:00, ticket `type = scrum` creati/aggiornati
+    | oggi → `done` tramite la riga T5 dedicata di
+    | App\Domain\Ticketing\StateMachine\TicketStateMachine). Dietro il feature flag
+    | già presente da Fase 0 (config('orchestrator.features.tickets_close_scrum')),
+    | disattivato di default.
+    |
+    */
+
+    'close_scrum' => [
+        'schedule_cron' => env('TICKET_CLOSE_SCRUM_SCHEDULE_CRON', '0 16 * * *'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Comando tickets:archive-scrum (§10.2 del PRD, Q9, US-611)
+    |--------------------------------------------------------------------------
+    |
+    | Comportamento v1 non recuperabile con certezza dal dump disponibile
+    | (v1dumps/orchestrator-v1-backup-20260726.tar.gz): nessun comando né colonna di
+    | archiviazione nel codice applicativo v1, solo viste Nova "Archived*" in sola
+    | lettura filtrate per `status` — nessuna mutazione reale da riprodurre. Lettura
+    | conservativa adottata qui (da confermare col committente al checkpoint
+    | US-618): archivia (`archived_at`, mai una cancellazione né un cambio di
+    | `status`) i ticket `type = scrum` già `done` da almeno `threshold_days` giorni
+    | di calendario.
+    |
+    */
+
+    'archive_scrum' => [
+        'threshold_days' => (int) env('TICKET_ARCHIVE_SCRUM_THRESHOLD_DAYS', 30),
+        'schedule_cron' => env('TICKET_ARCHIVE_SCRUM_SCHEDULE_CRON', '0 5 * * *'),
+    ],
+
 ];

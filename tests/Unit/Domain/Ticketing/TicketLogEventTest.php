@@ -6,11 +6,11 @@ use App\Domain\Ticketing\Enums\TicketLogEvent;
 use Filament\Support\Contracts\HasIcon;
 use Filament\Support\Contracts\HasLabel;
 
-test('contains exactly the 8 values of §6.2.1', function (): void {
+test('contains exactly the 8 values of §6.2.1 plus "archived" (US-611)', function (): void {
     expect(array_map(fn (TicketLogEvent $event): string => $event->value, TicketLogEvent::cases()))
         ->toBe([
             'created', 'status_changed', 'assigned', 'updated', 'message_posted',
-            'attachment_added', 'attachment_removed', 'system',
+            'attachment_added', 'attachment_removed', 'system', 'archived',
         ]);
 });
 

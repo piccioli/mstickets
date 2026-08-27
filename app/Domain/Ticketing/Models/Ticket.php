@@ -25,7 +25,7 @@ use Illuminate\Support\Collection;
     'parent_id', 'title', 'description', 'status', 'previous_status', 'status_changed_at',
     'type', 'priority', 'requester_id', 'assignee_id', 'tester_id', 'fundraising_project_id',
     'waiting_reason', 'problem_reason', 'estimated_hours', 'worked_minutes', 'staging_url',
-    'production_url', 'released_at', 'done_at',
+    'production_url', 'released_at', 'done_at', 'archived_at',
 ])]
 class Ticket extends Model
 {
@@ -46,6 +46,7 @@ class Ticket extends Model
             'worked_minutes' => 'integer',
             'released_at' => 'datetime',
             'done_at' => 'datetime',
+            'archived_at' => 'datetime',
         ];
     }
 
