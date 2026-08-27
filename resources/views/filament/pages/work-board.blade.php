@@ -22,7 +22,7 @@
         @foreach ($this->columns() as $statusValue => $tickets)
             @php $status = TicketStatus::from($statusValue); @endphp
 
-            <div class="flex w-72 shrink-0 flex-col gap-3 rounded-xl bg-gray-50 p-3 dark:bg-white/5">
+            <div class="flex w-72 shrink-0 flex-col gap-3 rounded-[var(--ms-radius-xl)] bg-[var(--ms-surface-muted)] p-3 dark:bg-white/5">
                 <div class="flex items-center justify-between">
                     <x-filament::badge :color="$status->getColor()" :icon="$status->getIcon()">
                         {{ $status->getLabel() }}
@@ -37,9 +37,9 @@
                     @forelse ($tickets as $ticket)
                         <a
                             href="{{ $this->ticketUrl($ticket) }}"
-                            class="flex flex-col gap-1 rounded-lg border border-gray-200 bg-white p-3 text-sm shadow-sm transition hover:border-primary-400 dark:border-white/10 dark:bg-gray-900"
+                            class="flex flex-col gap-1 rounded-[var(--ms-radius-card)] border border-[var(--ms-border-default)] bg-white p-3 text-sm shadow-[var(--ms-shadow-card)] transition hover:border-primary-400 hover:shadow-[var(--ms-shadow-hover-brand)] dark:border-white/10 dark:bg-gray-900"
                         >
-                            <span class="font-medium text-gray-950 dark:text-white">
+                            <span class="font-extrabold text-gray-950 dark:text-white">
                                 #{{ $ticket->id }} {{ $ticket->title }}
                             </span>
 
