@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Console\Commands\MailFetchInboundCommand;
 use App\Console\Commands\MailRetryFailedCommand;
+use App\Console\Commands\ReportsGenerateMonthlyCommand;
 use App\Console\Commands\TicketsRemindWaitingCommand;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -43,3 +44,14 @@ Schedule::command(MailRetryFailedCommand::class)
     ->cron((string) config('mail_pipeline.retry.schedule_cron'))
     ->withoutOverlapping()
     ->when(fn (): bool => (bool) config('orchestrator.features.mail_retry_failed'));
+
+// §6.5.3/§10.2 del PRD, US-410: genera i report attività del mese precedente per
+// ogni owner attivo. Cadenza configurabile da config('reporting.monthly_schedule_cron')
+// (mai un cron letterale qui), dietro il feature flag già presente da Fase 0
+// (config('orchestrator.features.reports_monthly')), disattivato di default.
+// `reports:generate-monthly` resta comunque richiamabile manualmente da CLI
+// indipendentemente da questo flag.
+Schedule::command(ReportsGenerateMonthlyCommand::class)
+    ->cron((string) config('reporting.monthly_schedule_cron'))
+    ->withoutOverlapping()
+    ->when(fn (): bool => (bool) config('orchestrator.features.reports_monthly'));

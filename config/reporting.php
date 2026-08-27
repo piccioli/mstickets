@@ -31,4 +31,17 @@ return [
     // "MS-cai-sezione-milano-2026-02.pdf".
     'platform_acronym' => env('PLATFORM_ACRONYM', 'MS'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Generazione mensile automatica (§6.5.3/§10.2 del PRD, US-410)
+    |--------------------------------------------------------------------------
+    |
+    | Cadenza di `reports:generate-monthly`, dietro il feature flag
+    | `orchestrator.features.reports_monthly` (§10.1: mai un cron letterale
+    | nel file di scheduling, stesso pattern di `ticketing.waiting_reminder`).
+    |
+    */
+
+    'monthly_schedule_cron' => env('REPORTS_MONTHLY_SCHEDULE_CRON', '0 12 1 * *'),
+
 ];

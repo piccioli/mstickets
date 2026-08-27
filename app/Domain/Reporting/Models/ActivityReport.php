@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Reporting\Models;
 
+use App\Domain\Identity\Enums\Permission;
 use App\Domain\Identity\Models\Organization;
 use App\Domain\Identity\Models\User;
 use App\Domain\Reporting\Actions\GenerateActivityReportPdf;
@@ -12,6 +13,7 @@ use App\Domain\Reporting\Enums\ActivityReportPeriodType;
 use App\Domain\Ticketing\Models\Ticket;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -156,5 +158,33 @@ class ActivityReport extends Model
             ActivityReportOwnerKind::Organization => $this->owner_organization_id !== null
                 && $user->organizations()->whereKey($this->owner_organization_id)->exists(),
         };
+    }
+
+    /**
+     * Query-equivalente di {@see self::isOwnedBy()} (US-410, §6.5.4): usata dalla
+     * Filament Resource "i miei report" per customer/membri organizzazione,
+     * stesso principio già applicato da `Ticket::scopeVisibleTo()` e
+     * `DocumentationPage::scopeVisibleTo()` — `.view.any` vede tutto,
+     * `.view.own` vede solo i propri report (come utente owner diretto o come
+     * membro dell'organizzazione owner), nessun altro permesso implica accesso.
+     *
+     * @param  Builder<ActivityReport>  $query
+     * @return Builder<ActivityReport>
+     */
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        if ($user->can(Permission::ActivityReportViewAny)) {
+            return $query;
+        }
+
+        if (! $user->can(Permission::ActivityReportViewOwn)) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->where(
+            fn (Builder $query) => $query
+                ->where('owner_user_id', $user->id)
+                ->orWhereIn('owner_organization_id', $user->organizations()->pluck('organizations.id'))
+        );
     }
 }
