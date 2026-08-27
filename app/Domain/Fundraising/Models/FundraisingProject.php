@@ -112,4 +112,21 @@ class FundraisingProject extends Model
                 ->orWhereHas('partners', fn (Builder $query): Builder => $query->whereKey($user->id));
         });
     }
+
+    /**
+     * "Coinvolto" per la vista cliente (§6.6.4): SOLO capofila o partner. A
+     * differenza di {@see scopeInvolving()} (uso interno staff, §6.6.3),
+     * responsabile/creatore sono esclusi di proposito: sono ruoli interni
+     * allo staff, mai attribuibili a un customer nel flusso applicativo.
+     *
+     * @param  Builder<FundraisingProject>  $query
+     * @return Builder<FundraisingProject>
+     */
+    public function scopeInvolvingAsCustomer(Builder $query, User $user): Builder
+    {
+        return $query->where(function (Builder $query) use ($user): void {
+            $query->where('lead_user_id', $user->id)
+                ->orWhereHas('partners', fn (Builder $query): Builder => $query->whereKey($user->id));
+        });
+    }
 }

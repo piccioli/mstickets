@@ -57,6 +57,36 @@ test('scopeInvolving trova il progetto per capofila, partner, responsabile o cre
         ->and(FundraisingProject::query()->involving($stranger)->whereKey($project->id)->exists())->toBeFalse();
 });
 
+test('scopeInvolvingAsCustomer trova il progetto SOLO per capofila o partner, mai responsabile o creatore (§6.6.4)', function (): void {
+    $lead = User::factory()->create();
+    $partner = User::factory()->create();
+    $responsible = User::factory()->create();
+    $creator = User::factory()->create();
+    $stranger = User::factory()->create();
+
+    $opportunity = FundraisingOpportunity::create([
+        'name' => 'Bando Regione X',
+        'deadline' => now()->addMonth()->toDateString(),
+        'created_by' => $creator->id,
+        'responsible_user_id' => $creator->id,
+    ]);
+
+    $project = FundraisingProject::create([
+        'title' => 'Progetto rifugio A',
+        'fundraising_opportunity_id' => $opportunity->id,
+        'lead_user_id' => $lead->id,
+        'responsible_user_id' => $responsible->id,
+        'created_by' => $creator->id,
+    ]);
+    $project->partners()->attach($partner->id);
+
+    expect(FundraisingProject::query()->involvingAsCustomer($lead)->whereKey($project->id)->exists())->toBeTrue()
+        ->and(FundraisingProject::query()->involvingAsCustomer($partner)->whereKey($project->id)->exists())->toBeTrue()
+        ->and(FundraisingProject::query()->involvingAsCustomer($responsible)->whereKey($project->id)->exists())->toBeFalse()
+        ->and(FundraisingProject::query()->involvingAsCustomer($creator)->whereKey($project->id)->exists())->toBeFalse()
+        ->and(FundraisingProject::query()->involvingAsCustomer($stranger)->whereKey($project->id)->exists())->toBeFalse();
+});
+
 test('partnerCustomers restituisce solo i partner con ruolo customer', function (): void {
     $project = makeFundraisingProjectForInvolvementTest();
 

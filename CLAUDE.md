@@ -940,3 +940,48 @@ verificati esplicitamente, non assunti allineati.
   select, non è (da solo) una validazione server-side dura sul valore salvato — se in futuro serve bloccare
   anche un ID iniettato via richiesta manipolata, va aggiunta separatamente una regola `exists` scoperta
   sulla stessa query o un controllo esplicito nell'Action di salvataggio.
+
+## Vista cliente in sola lettura come Resource Filament separata dalla Resource staff (`CustomerFundraisingOpportunityResource`/`CustomerFundraisingProjectResource`, US-508)
+
+- **Pattern riusabile "stessa entità, due Resource Filament distinte, staff CRUD vs cliente sola lettura"**:
+  quando un dominio ha sia una Resource di gestione staff (`FundraisingOpportunityResource`/
+  `FundraisingProjectResource`) sia una vista cliente con permessi/scope diversi (§6.6.4), NON provare a far
+  convivere i due casi d'uso in un'unica Resource con `visible()` condizionali sui campi/azioni — creare una
+  seconda Resource dedicata (`Customer<Nome>Resource`), stesso model, `getPages()` che registra SOLO
+  `'index'`/`'view'` (mai `'create'`/`'edit'`/`'delete'`: sola lettura reale, non azioni nascoste in UI),
+  `table()`/`infolist()` con solo i campi previsti per il cliente (mai responsabile/creatore/dati di
+  valutazione interni), `headerActions([])`/`toolbarActions([])` sulla tabella, un solo `ViewAction::make()`
+  come `recordActions()`. Le pagine List/View di sola lettura non hanno bisogno di override di
+  `getHeaderActions()` per `ViewRecord` (default già vuoto, nessuna `EditAction` a meno di aggiungerla
+  esplicitamente come fa `ViewUser`), ma serve per `ListRecords` (default include una `CreateAction`
+  condizionata da `canCreate()`: meglio azzerarla esplicitamente per chiarezza, pattern già usato da
+  `ListActivityReports`).
+- **Evitare due voci di navigazione duplicate per lo stesso dominio quando entrambe le Resource condividono
+  lo stesso `Policy::viewAny()` permissivo**: `FundraisingOpportunityPolicy`/`FundraisingProjectPolicy::viewAny()`
+  ritornano true sia per chi ha `fundraising.view.any` (staff) sia per chi ha solo `fundraising.view.involved`
+  (cliente, US-501/US-506), quindi nessuna delle due Resource può delegare `canViewAny()` al default
+  Filament→Policy. La Resource staff resta ristretta a `->can(FundraisingViewAny)` (già da US-502/US-507); la
+  Resource cliente usa il gate simmetrico e opposto `->can(FundraisingViewInvolved) && ! ->can(FundraisingViewAny)`
+  — nella matrice ruoli attuale (§9.4, `RolePermissionSeeder::ROLE_PERMISSIONS`) l'unico ruolo con
+  `view.involved` ma senza `view.any` è `customer`, quindi ogni altro ruolo vede al massimo una delle due
+  Resource, mai zero e mai due.
+- **Due scope diversi sullo stesso model per due significati diversi di "coinvolto", NON un unico scope
+  riusato ovunque**: `FundraisingProject::scopeInvolving()` (US-506, uso interno staff/filtro §6.6.3) include
+  capofila, partner, responsabile E creatore — semanticamente corretto per un membro dello staff che vuole
+  "i progetti su cui sto lavorando in qualunque ruolo". La vista cliente (§6.6.4) è esplicitamente più
+  stretta: SOLO capofila o partner, responsabile/creatore sono ruoli interni allo staff e non devono mai far
+  apparire un progetto nella lista di un cliente. Riscrivere `scopeInvolving()` per escluderli avrebbe rotto
+  i test di Policy già committati in US-506 (`FundraisingProjectPolicyTest`, che asserisce esplicitamente che
+  un customer impostato come `responsible_user_id`/`created_by` PUÒ vedere il progetto via `Policy::view()` —
+  ability generica, mai raggiunta in pratica da staff perché short-circuita prima su `FundraisingViewAny`).
+  Soluzione: un secondo scope dedicato `scopeInvolvingAsCustomer()` (solo `lead_user_id`/`partners`), usato
+  ESCLUSIVAMENTE da `CustomerFundraisingProjectResource::getEloquentQuery()` — mai dalla Policy generica, che
+  resta quella dello staff. Se compaiono due AC che descrivono "coinvolgimento" con perimetri diversi sullo
+  stesso model, non assumere che debbano condividere lo stesso scope solo perché il nome è simile.
+- **Difesa a due livelli per "il dettaglio non è raggiungibile via URL diretto se non coinvolto" (stesso
+  principio di `DocumentationPageResource`/`ActivityReportResource`)**: `getEloquentQuery()` incatena SEMPRE
+  lo scope di visibilità PRIMA che Filament risolva il route-model-binding di `ViewRecord` — un record fuori
+  scope dà **404** (`ModelNotFoundException`), non 403, perché la richiesta non arriva mai fino al controllo
+  Policy. Il test HTTP corrispondente deve quindi asserire `assertNotFound()`, non `assertForbidden()`, per un
+  record esistente ma fuori dallo scope del cliente corrente (diverso dal caso "nessun permesso sul modulo
+  intero", quello sì `assertForbidden()` su `canViewAny()` a livello di indice/Resource).
