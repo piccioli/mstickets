@@ -1446,3 +1446,59 @@ verificati esplicitamente, non assunti allineati.
   screenshotta lista/dettaglio. Richiede prima `php artisan cai:import-datapack` sul dataset reale locale
   (`cai-datapack/runts-cai.sqlite`) per avere dati non vuoti — verificare con `CaiSection::count()` prima di
   assumere che i dati ci siano già (`v1:import` non tocca le tabelle CAI, ma un `migrate:fresh` sì).
+  `collaudo:ensure-manager-account` richiede a sua volta che i ruoli/permessi esistano già
+  (`php artisan db:seed --class=RolePermissionSeeder`), altrimenti fallisce con `RoleDoesNotExist` — non
+  garantito dopo un `migrate:fresh` senza seeding.
+
+## Export di file da un'azione Filament (header/record action → download browser, US-805, Fase 8)
+
+- Un'`Action::make(...)->action(fn (HasTable $livewire) => ...)` il cui closure ritorna una
+  `Symfony\Component\HttpFoundation\StreamedResponse` (es. `response()->streamDownload(...)`) o una
+  `BinaryFileResponse` **funziona out-of-the-box** come download browser: la mount/callMountedAction di
+  Filament passa il valore di ritorno fino al metodo pubblico Livewire, e l'hook nativo
+  `Livewire\Features\SupportFileDownloads` lo intercetta automaticamente (nessun controller/route dedicato
+  necessario, a differenza del pattern già in uso per PDF/documenti come
+  `CaiDocumentDownloadController`/`ActivityReportPdfDownloadController`). Verificato end-to-end sia nei test
+  Pest sia in browser reale (Playwright, click su un `Action` di export → evento `download` del browser).
+- Il parametro `HasTable $livewire` (namespace `Filament\Tables\Contracts\HasTable`) dentro un
+  `->action()` di una `headerActions()` di tabella dà accesso a `$livewire->getFilteredSortedTableQuery()`:
+  è la stessa query (filtri + ricerca correnti, senza paginazione) che la tabella usa per popolare la
+  pagina — necessario per un export "solo le righe correntemente filtrate/visibili", non
+  `Model::query()->get()` diretto (vedi `CaiSectionsTable::filteredSections()`).
+- Test Pest: `Livewire::test(ListRecords::class)->filterTable(...)->callTableAction('nomeAzione')`, poi
+  `$test->effects['download']` (chiave magica esposta da `Testable::__get`, non un metodo pubblico) dà
+  `['name' => ..., 'content' => <base64>, 'contentType' => ...]` — decodificare con `base64_decode()` per
+  asserire il contenuto reale. Niente bisogno di `assertFileDownloaded()` se serve ispezionare il contenuto
+  oltre a nome/content-type.
+- Formati generati in questo repo: CSV (`fputcsv` su `php://temp`, poi `stream_get_contents`), XLSX
+  (`openspout/openspout`, già presente come dipendenza transitiva di `filament/actions` — **non**
+  aggiungere `maatwebsite/excel`: scrivere su un file temporaneo con `Writer::openToFile($tempPath)`, mai
+  `openToBrowser()`/`php://output` diretto dentro una `streamDownload`, perché `openToBrowser()` chiama
+  `header()` internamente e collide con gli header già impostati dalla response Symfony), GeoJSON
+  (`json_encode` di un array `FeatureCollection` fatto a mano — Filament non lo supporta nativamente, solo
+  CSV/XLSX via `Filament\Actions\Exports\Exporter`, che in più richiede tabelle/coda dedicate: per un export
+  sincrono e semplice su tre formati è più semplice un'`Action` custom che l'`ExportAction` nativo).
+  In test, l'XLSX si verifica leggendo il file decodificato con `OpenSpout\Reader\XLSX\Reader` (il contenuto
+  binario non è deterministico byte-per-byte fra run per via dei timestamp nello zip).
+
+## Mappa Leaflet in una pagina Filament custom (US-805, Fase 8)
+
+- Nessuna dipendenza Leaflet preesistente nel pannello (verificato, US-805): introdotta via CDN
+  (`unpkg.com/leaflet@1.9.4`) solo nella view Blade della pagina mappa
+  (`resources/views/filament/pages/cai-sections-map.blade.php`), non come asset globale del pannello.
+  Nessuna CSP nel repo che blocchi script/stylesheet esterni.
+- Una pagina Filament custom (`Filament\Pages\Page`, stesso pattern di `WorkBoard`) con `wire:navigate`
+  attivo (default del pannello) non ha garantito un `DOMContentLoaded` a ogni navigazione verso la pagina:
+  lo script inline va eseguito immediatamente (IIFE), non dentro un listener `DOMContentLoaded`, con un
+  guard su `container.dataset.leafletInitialized` per evitare una doppia inizializzazione se lo stesso nodo
+  viene rieseguito.
+- **Gotcha sui dati reali**: il datapack RUNTS-CAI contiene almeno una sezione con coordinate palesemente
+  errate (una sezione piemontese geocodificata in Papua Nuova Guinea, verificato su
+  `cai-datapack/runts-cai.sqlite` reale) — un `map.fitBounds()` su *tutti* i marker zoomerebbe la vista
+  iniziale fuori dall'Italia per inquadrare quel singolo outlier. Pulire il dato è fuori scope qui (nessuna
+  tabella `geocoding_cache`, US-801): la mitigazione è lato vista, calcolare il `fitBounds()` iniziale solo
+  sui marker dentro un bounding box dell'Italia (`L.latLngBounds([35, 6], [47.5, 19])`), con fallback a
+  tutti i marker se nessuno ricade nel box — il marker outlier resta comunque sulla mappa, solo escluso dal
+  calcolo dell'inquadratura iniziale. Se si aggiunge una nuova mappa che usa dati RUNTS-CAI, verificare
+  sempre con lo screenshot reale (non solo la fixture di test) prima di dichiarare la story completa, stesso
+  principio già documentato per gli import (US-802).

@@ -5,12 +5,18 @@ declare(strict_types=1);
 namespace App\Filament\Resources\CaiSections\Tables;
 
 use App\Domain\CaiDirectory\Models\CaiSection;
+use App\Filament\Resources\CaiSections\Support\CaiSectionsExporter;
+use Filament\Actions\Action;
 use Filament\Actions\ViewAction;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Elenco di sola lettura dell'anagrafica CAI (US-804): unica record action `ViewAction`,
@@ -63,9 +69,42 @@ class CaiSectionsTable
                         blank: fn (Builder $query): Builder => $query,
                     ),
             ])
+            ->headerActions([
+                Action::make('exportCsv')
+                    ->label('Esporta CSV')
+                    ->icon(Heroicon::OutlinedDocumentText)
+                    ->color('gray')
+                    ->action(fn (HasTable $livewire): StreamedResponse => CaiSectionsExporter::csv(self::filteredSections($livewire))),
+                Action::make('exportXlsx')
+                    ->label('Esporta XLSX')
+                    ->icon(Heroicon::OutlinedTableCells)
+                    ->color('gray')
+                    ->action(fn (HasTable $livewire): StreamedResponse => CaiSectionsExporter::xlsx(self::filteredSections($livewire))),
+                Action::make('exportGeoJson')
+                    ->label('Esporta GeoJSON')
+                    ->icon(Heroicon::OutlinedMap)
+                    ->color('gray')
+                    ->action(fn (HasTable $livewire): StreamedResponse => CaiSectionsExporter::geoJson(self::filteredSections($livewire))),
+            ])
             ->recordActions([
                 ViewAction::make(),
             ]);
+    }
+
+    /**
+     * Sezioni correntemente filtrate/visibili nella tabella (filtri + ricerca applicati,
+     * AC di US-805), non `CaiSection::query()->get()`: `getFilteredSortedTableQuery()` è
+     * la stessa query usata da Filament per popolare la pagina corrente, qui eseguita per
+     * intero (senza paginazione) al momento del click sull'azione di export.
+     *
+     * @return Collection<int, CaiSection>
+     */
+    private static function filteredSections(HasTable $livewire): Collection
+    {
+        /** @var Builder<CaiSection> $query */
+        $query = $livewire->getFilteredSortedTableQuery();
+
+        return $query->with('user')->get();
     }
 
     /**
