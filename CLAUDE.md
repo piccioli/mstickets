@@ -430,6 +430,11 @@ Ogni fase completata (Fase 2 in poi) deve produrre, prima di essere considerata 
    successive (Fase 4/5/6).
 3. `php artisan collaudo:generate <N>` — PDF di collaudo con carta intestata Montagna Servizi, Parte 1
    (istruzioni: URL app UAT, URL Mailpit, credenziali) + una sezione per topic con i test numerati.
+   **Aggiungere sempre la fase a `CollaudoGenerateCommand::FASE_NARRATIVE_FILES`/`FASE_TITLES`** quando si
+   scrive il manuale narrativo del punto 2: l'esistenza del file `NN-fase-N.md` da sola non basta, se la
+   fase manca da quelle due const il comando ripiega silenziosamente (nessun errore) sul solo PDF sintetico
+   da manifest invece del PDF dettagliato — gap reale trovato per Fase 6 durante il checkpoint di Fase 7
+   (corretto in quella stessa story, insieme alla registrazione di Fase 7).
    `storage/app/collaudo/` deve contenere **sempre e solo l'ultima versione generata per ciascuna fase**
    (sia la variante sintetica `collaudo-fase-<N>-*.pdf` sia, quando applicabile, quella dettagliata
    `collaudo-dettagliato-fase-<N>-*.pdf`): `CollaudoGenerateCommand` cancella da sé ogni PDF precedente

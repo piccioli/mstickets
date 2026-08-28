@@ -102,6 +102,7 @@ difetto da correggere, non un'eccezione tollerata.
 | Pannello Filament | `app/Filament/Providers/AdminPanelProvider.php` |
 | Vista di lavoro (WorkBoard) | `app/Filament/Pages/WorkBoard.php` + `resources/views/filament/pages/work-board.blade.php` |
 | Dashboard cliente | `app/Filament/Pages/CustomerDashboard.php` |
+| Tipologia di cliente CAI — enum/classificazione | `app/Domain/Identity/Enums/{CustomerType,Region}.php`, `app/Import/Stages/CustomerClassificationStage.php`, `app/Domain/Identity/Queries/SectionsInRegionQuery.php` |
 | Preferenze di notifica | `app/Filament/Pages/NotificationPreferences.php` + `app/Domain/Mail/Enums/NotificationType.php` |
 
 ## Documenti correlati

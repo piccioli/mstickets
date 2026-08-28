@@ -75,6 +75,12 @@ final class CollaudoGenerateCommand extends Command
         '5' => [
             ['file' => '10-fase-5.md', 'titolo' => 'Fase 5 (Fundraising — opportunità/bandi, griglia di valutazione, progetti e vista cliente) — Casi di test dettagliati'],
         ],
+        '6' => [
+            ['file' => '13-fase-6.md', 'titolo' => 'Fase 6 (Portale cliente e rifinitura) — Casi di test dettagliati'],
+        ],
+        '7' => [
+            ['file' => '14-fase-7.md', 'titolo' => 'Fase 7 (Tipologia di cliente CAI) — Casi di test dettagliati'],
+        ],
     ];
 
     /**
@@ -88,6 +94,8 @@ final class CollaudoGenerateCommand extends Command
         '3' => 'Fase 3 (Sottosistema email)',
         '4' => 'Fase 4 (Tag/commesse, Documentation, Activity Report/Organizations)',
         '5' => 'Fase 5 (Fundraising — opportunità/bandi, griglia di valutazione, progetti e vista cliente)',
+        '6' => 'Fase 6 (Portale cliente e rifinitura)',
+        '7' => 'Fase 7 (Tipologia di cliente CAI)',
     ];
 
     public function handle(): int

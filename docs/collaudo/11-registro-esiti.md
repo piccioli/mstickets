@@ -5,7 +5,8 @@
 Tabella da compilare durante il collaudo, una riga per test. Il campo "Esito" accetta solo uno tra
 `PASS`, `FAIL`, `BLOCKED`, `NOT APPLICABLE` (vedi §17 di `00-istruzioni-generali.md` per i criteri generali
 e la sezione "Criterio di superamento" di ciascun test in `02-fase-0.md`/`03-fase-1.md`/`04-fase-1a.md`/
-`05-fase-2.md`/`06-fase-3.md`/`07-fase-4.md`/`10-fase-5.md`/`13-fase-6.md` per il criterio specifico). Il campo "Anomalia" riporta l'ID assegnato secondo
+`05-fase-2.md`/`06-fase-3.md`/`07-fase-4.md`/`10-fase-5.md`/`13-fase-6.md`/`14-fase-7.md` per il criterio
+specifico). Il campo "Anomalia" riporta l'ID assegnato secondo
 §19 di `00-istruzioni-generali.md` (es. `AN-001`), lasciare vuoto se non ci sono anomalie da segnalare per
 quel test.
 
@@ -625,9 +626,50 @@ quel test.
 | F6-140 | Eseguire in sequenza tutti i comandi schedulati di Fase 6 transita ogni ticket guardato esattamente una volta e mai un ticket fuori dal proprio guard, anche ripetendo l'intera sequenza (idempotenza combinata) |  |  |  |  |  |  |  |
 | F6-141 | tickets:archive-scrum è un compromesso strettamente additivo: non tocca mai lo stato del ticket né alcun campo oltre archived_at, solo un log di sistema dedicato (garanzia esplicita del compromesso segnalato al committente, US-611) |  |  |  |  |  |  |  |
 
+## Fase 7 (Tipologia di cliente CAI) — 36 test
+
+| ID | Titolo | Esito | Tester | Data | Versione | Evidenza | Anomalia | Note |
+|---|---|---|---|---|---|---|---|---|
+| F7-01 | Il catalogo CustomerType contiene esattamente i 4 tipi cliente CAI del PRD |  |  |  |  |  |  |  |
+| F7-02 | Il catalogo Region contiene esattamente le 20 regioni italiane ufficiali, con Trentino-Alto Adige unificato |  |  |  |  |  |  |  |
+| F7-03 | Ogni regione ha una label non vuota per la UI |  |  |  |  |  |  |  |
+| F7-04 | Il metodo label() restituisce il nome italiano corretto per i casi con grafia particolare (es. Valle d'Aosta, Friuli-Venezia Giulia) |  |  |  |  |  |  |  |
+| F7-05 | La tabella users ha le colonne additive customer_type/region introdotte da questa fase |  |  |  |  |  |  |  |
+| F7-06 | Un utente senza customer_type/region resta null senza errori |  |  |  |  |  |  |  |
+| F7-07 | customer_type/region sono castati al proprio enum backed sia in lettura sia in scrittura |  |  |  |  |  |  |  |
+| F7-08 | Un nome con prefisso GR/GP classifica come Gruppo Regionale ed estrae la regione |  |  |  |  |  |  |  |
+| F7-09 | Un nome con prefisso OTCO/SO classifica come Organo Tecnico Centrale/Struttura Operativa, sempre senza regione |  |  |  |  |  |  |  |
+| F7-10 | Il pattern OTCO/SO è riconosciuto anche con spazi intorno alla barra |  |  |  |  |  |  |  |
+| F7-11 | Un nome nel formato "nome \| regione" classifica come Sezione ed estrae la regione, col o senza il prefisso C.A.I. SEZ. |  |  |  |  |  |  |  |
+| F7-12 | Una Sezione senza testo dopo il separatore "\|" resta Sezione con regione null, mai Generico |  |  |  |  |  |  |  |
+| F7-13 | Un nome che non corrisponde a nessun pattern classifica come Cliente generico, senza regione |  |  |  |  |  |  |  |
+| F7-14 | La normalizzazione regione gestisce le varianti di maiuscole, apostrofo e trattino del dump v1 |  |  |  |  |  |  |  |
+| F7-15 | Una regione non normalizzabile registra un warning e lascia region null, senza bloccare l'import con un'eccezione |  |  |  |  |  |  |  |
+| F7-16 | Un utente senza ruolo customer non viene mai toccato dallo stage |  |  |  |  |  |  |  |
+| F7-17 | Rieseguire lo stage sugli stessi dati è idempotente: la seconda corsa solo salta |  |  |  |  |  |  |  |
+| F7-18 | La modalità --dry-run non persiste alcuna classificazione |  |  |  |  |  |  |  |
+| F7-19 | I campi tipo cliente e regione sono nascosti quando nessun ruolo customer è selezionato nel form |  |  |  |  |  |  |  |
+| F7-20 | Il campo tipo cliente diventa visibile quando il ruolo customer viene selezionato nel form |  |  |  |  |  |  |  |
+| F7-21 | Il campo regione diventa visibile solo quando il tipo cliente è Sezione o Gruppo Regionale |  |  |  |  |  |  |  |
+| F7-22 | Un admin con user.assign-roles può persistere tipo cliente e regione dal form di modifica |  |  |  |  |  |  |  |
+| F7-23 | La regione viene azzerata al salvataggio quando il tipo cliente non è più Sezione o Gruppo Regionale |  |  |  |  |  |  |  |
+| F7-24 | Un admin senza user.assign-roles non vede né può modificare tipo cliente e regione |  |  |  |  |  |  |  |
+| F7-25 | La colonna tipo cliente (badge colorato) è disponibile nell'elenco utenti per vista rapida e filtro (verificata in browser durante US-703, vedi scripts/ralph/progress.txt) |  |  |  |  |  |  |  |
+| F7-26 | Il badge mostra l'etichetta corretta con la regione per un cliente Sezione |  |  |  |  |  |  |  |
+| F7-27 | Il badge mostra solo il tipo per un cliente Sezione senza regione |  |  |  |  |  |  |  |
+| F7-28 | Il badge mostra l'etichetta corretta con la regione per un cliente Gruppo Regionale |  |  |  |  |  |  |  |
+| F7-29 | Il badge mostra solo il tipo per un cliente Organo Tecnico Centrale/Struttura Operativa (mai una regione) |  |  |  |  |  |  |  |
+| F7-30 | Il badge mostra solo il tipo per un cliente generico |  |  |  |  |  |  |  |
+| F7-31 | Il badge è assente quando il cliente non ha ancora un customer_type classificato |  |  |  |  |  |  |  |
+| F7-32 | La card elenca solo le sezioni della stessa regione del Gruppo Regionale, col relativo conteggio ticket aperti |  |  |  |  |  |  |  |
+| F7-33 | La card mostra uno stato vuoto esplicito quando la regione non ha ancora nessuna sezione classificata |  |  |  |  |  |  |  |
+| F7-34 | La card mostra uno stato vuoto esplicito quando il Gruppo Regionale non ha region valorizzata |  |  |  |  |  |  |  |
+| F7-35 | La card è assente per i clienti Sezione, Organo Tecnico Centrale/Struttura Operativa e generico |  |  |  |  |  |  |  |
+| F7-36 | L'import classifica correttamente un utente per ciascuno dei 4 tipi cliente, un admin corregge manualmente il tipo di uno di essi, e la dashboard del cliente corretto riflette il nuovo tipo |  |  |  |  |  |  |  |
+
 ## Riepilogo aggregato (da compilare a collaudo concluso)
 
 | Totale test | PASS | FAIL | BLOCKED | NOT APPLICABLE |
 |---|---|---|---|---|
-| 576 |  |  |  |  |
+| 612 |  |  |  |  |
 

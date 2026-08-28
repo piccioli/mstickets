@@ -2,8 +2,8 @@
 
 ## 1. Titolo, versione, data e stato del documento
 
-- **Titolo**: Documento di collaudo — Fase 0 (Fondazioni) + Fase 1 (Ticketing core) + Fase 1A (Landing, Login, Recupero password) + Fase 2 (Importazione dal v1 — ETL) + Fase 3 (Sottosistema email) + Fase 4 (Tag/commesse, Documentation, Activity Report/Organizations) + Fase 5 (Fundraising — opportunità/bandi, griglia di valutazione, progetti e vista cliente) + Fase 6 (Portale cliente e rifinitura)
-- **Versione**: 6.0
+- **Titolo**: Documento di collaudo — Fase 0 (Fondazioni) + Fase 1 (Ticketing core) + Fase 1A (Landing, Login, Recupero password) + Fase 2 (Importazione dal v1 — ETL) + Fase 3 (Sottosistema email) + Fase 4 (Tag/commesse, Documentation, Activity Report/Organizations) + Fase 5 (Fundraising — opportunità/bandi, griglia di valutazione, progetti e vista cliente) + Fase 6 (Portale cliente e rifinitura) + Fase 7 (Tipologia di cliente CAI)
+- **Versione**: 7.0
 
   La versione 1 era la matrice sintetica preesistente (`docs/collaudo/fase-0-1.php`, manifest di
   tracciabilità sorgente, più il PDF generato a partire da essa dal comando `php artisan
@@ -44,16 +44,24 @@
   rispettivamente a `11-registro-esiti.md` e `12-verbale-collaudo.md` per far posto al nuovo
   `10-fase-5.md` (i numeri 08/09 restano liberi in questa numerazione: nessun file li usa più). La
   versione 6.0 (28 agosto 2026) chiude il collaudo funzionale di **Fase 6 (Portale cliente e
-  rifinitura)** — l'ultima fase prevista dal roadmap del PRD prima del cutover (Fase 7, §14) —
-  scritta da subito come fine-fase (checkpoint US-618): manifest dedicato
-  `docs/collaudo/fase-6.php`, manuale dettagliato `13-fase-6.md`, 141 nuovi test. Il totale del
-  pacchetto passa da 435 a 576 test; §3 è aggiornato di conseguenza e §4 (Ambito escluso) non elenca
-  più alcuna fase esclusa, dato che Fase 6 era l'ultima ancora da costruire — resta fuori scopo solo
-  Fase 7 (cutover: prove di carico, verifica di sicurezza, finestra di manutenzione), che non è una
-  fase funzionale collaudabile con questo stesso schema.
+  rifinitura)** — all'epoca l'ultima fase prevista dal roadmap del PRD prima del cutover — scritta da
+  subito come fine-fase (checkpoint US-618): manifest dedicato `docs/collaudo/fase-6.php`, manuale
+  dettagliato `13-fase-6.md`, 141 nuovi test. Il totale del pacchetto passa da 435 a 576 test; §3 è
+  aggiornato di conseguenza e §4 (Ambito escluso) non elenca più alcuna fase esclusa, dato che Fase 6
+  era, all'epoca, l'ultima ancora da costruire. La versione 7.0 (28 agosto 2026) aggiunge **Fase 7
+  (Tipologia di cliente CAI)**: rappresentazione dei ruoli istituzionali CAI dei clienti (Sezione,
+  Gruppo Regionale, Organo Tecnico Centrale/Struttura Operativa, Cliente generico), riservata a
+  questo numero di fase dopo la rinumerazione del roadmap del PRD del 28 agosto 2026 (il vecchio
+  contenuto "Cutover", precedentemente Fase 7, è ora Fase 10) — scritta da subito come fine-fase
+  (checkpoint US-706): manifest dedicato `docs/collaudo/fase-7.php`, manuale dettagliato
+  `14-fase-7.md`, 36 nuovi test. Il totale del pacchetto passa da 576 a 612 test; §3 è aggiornato di
+  conseguenza. §4 (Ambito escluso) resta vuoto: le Fasi 8/9 del roadmap rinumerato sono ancora "DA
+  DEFINIRE" (nessuna funzionalità da collaudare) e la Fase 10 (Cutover) non è una fase funzionale
+  collaudabile con questo stesso schema (prove di carico, verifica di sicurezza, finestra di
+  manutenzione).
 - **Data di stesura**: 26 luglio 2026 (v2.0), 27 luglio 2026 (v2.1), 10 agosto 2026 (v2.2), 11 agosto
   2026 (v2.3), 24 agosto 2026 (v3.0), 27 agosto 2026 (v4.0), 27 agosto 2026 (v5.0), 28 agosto 2026
-  (v6.0)
+  (v6.0), 28 agosto 2026 (v7.0)
 - **Data di pubblicazione ufficiale**: DA VERIFICARE CON IL PRODUCT OWNER
 - **Stato**: Bozza per revisione
 
@@ -62,22 +70,22 @@
 Verificare che il software realizzato in Fase 0 (Fondazioni), Fase 1 (Ticketing core), Fase 1A
 (Landing, Login, Recupero password), Fase 2 (Importazione dal v1 — ETL), Fase 3 (Sottosistema
 email), Fase 4 (Tag/commesse, Documentation, Activity Report/Organizations), Fase 5 (Fundraising
-— opportunità/bandi, griglia di valutazione, progetti e vista cliente) e Fase 6 (Portale cliente e
-rifinitura) rispetti i requisiti funzionali e le regole di dominio descritti nel PRD di
-Orchestrator v2, attraverso un collaudo eseguibile sia da personale funzionale (che non deve
-conoscere il codice) sia da personale tecnico (che verifica anche a livello di terminale, database
-e suite di test automatica).
+— opportunità/bandi, griglia di valutazione, progetti e vista cliente), Fase 6 (Portale cliente e
+rifinitura) e Fase 7 (Tipologia di cliente CAI) rispetti i requisiti funzionali e le regole di
+dominio descritti nel PRD di Orchestrator v2, attraverso un collaudo eseguibile sia da personale
+funzionale (che non deve conoscere il codice) sia da personale tecnico (che verifica anche a
+livello di terminale, database e suite di test automatica).
 
-Il collaudo copre 576 casi di test, organizzati in 97 argomenti, tracciati uno a uno nei manifest
+Il collaudo copre 612 casi di test, organizzati in 103 argomenti, tracciati uno a uno nei manifest
 `docs/collaudo/fase-0-1.php` (Fase 0/Fase 1), `docs/collaudo/fase-1a.php` (Fase 1A),
 `docs/collaudo/fase-2.php` (Fase 2), `docs/collaudo/fase-3.php` (Fase 3), `docs/collaudo/fase-4.php`
-(Fase 4), `docs/collaudo/fase-5.php` (Fase 5) e `docs/collaudo/fase-6.php` (Fase 6) verso un test
-automatico realmente esistente nel repository.
+(Fase 4), `docs/collaudo/fase-5.php` (Fase 5), `docs/collaudo/fase-6.php` (Fase 6) e
+`docs/collaudo/fase-7.php` (Fase 7) verso un test automatico realmente esistente nel repository.
 
 ## 3. Ambito incluso
 
-Il collaudo copre esattamente gli 97 argomenti seguenti (titoli letterali dai manifest di
-tracciabilità), per un totale di 576 test.
+Il collaudo copre esattamente i 103 argomenti seguenti (titoli letterali dai manifest di
+tracciabilità), per un totale di 612 test.
 
 **Fase 0 — Fondazioni** (56 test, F0-01…F0-56):
 
@@ -216,19 +224,32 @@ tracciabilità), per un totale di 576 test.
 | 96 | Mailable E11 — Developer senza ticket in lavorazione + tickets:notify-idle-developers, comando schedulato invece di un job da observer (§7.5.2, §10.2, US-616) | 11 (F6-128…F6-138) |
 | 97 | Checkpoint di fine fase — isolamento multi-superficie tra clienti, sequenza combinata delle automazioni, garanzia di conservatività di archive-scrum (US-618) | 3 (F6-139…F6-141) |
 
+**Fase 7 — Tipologia di cliente CAI** (36 test, F7-01…F7-36):
+
+| # | Argomento | Test |
+|---|---|---|
+| 98 | Schema e cataloghi CustomerType/Region — persistenza e cast (§14, US-701) | 7 (F7-01…F7-07) |
+| 99 | Stage ETL CustomerClassificationStage — inferenza automatica di tipo/regione dal nome (§14, US-702) | 11 (F7-08…F7-18) |
+| 100 | UI Admin — assegnazione tipo cliente e regione (§14, US-703) | 7 (F7-19…F7-25) |
+| 101 | Badge tipo cliente sulla dashboard (§14, US-704) | 6 (F7-26…F7-31) |
+| 102 | Card "Sezioni del gruppo regionale" sulla dashboard (§14, US-705) | 4 (F7-32…F7-35) |
+| 103 | Checkpoint di fine fase — import, classificazione, correzione admin e riflesso in dashboard (US-706) | 1 (F7-36) |
+
 Il dettaglio di ciascun test (descrizione, passi, esito atteso, campi di consuntivazione) è nei
 file `02-fase-0.md`, `03-fase-1.md`, `04-fase-1a.md`, `05-fase-2.md`, `06-fase-3.md`, `07-fase-4.md`,
-`10-fase-5.md` e `13-fase-6.md` del pacchetto.
+`10-fase-5.md`, `13-fase-6.md` e `14-fase-7.md` del pacchetto.
 
 ## 4. Ambito escluso
 
-Nessuna fase funzionale del roadmap PRD (§14) è esclusa da questo collaudo: Fase 6 (Portale cliente
-e rifinitura), l'ultima ancora da costruire alla versione precedente di questo documento, è ora
-coperta per intero (argomenti 81-97 di §3). Resta fuori scopo solo **Fase 7 — Cutover**: prova
-completa su staging, confronto v1/v2 su dati reali, test di carico sulla vista di lavoro e sulle
-tabelle grandi, verifica di sicurezza, piano di cutover e finestra di manutenzione — un'attività
-operativa di rilascio, non una fase funzionale collaudabile con lo stesso schema di questo
-documento (test numerati collegati a un test automatico).
+Nessuna fase funzionale già costruita del roadmap PRD (§14, rinumerato il 28 agosto 2026) è esclusa
+da questo collaudo: Fase 7 (Tipologia di cliente CAI) è ora coperta per intero (argomenti 98-103 di
+§3). Restano fuori scopo **Fase 8** e **Fase 9** (riservate a nuove funzionalità, ancora "DA
+DEFINIRE" col committente: nessuna funzionalità costruita da collaudare) e **Fase 10 — Cutover**
+(vecchia Fase 7 prima della rinumerazione): prova completa su staging, confronto v1/v2 su dati
+reali, test di carico sulla vista di lavoro e sulle tabelle grandi, verifica di sicurezza, piano di
+cutover e finestra di manutenzione — un'attività operativa di rilascio, non una fase funzionale
+collaudabile con lo stesso schema di questo documento (test numerati collegati a un test
+automatico).
 
 ## 5. Riferimenti tecnici e funzionali
 
@@ -236,17 +257,18 @@ documento (test numerati collegati a un test automatico).
   livello sopra questo repository).
 - `../../tasks/prd-fase-2-etl-import-v1.md`, `../../tasks/prd-fase-3-email-subsystem.md`,
   `../../tasks/prd-fase-4-rendicontazione-documentazione-commesse.md`,
-  `../../tasks/prd-fase-5-fundraising.md` e `../../tasks/prd-fase-6-portale-cliente-rifinitura.md`
-  — PRD specifici di Fase 2, Fase 3, Fase 4, Fase 5 e Fase 6 (due livelli sopra questo repository,
-  cartella `tasks/` del monorepo), con lo user-story-by-user-story dettaglio da cui sono derivati i
-  manifest `fase-2.php`/`fase-3.php`/`fase-4.php`/`fase-5.php`/`fase-6.php` e i manuali
-  `05-fase-2.md`/`06-fase-3.md`/`07-fase-4.md`/`10-fase-5.md`/`13-fase-6.md`.
+  `../../tasks/prd-fase-5-fundraising.md`, `../../tasks/prd-fase-6-portale-cliente-rifinitura.md` e
+  `../../tasks/prd-fase-7-tipologia-clienti-cai.md` — PRD specifici di Fase 2, Fase 3, Fase 4, Fase 5,
+  Fase 6 e Fase 7 (due livelli sopra questo repository, cartella `tasks/` del monorepo), con lo
+  user-story-by-user-story dettaglio da cui sono derivati i manifest
+  `fase-2.php`/`fase-3.php`/`fase-4.php`/`fase-5.php`/`fase-6.php`/`fase-7.php` e i manuali
+  `05-fase-2.md`/`06-fase-3.md`/`07-fase-4.md`/`10-fase-5.md`/`13-fase-6.md`/`14-fase-7.md`.
 - `docs/ticket-lifecycle.md` — descrizione della macchina a stati del ticket, delle transizioni
   ammesse e delle regole di dominio associate.
 - `docs/collaudo/fase-0-1.php`, `docs/collaudo/fase-1a.php`, `docs/collaudo/fase-2.php`,
   `docs/collaudo/fase-3.php`, `docs/collaudo/fase-4.php`, `docs/collaudo/fase-5.php`,
-  `docs/collaudo/fase-6.php` — manifest di tracciabilità sorgente: collegano ogni test di questo
-  manuale a un test automatico realmente esistente nel repository.
+  `docs/collaudo/fase-6.php`, `docs/collaudo/fase-7.php` — manifest di tracciabilità sorgente:
+  collegano ogni test di questo manuale a un test automatico realmente esistente nel repository.
 - `CLAUDE.md` (root del repository) — note tecniche di implementazione per fase/story, utili al
   tester tecnico per capire le scelte di progettazione sottostanti (per Fase 3 in particolare, le
   sezioni sulla pipeline email inbound/outbound e sui bug reali già trovati e corretti).
@@ -291,8 +313,9 @@ documento (test numerati collegati a un test automatico).
 - **Ambiente di collaudo**: l'installazione dedicata dell'applicazione, separata da sviluppo e
   produzione, usata per eseguire i test descritti in questo manuale.
 - **Manifest di tracciabilità**: i file `docs/collaudo/fase-0-1.php`, `fase-1a.php`, `fase-2.php`,
-  `fase-3.php`, `fase-4.php`, `fase-5.php`, `fase-6.php`, che collegano ogni test numerato (es.
-  F0-01, F2-01, F3-01, F4-01, F5-01, F6-01) a un test automatico realmente esistente nel codice.
+  `fase-3.php`, `fase-4.php`, `fase-5.php`, `fase-6.php`, `fase-7.php`, che collegano ogni test
+  numerato (es. F0-01, F2-01, F3-01, F4-01, F5-01, F6-01, F7-01) a un test automatico realmente
+  esistente nel codice.
 - **Commessa (Tag/SAL, Fase 4)**: un `Tag` usato come area di lavoro/commessa, con ore stimate
   opzionali e uno stato di avanzamento lavori (SAL) calcolato dalle ore effettivamente lavorate sui
   ticket collegati.
@@ -330,6 +353,17 @@ documento (test numerati collegati a un test automatico).
 - **Digest periodico / E8 (Fase 6)**: l'email giornaliera che riassume per un cliente le attività
   delle ultime 24 ore su più ticket (nuovi messaggi, cambi di stato), al posto di una notifica per
   ogni singolo evento.
+- **Tipo cliente / CustomerType (Fase 7)**: il ruolo istituzionale CAI di un cliente — Sezione,
+  Gruppo Regionale, Organo Tecnico Centrale/Struttura Operativa, oppure Cliente generico — dedotto
+  automaticamente dal nome all'import e correggibile manualmente da un admin.
+  Organo Tecnico Centrale e Struttura Operativa sono rappresentati come un unico tipo (il dato v1
+  reale non li distingue mai).
+- **Regione (Fase 7)**: una delle 20 regioni italiane ufficiali (Trentino-Alto Adige unificato),
+  concettualmente pertinente solo per i clienti Sezione e Gruppo Regionale.
+- **Sezioni del gruppo regionale (Fase 7)**: la card della dashboard di un cliente Gruppo Regionale
+  che elenca le Sezioni classificate nella sua stessa regione, con il relativo conteggio di ticket
+  aperti — un concetto distinto dalle organizzazioni introdotte in Fase 4 per il possesso degli
+  Activity Report, mai sovrapposto ad esse.
 - **Anomalia**: uno scostamento tra il comportamento osservato durante il collaudo e quello atteso,
   da segnalare secondo la procedura del punto 19.
 - **PASS**: il test è stato eseguito e il comportamento osservato corrisponde a quello atteso.
@@ -537,7 +571,7 @@ manualmente.
 
 ## 17. Criteri generali di superamento
 
-Il collaudo nel suo complesso è considerato superato se, al termine dell'esecuzione dei 576 test:
+Il collaudo nel suo complesso è considerato superato se, al termine dell'esecuzione dei 612 test:
 
 - Non è aperta alcuna anomalia classificata come Critica.
 - Almeno il 95% dei test applicabili (esclusi quelli classificati NOT APPLICABLE) è in stato PASS.
