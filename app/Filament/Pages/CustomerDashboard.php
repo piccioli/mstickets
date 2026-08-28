@@ -6,6 +6,7 @@ namespace App\Filament\Pages;
 
 use App\Domain\Documentation\Models\DocumentationPage;
 use App\Domain\Fundraising\Models\FundraisingProject;
+use App\Domain\Identity\Enums\CustomerType;
 use App\Domain\Identity\Enums\UserRole;
 use App\Domain\Identity\Models\User;
 use App\Domain\Reporting\Models\ActivityReport;
@@ -16,6 +17,7 @@ use App\Filament\Resources\ActivityReports\ActivityReportResource;
 use App\Filament\Resources\CustomerFundraisingProjects\CustomerFundraisingProjectResource;
 use App\Filament\Resources\DocumentationPages\DocumentationPageResource;
 use App\Filament\Resources\Tickets\TicketResource;
+use App\Filament\Resources\Users\Schemas\UserForm;
 use BackedEnum;
 use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
@@ -64,6 +66,37 @@ class CustomerDashboard extends Page
         $user = Auth::user();
 
         return $user instanceof User && $user->hasRole(UserRole::Customer->value);
+    }
+
+    public function customerType(): ?CustomerType
+    {
+        $user = Auth::user();
+
+        return $user instanceof User ? $user->customer_type : null;
+    }
+
+    /**
+     * Label italiana del tipo cliente per il badge di testa dashboard (US-704), con la
+     * regione in coda solo quando pertinente (Sezione/GruppoRegionale) e valorizzata —
+     * stessa regola di {@see UserForm::regionRelevant()}.
+     */
+    public function customerTypeBadgeLabel(): string
+    {
+        $user = Auth::user();
+
+        if (! $user instanceof User || $user->customer_type === null) {
+            return '';
+        }
+
+        $label = $user->customer_type->getLabel();
+
+        $regionRelevant = in_array($user->customer_type, [CustomerType::Sezione, CustomerType::GruppoRegionale], true);
+
+        if ($regionRelevant && $user->region !== null) {
+            $label .= ' — '.$user->region->label();
+        }
+
+        return $label;
     }
 
     public function openTicketsCount(): int

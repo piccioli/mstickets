@@ -6,6 +6,8 @@ use App\Domain\Documentation\Enums\DocumentationCategory;
 use App\Domain\Documentation\Models\DocumentationPage;
 use App\Domain\Fundraising\Models\FundraisingOpportunity;
 use App\Domain\Fundraising\Models\FundraisingProject;
+use App\Domain\Identity\Enums\CustomerType;
+use App\Domain\Identity\Enums\Region;
 use App\Domain\Identity\Enums\UserRole;
 use App\Domain\Identity\Models\User;
 use App\Domain\Reporting\Actions\CreateActivityReport;
@@ -224,6 +226,70 @@ test('a customer with real data across every card sees all of it scoped to thems
         ->assertDontSee('Nessuna documentazione disponibile')
         ->assertDontSee('Nessun report attività')
         ->assertDontSee('Nessun progetto fundraising');
+});
+
+test('the customer type badge shows the correct label with region for a sezione customer', function (): void {
+    $this->seed(RolePermissionSeeder::class);
+    $customer = withRole(User::factory()->create(), UserRole::Customer);
+    $customer->forceFill(['customer_type' => CustomerType::Sezione, 'region' => Region::Lombardia])->save();
+
+    $this->actingAs($customer)
+        ->get(CustomerDashboard::getUrl())
+        ->assertSee('Sezione — Lombardia');
+});
+
+test('the customer type badge shows just the type for a sezione customer without a region', function (): void {
+    $this->seed(RolePermissionSeeder::class);
+    $customer = withRole(User::factory()->create(), UserRole::Customer);
+    $customer->forceFill(['customer_type' => CustomerType::Sezione, 'region' => null])->save();
+
+    $this->actingAs($customer)
+        ->get(CustomerDashboard::getUrl())
+        ->assertSee('Sezione')
+        ->assertDontSee('Sezione —', false);
+});
+
+test('the customer type badge shows the correct label with region for a gruppo regionale customer', function (): void {
+    $this->seed(RolePermissionSeeder::class);
+    $customer = withRole(User::factory()->create(), UserRole::Customer);
+    $customer->forceFill(['customer_type' => CustomerType::GruppoRegionale, 'region' => Region::Abruzzo])->save();
+
+    $this->actingAs($customer)
+        ->get(CustomerDashboard::getUrl())
+        ->assertSee('Gruppo Regionale — Abruzzo');
+});
+
+test('the customer type badge shows only the type for an organo tecnico/struttura operativa customer', function (): void {
+    $this->seed(RolePermissionSeeder::class);
+    $customer = withRole(User::factory()->create(), UserRole::Customer);
+    $customer->forceFill(['customer_type' => CustomerType::OrganoTecnicoStrutturaOperativa, 'region' => null])->save();
+
+    $this->actingAs($customer)
+        ->get(CustomerDashboard::getUrl())
+        ->assertSee('Organo Tecnico Centrale / Struttura Operativa');
+});
+
+test('the customer type badge shows only the type for a generico customer', function (): void {
+    $this->seed(RolePermissionSeeder::class);
+    $customer = withRole(User::factory()->create(), UserRole::Customer);
+    $customer->forceFill(['customer_type' => CustomerType::Generico, 'region' => null])->save();
+
+    $this->actingAs($customer)
+        ->get(CustomerDashboard::getUrl())
+        ->assertSee('Cliente generico');
+});
+
+test('the customer type badge is absent when the customer has no customer_type classified', function (): void {
+    $this->seed(RolePermissionSeeder::class);
+    $customer = withRole(User::factory()->create(), UserRole::Customer);
+    $customer->forceFill(['customer_type' => null, 'region' => null])->save();
+
+    $this->actingAs($customer)
+        ->get(CustomerDashboard::getUrl())
+        ->assertDontSee('Sezione')
+        ->assertDontSee('Gruppo Regionale')
+        ->assertDontSee('Organo Tecnico Centrale')
+        ->assertDontSee('Cliente generico');
 });
 
 test('no reference to a support chat link is ever shown on the customer dashboard', function (): void {

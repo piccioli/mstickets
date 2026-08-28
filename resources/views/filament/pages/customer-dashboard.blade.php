@@ -1,4 +1,12 @@
 <x-filament-panels::page>
+    @if ($this->customerType() !== null)
+        <div class="mb-4">
+            <x-filament::badge :color="$this->customerType()->getColor()" size="lg">
+                {{ $this->customerTypeBadgeLabel() }}
+            </x-filament::badge>
+        </div>
+    @endif
+
     <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
         <x-filament::section heading="Ticket aperti" icon="heroicon-o-ticket">
             <div class="flex items-center justify-between gap-4">
