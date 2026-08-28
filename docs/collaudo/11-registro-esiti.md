@@ -5,8 +5,8 @@
 Tabella da compilare durante il collaudo, una riga per test. Il campo "Esito" accetta solo uno tra
 `PASS`, `FAIL`, `BLOCKED`, `NOT APPLICABLE` (vedi §17 di `00-istruzioni-generali.md` per i criteri generali
 e la sezione "Criterio di superamento" di ciascun test in `02-fase-0.md`/`03-fase-1.md`/`04-fase-1a.md`/
-`05-fase-2.md`/`06-fase-3.md`/`07-fase-4.md`/`10-fase-5.md`/`13-fase-6.md`/`14-fase-7.md` per il criterio
-specifico). Il campo "Anomalia" riporta l'ID assegnato secondo
+`05-fase-2.md`/`06-fase-3.md`/`07-fase-4.md`/`10-fase-5.md`/`13-fase-6.md`/`14-fase-7.md`/`15-fase-8.md`
+per il criterio specifico). Il campo "Anomalia" riporta l'ID assegnato secondo
 §19 di `00-istruzioni-generali.md` (es. `AN-001`), lasciare vuoto se non ci sono anomalie da segnalare per
 quel test.
 
@@ -667,9 +667,65 @@ quel test.
 | F7-35 | La card è assente per i clienti Sezione, Organo Tecnico Centrale/Struttura Operativa e generico |  |  |  |  |  |  |  |
 | F7-36 | L'import classifica correttamente un utente per ciascuno dei 4 tipi cliente, un admin corregge manualmente il tipo di uno di essi, e la dashboard del cliente corretto riflette il nuovo tipo |  |  |  |  |  |  |  |
 
+## Fase 8 (Integrazione dati RUNTS-CAI — Sezioni/Sottosezioni) — 52 test
+
+| ID | Titolo | Esito | Tester | Data | Versione | Evidenza | Anomalia | Note |
+|---|---|---|---|---|---|---|---|---|
+| F8-01 | La tabella cai_sections ha le colonne richieste da US-801 |  |  |  |  |  |  |  |
+| F8-02 | La tabella cai_subsections ha le colonne richieste da US-801 |  |  |  |  |  |  |  |
+| F8-03 | La tabella cai_runts_registrations ha le colonne richieste da US-801 |  |  |  |  |  |  |  |
+| F8-04 | La tabella cai_financial_statements ha le colonne richieste da US-801 |  |  |  |  |  |  |  |
+| F8-05 | La tabella cai_board_members ha le colonne richieste da US-801 (tabella vuota all'origine, struttura pronta) |  |  |  |  |  |  |  |
+| F8-06 | La tabella cai_documents ha le colonne richieste da US-801 |  |  |  |  |  |  |  |
+| F8-07 | cai_sections usa codice_cai come chiave primaria naturale, non incrementale |  |  |  |  |  |  |  |
+| F8-08 | Una sezione ha molte sottosezioni e appartiene a un utente (relazioni Eloquent) |  |  |  |  |  |  |  |
+| F8-09 | Eliminare l'utente collegato lascia user_id della sezione a null (FK nullable, mai un errore) |  |  |  |  |  |  |  |
+| F8-10 | Una registrazione RUNTS appartiene a una sezione e ha molti bilanci, cariche sociali e documenti |  |  |  |  |  |  |  |
+| F8-11 | Il file datapack mancante al percorso indicato stampa un messaggio esplicito e fallisce, mai un errore criptico |  |  |  |  |  |  |  |
+| F8-12 | L'opzione --dry-run non scrive alcuna riga né alcun file |  |  |  |  |  |  |  |
+| F8-13 | L'import completo popola le sei tabelle con i campi mappati correttamente, collega gli utenti per email case-insensitive, salta gli enti senza match e copia i file degli allegati |  |  |  |  |  |  |  |
+| F8-14 | Eseguire l'import due volte sulla stessa fixture è idempotente (nessun duplicato, righe invariate non riscritte) |  |  |  |  |  |  |  |
+| F8-15 | make setup esegue cai:import-datapack best-effort, dopo v1:import |  |  |  |  |  |  |  |
+| F8-16 | CAI_DATAPACK_HOST_PATH è dichiarata in .env.uat.example, coerente col percorso remoto di default di bin/push-cai-datapack |  |  |  |  |  |  |  |
+| F8-17 | CAI_DATAPACK_HOST_PATH è montata in sola lettura nel servizio app, stesso pattern di LEGACY_MEDIA_HOST_PATH |  |  |  |  |  |  |  |
+| F8-18 | remote-deploy.sh esegue cai:import-datapack in modo incondizionato, dopo v1:import --anonymize, con il commento esplicito sulla ricopiatura manuale |  |  |  |  |  |  |  |
+| F8-19 | Un utente senza cai-directory.view non accede alla lista né al dettaglio |  |  |  |  |  |  |  |
+| F8-20 | Un utente con cai-directory.view accede alla lista e vede le colonne attese |  |  |  |  |  |  |  |
+| F8-21 | La risorsa è di sola consultazione: nessuna funzione di creazione, modifica o cancellazione |  |  |  |  |  |  |  |
+| F8-22 | La tabella è filtrabile per regione |  |  |  |  |  |  |  |
+| F8-23 | La tabella è filtrabile per presenza di un utente collegato |  |  |  |  |  |  |  |
+| F8-24 | Il dettaglio di una sezione con dati RUNTS, bilanci e allegati mostra i dati attesi |  |  |  |  |  |  |  |
+| F8-25 | Il dettaglio di una sezione senza dati RUNTS, bilanci o allegati non genera errori e mostra stati vuoti |  |  |  |  |  |  |  |
+| F8-26 | Un utente autorizzato può scaricare un documento CAI |  |  |  |  |  |  |  |
+| F8-27 | Un utente senza cai-directory.view non può scaricare un documento CAI |  |  |  |  |  |  |  |
+| F8-28 | Un cliente può scaricare un documento della propria sezione CAI |  |  |  |  |  |  |  |
+| F8-29 | Un cliente non può scaricare un documento di un'altra sezione CAI |  |  |  |  |  |  |  |
+| F8-30 | Un cliente Gruppo Regionale può scaricare un documento di una sezione della propria regione |  |  |  |  |  |  |  |
+| F8-31 | Un cliente Gruppo Regionale non può scaricare un documento di una sezione di un'altra regione |  |  |  |  |  |  |  |
+| F8-32 | Un utente senza cai-directory.view non accede alla pagina mappa |  |  |  |  |  |  |  |
+| F8-33 | Un utente con cai-directory.view vede sulla mappa solo le sezioni geolocalizzate |  |  |  |  |  |  |  |
+| F8-34 | Un utente con cai-directory.view può esportare le sezioni correntemente filtrate in CSV |  |  |  |  |  |  |  |
+| F8-35 | Un utente con cai-directory.view può esportare le sezioni correntemente filtrate in GeoJSON |  |  |  |  |  |  |  |
+| F8-36 | Un utente con cai-directory.view può esportare le sezioni correntemente filtrate in XLSX |  |  |  |  |  |  |  |
+| F8-37 | Un utente senza cai-directory.view non vede le azioni di export |  |  |  |  |  |  |  |
+| F8-38 | La card CAI mostra i dati della sezione collegata per un cliente Sezione |  |  |  |  |  |  |  |
+| F8-39 | La card CAI non mostra mai i dati di un'altra sezione |  |  |  |  |  |  |  |
+| F8-40 | La card CAI mostra i dati della sottosezione collegata quando nessuna sezione è collegata |  |  |  |  |  |  |  |
+| F8-41 | La card CAI mostra uno stato vuoto esplicito per un cliente Sezione senza sezione o sottosezione collegata |  |  |  |  |  |  |  |
+| F8-42 | La card CAI è assente per i clienti non-Sezione |  |  |  |  |  |  |  |
+| F8-43 | Un cliente Gruppo Regionale può aprire il dettaglio di una sezione della propria regione |  |  |  |  |  |  |  |
+| F8-44 | Un tentativo diretto di aprire una sezione di un'altra regione è respinto (403) |  |  |  |  |  |  |  |
+| F8-45 | Un cliente Gruppo Regionale senza regione valorizzata non può aprire alcun dettaglio sezione |  |  |  |  |  |  |  |
+| F8-46 | Un cliente Sezione non può accedere alla pagina di dettaglio del Gruppo Regionale |  |  |  |  |  |  |  |
+| F8-47 | Un cliente non-customer non può accedere alla pagina di dettaglio del Gruppo Regionale |  |  |  |  |  |  |  |
+| F8-48 | Aprire il dettaglio per un utente che non è una Sezione risulta non trovato (404) |  |  |  |  |  |  |  |
+| F8-49 | La pagina di dettaglio mostra lo stesso contenuto della dashboard del cliente Sezione, riusando lo stesso Infolist |  |  |  |  |  |  |  |
+| F8-50 | La pagina di dettaglio mostra uno stato vuoto esplicito per una sezione senza dati CAI collegati |  |  |  |  |  |  |  |
+| F8-51 | La card "Sezioni del gruppo regionale" sulla dashboard cliente collega alla pagina di dettaglio sezione |  |  |  |  |  |  |  |
+| F8-52 | Il flusso completo RUNTS-CAI funziona end-to-end: import, matching per email, consultazione staff, dashboard cliente Sezione e dettaglio scoped del cliente Gruppo Regionale |  |  |  |  |  |  |  |
 ## Riepilogo aggregato (da compilare a collaudo concluso)
 
 | Totale test | PASS | FAIL | BLOCKED | NOT APPLICABLE |
 |---|---|---|---|---|
-| 612 |  |  |  |  |
+| 664 |  |  |  |  |
 

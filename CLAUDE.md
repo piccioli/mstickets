@@ -182,6 +182,7 @@ Lo sviluppo di scaffold è stato verificato con PHP 8.5 locale (compatibile con 
 - **`npm install && npm run build` restano un passo host**, non containerizzato (nessun servizio Node in `docker-compose.yml`, l'immagine `app` è solo PHP-FPM): `make setup` richiede quindi Node.js sull'host oltre a Docker. `public/build/manifest.json` (Vite) deve esistere prima di servire qualunque pagina del pannello, altrimenti `Illuminate\Foundation\ViteManifestNotFoundException` su ogni vista che usa `->viteTheme(...)` (US-005).
 - **`composer install` dentro un container con volume bind-mount su macOS (virtiofs) può fallire in modo non deterministico** durante l'estrazione parallela dei pacchetti (`RecursiveDirectoryIterator::__construct(...): Failed to open directory`, un pacchetto diverso ogni volta) — race innocua tra creazione directory e scrittura file sul filesystem condiviso, non un problema dei pacchetti. Si risolve da solo con un retry (i pacchetti già estratti non vengono ri-scaricati): `make setup` esegue `composer install` dentro un piccolo loop di retry (`for i in 1 2 3; do composer install && exit 0; done; exit 1`) invece di assumere che il primo tentativo basti.
 - **AGGIORNAMENTO (design ETL real data seeding, US-R02): `make setup` non esegue più `db:seed --force` (che richiamava `DatabaseSeeder` con il seeder di ruoli/permessi e, fino a US-R03, anche il seeder di sviluppo)**. La sequenza finale è: fallisce subito se `v1dumps/latest.sql` manca (messaggio esplicito, prima di qualunque altro passo) → `docker compose up -d` → `bin/load-v1-dump v1dumps/latest.sql` (porta su `db_legacy` da solo, nessun `make etl-up` separato) → `migrate --force` → `db:seed --class=RolePermissionSeeder --force` (esplicito, non l'intero `DatabaseSeeder`) → `php artisan v1:import --anonymize` (mai `--truncate`, non adatto a un contesto non interattivo: richiede una conferma `$this->confirm()`). Gli allegati restano best-effort: se `storage/app/v1-media/` è vuota il target non fallisce, `TicketAttachmentsStage` segnala solo i media come compromesso. Idempotente: rilanciabile senza `migrate:fresh`/`--truncate` (stesso principio già consolidato per l'ETL, vedi sezione ETL sopra).
+- **AGGIORNAMENTO (US-803, Fase 8)**: dopo `v1:import --anonymize` e `collaudo:ensure-manager-account`, `make setup` esegue `cai:import-datapack` **best-effort** (`if [ -f cai-datapack/runts-cai.sqlite ]; ... fi` nel Makefile stesso, non un flag del comando artisan): se il datapack non è stato copiato a mano, il target logga un avviso e prosegue senza fallire, stesso principio già in uso per gli allegati v1. Nel deploy UAT (`deploy/remote-deploy.sh`) invece l'esecuzione è **sempre incondizionata** (mai un check di esistenza): il datapack lì arriva da un bind-mount (`CAI_DATAPACK_HOST_PATH` in `docker-compose.uat.yml`/`.env.uat.example`, stesso pattern di `LEGACY_MEDIA_HOST_PATH` ma in sola lettura, `:ro`) popolato in anticipo da un umano con `bin/push-cai-datapack` — se manca lì è un errore di processo (datapack non sincronizzato prima del deploy), non un caso normale da silenziare.
 
 ## Macchina a stati del ticket (US-101)
 
@@ -1362,3 +1363,237 @@ verificati esplicitamente, non assunti allineati.
   cliente stesso naviga senza errori ma il filtro viene ignorato dal tab — nessun leak di dati altrui, ma
   anche nessun risultato utile. Se serve davvero mostrare i ticket di un altro utente a un cliente, serve un
   permesso nuovo esplicito, non un trucco di URL.
+
+## Schema — dominio `App\Domain\CaiDirectory`, chiave naturale string non incrementale (US-801, Fase 8)
+
+- **Prima volta nel repo che un modello Eloquent usa una chiave primaria naturale string** (non
+  auto-incrementale): `CaiSection` (`codice_cai`), `CaiSubsection` (`cai_codice`), `CaiRuntsRegistration`
+  (`id_runts`) — chiavi del datapack sorgente RUNTS-CAI, non generate da Orchestrator. Pattern: migrazione
+  con `$table->string('<chiave>')->primary()` (niente `$table->id()`), modello con
+  `protected $primaryKey = '<chiave>'; protected $keyType = 'string'; public $incrementing = false;`. Le FK
+  verso queste tabelle sono colonne string (`$table->string('cai_section_id')` +
+  `->foreign(...)->references('codice_cai')->on('cai_sections')`), mai `foreignId()`/`constrained()` (quelli
+  presumono una PK `unsignedBigInteger` auto-incrementale).
+- Le altre 3 tabelle del dominio (`cai_financial_statements`, `cai_board_members`, `cai_documents`) restano
+  sullo schema standard del repo (`$table->id()`), perché non hanno una chiave naturale nella fonte.
+- `cai_sections.region`/`cai_runts_registrations.region` sono **string libere**, non castate
+  sull'enum `App\Domain\Identity\Enums\Region` già in uso su `users.region` (Fase 7): il dataset RUNTS-CAI
+  reale contiene valori come `EXTRA REGIONE` che non sono una delle 20 regioni italiane ufficiali — castare
+  su quell'enum romperebbe l'import per quelle righe. Se una fase futura (US-807, scoping Gruppo Regionale)
+  deve confrontare `cai_sections.region` con `users.region`, serve una normalizzazione esplicita a quel
+  punto, non un cast condiviso.
+- **`php artisan test` (l'intero suite, Unit+Feature insieme) crasha in modo deterministico e
+  preesistente**, indipendente da questa story — riprodotto identico con e senza le modifiche di US-801
+  (`git stash`), sempre subito dopo `Tests\Unit\Domain\Mail\MailPipelineConfigTest`, appena prima dei test
+  in `tests/Unit/Domain/Mail/Parsers/*` che esercitano `symfony/html-sanitizer` → `\Dom\HTMLDocument`
+  (l'API DOM nativa nuova di PHP 8.4). Con `memory_limit` di default (128M) l'errore è un OOM esplicito
+  ("Allowed memory size exhausted") in `NativeParser.php`; alzando il limite a 512M (`php -d
+  memory_limit=512M artisan test`) l'OOM sparisce ma il processo termina comunque con `exit 255` e **nessun
+  output**, compatibile con un segfault nativo dell'estensione (non catturabile da PHP) quando il DOM parser
+  viene invocato ripetutamente nello stesso processo lungo un'intera run del suite. Ogni file di test preso
+  singolarmente (incluso l'intera cartella `Mail/Parsers`) passa senza problemi. Per verificare "Tests pass"
+  su una story che non tocca il dominio Mail: eseguire i test del proprio dominio/story mirati
+  (`php artisan test --filter=...` o il path del file), più eventualmente `tests/Unit`/`tests/Feature` a
+  pezzi se serve una verifica di non regressione più ampia — non fidarsi del codice di uscita di una run
+  `php artisan test` senza filtri, che fallisce per questo motivo preesistente a prescindere dalle modifiche.
+
+## Import — `cai:import-datapack` (US-802, Fase 8): due gotcha di dati reali non visibili sulla fixture
+
+- **`sezioni_cai.cai_indirizzo_sede`/`cai_indirizzo_postale` (e l'equivalente di `sottosezioni_cai`) sono
+  JSON di geocoding, non testo semplice** (100% delle 529+224 righe reali: `{"address1":...,"address2":...,
+  "number":...,"zip":...,"city":...,"province":...,"nation":...,...}`), a differenza di `enti.sede_indirizzo`
+  (sempre testo semplice). Inserire il JSON grezzo in `cai_sections.address`/`postal_address`
+  (`string(255)`, US-801) trabocca la colonna su Postgres per un certo numero di righe reali (~280+
+  caratteri). `CaiRuntsAddressFormatter::format()` (`app/Domain/CaiDirectory/Import/
+  CaiRuntsAddressFormatter.php`) lo converte in una riga leggibile (max osservato 142 caratteri) — se un
+  futuro import aggiunge un nuovo campo indirizzo dal datapack, verificare prima col dataset reale se è JSON
+  o testo semplice (`json_decode($valore) !== null` su un campione), non assumerlo.
+- **`sezioni_cai.cai_lat` ha almeno una riga reale con coordinate palesemente corrotte alla fonte**
+  (es. `25614`, non una latitudine) che trabocca `decimal(10,7)` (`|x| < 1000`) e fa fallire l'intero insert
+  con "numeric field overflow". `CaiDatapackImporter::toCoordinate()` scarta a `null` qualunque valore
+  |x| >= 1000 invece di propagarlo. La fixture di test (`tests/Feature/Console/
+  CaiImportDatapackCommandTest.php`) include entrambi i casi (indirizzo JSON + coordinata fuori range):
+  usata come riferimento per estendere la fixture stessa se emergono altri campi con lo stesso problema.
+
+## Filament staff `CaiSectionResource` (US-804, Fase 8): infolist riusabile, permesso unico, niente Policy
+
+- `App\Filament\Resources\CaiSections\Schemas\CaiSectionInfolist::configure()` è una classe statica
+  indipendente dalla Resource (non un metodo `infolist()` inline): il design doc di Fase 8 (§7) richiede che
+  US-806 (dashboard cliente Sezione) e US-807 (dettaglio da Gruppo Regionale) **riusino lo stesso
+  componente/vista** di questa, cambiando solo l'autorizzazione — chiamare `CaiSectionInfolist::configure()`
+  da lì invece di duplicare lo schema.
+- I tab "Dati RUNTS"/"Bilanci"/"Allegati" leggono da `RepeatableEntry::state(fn (CaiSection $record) => ...)`
+  esplicito (mai la relazione Eloquent grezza come nome del componente), perché `cai_runts_registrations` è
+  0..n rispetto a una sezione (nullable FK, US-801) e bilanci/documenti pendono da lì, non direttamente dalla
+  sezione: serve `flatMap` (es. `$record->runtsRegistrations->flatMap->financialStatements`). Ogni
+  `RepeatableEntry` ha un `->placeholder(...)` esplicito per il caso vuoto — mai una tab che va in errore o
+  appare bianca quando una sezione non ha ancora registrazioni RUNTS (caso normale, non un bug).
+- `cai_sections.region` è testo libero dal datapack RUNTS-CAI (include valori come "EXTRA REGIONE" che non
+  esistono nell'enum applicativo `App\Domain\Identity\Enums\Region`, pensato per le 20 regioni italiane):
+  il filtro regione della tabella (`CaiSectionsTable`) costruisce le opzioni da `CaiSection::query()->
+  distinct()->pluck('region', 'region')`, mai dall'enum, altrimenti alcuni valori reali sparirebbero dal
+  filtro senza errore visibile.
+- Nessuna Policy dedicata: `CaiSection`/`CaiDocument` sono popolati solo dall'importer (US-802), senza owner
+  applicativo da confrontare in una regola di autorizzazione — un unico permesso di catalogo
+  (`Permission::CaiDirectoryView`) gate sia i metodi `can*()` della Resource sia il controller di download
+  dedicato (`CaiDocumentDownloadController`, verificato con `Auth::user()?->can(...)` direttamente, non
+  `AuthorizesRequests`). Se una story futura introduce un vincolo di scope (es. US-807, solo sezioni della
+  propria regione), aggiungerlo come controllo aggiuntivo lato server nel punto d'accesso specifico, non
+  cambiare questo permesso di catalogo che resta "vedi l'intera anagrafica" per lo staff.
+- Verifica in browser via Playwright ad-hoc (nessun MCP registrato in questo repo): `npx --yes playwright
+  install chromium` poi uno script `.mjs` in `/tmp` (mai committato) che fa login su `/admin/login` con
+  l'account di collaudo (`php artisan collaudo:ensure-manager-account` → `manager@oc.test`/`uat`) e
+  screenshotta lista/dettaglio. Richiede prima `php artisan cai:import-datapack` sul dataset reale locale
+  (`cai-datapack/runts-cai.sqlite`) per avere dati non vuoti — verificare con `CaiSection::count()` prima di
+  assumere che i dati ci siano già (`v1:import` non tocca le tabelle CAI, ma un `migrate:fresh` sì).
+  `collaudo:ensure-manager-account` richiede a sua volta che i ruoli/permessi esistano già
+  (`php artisan db:seed --class=RolePermissionSeeder`), altrimenti fallisce con `RoleDoesNotExist` — non
+  garantito dopo un `migrate:fresh` senza seeding.
+
+## Export di file da un'azione Filament (header/record action → download browser, US-805, Fase 8)
+
+- Un'`Action::make(...)->action(fn (HasTable $livewire) => ...)` il cui closure ritorna una
+  `Symfony\Component\HttpFoundation\StreamedResponse` (es. `response()->streamDownload(...)`) o una
+  `BinaryFileResponse` **funziona out-of-the-box** come download browser: la mount/callMountedAction di
+  Filament passa il valore di ritorno fino al metodo pubblico Livewire, e l'hook nativo
+  `Livewire\Features\SupportFileDownloads` lo intercetta automaticamente (nessun controller/route dedicato
+  necessario, a differenza del pattern già in uso per PDF/documenti come
+  `CaiDocumentDownloadController`/`ActivityReportPdfDownloadController`). Verificato end-to-end sia nei test
+  Pest sia in browser reale (Playwright, click su un `Action` di export → evento `download` del browser).
+- Il parametro `HasTable $livewire` (namespace `Filament\Tables\Contracts\HasTable`) dentro un
+  `->action()` di una `headerActions()` di tabella dà accesso a `$livewire->getFilteredSortedTableQuery()`:
+  è la stessa query (filtri + ricerca correnti, senza paginazione) che la tabella usa per popolare la
+  pagina — necessario per un export "solo le righe correntemente filtrate/visibili", non
+  `Model::query()->get()` diretto (vedi `CaiSectionsTable::filteredSections()`).
+- Test Pest: `Livewire::test(ListRecords::class)->filterTable(...)->callTableAction('nomeAzione')`, poi
+  `$test->effects['download']` (chiave magica esposta da `Testable::__get`, non un metodo pubblico) dà
+  `['name' => ..., 'content' => <base64>, 'contentType' => ...]` — decodificare con `base64_decode()` per
+  asserire il contenuto reale. Niente bisogno di `assertFileDownloaded()` se serve ispezionare il contenuto
+  oltre a nome/content-type.
+- Formati generati in questo repo: CSV (`fputcsv` su `php://temp`, poi `stream_get_contents`), XLSX
+  (`openspout/openspout`, già presente come dipendenza transitiva di `filament/actions` — **non**
+  aggiungere `maatwebsite/excel`: scrivere su un file temporaneo con `Writer::openToFile($tempPath)`, mai
+  `openToBrowser()`/`php://output` diretto dentro una `streamDownload`, perché `openToBrowser()` chiama
+  `header()` internamente e collide con gli header già impostati dalla response Symfony), GeoJSON
+  (`json_encode` di un array `FeatureCollection` fatto a mano — Filament non lo supporta nativamente, solo
+  CSV/XLSX via `Filament\Actions\Exports\Exporter`, che in più richiede tabelle/coda dedicate: per un export
+  sincrono e semplice su tre formati è più semplice un'`Action` custom che l'`ExportAction` nativo).
+  In test, l'XLSX si verifica leggendo il file decodificato con `OpenSpout\Reader\XLSX\Reader` (il contenuto
+  binario non è deterministico byte-per-byte fra run per via dei timestamp nello zip).
+
+## Mappa Leaflet in una pagina Filament custom (US-805, Fase 8)
+
+- Nessuna dipendenza Leaflet preesistente nel pannello (verificato, US-805): introdotta via CDN
+  (`unpkg.com/leaflet@1.9.4`) solo nella view Blade della pagina mappa
+  (`resources/views/filament/pages/cai-sections-map.blade.php`), non come asset globale del pannello.
+  Nessuna CSP nel repo che blocchi script/stylesheet esterni.
+- Una pagina Filament custom (`Filament\Pages\Page`, stesso pattern di `WorkBoard`) con `wire:navigate`
+  attivo (default del pannello) non ha garantito un `DOMContentLoaded` a ogni navigazione verso la pagina:
+  lo script inline va eseguito immediatamente (IIFE), non dentro un listener `DOMContentLoaded`, con un
+  guard su `container.dataset.leafletInitialized` per evitare una doppia inizializzazione se lo stesso nodo
+  viene rieseguito.
+- **Gotcha sui dati reali**: il datapack RUNTS-CAI contiene almeno una sezione con coordinate palesemente
+  errate (una sezione piemontese geocodificata in Papua Nuova Guinea, verificato su
+  `cai-datapack/runts-cai.sqlite` reale) — un `map.fitBounds()` su *tutti* i marker zoomerebbe la vista
+  iniziale fuori dall'Italia per inquadrare quel singolo outlier. Pulire il dato è fuori scope qui (nessuna
+  tabella `geocoding_cache`, US-801): la mitigazione è lato vista, calcolare il `fitBounds()` iniziale solo
+  sui marker dentro un bounding box dell'Italia (`L.latLngBounds([35, 6], [47.5, 19])`), con fallback a
+  tutti i marker se nessuno ricade nel box — il marker outlier resta comunque sulla mappa, solo escluso dal
+  calcolo dell'inquadratura iniziale. Se si aggiunge una nuova mappa che usa dati RUNTS-CAI, verificare
+  sempre con lo screenshot reale (non solo la fixture di test) prima di dichiarare la story completa, stesso
+  principio già documentato per gli import (US-802).
+
+## Riusare un Infolist Filament dentro una pagina custom non-Resource (US-806, Fase 8)
+
+- `Filament\Pages\Page` (`filament/filament`, quella estesa da `CustomerDashboard`/`WorkBoard`) eredita già
+  `InteractsWithSchemas` tramite `Filament\Pages\BasePage` — **nessun trait/interfaccia aggiuntiva da
+  dichiarare** per embeddare uno Schema/Infolist in una pagina che non è una `ViewRecord` di una Resource.
+  Basta un metodo pubblico tipato `fn (Schema $schema): Schema` (es. `caiSectionInfolist(Schema $schema):
+  Schema`): la risoluzione dinamica (`ResolvesDynamicLivewireProperties::__get`) lo individua da solo per
+  nome. `Filament\Schemas\Schema` estende `ViewComponent implements Htmlable`, quindi
+  `{{ $this->caiSectionInfolist }}` in Blade lo renderizza direttamente (nessun `->render()` esplicito).
+  `->record($model)` (da `Concerns\BelongsToModel`) imposta il record su cui girano gli
+  entry/`RepeatableEntry::state()` dello schema.
+- Applicato per riusare `CaiSectionInfolist::configure()` (US-804) identico fra staff (`CaiSectionResource`),
+  cliente Sezione (`CustomerDashboard`, questa story) e — quando implementata — cliente Gruppo Regionale
+  (US-807): stesso schema PHP, stesso markup, cambia solo chi/quando viene chiamato e quale record viene
+  passato a `->record()`. Se serve estendere ancora questo pattern, **non duplicare i `TextEntry`/
+  `RepeatableEntry`**, aggiungere solo il nuovo punto di chiamata.
+- `CaiSectionInfolist` presuppone un record `CaiSection` (relazioni `subsections`/`runtsRegistrations`): un
+  utente collegato invece a una `CaiSubsection` (caso raro ma possibile, US-802 — Fase 7 non distingue
+  Sezione/Sottosezione come `customer_type`) **non può riusare questo schema tal quale** (niente
+  `region`/`runtsRegistrations`/`subsections` su quel modello) — gestito con un blocco Blade separato più
+  semplice (contatti diretti della sottosezione), non un secondo Infolist.
+- `CaiDocumentDownloadController` (US-804) ora ha due vie d'accesso, non più una sola: lo staff con
+  `Permission::CaiDirectoryView` (invariato) **oppure** il cliente proprietario, verificato risalendo
+  `CaiDocument::runtsRegistration->section->user_id === $user->id` — nessuna Policy dedicata, stesso stile
+  già in uso. Se US-807 (Gruppo Regionale) deve scaricare documenti di sezioni della propria regione, estendere
+  questo stesso metodo `authorized()`, non introdurne un secondo.
+
+## Checkpoint di fine Fase 8 (US-808): manuale dettagliato generato con uno script PHP usa-e-getta, non scritto a mano
+
+- I manuali dettagliati `docs/collaudo/NN-fase-N.md` precedenti (es. `14-fase-7.md`, 2467 righe per
+  36 test) erano scritti caso per caso a mano. Con 52 test su 8 topic, per Fase 8 è stato più
+  affidabile generare `15-fase-8.md` con uno script PHP one-off (`php` locale, fuori dal repo, non
+  committato — es. `/tmp/gen-fase8-collaudo.php` + un file dati `/tmp/fase8-collaudo-extra.php` con
+  le sole informazioni che NON si possono derivare dal manifest: priorità, ruolo, prerequisiti,
+  procedura passo-passo per i casi MANUALE UI) che legge `docs/collaudo/fase-N.php` (già scritto a
+  mano) e produce ogni blocco `### F8-xx — ...` col template esatto già in uso (stessi 13 campi:
+  Obiettivo/Riferimenti/Modalità/Priorità/Ruolo/Prerequisiti/Dati di test/Stato iniziale/Procedura/
+  Risultato finale/Controlli negativi/Evidenze/Criterio di superamento/Ripristino/Campi di
+  consuntivazione). Per i casi AUTOMATICO (verificati con `vendor/bin/pest --filter "..."`) quasi
+  tutto è derivabile per default dalla `descrizione`/`test_automatico` del manifest — lo script li
+  genera senza bisogno di dati extra, riducendo l'autoria manuale ai soli casi MANUALE UI (dove la
+  Procedura richiede passi UI specifici, non automatizzabili). Stesso principio riusabile per Fase 9+.
+- **Stesso script serve anche per `01-matrice-tracciabilita.md` e `11-registro-esiti.md`**: le righe
+  di quelle due tabelle sono anch'esse interamente derivabili dal manifest + dai metadati
+  modalità/priorità/ruolo già raccolti per il manuale dettagliato — generarle con lo stesso script
+  (append in coda alla tabella esistente) invece di scriverle a mano riga per riga evita errori di
+  trascrizione sui 50+ ID.
+- **Gotcha apostrofo, variante per la VISUALIZZAZIONE (distinto dal gotcha di `verify-manifest` già
+  documentato sopra)**: il manifest porta nel suffisso `::descrizione` di `test_automatico` un
+  backslash letterale prima dell'apostrofo quando serve per far combaciare `verify-manifest` coi
+  byte grezzi del test (es. `sezione\\'s data`). Quel backslash letterale NON va mai mostrato in un
+  documento per un tester umano (manuale dettagliato, matrice, registro esiti): va ripulito con
+  `str_replace("\\'", "'", $testDescription)` prima di qualunque uso testuale/visualizzazione, ma
+  MAI prima del confronto passato a `verify-manifest` (quello richiede il backslash intatto).
+- **Aggiornare anche i 5 file "vivi" cumulativi ad ogni fase**, non solo il manifest/manuale della
+  fase nuova: `docs/collaudo/00-istruzioni-generali.md` (§1 changelog versione, §2 conteggio totale,
+  §3 tabella argomenti della fase + aggiornamento contatore, §4 ambito escluso, §17 conteggio test nei
+  criteri di superamento, opzionalmente §glossario), `01-matrice-tracciabilita.md` (contatori modalità/
+  stato + append righe), `11-registro-esiti.md` (append sezione + contatore aggregato),
+  `12-verbale-collaudo.md` (conteggio test), `README.md` (riepilogo numerico + indice). Il PDF
+  generato da `collaudo:generate N` include SEMPRE questi file cumulativi in testa/coda
+  (`COMMON_PREFIX_FILES`/`COMMON_SUFFIX_FILES` di `CollaudoGenerateCommand`): se non aggiornati, il
+  PDF della nuova fase mostra ancora i conteggi della fase precedente nell'indice/istruzioni generali,
+  pur avendo il proprio manuale dettagliato corretto in mezzo.
+
+## Pagina Filament custom con parametro di rotta + record scoping in `mount()` (US-807, Fase 8)
+
+- Un `Filament\Pages\Page` (non-Resource) può avere un parametro di rotta come una `ViewRecord`: basta
+  sovrascrivere `public static function getRoutePath(Panel $panel): string { return parent::getRoutePath($panel).'/{record}'; }`
+  (trait `Concerns\HasRoutes`) e dichiarare `public function mount(string $record): void`. Nessun route model
+  binding implicito assunto: si risolve `$record` a mano con una query esplicita (`User::query()->where(...)
+  ->findOrFail($record)`), coerente con lo stile "niente magie" già in uso nel resto del repo — un id
+  inesistente o di tipo sbagliato dà 404 da `findOrFail`, non un errore criptico.
+- **Due livelli di autorizzazione distinti, non uno**: `canAccess()` (statico) verifica solo il gate
+  generico "chi può aprire questa classe di pagina" (qui: è un cliente Gruppo Regionale) — non ha accesso al
+  parametro di rotta. Lo scoping sul singolo record (qui: la sezione aperta deve appartenere alla propria
+  regione) va verificato dentro `mount()` con `abort_unless(..., 403)`, perché è l'unico punto che riceve
+  `$record`. Un tentativo diretto via URL manipolato su un record fuori scope fallisce quindi con 403 reale,
+  non solo con l'assenza di un link in UI (stesso principio già applicato a
+  `CaiDocumentDownloadController::authorized()`, US-804/US-806).
+- **Riuso di un componente di presentazione fra route/pagine diverse**: quando lo stesso blocco di markup
+  (qui: la card "Dati CAI/RUNTS" di {@see CaiSectionInfolist}, US-806) deve comparire identico su più pagine
+  Livewire/Filament, estrarlo in una partial Blade dedicata (`resources/views/filament/pages/partials/*.blade.php`)
+  e richiamarla con `@include(...)` dalle view di entrambe le pagine, **senza passare esplicitamente i dati**:
+  finché entrambe le classi Page espongono gli stessi metodi pubblici (`caiSection()`, `caiSubsection()`,
+  `caiSectionInfolist`), `$this` dentro la partial risolve correttamente al componente Livewire che la sta
+  rendendo (il compiler engine esteso di Livewire lo garantisce anche per gli `@include`, non solo per la view
+  radice) — zero duplicazione di markup/logica, l'unica differenza ammessa è passata come variabile semplice
+  (qui: `$emptyMessage`, testo diverso fra "per la tua sezione"/"per questa sezione").
+- Quando una card cliente collega ogni riga a una pagina di dettaglio nuova, e la riga aveva già un altro
+  link/funzionalità (qui: "Sezioni del gruppo regionale", Fase 7 US-705, linkava ai ticket della sezione),
+  **non perdere silenziosamente quella funzionalità**: spostarla in un punto coerente della nuova pagina
+  (qui: un header action "Vedi i ticket di questa sezione" su `CaiSectionRegionalDetail`, via
+  `getHeaderActions()`) invece di lasciare un metodo ormai orfano sulla pagina di origine.

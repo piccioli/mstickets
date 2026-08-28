@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Filament\Pages;
 
+use App\Domain\CaiDirectory\Models\CaiSection;
+use App\Domain\CaiDirectory\Models\CaiSubsection;
 use App\Domain\Documentation\Models\DocumentationPage;
 use App\Domain\Fundraising\Models\FundraisingProject;
 use App\Domain\Identity\Enums\CustomerType;
@@ -15,12 +17,14 @@ use App\Domain\Ticketing\Models\Ticket;
 use App\Domain\Ticketing\Queries\MyTicketsAwaitingResponseQuery;
 use App\Domain\Ticketing\Queries\MyTicketsQuery;
 use App\Filament\Resources\ActivityReports\ActivityReportResource;
+use App\Filament\Resources\CaiSections\Schemas\CaiSectionInfolist;
 use App\Filament\Resources\CustomerFundraisingProjects\CustomerFundraisingProjectResource;
 use App\Filament\Resources\DocumentationPages\DocumentationPageResource;
 use App\Filament\Resources\Tickets\TicketResource;
 use App\Filament\Resources\Users\Schemas\UserForm;
 use BackedEnum;
 use Filament\Pages\Page;
+use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Facades\Auth;
@@ -105,6 +109,53 @@ class CustomerDashboard extends Page
         return $this->customerType() === CustomerType::GruppoRegionale;
     }
 
+    public function isSezione(): bool
+    {
+        return $this->customerType() === CustomerType::Sezione;
+    }
+
+    /**
+     * Sezione CAI collegata all'utente cliente corrente (US-806), se esiste — match per
+     * `user_id` stabilito una volta per tutte dall'importer datapack RUNTS-CAI (US-802).
+     */
+    public function caiSection(): ?CaiSection
+    {
+        $user = Auth::user();
+
+        if (! $user instanceof User) {
+            return null;
+        }
+
+        return CaiSection::query()->where('user_id', $user->id)->first();
+    }
+
+    /**
+     * Sottosezione CAI collegata all'utente cliente corrente (US-806): un caso distinto
+     * da {@see self::caiSection()} perché Fase 7 non distingue Sezione/Sottosezione come
+     * `customer_type` — una sottosezione con propria utenza resta comunque `Sezione`
+     * (US-801, US-802). Rilevante solo quando l'utente non ha una propria `CaiSection`.
+     */
+    public function caiSubsection(): ?CaiSubsection
+    {
+        $user = Auth::user();
+
+        if (! $user instanceof User) {
+            return null;
+        }
+
+        return CaiSubsection::query()->where('user_id', $user->id)->first();
+    }
+
+    /**
+     * Riusa lo stesso schema della Filament Resource staff (US-804,
+     * {@see CaiSectionInfolist}) per il dettaglio CAI/RUNTS della propria sezione —
+     * nessuna duplicazione di markup/logica fra i punti di accesso (design doc Fase 8 §7).
+     */
+    public function caiSectionInfolist(Schema $schema): Schema
+    {
+        return CaiSectionInfolist::configure($schema)->record($this->caiSection());
+    }
+
     /**
      * Sezioni della stessa regione del Gruppo Regionale corrente (US-705). Stato vuoto esplicito
      * (mai un errore) sia quando la regione non ha ancora nessuna sezione classificata, sia quando
@@ -134,11 +185,15 @@ class CustomerDashboard extends Page
         return MyTicketsQuery::for($section)->count();
     }
 
-    public function sectionTicketsUrl(User $section): string
+    /**
+     * URL della pagina di dettaglio CAI/RUNTS di una Sezione elencata nella card "Sezioni del
+     * gruppo regionale" (US-807, {@see CaiSectionRegionalDetail}) — l'autorizzazione sulla
+     * singola sezione (deve appartenere alla propria regione) è verificata lato server in
+     * {@see CaiSectionRegionalDetail::mount()}, non solo dall'assenza del link in UI.
+     */
+    public function sectionDetailUrl(User $section): string
     {
-        return TicketResource::getUrl('index', [
-            'tableFilters' => ['requester_id' => ['value' => $section->id]],
-        ]);
+        return CaiSectionRegionalDetail::getUrl(['record' => $section->id]);
     }
 
     public function openTicketsCount(): int

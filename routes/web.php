@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\ActivityReportPdfDownloadController;
+use App\Http\Controllers\CaiDocumentDownloadController;
 use App\Http\Controllers\DocumentationPagePdfDownloadController;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\TicketAttachmentDownloadController;
@@ -29,3 +30,10 @@ Route::get('/documentation-pages/{documentationPage}/pdf', DocumentationPagePdfD
 Route::get('/activity-reports/{activityReport}/pdf', ActivityReportPdfDownloadController::class)
     ->middleware('auth')
     ->name('activity-reports.pdf-download');
+
+// Documento (`cai_documents`) importato dal datapack RUNTS-CAI (§9 del design doc,
+// US-804): mai un URL diretto sul disco privato `cai-documents`, l'autorizzazione vive
+// nel controller (`Permission::CaiDirectoryView`).
+Route::get('/cai-documents/{caiDocument}/download', CaiDocumentDownloadController::class)
+    ->middleware('auth')
+    ->name('cai-documents.download');

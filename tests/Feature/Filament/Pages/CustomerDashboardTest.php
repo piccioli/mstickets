@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Domain\CaiDirectory\Models\CaiSection;
+use App\Domain\CaiDirectory\Models\CaiSubsection;
 use App\Domain\Documentation\Enums\DocumentationCategory;
 use App\Domain\Documentation\Models\DocumentationPage;
 use App\Domain\Fundraising\Models\FundraisingOpportunity;
@@ -349,6 +351,105 @@ test('the regional group sections card shows an explicit empty state when the gr
         ->get(CustomerDashboard::getUrl())
         ->assertSee('Sezioni del gruppo regionale')
         ->assertSee('Nessuna sezione classificata in questa regione');
+});
+
+test('the cai directory card shows the linked cai section data for a sezione customer', function (): void {
+    $this->seed(RolePermissionSeeder::class);
+    $customer = withRole(User::factory()->create(), UserRole::Customer);
+    $customer->forceFill(['customer_type' => CustomerType::Sezione])->save();
+
+    CaiSection::create([
+        'codice_cai' => 'CAI-001',
+        'name' => 'Sezione di Abbiategrasso',
+        'region' => 'LOMBARDIA',
+        'founded_year' => 1975,
+        'user_id' => $customer->id,
+    ]);
+
+    $this->actingAs($customer)
+        ->get(CustomerDashboard::getUrl())
+        ->assertSuccessful()
+        ->assertSee('I miei dati CAI/RUNTS')
+        ->assertSee('Sezione di Abbiategrasso')
+        ->assertDontSee('Nessun dato CAI/RUNTS disponibile per la tua sezione');
+});
+
+test('the cai directory card never leaks another sezione\'s data', function (): void {
+    $this->seed(RolePermissionSeeder::class);
+    $customer = withRole(User::factory()->create(), UserRole::Customer);
+    $customer->forceFill(['customer_type' => CustomerType::Sezione])->save();
+
+    CaiSection::create([
+        'codice_cai' => 'CAI-001',
+        'name' => 'Sezione propria',
+        'region' => 'LOMBARDIA',
+        'user_id' => $customer->id,
+    ]);
+    CaiSection::create([
+        'codice_cai' => 'CAI-002',
+        'name' => 'Sezione altrui',
+        'region' => 'LAZIO',
+    ]);
+
+    $this->actingAs($customer)
+        ->get(CustomerDashboard::getUrl())
+        ->assertSee('Sezione propria')
+        ->assertDontSee('Sezione altrui');
+});
+
+test('the cai directory card shows the linked cai subsection data when no cai section is linked', function (): void {
+    $this->seed(RolePermissionSeeder::class);
+    $customer = withRole(User::factory()->create(), UserRole::Customer);
+    $customer->forceFill(['customer_type' => CustomerType::Sezione])->save();
+
+    $parentSection = CaiSection::create([
+        'codice_cai' => 'CAI-001',
+        'name' => 'Sezione madre',
+        'region' => 'LOMBARDIA',
+    ]);
+    CaiSubsection::create([
+        'cai_codice' => 'SUB-001',
+        'cai_section_id' => $parentSection->codice_cai,
+        'name' => 'Sottosezione propria',
+        'email' => 'sub@example.com',
+        'user_id' => $customer->id,
+    ]);
+
+    $this->actingAs($customer)
+        ->get(CustomerDashboard::getUrl())
+        ->assertSuccessful()
+        ->assertSee('I miei dati CAI/RUNTS')
+        ->assertSee('Sottosezione propria')
+        ->assertSee('Sezione madre')
+        ->assertDontSee('Nessun dato CAI/RUNTS disponibile per la tua sezione');
+});
+
+test('the cai directory card shows an explicit empty state for a sezione customer without a linked cai section or subsection', function (): void {
+    $this->seed(RolePermissionSeeder::class);
+    $customer = withRole(User::factory()->create(), UserRole::Customer);
+    $customer->forceFill(['customer_type' => CustomerType::Sezione])->save();
+
+    $this->actingAs($customer)
+        ->get(CustomerDashboard::getUrl())
+        ->assertSuccessful()
+        ->assertSee('I miei dati CAI/RUNTS')
+        ->assertSee('Nessun dato CAI/RUNTS disponibile per la tua sezione');
+});
+
+test('the cai directory card is absent for non-sezione customers', function (): void {
+    $this->seed(RolePermissionSeeder::class);
+
+    $groupLeader = withRole(User::factory()->create(), UserRole::Customer);
+    $groupLeader->forceFill(['customer_type' => CustomerType::GruppoRegionale])->save();
+
+    $generico = withRole(User::factory()->create(), UserRole::Customer);
+    $generico->forceFill(['customer_type' => CustomerType::Generico])->save();
+
+    foreach ([$groupLeader, $generico] as $customer) {
+        $this->actingAs($customer)
+            ->get(CustomerDashboard::getUrl())
+            ->assertDontSee('I miei dati CAI/RUNTS');
+    }
 });
 
 test('the regional group sections card is absent for sezione, organo tecnico/struttura operativa, and generico customers', function (): void {

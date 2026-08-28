@@ -89,6 +89,9 @@ enum Permission: string implements HasLabel
     case LogsAccess = 'logs.access';
     case ImportView = 'import.view';
 
+    // Anagrafica CAI
+    case CaiDirectoryView = 'cai-directory.view';
+
     public function getLabel(): string
     {
         return match ($this) {
@@ -154,6 +157,8 @@ enum Permission: string implements HasLabel
             self::HorizonAccess => 'Accedere a Horizon',
             self::LogsAccess => 'Accedere ai log',
             self::ImportView => 'Visualizzare lo stato delle importazioni',
+
+            self::CaiDirectoryView => "Visualizzare l'anagrafica CAI",
         };
     }
 }

@@ -7,13 +7,21 @@
         </div>
     @endif
 
+    @if ($this->isSezione())
+        <div class="mb-4">
+            <x-filament::section heading="I miei dati CAI/RUNTS" icon="heroicon-o-identification">
+                @include('filament.pages.partials.cai-directory-detail', ['emptyMessage' => 'Nessun dato CAI/RUNTS disponibile per la tua sezione'])
+            </x-filament::section>
+        </div>
+    @endif
+
     @if ($this->isGruppoRegionale())
         <div class="mb-4">
             <x-filament::section heading="Sezioni del gruppo regionale" icon="heroicon-o-map">
                 <div class="flex flex-col gap-2">
                     @forelse ($this->regionalGroupSections() as $section)
                         <a
-                            href="{{ $this->sectionTicketsUrl($section) }}"
+                            href="{{ $this->sectionDetailUrl($section) }}"
                             class="flex items-center justify-between gap-4 rounded-lg border border-gray-200 bg-white p-3 text-sm shadow-sm transition hover:border-primary-400 dark:border-white/10 dark:bg-gray-900"
                         >
                             <span class="font-medium text-gray-950 dark:text-white">{{ $section->name }}</span>

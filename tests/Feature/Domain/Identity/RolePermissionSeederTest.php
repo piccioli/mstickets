@@ -27,14 +27,14 @@ function expectedRolePermissionMatrix(): array
             'ticket-message.create.internal', 'ticket-log.view', 'tag.view', 'tag.create', 'tag.update',
             'documentation.view.customer', 'documentation.view.internal', 'documentation.create',
             'documentation.update', 'activity-report.view.any', 'activity-report.view.own',
-            'organization.view',
+            'organization.view', 'cai-directory.view',
         ],
         UserRole::Developer->value => [
             'ticket.view.any', 'ticket.view.own', 'ticket.create', 'ticket.update.assigned',
             'ticket.assign', 'ticket.manage-internal-fields', 'ticket-message.create',
             'ticket-message.view.internal', 'ticket-message.create.internal', 'ticket-log.view',
             'tag.view', 'documentation.view.customer', 'documentation.view.internal',
-            'documentation.create', 'documentation.update',
+            'documentation.create', 'documentation.update', 'cai-directory.view',
         ],
         UserRole::Customer->value => [
             'ticket.view.own', 'ticket.create', 'ticket.update.own', 'ticket-message.create',

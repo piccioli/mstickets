@@ -11,6 +11,9 @@
 # già idempotenti di loro). Gli allegati restano best-effort: se
 # `storage/app/v1-media/` è vuota il target non fallisce, l'ETL segnala i media
 # come compromesso (comportamento già esistente di `TicketAttachmentsStage`).
+# I dati CAI/RUNTS (Fase 8) sono anch'essi best-effort: se `cai-datapack/
+# runts-cai.sqlite` non è stato copiato a mano (stesso principio di
+# `v1dumps/latest.sql`), il target logga un avviso e prosegue senza fallire.
 setup:
 	@test -f .env || cp .env.example .env
 	@test -f v1dumps/latest.sql || { \
@@ -31,6 +34,11 @@ setup:
 	docker compose exec app php artisan db:seed --class=RolePermissionSeeder --force
 	docker compose exec app php artisan v1:import --anonymize
 	docker compose exec app php artisan collaudo:ensure-manager-account
+	@if [ -f cai-datapack/runts-cai.sqlite ]; then \
+		docker compose exec app php artisan cai:import-datapack; \
+	else \
+		echo "Avviso: cai-datapack/runts-cai.sqlite non trovato, salto l'import dati CAI/RUNTS (best-effort, nessun blocco del setup)." >&2; \
+	fi
 	@echo ""
 	@echo "Setup completato: dati reali importati da v1dumps/latest.sql (--anonymize)."
 	@echo "Password di ogni utente (importato o di riferimento): 'password'."

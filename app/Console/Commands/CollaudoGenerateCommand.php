@@ -81,6 +81,9 @@ final class CollaudoGenerateCommand extends Command
         '7' => [
             ['file' => '14-fase-7.md', 'titolo' => 'Fase 7 (Tipologia di cliente CAI) — Casi di test dettagliati'],
         ],
+        '8' => [
+            ['file' => '15-fase-8.md', 'titolo' => 'Fase 8 (Integrazione dati RUNTS-CAI — Sezioni/Sottosezioni) — Casi di test dettagliati'],
+        ],
     ];
 
     /**
@@ -96,6 +99,7 @@ final class CollaudoGenerateCommand extends Command
         '5' => 'Fase 5 (Fundraising — opportunità/bandi, griglia di valutazione, progetti e vista cliente)',
         '6' => 'Fase 6 (Portale cliente e rifinitura)',
         '7' => 'Fase 7 (Tipologia di cliente CAI)',
+        '8' => 'Fase 8 (Integrazione dati RUNTS-CAI — Sezioni/Sottosezioni)',
     ];
 
     public function handle(): int
