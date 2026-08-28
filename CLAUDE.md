@@ -1291,3 +1291,24 @@ verificati esplicitamente, non assunti allineati.
   `nullsafe.neverNull` — Larastan la considera mai-null indipendentemente dalla nullabilità reale della
   foreign key a livello di colonna DB. Verificare il tipo di ritorno annotato sul metodo relazione prima
   di aggiungere un nullsafe "difensivo": nel contesto chiamante è spesso davvero superfluo.
+
+## Promemoria interno E11 — finestra oraria applicativa oltre al cron, "idle" esclude i ticket già conclusi (`tickets:notify-idle-developers`, US-616, §7.5.2/§10.2)
+
+- Un comando la cui cadenza PRD è "ogni 30 min, in una fascia oraria" (qui 09:00–15:30, correzione
+  esplicita v1→v2: nel v1 era un job ritardato da observer, mai un comando schedulato) non deve fidarsi
+  solo del cron in `routes/console.php` per rispettare la fascia: aggiungere anche un guard applicativo
+  (`now()->format('H:i')` confrontato con `config('ticketing.idle_developer_notice.window_start')`/
+  `window_end`, entrambi stringhe `H:i`) rende il vincolo testabile con `Carbon::setTestNow()` e protegge
+  anche un'esecuzione manuale da CLI fuori orario — nessun altro comando schedulato di questo repo ne ha
+  bisogno perché nessun altro ha un vincolo di fascia oraria, solo un singolo orario fisso.
+- "Developer idle" = ha almeno un ticket `assignee_id = lui` **escludendo `done`/`rejected`** (stessa
+  convenzione già stabilita da `MyTicketsQuery`/`ArchivedTicketsQuery` per "concluso") E nessuno di questi
+  è `status = progress`. Query diretta su `Ticket`, MAI `AssignedToMeQuery`/`scopeVisibleTo()`: quello
+  scope filtra per permesso Filament dell'utente (`ticket.view.any`/`.assigned`/`.own`), un concetto di
+  UI-authorization estraneo a un comando di sistema che deve valutare oggettivamente lo stato dei ticket
+  — con un developer di test senza permessi seedati, `visibleTo()` avrebbe azzerato silenziosamente ogni
+  risultato.
+- Idempotenza "un promemoria al giorno per developer" con lo stesso pattern già di E7/E8:
+  `EmailMessage::where('user_id', ...)->where('mailable_class', IdleDeveloperNoticeMail::class)
+  ->where('created_at', '>=', $todayStart)->exists()` — corretto qui perché la fascia oraria ricorre una
+  sola volta al giorno, quindi "oggi" e "questa finestra" coincidono.

@@ -27,6 +27,7 @@ enum NotificationType: string implements HasLabel
     case TicketWaitingReminder = 'ticket_waiting_reminder';
     case MailDigest = 'mail_digest';
     case ActivityReportPdfGenerated = 'activity_report_pdf_generated';
+    case IdleDeveloperNotice = 'idle_developer_notice';
 
     public function getLabel(): string
     {
@@ -41,6 +42,7 @@ enum NotificationType: string implements HasLabel
             self::TicketWaitingReminder => 'Promemoria ticket in attesa',
             self::MailDigest => 'Digest giornaliero attività ticket',
             self::ActivityReportPdfGenerated => 'Report attività disponibile',
+            self::IdleDeveloperNotice => 'Promemoria ticket in coda senza nulla in lavorazione',
         };
     }
 
@@ -75,6 +77,7 @@ enum NotificationType: string implements HasLabel
             self::TicketStatusChanged,
             self::NewTicketMessage,
             self::TicketAssigned,
+            self::IdleDeveloperNotice,
         ], true);
     }
 }

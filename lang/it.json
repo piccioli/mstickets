@@ -41,6 +41,8 @@
     "New messages: :count": "Nuovi messaggi: :count",
     "Your activity report for :period is ready.": "Il tuo report di attività per :period è pronto.",
     "Download the PDF": "Scarica il PDF",
+    "You have tickets waiting to be picked up": "Hai ticket in coda da riprendere",
+    "You have tickets assigned with nothing currently in progress. Here they are, so you can pick one up.": "Hai ticket assegnati senza nulla attualmente in lavorazione. Eccoli, così puoi riprenderne uno.",
 
     "Activity report": "Report di attività",
     "Type": "Tipo",

@@ -30,6 +30,8 @@
     "New messages: :count": "New messages: :count",
     "Your activity report for :period is ready.": "Your activity report for :period is ready.",
     "Download the PDF": "Download the PDF",
+    "You have tickets waiting to be picked up": "You have tickets waiting to be picked up",
+    "You have tickets assigned with nothing currently in progress. Here they are, so you can pick one up.": "You have tickets assigned with nothing currently in progress. Here they are, so you can pick one up.",
 
     "Activity report": "Activity report",
     "Type": "Type",

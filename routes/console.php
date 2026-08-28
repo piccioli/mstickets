@@ -9,6 +9,7 @@ use App\Console\Commands\ReportsGenerateMonthlyCommand;
 use App\Console\Commands\TicketsArchiveScrumCommand;
 use App\Console\Commands\TicketsAutoCloseReleasedCommand;
 use App\Console\Commands\TicketsCloseScrumCommand;
+use App\Console\Commands\TicketsNotifyIdleDevelopersCommand;
 use App\Console\Commands\TicketsProgressToTodoCommand;
 use App\Console\Commands\TicketsRemindWaitingCommand;
 use App\Console\Commands\TicketsRestoreWaitingCommand;
@@ -128,3 +129,12 @@ Schedule::command(MailSendDigestCommand::class)
     ->cron((string) config('mail_pipeline.digest.schedule_cron'))
     ->withoutOverlapping()
     ->when(fn (): bool => (bool) config('orchestrator.features.mail_digest'));
+
+// E11 (§7.5.2/§10.2 del PRD, US-616): promemoria interno ogni 30 minuti, 09:00–15:30,
+// per gli sviluppatori con ticket assegnati ma nessuno in lavorazione. Cadenza
+// configurabile da config('ticketing.idle_developer_notice.schedule_cron'), dietro il
+// feature flag già presente da Fase 0 (config('orchestrator.features.tickets_idle_developer_notice')).
+Schedule::command(TicketsNotifyIdleDevelopersCommand::class)
+    ->cron((string) config('ticketing.idle_developer_notice.schedule_cron'))
+    ->withoutOverlapping()
+    ->when(fn (): bool => (bool) config('orchestrator.features.tickets_idle_developer_notice'));

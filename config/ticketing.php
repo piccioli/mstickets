@@ -198,4 +198,27 @@ return [
         'schedule_cron' => env('TICKET_RESTORE_WAITING_SCHEDULE_CRON', '30 6 * * *'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Comando tickets:notify-idle-developers — E11 (§7.5.2/§10.2 del PRD, US-616)
+    |--------------------------------------------------------------------------
+    |
+    | Nel v1 il promemoria era un job ritardato di 30 minuti lanciato da un
+    | observer, attivo solo prima delle 15:30 (correzione esplicita del PRD
+    | principale, §10.2: qui è un comando schedulato, non un job ritardato).
+    | `window_start`/`window_end` riproducono lo stesso vincolo orario a
+    | livello applicativo (oltre alla cadenza del cron in routes/console.php,
+    | difesa in profondità utile anche per un'esecuzione manuale da CLI fuori
+    | orario). Dietro il feature flag già presente da Fase 0
+    | (config('orchestrator.features.tickets_idle_developer_notice')),
+    | disattivato di default.
+    |
+    */
+
+    'idle_developer_notice' => [
+        'window_start' => env('TICKET_IDLE_DEVELOPER_NOTICE_WINDOW_START', '09:00'),
+        'window_end' => env('TICKET_IDLE_DEVELOPER_NOTICE_WINDOW_END', '15:30'),
+        'schedule_cron' => env('TICKET_IDLE_DEVELOPER_NOTICE_SCHEDULE_CRON', '*/30 9-15 * * *'),
+    ],
+
 ];
