@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Import\Stages\ActivityReportsStage;
 use App\Import\Stages\ActivityReportTicketsStage;
+use App\Import\Stages\CustomerClassificationStage;
 use App\Import\Stages\DeriveStage;
 use App\Import\Stages\DocumentationStage;
 use App\Import\Stages\FundraisingOpportunitiesStage;
@@ -45,6 +46,7 @@ return [
     'stages' => [
         UsersStage::class,
         RolesPermissionsStage::class,
+        CustomerClassificationStage::class,
         OrganizationsStage::class,
         OrganizationMembersStage::class,
         DocumentationStage::class,
