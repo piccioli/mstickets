@@ -143,6 +143,19 @@ return [
             'report' => false,
         ],
 
+        // Disco privato dedicato ai documenti (`allegati` → `cai_documents`) importati dal
+        // datapack RUNTS-CAI (§9 del design doc, US-802): mai `public`, stesso ragionamento
+        // già applicato a `ticket-attachments` qui sopra — il download passerà da un
+        // controller dedicato autorizzato (US-804, fuori scope di questo comando di import,
+        // che qui scrive solo il file e valorizza `cai_documents.file_path`).
+        'cai-documents' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/cai-documents'),
+            'serve' => false,
+            'throw' => false,
+            'report' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),

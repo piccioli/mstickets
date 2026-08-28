@@ -1395,3 +1395,21 @@ verificati esplicitamente, non assunti allineati.
   (`php artisan test --filter=...` o il path del file), più eventualmente `tests/Unit`/`tests/Feature` a
   pezzi se serve una verifica di non regressione più ampia — non fidarsi del codice di uscita di una run
   `php artisan test` senza filtri, che fallisce per questo motivo preesistente a prescindere dalle modifiche.
+
+## Import — `cai:import-datapack` (US-802, Fase 8): due gotcha di dati reali non visibili sulla fixture
+
+- **`sezioni_cai.cai_indirizzo_sede`/`cai_indirizzo_postale` (e l'equivalente di `sottosezioni_cai`) sono
+  JSON di geocoding, non testo semplice** (100% delle 529+224 righe reali: `{"address1":...,"address2":...,
+  "number":...,"zip":...,"city":...,"province":...,"nation":...,...}`), a differenza di `enti.sede_indirizzo`
+  (sempre testo semplice). Inserire il JSON grezzo in `cai_sections.address`/`postal_address`
+  (`string(255)`, US-801) trabocca la colonna su Postgres per un certo numero di righe reali (~280+
+  caratteri). `CaiRuntsAddressFormatter::format()` (`app/Domain/CaiDirectory/Import/
+  CaiRuntsAddressFormatter.php`) lo converte in una riga leggibile (max osservato 142 caratteri) — se un
+  futuro import aggiunge un nuovo campo indirizzo dal datapack, verificare prima col dataset reale se è JSON
+  o testo semplice (`json_decode($valore) !== null` su un campione), non assumerlo.
+- **`sezioni_cai.cai_lat` ha almeno una riga reale con coordinate palesemente corrotte alla fonte**
+  (es. `25614`, non una latitudine) che trabocca `decimal(10,7)` (`|x| < 1000`) e fa fallire l'intero insert
+  con "numeric field overflow". `CaiDatapackImporter::toCoordinate()` scarta a `null` qualunque valore
+  |x| >= 1000 invece di propagarlo. La fixture di test (`tests/Feature/Console/
+  CaiImportDatapackCommandTest.php`) include entrambi i casi (indirizzo JSON + coordinata fuori range):
+  usata come riferimento per estendere la fixture stessa se emergono altri campi con lo stesso problema.
