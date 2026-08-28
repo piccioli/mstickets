@@ -25,6 +25,9 @@
     "You have been assigned as :role to ticket #:id.": "You have been assigned as :role to ticket #:id.",
     "You have been assigned to ticket #:id.": "You have been assigned to ticket #:id.",
     "Ticket #:id has been waiting for your feedback for a few days. If it no longer needs your attention, or if you can provide the requested information, reply to this email or go to the ticket.": "Ticket #:id has been waiting for your feedback for a few days. If it no longer needs your attention, or if you can provide the requested information, reply to this email or go to the ticket.",
+    "Your daily ticket activity digest": "Your daily ticket activity digest",
+    "Here is a summary of the activity on your tickets in the last 24 hours.": "Here is a summary of the activity on your tickets in the last 24 hours.",
+    "New messages: :count": "New messages: :count",
 
     "Activity report": "Activity report",
     "Type": "Type",

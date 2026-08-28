@@ -36,6 +36,9 @@
     "You have been assigned as :role to ticket #:id.": "Ti è stato assegnato come :role il ticket #:id.",
     "You have been assigned to ticket #:id.": "Ti è stato assegnato il ticket #:id.",
     "Ticket #:id has been waiting for your feedback for a few days. If it no longer needs your attention, or if you can provide the requested information, reply to this email or go to the ticket.": "Il ticket #:id è in attesa di un tuo riscontro da qualche giorno. Se non serve più attenzione da parte tua, o se puoi fornirci le informazioni richieste, rispondi a questa email o vai al ticket.",
+    "Your daily ticket activity digest": "Il tuo digest giornaliero di attività ticket",
+    "Here is a summary of the activity on your tickets in the last 24 hours.": "Ecco un riepilogo dell'attività sui tuoi ticket nelle ultime 24 ore.",
+    "New messages: :count": "Nuovi messaggi: :count",
 
     "Activity report": "Report di attività",
     "Type": "Tipo",

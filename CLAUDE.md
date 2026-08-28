@@ -1235,3 +1235,36 @@ verificati esplicitamente, non assunti allineati.
   `*_SCHEDULE_CRON` di `reports.php`) e la soglia giorni lavorativi per T4 (riuso diretto di
   `WorkingDaysCalculator::haveElapsed()`, stesso calcolo del reminder E7/US-316, mai una nuova
   implementazione del conteggio giorni lavorativi).
+
+## Digest periodico E8 — Mailable multi-ticket senza `Ticket` singolo, query "utenti per ruolo" senza `RoleDoesNotExist` (`mail:send-digest`, US-614, §7.5.2/§10.2)
+
+- Un Mailable che riepiloga PIÙ ticket dello stesso destinatario (non uno solo) estende
+  `OutboundMailable` direttamente, non `TicketOutboundMailable` — stesso schema già usato da E9
+  (`UnknownSenderStaffMail`, "nessun Ticket associato"), qui applicato per un motivo diverso ("più
+  ticket", non "nessun ticket"). `SendOutboundTicketMail::run()` accetta comunque `ticket: null`
+  (parametro nullable da US-312): la riga `email_messages` outbound del digest ha `ticket_id = null`.
+  Contenuto aggregato per ticket incapsulato in un piccolo DTO immutabile dedicato
+  (`App\Domain\Mail\Support\TicketDigestEntry`: ticket + conteggio nuovi messaggi + eventuale
+  cambio di stato), non un array associativo libero — stesso principio di leggibilità già seguito
+  altrove nel dominio Mail.
+- **Query "tutti gli utenti con un dato ruolo" (qui: i clienti) non deve mai usare lo scope `role()`
+  di Spatie** (`User::role(UserRole::Customer->value)`): quello scope risolve il ruolo con
+  `findByName()` e lancia `RoleDoesNotExist` se la riga `roles` non esiste ancora nel DB (es. suite di
+  test senza `RolePermissionSeeder`, o ambiente reale senza mai un cliente registrato) — un comando
+  schedulato non deve mai poter fallire per questo. Usare invece
+  `User::query()->whereHas('roles', fn ($q) => $q->where('name', UserRole::Customer->value))`, che
+  produce semplicemente zero righe quando il ruolo non esiste. Stesso idioma già documentato da
+  `App\Domain\Ticketing\Queries\AllCustomerTicketsQuery` per un motivo identico — prima di scrivere
+  `::role(...)` in un nuovo comando, controllare se esiste già un precedente `whereHas('roles', ...)`
+  da riusare.
+- Idempotenza "un digest al giorno per cliente" verificata con lo stesso pattern già in uso per il
+  cooldown di `tickets:remind-waiting` (E7): `EmailMessage::where('user_id', $customer->id)
+  ->where('mailable_class', MailDigestMail::class)->where('created_at', '>=', $todayStart)->exists()`,
+  PRIMA di costruire il contenuto del digest (evita lavoro inutile se il cliente ha già ricevuto un
+  digest oggi). Distinto dalla finestra di contenuto "24h scorrevoli" (`now()->subHours(24)`, usata per
+  decidere COSA includere): l'idempotenza guarda il giorno di calendario (`today()`), il contenuto
+  guarda le ultime 24h assolute — le due finestre non vanno confuse né unificate.
+- Soppressioni/preferenze di notifica (E8 disabilitabile da US-605) NON richiedono nessun controllo
+  aggiuntivo nel comando: restano un'unica responsabilità di `SendOutboundTicketMail::blockedReason()`
+  (già verificato da `NotificationGate` + `deactivated_at` + `EmailSuppression`), stesso principio "un
+  solo punto di invio per l'intero catalogo E1-E11" già documentato per US-608.

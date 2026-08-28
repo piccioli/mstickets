@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Console\Commands\MailFetchInboundCommand;
 use App\Console\Commands\MailRetryFailedCommand;
+use App\Console\Commands\MailSendDigestCommand;
 use App\Console\Commands\ReportsGenerateMonthlyCommand;
 use App\Console\Commands\TicketsArchiveScrumCommand;
 use App\Console\Commands\TicketsAutoCloseReleasedCommand;
@@ -118,3 +119,12 @@ Schedule::command(TimeTrackingAggregateDailyCommand::class)
     ->cron((string) config('timetracking.aggregate_daily.schedule_cron'))
     ->withoutOverlapping()
     ->when(fn (): bool => (bool) config('orchestrator.features.timetracking_aggregate'));
+
+// E8 (§7.5.2/§10.2 del PRD, US-614): digest giornaliero di attività ticket per i
+// clienti che lo hanno abilitato. Cadenza configurabile da
+// config('mail_pipeline.digest.schedule_cron'), dietro il feature flag già
+// presente da Fase 0 (config('orchestrator.features.mail_digest')).
+Schedule::command(MailSendDigestCommand::class)
+    ->cron((string) config('mail_pipeline.digest.schedule_cron'))
+    ->withoutOverlapping()
+    ->when(fn (): bool => (bool) config('orchestrator.features.mail_digest'));

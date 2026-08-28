@@ -285,4 +285,21 @@ return [
         'schedule_cron' => env('MAIL_RETRY_SCHEDULE_CRON', '0 * * * *'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Digest periodico (E8, §7.5.2/§10.2 del PRD, US-614)
+    |--------------------------------------------------------------------------
+    |
+    | Cadenza dello scheduler per `mail:send-digest`, dietro il feature flag
+    | già presente da Fase 0 (config('orchestrator.features.mail_digest')).
+    | Nessuna soglia di finestra qui: l'AC della story fissa esplicitamente
+    | "24h precedenti", non un valore configurabile come le soglie in giorni
+    | lavorativi di config/ticketing.php.
+    |
+    */
+
+    'digest' => [
+        'schedule_cron' => env('MAIL_DIGEST_SCHEDULE_CRON', '0 7 * * *'),
+    ],
+
 ];
