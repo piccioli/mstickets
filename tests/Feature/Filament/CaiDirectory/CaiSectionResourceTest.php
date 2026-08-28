@@ -7,7 +7,9 @@ use App\Domain\CaiDirectory\Models\CaiFinancialStatement;
 use App\Domain\CaiDirectory\Models\CaiRuntsRegistration;
 use App\Domain\CaiDirectory\Models\CaiSection;
 use App\Domain\CaiDirectory\Models\CaiSubsection;
+use App\Domain\Identity\Enums\CustomerType;
 use App\Domain\Identity\Enums\Permission as PermissionEnum;
+use App\Domain\Identity\Enums\Region;
 use App\Domain\Identity\Enums\UserRole;
 use App\Domain\Identity\Models\User;
 use App\Filament\Resources\CaiSections\CaiSectionResource;
@@ -309,6 +311,66 @@ test('a customer cannot download a document belonging to another cai section', f
     ]);
 
     $response = $this->actingAs($customer)->get(route('cai-documents.download', $document));
+
+    $response->assertForbidden();
+});
+
+test('a gruppo regionale customer can download a document belonging to a section in their own region', function (): void {
+    Storage::fake('cai-documents');
+
+    $sectionOwner = withRole(User::factory()->create(), UserRole::Customer);
+    $sectionOwner->forceFill(['customer_type' => CustomerType::Sezione, 'region' => Region::Lombardia])->save();
+    $section = caiSection(['user_id' => $sectionOwner->id]);
+    $registration = CaiRuntsRegistration::create([
+        'id_runts' => 'RUNTS-'.$section->codice_cai,
+        'cai_section_id' => $section->codice_cai,
+    ]);
+    Storage::disk('cai-documents')->put('bilanci/2024.pdf', '%PDF-1.4 fake content');
+    $document = CaiDocument::create([
+        'cai_runts_registration_id' => $registration->id_runts,
+        'document_type' => 'bilancio',
+        'year' => 2024,
+        'title' => 'Bilancio 2024',
+        'file_path' => 'bilanci/2024.pdf',
+        'file_name' => '2024.pdf',
+        'mime_type' => 'application/pdf',
+        'size' => 1024,
+    ]);
+
+    $groupLeader = withRole(User::factory()->create(), UserRole::Customer);
+    $groupLeader->forceFill(['customer_type' => CustomerType::GruppoRegionale, 'region' => Region::Lombardia])->save();
+
+    $response = $this->actingAs($groupLeader)->get(route('cai-documents.download', $document));
+
+    $response->assertOk();
+});
+
+test('a gruppo regionale customer cannot download a document belonging to a section in another region', function (): void {
+    Storage::fake('cai-documents');
+
+    $sectionOwner = withRole(User::factory()->create(), UserRole::Customer);
+    $sectionOwner->forceFill(['customer_type' => CustomerType::Sezione, 'region' => Region::Lazio])->save();
+    $section = caiSection(['user_id' => $sectionOwner->id]);
+    $registration = CaiRuntsRegistration::create([
+        'id_runts' => 'RUNTS-'.$section->codice_cai,
+        'cai_section_id' => $section->codice_cai,
+    ]);
+    Storage::disk('cai-documents')->put('bilanci/2024.pdf', '%PDF-1.4 fake content');
+    $document = CaiDocument::create([
+        'cai_runts_registration_id' => $registration->id_runts,
+        'document_type' => 'bilancio',
+        'year' => 2024,
+        'title' => 'Bilancio 2024',
+        'file_path' => 'bilanci/2024.pdf',
+        'file_name' => '2024.pdf',
+        'mime_type' => 'application/pdf',
+        'size' => 1024,
+    ]);
+
+    $groupLeader = withRole(User::factory()->create(), UserRole::Customer);
+    $groupLeader->forceFill(['customer_type' => CustomerType::GruppoRegionale, 'region' => Region::Lombardia])->save();
+
+    $response = $this->actingAs($groupLeader)->get(route('cai-documents.download', $document));
 
     $response->assertForbidden();
 });

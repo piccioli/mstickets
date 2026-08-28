@@ -10,23 +10,7 @@
     @if ($this->isSezione())
         <div class="mb-4">
             <x-filament::section heading="I miei dati CAI/RUNTS" icon="heroicon-o-identification">
-                @if ($this->caiSection() !== null)
-                    {{ $this->caiSectionInfolist }}
-                @elseif ($this->caiSubsection() !== null)
-                    <div class="grid grid-cols-1 gap-2 text-sm md:grid-cols-2">
-                        <div><span class="font-medium text-gray-950 dark:text-white">Denominazione:</span> {{ $this->caiSubsection()->name }}</div>
-                        <div><span class="font-medium text-gray-950 dark:text-white">Sezione di riferimento:</span> {{ $this->caiSubsection()->section?->name ?? '—' }}</div>
-                        <div><span class="font-medium text-gray-950 dark:text-white">Email:</span> {{ $this->caiSubsection()->email ?? '—' }}</div>
-                        <div><span class="font-medium text-gray-950 dark:text-white">Telefono:</span> {{ $this->caiSubsection()->phone ?? '—' }}</div>
-                        <div><span class="font-medium text-gray-950 dark:text-white">Indirizzo:</span> {{ $this->caiSubsection()->address ?? '—' }}</div>
-                        <div><span class="font-medium text-gray-950 dark:text-white">Anno di fondazione:</span> {{ $this->caiSubsection()->founded_year ?? '—' }}</div>
-                        <div><span class="font-medium text-gray-950 dark:text-white">Numero soci:</span> {{ $this->caiSubsection()->members_count ?? '—' }}</div>
-                    </div>
-                @else
-                    <p class="text-sm text-gray-500 dark:text-gray-400">
-                        Nessun dato CAI/RUNTS disponibile per la tua sezione
-                    </p>
-                @endif
+                @include('filament.pages.partials.cai-directory-detail', ['emptyMessage' => 'Nessun dato CAI/RUNTS disponibile per la tua sezione'])
             </x-filament::section>
         </div>
     @endif
@@ -37,7 +21,7 @@
                 <div class="flex flex-col gap-2">
                     @forelse ($this->regionalGroupSections() as $section)
                         <a
-                            href="{{ $this->sectionTicketsUrl($section) }}"
+                            href="{{ $this->sectionDetailUrl($section) }}"
                             class="flex items-center justify-between gap-4 rounded-lg border border-gray-200 bg-white p-3 text-sm shadow-sm transition hover:border-primary-400 dark:border-white/10 dark:bg-gray-900"
                         >
                             <span class="font-medium text-gray-950 dark:text-white">{{ $section->name }}</span>

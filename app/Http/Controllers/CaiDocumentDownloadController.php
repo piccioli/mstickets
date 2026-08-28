@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Domain\CaiDirectory\Models\CaiDocument;
+use App\Domain\Identity\Enums\CustomerType;
 use App\Domain\Identity\Enums\Permission;
 use App\Domain\Identity\Models\User;
+use App\Filament\Pages\CaiSectionRegionalDetail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -21,7 +23,11 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * `AuthorizesRequests`/una Policy, con due vie d'accesso (US-804, US-806):
  * - lo staff con il permesso di catalogo `Permission::CaiDirectoryView` (intera anagrafica);
  * - il cliente Sezione proprietario della `CaiSection` a cui il documento appartiene (via
- *   `CaiRuntsRegistration::section()`), per i propri allegati sulla `CustomerDashboard`.
+ *   `CaiRuntsRegistration::section()`), per i propri allegati sulla `CustomerDashboard`;
+ * - un cliente Gruppo Regionale la cui regione combacia con quella dell'utente cliente Sezione
+ *   collegato alla `CaiSection` (US-807), per gli allegati mostrati sulla pagina di dettaglio
+ *   {@see CaiSectionRegionalDetail} — confronto sull'account cliente
+ *   collegato (`region` enum), non sul campo testo libero `CaiSection.region` (dato RUNTS grezzo).
  */
 class CaiDocumentDownloadController extends Controller
 {
@@ -49,6 +55,14 @@ class CaiDocumentDownloadController extends Controller
             return true;
         }
 
-        return $caiDocument->runtsRegistration?->section?->user_id === $user->id;
+        $section = $caiDocument->runtsRegistration?->section;
+
+        if ($section?->user_id === $user->id) {
+            return true;
+        }
+
+        return $user->customer_type === CustomerType::GruppoRegionale
+            && $user->region !== null
+            && $section?->user?->region === $user->region;
     }
 }

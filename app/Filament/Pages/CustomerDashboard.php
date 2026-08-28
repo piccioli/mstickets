@@ -185,11 +185,15 @@ class CustomerDashboard extends Page
         return MyTicketsQuery::for($section)->count();
     }
 
-    public function sectionTicketsUrl(User $section): string
+    /**
+     * URL della pagina di dettaglio CAI/RUNTS di una Sezione elencata nella card "Sezioni del
+     * gruppo regionale" (US-807, {@see CaiSectionRegionalDetail}) — l'autorizzazione sulla
+     * singola sezione (deve appartenere alla propria regione) è verificata lato server in
+     * {@see CaiSectionRegionalDetail::mount()}, non solo dall'assenza del link in UI.
+     */
+    public function sectionDetailUrl(User $section): string
     {
-        return TicketResource::getUrl('index', [
-            'tableFilters' => ['requester_id' => ['value' => $section->id]],
-        ]);
+        return CaiSectionRegionalDetail::getUrl(['record' => $section->id]);
     }
 
     public function openTicketsCount(): int

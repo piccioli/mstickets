@@ -1529,3 +1529,33 @@ verificati esplicitamente, non assunti allineati.
   `CaiDocument::runtsRegistration->section->user_id === $user->id` — nessuna Policy dedicata, stesso stile
   già in uso. Se US-807 (Gruppo Regionale) deve scaricare documenti di sezioni della propria regione, estendere
   questo stesso metodo `authorized()`, non introdurne un secondo.
+
+## Pagina Filament custom con parametro di rotta + record scoping in `mount()` (US-807, Fase 8)
+
+- Un `Filament\Pages\Page` (non-Resource) può avere un parametro di rotta come una `ViewRecord`: basta
+  sovrascrivere `public static function getRoutePath(Panel $panel): string { return parent::getRoutePath($panel).'/{record}'; }`
+  (trait `Concerns\HasRoutes`) e dichiarare `public function mount(string $record): void`. Nessun route model
+  binding implicito assunto: si risolve `$record` a mano con una query esplicita (`User::query()->where(...)
+  ->findOrFail($record)`), coerente con lo stile "niente magie" già in uso nel resto del repo — un id
+  inesistente o di tipo sbagliato dà 404 da `findOrFail`, non un errore criptico.
+- **Due livelli di autorizzazione distinti, non uno**: `canAccess()` (statico) verifica solo il gate
+  generico "chi può aprire questa classe di pagina" (qui: è un cliente Gruppo Regionale) — non ha accesso al
+  parametro di rotta. Lo scoping sul singolo record (qui: la sezione aperta deve appartenere alla propria
+  regione) va verificato dentro `mount()` con `abort_unless(..., 403)`, perché è l'unico punto che riceve
+  `$record`. Un tentativo diretto via URL manipolato su un record fuori scope fallisce quindi con 403 reale,
+  non solo con l'assenza di un link in UI (stesso principio già applicato a
+  `CaiDocumentDownloadController::authorized()`, US-804/US-806).
+- **Riuso di un componente di presentazione fra route/pagine diverse**: quando lo stesso blocco di markup
+  (qui: la card "Dati CAI/RUNTS" di {@see CaiSectionInfolist}, US-806) deve comparire identico su più pagine
+  Livewire/Filament, estrarlo in una partial Blade dedicata (`resources/views/filament/pages/partials/*.blade.php`)
+  e richiamarla con `@include(...)` dalle view di entrambe le pagine, **senza passare esplicitamente i dati**:
+  finché entrambe le classi Page espongono gli stessi metodi pubblici (`caiSection()`, `caiSubsection()`,
+  `caiSectionInfolist`), `$this` dentro la partial risolve correttamente al componente Livewire che la sta
+  rendendo (il compiler engine esteso di Livewire lo garantisce anche per gli `@include`, non solo per la view
+  radice) — zero duplicazione di markup/logica, l'unica differenza ammessa è passata come variabile semplice
+  (qui: `$emptyMessage`, testo diverso fra "per la tua sezione"/"per questa sezione").
+- Quando una card cliente collega ogni riga a una pagina di dettaglio nuova, e la riga aveva già un altro
+  link/funzionalità (qui: "Sezioni del gruppo regionale", Fase 7 US-705, linkava ai ticket della sezione),
+  **non perdere silenziosamente quella funzionalità**: spostarla in un punto coerente della nuova pagina
+  (qui: un header action "Vedi i ticket di questa sezione" su `CaiSectionRegionalDetail`, via
+  `getHeaderActions()`) invece di lasciare un metodo ormai orfano sulla pagina di origine.
