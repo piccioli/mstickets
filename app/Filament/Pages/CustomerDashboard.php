@@ -9,6 +9,7 @@ use App\Domain\Fundraising\Models\FundraisingProject;
 use App\Domain\Identity\Enums\CustomerType;
 use App\Domain\Identity\Enums\UserRole;
 use App\Domain\Identity\Models\User;
+use App\Domain\Identity\Queries\SectionsInRegionQuery;
 use App\Domain\Reporting\Models\ActivityReport;
 use App\Domain\Ticketing\Models\Ticket;
 use App\Domain\Ticketing\Queries\MyTicketsAwaitingResponseQuery;
@@ -97,6 +98,47 @@ class CustomerDashboard extends Page
         }
 
         return $label;
+    }
+
+    public function isGruppoRegionale(): bool
+    {
+        return $this->customerType() === CustomerType::GruppoRegionale;
+    }
+
+    /**
+     * Sezioni della stessa regione del Gruppo Regionale corrente (US-705). Stato vuoto esplicito
+     * (mai un errore) sia quando la regione non ha ancora nessuna sezione classificata, sia quando
+     * il Gruppo Regionale ha `region = null`.
+     *
+     * @return EloquentCollection<int, User>
+     */
+    public function regionalGroupSections(): EloquentCollection
+    {
+        $user = Auth::user();
+
+        if (! $user instanceof User || $user->customer_type !== CustomerType::GruppoRegionale || $user->region === null) {
+            return new EloquentCollection;
+        }
+
+        return SectionsInRegionQuery::for($user->region)->get();
+    }
+
+    /**
+     * Conteggio ticket aperti di una Sezione elencata nella card "Sezioni del gruppo regionale":
+     * riusa {@see MyTicketsQuery} passando la Sezione stessa (non l'utente autenticato) — il suo
+     * unico permesso `ticket.view.own` scopa comunque il risultato ai propri ticket, quindi il
+     * conteggio resta corretto senza duplicare la regola "aperti = non Done/Rejected".
+     */
+    public function sectionOpenTicketsCount(User $section): int
+    {
+        return MyTicketsQuery::for($section)->count();
+    }
+
+    public function sectionTicketsUrl(User $section): string
+    {
+        return TicketResource::getUrl('index', [
+            'tableFilters' => ['requester_id' => ['value' => $section->id]],
+        ]);
     }
 
     public function openTicketsCount(): int
