@@ -1341,3 +1341,19 @@ verificati esplicitamente, non assunti allineati.
   Vedi `app/Filament/Resources/Users/Schemas/UserForm.php` (`customer_type`/`region` condizionati dal ruolo
   `customer` selezionato in un `CheckboxList::make('roles')->relationship(...)`, il cui stato via `Get` è un
   array di ID di ruolo — non di nomi — perché legato a una relazione `BelongsToMany`).
+
+## Query object §8.5 per un utente arbitrario, e link cross-cliente su `TicketResource` sempre "sicuro ma inerte" per un customer (US-705, Fase 7)
+
+- **Un query object `*Query::for(User $user)` non presume `$user === Auth::user()`**: `MyTicketsQuery::for($altroUtente)->count()`
+  calcola correttamente il conteggio ticket aperti di un utente DIVERSO da quello loggato, perché
+  `Ticket::scopeVisibleTo()` chiama `$user->can(...)` sul parametro ricevuto (Laravel autorizza qualunque
+  istanza `User`, non solo l'`Auth::user()` corrente). Utile per metriche aggregate su record altrui senza
+  duplicare la logica di dominio ("aperti = non Done/Rejected") in una query nuova.
+- **Un cliente (qualunque `customer_type`) ha solo il permesso `ticket.view.own`**, mai
+  `ticket.view.any`/`ticket.manage-internal-fields`: in `ListTickets::getTabs()` vede sempre e solo le tab
+  "I miei ticket"/"Archivio", che sovrascrivono la query con `MyTicketsQuery::for($user)` **a prescindere**
+  dai query param nell'URL (`?tableFilters[requester_id][value]=...` incluso). Un link dalla dashboard cliente
+  verso `TicketResource::getUrl('index', ['tableFilters' => [...]])` puntato su un `requester_id` che non è il
+  cliente stesso naviga senza errori ma il filtro viene ignorato dal tab — nessun leak di dati altrui, ma
+  anche nessun risultato utile. Se serve davvero mostrare i ticket di un altro utente a un cliente, serve un
+  permesso nuovo esplicito, non un trucco di URL.
