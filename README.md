@@ -134,8 +134,11 @@ dentro al container).
 questo repository: un umano con accesso SSH copia manualmente il contenuto aggiornato su `msuat` quando
 cambia, nessuna automazione sincronizza da sola questi file sul server reale.
 
-**`docs/collaudo/*` restano esplicitamente fuori scope**: il committente li aggiorna direttamente a mano,
-nessuna story di questo repository deve modificarli.
+**`docs/collaudo/*` non si aggiornano nel corso ordinario di una story**: il pacchetto di collaudo
+cresce solo al checkpoint di fine fase (l'ultima story di ogni fase, es. US-219/US-326/US-411/
+US-509/US-618 — vedi CLAUDE.md, "Collaudo di fine fase"), che estende il manifest/manuale della
+fase appena conclusa e aggiorna il pacchetto cumulativo (istruzioni generali, matrice di
+tracciabilità, registro esiti, verbale). Nessuna story ordinaria a metà fase deve toccarli.
 
 ## Docker
 
