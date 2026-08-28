@@ -1268,3 +1268,26 @@ verificati esplicitamente, non assunti allineati.
   aggiuntivo nel comando: restano un'unica responsabilità di `SendOutboundTicketMail::blockedReason()`
   (già verificato da `NotificationGate` + `deactivated_at` + `EmailSuppression`), stesso principio "un
   solo punto di invio per l'intero catalogo E1-E11" già documentato per US-608.
+
+## Report attività pronto E10 — evento su "prima valorizzazione" di una colonna, Mailable verso tutti i membri di un'organizzazione (`ActivityReportPdfGenerated`, US-615, §7.5.2)
+
+- Un evento di dominio che deve scattare SOLO la prima volta che una colonna viene valorizzata (qui
+  `ActivityReport.pdf_generated_at`, mai per una rigenerazione successiva dello stesso PDF) si cattura
+  leggendo lo stato PRIMA della mutazione: `$isFirstGeneration = $report->pdf_generated_at === null;`
+  subito prima di `$report->update([...])`, poi `if ($isFirstGeneration) { event(...); }` dopo — non
+  `wasChanged()`/`getOriginal()` dopo l'update, che richiederebbero capire se l'update passa da un hook
+  Eloquent o da una chiamata diretta. L'evento arriva "gratis" su entrambi i percorsi che generano il PDF
+  (rigenerazione manuale e job schedulato da `reports:generate-monthly`, US-410) perché entrambi passano
+  dall'unico punto `GenerateActivityReportPdf::run()` — nessuna duplicazione del dispatch nei due chiamanti.
+- Un Mailable che deve raggiungere TUTTI i membri di un'organizzazione owner (non un singolo utente,
+  `ActivityReportOwnerKind::Organization`) non ha bisogno di nessuna nuova infrastruttura di invio
+  multiplo: iterare `$report->ownerOrganization->users` (stessa relazione `BelongsToMany` già usata da
+  `ActivityReport::isOwnedBy()`) e chiamare `SendOutboundTicketMail::run()` una volta per destinatario —
+  lo stesso Action pensato per un singolo utente, in loop. `Mail::assertQueued(MailableClass::class,
+  $count)` (secondo argomento intero) verifica il numero di invii in test, stesso idioma di
+  `Queue::assertPushed(JobClass::class, $count)`.
+- Gotcha Larastan: un accesso nullsafe (`$report->ownerOrganization?->users`) su una relazione `BelongsTo`
+  la cui firma è annotata `@return BelongsTo<Organization, $this>` (senza `|null`) produce l'errore
+  `nullsafe.neverNull` — Larastan la considera mai-null indipendentemente dalla nullabilità reale della
+  foreign key a livello di colonna DB. Verificare il tipo di ritorno annotato sul metodo relazione prima
+  di aggiungere un nullsafe "difensivo": nel contesto chiamante è spesso davvero superfluo.
