@@ -26,7 +26,7 @@ use Illuminate\Support\Facades\Gate;
 use SensitiveParameter;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'password', 'locale', 'drive_url', 'drive_budget_url'])]
+#[Fillable(['name', 'email', 'password', 'locale', 'drive_url', 'drive_budget_url', 'customer_type', 'region'])]
 #[Hidden(['password', 'remember_token', 'app_authentication_secret', 'app_authentication_recovery_codes'])]
 class User extends Authenticatable implements FilamentUser, HasAppAuthentication, HasAppAuthenticationRecovery
 {

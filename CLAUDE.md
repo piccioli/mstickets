@@ -1312,3 +1312,32 @@ verificati esplicitamente, non assunti allineati.
   `EmailMessage::where('user_id', ...)->where('mailable_class', IdleDeveloperNoticeMail::class)
   ->where('created_at', '>=', $todayStart)->exists()` — corretto qui perché la fascia oraria ricorre una
   sola volta al giorno, quindi "oggi" e "questa finestra" coincidono.
+
+## Filament Select condizionato dalla selezione corrente di ruoli/tipo e reso non-fillable per svista (US-703, Fase 7)
+
+- **`#[Fillable([...])]` sul model `User` (attributo PHP, non `$fillable` di Eloquent) è la fonte di
+  verità per quali colonne un `->update($data)` da Filament può davvero scrivere**: aggiungere una nuova
+  colonna nullable a `users` (migrazione + cast enum) NON basta per renderla salvabile da un form Filament
+  — se manca dalla lista dell'attributo, `EditRecord::save()` costruisce correttamente `$data` (verificato
+  con `dd()`/log: il valore c'è), ma `$record->update($data)` la scarta silenziosamente per mass-assignment
+  protection, **senza errori né eccezioni**, e il test fallisce solo su `$record->fresh()->colonna` dopo il
+  save. Prima di sospettare un bug nel form (visibility/dehydration), controllare sempre questo attributo
+  quando un campo "sembra salvarsi" (nessun errore di validazione) ma il valore persistito resta quello
+  vecchio/null.
+- **`->visible(fn (Get $get) => ...)` e `->dehydrated(fn (Get $get) => ...)` NON bastano per azzerare
+  esplicitamente un campo quando diventa non pertinente** (es. "Regione" quando il tipo cliente cambia da
+  Sezione a Organo Tecnico): di default un componente `hidden`/`visible(false)` viene escluso dalla
+  dehydration **a prescindere** da `->dehydrated(true)` — quel metodo controlla solo la dehydration di un
+  campo VISIBILE. Per forzare l'inclusione (e quindi l'azzeramento via `dehydrateStateUsing`) anche quando
+  il campo è nascosto serve **`->dehydratedWhenHidden()`** (proprietà distinta, default `false`, in
+  `Filament\Schemas\Components\Concerns\HasState`). Pattern completo per "campo B pertinente solo se campo
+  A ha un certo valore, altrimenti azzerato in salvataggio":
+  ```php
+  Select::make('region')
+      ->visible(fn (Get $get): bool => /* pertinente */)
+      ->dehydratedWhenHidden()
+      ->dehydrateStateUsing(fn (Get $get, $state) => /* pertinente */ ? $state : null),
+  ```
+  Vedi `app/Filament/Resources/Users/Schemas/UserForm.php` (`customer_type`/`region` condizionati dal ruolo
+  `customer` selezionato in un `CheckboxList::make('roles')->relationship(...)`, il cui stato via `Get` è un
+  array di ID di ruolo — non di nomi — perché legato a una relazione `BelongsToMany`).

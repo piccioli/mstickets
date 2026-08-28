@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Users\Tables;
 
+use App\Domain\Identity\Enums\CustomerType;
 use App\Domain\Identity\Enums\UserRole;
 use App\Filament\Resources\Users\Support\DeactivateUserAction;
 use Filament\Actions\BulkActionGroup;
@@ -14,6 +15,7 @@ use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
 use Filament\Facades\Filament;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use STS\FilamentImpersonate\Actions\Impersonate;
@@ -31,6 +33,10 @@ class UsersTable
                     ->badge()
                     ->formatStateUsing(fn (string $state): string => UserRole::tryFrom($state)?->getLabel() ?? $state)
                     ->color(fn (string $state): string => UserRole::tryFrom($state)?->getColor() ?? 'gray'),
+                TextColumn::make('customer_type')
+                    ->label('Tipo cliente')
+                    ->badge()
+                    ->placeholder('—'),
                 TextColumn::make('deactivated_at')
                     ->label('Disattivato dal')
                     ->dateTime()
@@ -39,6 +45,11 @@ class UsersTable
             ])
             ->filters([
                 TrashedFilter::make(),
+                SelectFilter::make('customer_type')
+                    ->label('Tipo cliente')
+                    ->options(collect(CustomerType::cases())->mapWithKeys(
+                        fn (CustomerType $type): array => [$type->value => $type->getLabel()],
+                    )),
             ])
             ->recordActions([
                 ViewAction::make(),
