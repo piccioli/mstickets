@@ -2,9 +2,14 @@
 
 declare(strict_types=1);
 
+use App\Domain\Identity\Enums\UserRole;
+use App\Domain\Identity\Models\User;
 use App\Filament\Navigation\MailpitNavigationItem;
 use Filament\Facades\Filament;
 use Filament\Navigation\NavigationItem;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
     Filament::setCurrentPanel('admin');
@@ -53,6 +58,17 @@ test('the Mailpit item is registered in the Email group as the first navigation 
     expect($mailpit->getGroup())->toBe('Email');
     expect($mailpit->shouldOpenUrlInNewTab())->toBeTrue();
     expect($items[0]->getLabel())->toBe('Mailpit');
+});
+
+test('the Mailpit item is hidden from a customer even in local with the URL configured', function (): void {
+    app()->instance('env', 'local');
+    config(['mail_pipeline.mailpit_url' => 'http://localhost:8025']);
+
+    $customer = grantTicketPanelRole(userWithPermissions(), UserRole::Customer);
+    /** @var User $customer */
+    $this->actingAs($customer);
+
+    expect(MailpitNavigationItem::isVisible())->toBeFalse();
 });
 
 test('the Mailpit item resolves its URL from config', function (): void {

@@ -100,4 +100,125 @@ return [
         'schedule_cron' => env('TICKET_WAITING_REMINDER_SCHEDULE_CRON', '0 6 * * *'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Badge di navigazione (§8.4 del PRD, US-604)
+    |--------------------------------------------------------------------------
+    |
+    | TTL della cache dei conteggi "in attesa"/"problemi"/"da testare" mostrati
+    | sulla voce di menu Ticket: evita una query sincrona a ogni caricamento di
+    | pagina, per utente autenticato (chiave di cache scoped su user id).
+    |
+    */
+
+    'navigation_badges' => [
+        'cache_ttl_seconds' => (int) env('TICKET_NAVIGATION_BADGE_TTL', 60),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Automazioni schedulate T3/T4 (§6.1.5, §10.2 del PRD, US-610)
+    |--------------------------------------------------------------------------
+    |
+    | Cadenza di `tickets:progress-to-todo` (18:00, tutti i ticket `progress` →
+    | `todo`) e di `tickets:auto-close-released` (07:45, ticket `released` da
+    | almeno `threshold_working_days` giorni lavorativi — App\Domain\Ticketing\
+    | Support\WorkingDaysCalculator, stesso calcolo del reminder E7 — → `done`).
+    | Dietro i feature flag già presenti da Fase 0
+    | (config('orchestrator.features.tickets_progress_to_todo')/
+    | tickets_auto_close_released), disattivati di default.
+    |
+    */
+
+    'progress_to_todo' => [
+        'schedule_cron' => env('TICKET_PROGRESS_TO_TODO_SCHEDULE_CRON', '0 18 * * *'),
+    ],
+
+    'auto_close_released' => [
+        'threshold_working_days' => (int) env('TICKET_AUTO_CLOSE_RELEASED_THRESHOLD_DAYS', 3),
+        'schedule_cron' => env('TICKET_AUTO_CLOSE_RELEASED_SCHEDULE_CRON', '45 7 * * *'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Automazione schedulata T5 (§6.1.5, §10.2 del PRD, US-611)
+    |--------------------------------------------------------------------------
+    |
+    | Cadenza di `tickets:close-scrum` (16:00, ticket `type = scrum` creati/aggiornati
+    | oggi → `done` tramite la riga T5 dedicata di
+    | App\Domain\Ticketing\StateMachine\TicketStateMachine). Dietro il feature flag
+    | già presente da Fase 0 (config('orchestrator.features.tickets_close_scrum')),
+    | disattivato di default.
+    |
+    */
+
+    'close_scrum' => [
+        'schedule_cron' => env('TICKET_CLOSE_SCRUM_SCHEDULE_CRON', '0 16 * * *'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Comando tickets:archive-scrum (§10.2 del PRD, Q9, US-611)
+    |--------------------------------------------------------------------------
+    |
+    | Comportamento v1 non recuperabile con certezza dal dump disponibile
+    | (v1dumps/orchestrator-v1-backup-20260726.tar.gz): nessun comando né colonna di
+    | archiviazione nel codice applicativo v1, solo viste Nova "Archived*" in sola
+    | lettura filtrate per `status` — nessuna mutazione reale da riprodurre. Lettura
+    | conservativa adottata qui (da confermare col committente al checkpoint
+    | US-618): archivia (`archived_at`, mai una cancellazione né un cambio di
+    | `status`) i ticket `type = scrum` già `done` da almeno `threshold_days` giorni
+    | di calendario.
+    |
+    */
+
+    'archive_scrum' => [
+        'threshold_days' => (int) env('TICKET_ARCHIVE_SCRUM_THRESHOLD_DAYS', 30),
+        'schedule_cron' => env('TICKET_ARCHIVE_SCRUM_SCHEDULE_CRON', '0 5 * * *'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Automazione schedulata T6 (§6.1.5, §10.2 del PRD, US-612)
+    |--------------------------------------------------------------------------
+    |
+    | Cadenza di `tickets:restore-waiting`: ticket `status = waiting` da almeno
+    | `threshold_days` giorni DI CALENDARIO (esplicito nel PRD, a differenza di
+    | T3/T4 che usano giorni lavorativi) → `previous_status`. Il PRD (§10.2)
+    | specifica solo "daily" senza un orario preciso: 06:30 è un valore assunto
+    | (tra `waiting_reminder` alle 06:00 e `auto_close_released` alle 07:45),
+    | comunque configurabile via env. Dietro il feature flag già presente da
+    | Fase 0 (config('orchestrator.features.tickets_restore_waiting')),
+    | disattivato di default.
+    |
+    */
+
+    'restore_waiting' => [
+        'threshold_days' => (int) env('TICKET_RESTORE_WAITING_DAYS', 7),
+        'schedule_cron' => env('TICKET_RESTORE_WAITING_SCHEDULE_CRON', '30 6 * * *'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Comando tickets:notify-idle-developers — E11 (§7.5.2/§10.2 del PRD, US-616)
+    |--------------------------------------------------------------------------
+    |
+    | Nel v1 il promemoria era un job ritardato di 30 minuti lanciato da un
+    | observer, attivo solo prima delle 15:30 (correzione esplicita del PRD
+    | principale, §10.2: qui è un comando schedulato, non un job ritardato).
+    | `window_start`/`window_end` riproducono lo stesso vincolo orario a
+    | livello applicativo (oltre alla cadenza del cron in routes/console.php,
+    | difesa in profondità utile anche per un'esecuzione manuale da CLI fuori
+    | orario). Dietro il feature flag già presente da Fase 0
+    | (config('orchestrator.features.tickets_idle_developer_notice')),
+    | disattivato di default.
+    |
+    */
+
+    'idle_developer_notice' => [
+        'window_start' => env('TICKET_IDLE_DEVELOPER_NOTICE_WINDOW_START', '09:00'),
+        'window_end' => env('TICKET_IDLE_DEVELOPER_NOTICE_WINDOW_END', '15:30'),
+        'schedule_cron' => env('TICKET_IDLE_DEVELOPER_NOTICE_SCHEDULE_CRON', '*/30 9-15 * * *'),
+    ],
+
 ];

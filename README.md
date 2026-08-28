@@ -41,6 +41,26 @@ php artisan boost:install
 
 Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
 
+## Documentazione
+
+Questo repository (Laravel 13 + Filament 4, PHP 8.4, PostgreSQL 16, Redis 7/Horizon) sostituisce un
+gestionale ticket Nova ("v1"), riscritto da zero con un'architettura a moduli di dominio
+(`app/Domain/<Modulo>/{Models,Actions,Enums,Policies,...}`). Dettagli completi e verificati contro il
+codice in `docs/`:
+
+| Documento | Contenuto |
+|---|---|
+| [`docs/architecture.md`](docs/architecture.md) | stack, struttura a moduli, principi architetturali vincolanti (A1-A9) |
+| [`docs/data-model.md`](docs/data-model.md) | schema completo, diagramma ER, mappa dei nomi v1→v2 |
+| [`docs/ticket-lifecycle.md`](docs/ticket-lifecycle.md) | macchina a stati del ticket, transizioni manuali e automatiche |
+| [`docs/time-tracking.md`](docs/time-tracking.md) | algoritmo di calcolo delle ore lavorate |
+| [`docs/email.md`](docs/email.md) | sottosistema email (inbound/outbound, catalogo comunicazioni E1-E11) |
+| [`docs/authorization.md`](docs/authorization.md) | i tre livelli di autorizzazione (permesso/Policy/campo), MFA, impersonation |
+| [`docs/import-v1.md`](docs/import-v1.md) | procedura ETL dal dump v1 (`v1:inspect`/`v1:import`/`v1:validate`) |
+| [`docs/operations.md`](docs/operations.md) | deploy, scheduler, coda, backup, diagnostica, MFA/impersonation operativi, cutover |
+| [`docs/differences-from-v1.md`](docs/differences-from-v1.md) | differenze di comportamento e bug del v1 corretti |
+| [`docs/design-system.md`](docs/design-system.md) / [`docs/design-inventory.md`](docs/design-inventory.md) | identità visiva e inventario del design importato |
+
 ## Setup rapido (`make setup`)
 
 Un solo comando porta l'ambiente da zero (nessun volume/vendor/node_modules preesistente) a navigabile
@@ -114,8 +134,11 @@ dentro al container).
 questo repository: un umano con accesso SSH copia manualmente il contenuto aggiornato su `msuat` quando
 cambia, nessuna automazione sincronizza da sola questi file sul server reale.
 
-**`docs/collaudo/*` restano esplicitamente fuori scope**: il committente li aggiorna direttamente a mano,
-nessuna story di questo repository deve modificarli.
+**`docs/collaudo/*` non si aggiornano nel corso ordinario di una story**: il pacchetto di collaudo
+cresce solo al checkpoint di fine fase (l'ultima story di ogni fase, es. US-219/US-326/US-411/
+US-509/US-618 — vedi CLAUDE.md, "Collaudo di fine fase"), che estende il manifest/manuale della
+fase appena conclusa e aggiorna il pacchetto cumulativo (istruzioni generali, matrice di
+tracciabilità, registro esiti, verbale). Nessuna story ordinaria a metà fase deve toccarli.
 
 ## Docker
 

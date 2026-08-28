@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace App\Filament\Providers;
 
+use App\Filament\Auth\Middleware\EnsureRoleRequiresMultiFactorAuthentication;
 use App\Filament\Auth\Pages\Login;
 use App\Filament\Auth\Pages\RequestPasswordReset;
 use App\Filament\Auth\Pages\ResetPassword;
 use App\Filament\Navigation\MailpitNavigationItem;
+use App\Filament\Pages\CustomerDashboard;
 use App\Filament\Pages\Dashboard;
+use App\Filament\Pages\NotificationPreferences;
 use App\Filament\Pages\WorkBoard;
 use App\Support\DesignTokens;
+use Filament\Auth\MultiFactor\App\AppAuthentication;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -38,6 +42,12 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login(Login::class)
             ->passwordReset(RequestPasswordReset::class, ResetPassword::class)
+            ->profile()
+            ->multiFactorAuthentication(
+                [AppAuthentication::make()->recoverable()],
+                isRequired: true,
+            )
+            ->multiFactorAuthenticationRequiredMiddlewareName(EnsureRoleRequiresMultiFactorAuthentication::class)
             ->brandName('Montagna Servizi')
             ->brandLogo(asset('images/branding/montagna-servizi-logo.png'))
             ->darkModeBrandLogo(asset('images/branding/montagna-servizi-logo-white.png'))
@@ -66,6 +76,8 @@ class AdminPanelProvider extends PanelProvider
             ->pages([
                 Dashboard::class,
                 WorkBoard::class,
+                CustomerDashboard::class,
+                NotificationPreferences::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([

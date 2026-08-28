@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\ActivityReports;
 
+use App\Domain\Identity\Enums\UserRole;
 use App\Domain\Identity\Models\User;
 use App\Domain\Reporting\Models\ActivityReport;
 use App\Filament\Resources\ActivityReports\Pages\ListActivityReports;
@@ -35,11 +36,22 @@ class ActivityReportResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentChartBar;
 
-    protected static UnitEnum|string|null $navigationGroup = 'Rendicontazione';
-
     protected static ?string $modelLabel = 'report attività';
 
     protected static ?string $pluralModelLabel = 'report attività';
+
+    /**
+     * Gruppo dinamico (US-602): un customer vede questa risorsa sotto "Area
+     * cliente" — manager/admin restano sotto "Rendicontazione" come prima.
+     */
+    public static function getNavigationGroup(): string|UnitEnum|null
+    {
+        $user = Auth::user();
+
+        return $user instanceof User && $user->hasRole(UserRole::Customer->value)
+            ? 'Area cliente'
+            : 'Rendicontazione';
+    }
 
     public static function table(Table $table): Table
     {

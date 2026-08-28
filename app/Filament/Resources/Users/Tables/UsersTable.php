@@ -5,15 +5,18 @@ declare(strict_types=1);
 namespace App\Filament\Resources\Users\Tables;
 
 use App\Domain\Identity\Enums\UserRole;
+use App\Filament\Resources\Users\Support\DeactivateUserAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
+use Filament\Facades\Filament;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
+use STS\FilamentImpersonate\Actions\Impersonate;
 
 class UsersTable
 {
@@ -40,6 +43,18 @@ class UsersTable
             ->recordActions([
                 ViewAction::make(),
                 EditAction::make(),
+                // Impersona (§6.7.2, US-607): la visibilità/autorizzazione server-side sono
+                // già gestite internamente dal pacchetto tramite User::canImpersonate()/
+                // canBeImpersonated() (metodi wired a UserPolicy::impersonate(), §9.4: solo
+                // admin) — nessun ->visible() aggiuntivo da duplicare qui. redirectTo esplicito
+                // (il default del pacchetto è '/', fuori dal pannello Filament: il banner è
+                // registrato solo sull'hook `panels::body.start`, quindi non comparirebbe mai
+                // sulla landing pubblica) verso l'home del pannello, che a sua volta smista per
+                // ruolo (US-602, `Dashboard::mount()`).
+                Impersonate::make()
+                    ->redirectTo(fn (): string => Filament::getCurrentOrDefaultPanel()->getUrl()),
+                // Disattiva/Riattiva (§6.7.5, US-608): vedi DeactivateUserAction per il dettaglio.
+                DeactivateUserAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

@@ -8,17 +8,21 @@ use App\Domain\Documentation\Events\DocumentationPageContentChanged;
 use App\Domain\Documentation\Events\DocumentationPageCreated;
 use App\Domain\Documentation\Events\DocumentationPageRenamed;
 use App\Domain\Documentation\Listeners\GenerateDocumentationPagePdfOnChange;
+use App\Domain\Identity\Listeners\LogImpersonationStarted;
+use App\Domain\Identity\Listeners\LogImpersonationStopped;
 use App\Domain\Mail\Events\EmailQuarantined;
 use App\Domain\Mail\Events\InboundEmailApplied;
 use App\Domain\Mail\Listeners\NotifyStaffOfNewCustomerTicketFromEmail;
 use App\Domain\Mail\Listeners\NotifyStaffOfNewCustomerTicketFromWeb;
 use App\Domain\Mail\Listeners\NotifyStaffOfUnknownSender;
+use App\Domain\Mail\Listeners\SendActivityReportPdfGeneratedNotification;
 use App\Domain\Mail\Listeners\SendNewTicketMessageNotification;
 use App\Domain\Mail\Listeners\SendTicketAssignedNotification;
 use App\Domain\Mail\Listeners\SendTicketOpenedFromWebMailNotification;
 use App\Domain\Mail\Listeners\SendTicketReceivedByEmailNotification;
 use App\Domain\Mail\Listeners\SendTicketStatusChangedNotification;
 use App\Domain\Mail\Listeners\SendTicketTesterAssignedNotification;
+use App\Domain\Reporting\Events\ActivityReportPdfGenerated;
 use App\Domain\Tags\Listeners\CreateTagForDocumentationPage;
 use App\Domain\Tags\Listeners\RenameTagForDocumentationPage;
 use App\Domain\Ticketing\Events\TicketAssigned;
@@ -34,6 +38,8 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use STS\FilamentImpersonate\Events\EnterImpersonation;
+use STS\FilamentImpersonate\Events\LeaveImpersonation;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -81,6 +87,11 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(TicketAssigned::class, SendTicketAssignedNotification::class);
         Event::listen(TicketTesterAssigned::class, SendTicketTesterAssignedNotification::class);
 
+        // E10 (§7.5.2, US-615): PDF di un report attività generato per la prima
+        // volta — mai per una rigenerazione successiva (guard nell'Action che
+        // dispatcha l'evento, non qui).
+        Event::listen(ActivityReportPdfGenerated::class, SendActivityReportPdfGeneratedNotification::class);
+
         // §6.4.2 (US-405): auto-tag di una pagina di documentazione — mai un hook
         // Eloquent sul model DocumentationPage, listener di dominio esplicito.
         Event::listen(DocumentationPageCreated::class, CreateTagForDocumentationPage::class);
@@ -97,6 +108,12 @@ class AppServiceProvider extends ServiceProvider
         // comunque registrato qui perché Illuminate\Mail\Events\MessageSending non è
         // nella scansione di auto-discovery (nessuna classe App\Listeners\* nel repo).
         Event::listen(MessageSending::class, BlockRealRecipientsOutsideProduction::class);
+
+        // Log strutturato dell'impersonation (§6.7.2, US-607): stesso pattern
+        // `Log::info('dominio.azione.evento', [...])` dei comandi schedulati, nessuna
+        // tabella dedicata (l'impersonation non è legata a un ticket).
+        Event::listen(EnterImpersonation::class, LogImpersonationStarted::class);
+        Event::listen(LeaveImpersonation::class, LogImpersonationStopped::class);
 
         // Le viste LaTeX vivono in resources/views/latex/*.tex.blade.php (estensione doppia,
         // per distinguerle a colpo d'occhio dalle viste HTML "*.blade.php"): il resolver di

@@ -179,6 +179,20 @@ final class LatexPdfCompiler
     {
         $result = Process::path($workDir)
             ->timeout(120)
+            // `main_memory` (texmf.cnf) si applica solo al dump del formato
+            // (initex), non è più modificabile qui; `extra_mem_top`/
+            // `extra_mem_bot` invece sono lette ad ogni run e possono essere
+            // sovrascritte via env — necessario dal PDF cumulativo di
+            // collaudo Fase 6 in poi: superate ~1200 righe della longtable
+            // di dettaglio, il default `extra_mem_top`/`extra_mem_bot = 0`
+            // esaurisce i 5000000 words di `main_memory` con "TeX capacity
+            // exceeded". Valori allineati al profilo `.context` già presente
+            // nello stesso texmf.cnf (2000000/4000000), raddoppiati per
+            // margine su documenti multi-fase futuri ancora più lunghi.
+            ->env([
+                'extra_mem_top' => '4000000',
+                'extra_mem_bot' => '8000000',
+            ])
             ->run([
                 'pdflatex',
                 '-interaction=nonstopmode',

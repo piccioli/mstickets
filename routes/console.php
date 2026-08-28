@@ -4,8 +4,16 @@ declare(strict_types=1);
 
 use App\Console\Commands\MailFetchInboundCommand;
 use App\Console\Commands\MailRetryFailedCommand;
+use App\Console\Commands\MailSendDigestCommand;
 use App\Console\Commands\ReportsGenerateMonthlyCommand;
+use App\Console\Commands\TicketsArchiveScrumCommand;
+use App\Console\Commands\TicketsAutoCloseReleasedCommand;
+use App\Console\Commands\TicketsCloseScrumCommand;
+use App\Console\Commands\TicketsNotifyIdleDevelopersCommand;
+use App\Console\Commands\TicketsProgressToTodoCommand;
 use App\Console\Commands\TicketsRemindWaitingCommand;
+use App\Console\Commands\TicketsRestoreWaitingCommand;
+use App\Console\Commands\TimeTrackingAggregateDailyCommand;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -55,3 +63,78 @@ Schedule::command(ReportsGenerateMonthlyCommand::class)
     ->cron((string) config('reporting.monthly_schedule_cron'))
     ->withoutOverlapping()
     ->when(fn (): bool => (bool) config('orchestrator.features.reports_monthly'));
+
+// T3 (§6.1.5/§10.2 del PRD, US-610): riporta in "todo" i ticket rimasti "progress"
+// a fine giornata. Cadenza configurabile da config('ticketing.progress_to_todo.schedule_cron'),
+// dietro il feature flag già presente da Fase 0 (config('orchestrator.features.tickets_progress_to_todo')).
+Schedule::command(TicketsProgressToTodoCommand::class)
+    ->cron((string) config('ticketing.progress_to_todo.schedule_cron'))
+    ->withoutOverlapping()
+    ->when(fn (): bool => (bool) config('orchestrator.features.tickets_progress_to_todo'));
+
+// T4 (§6.1.5/§10.2 del PRD, US-610): chiude in "done" i ticket "released" da almeno
+// config('ticketing.auto_close_released.threshold_working_days') giorni lavorativi.
+// Cadenza configurabile da config('ticketing.auto_close_released.schedule_cron'),
+// dietro il feature flag già presente da Fase 0 (config('orchestrator.features.tickets_auto_close_released')).
+Schedule::command(TicketsAutoCloseReleasedCommand::class)
+    ->cron((string) config('ticketing.auto_close_released.schedule_cron'))
+    ->withoutOverlapping()
+    ->when(fn (): bool => (bool) config('orchestrator.features.tickets_auto_close_released'));
+
+// T5 (§6.1.5/§10.2 del PRD, US-611): chiude in "done" i ticket "scrum" creati/aggiornati
+// oggi. Cadenza configurabile da config('ticketing.close_scrum.schedule_cron'), dietro
+// il feature flag già presente da Fase 0 (config('orchestrator.features.tickets_close_scrum')).
+Schedule::command(TicketsCloseScrumCommand::class)
+    ->cron((string) config('ticketing.close_scrum.schedule_cron'))
+    ->withoutOverlapping()
+    ->when(fn (): bool => (bool) config('orchestrator.features.tickets_close_scrum'));
+
+// §10.2 del PRD (Q9), US-611: archivia i ticket "scrum" chiusi da abbastanza giorni
+// (lettura conservativa del comportamento v1, non recuperabile con certezza dal dump —
+// vedi config/ticketing.php). Cadenza configurabile da
+// config('ticketing.archive_scrum.schedule_cron'), dietro il feature flag già presente
+// da Fase 0 (config('orchestrator.features.tickets_archive_scrum')).
+Schedule::command(TicketsArchiveScrumCommand::class)
+    ->cron((string) config('ticketing.archive_scrum.schedule_cron'))
+    ->withoutOverlapping()
+    ->when(fn (): bool => (bool) config('orchestrator.features.tickets_archive_scrum'));
+
+// T6 (§6.1.5/§10.2 del PRD, US-612): ripristina a `previous_status` i ticket "waiting"
+// da almeno config('ticketing.restore_waiting.threshold_days') giorni DI CALENDARIO
+// (esplicito nel PRD, a differenza di T3/T4). Cadenza configurabile da
+// config('ticketing.restore_waiting.schedule_cron'), dietro il feature flag già
+// presente da Fase 0 (config('orchestrator.features.tickets_restore_waiting')).
+Schedule::command(TicketsRestoreWaitingCommand::class)
+    ->cron((string) config('ticketing.restore_waiting.schedule_cron'))
+    ->withoutOverlapping()
+    ->when(fn (): bool => (bool) config('orchestrator.features.tickets_restore_waiting'));
+
+// §10.2 del PRD, US-613: consolida ogni sera `ticket_work_logs` per i ticket con
+// attività nella giornata, colmando il gap del v1 ("il job esiste ma non ha
+// alcuna cadenza schedulata"). Cadenza configurabile da
+// config('timetracking.aggregate_daily.schedule_cron'), dietro il feature flag
+// già presente da Fase 0 (config('orchestrator.features.timetracking_aggregate')).
+// `timetracking:recalculate` resta comunque richiamabile manualmente da CLI
+// indipendentemente da questo flag.
+Schedule::command(TimeTrackingAggregateDailyCommand::class)
+    ->cron((string) config('timetracking.aggregate_daily.schedule_cron'))
+    ->withoutOverlapping()
+    ->when(fn (): bool => (bool) config('orchestrator.features.timetracking_aggregate'));
+
+// E8 (§7.5.2/§10.2 del PRD, US-614): digest giornaliero di attività ticket per i
+// clienti che lo hanno abilitato. Cadenza configurabile da
+// config('mail_pipeline.digest.schedule_cron'), dietro il feature flag già
+// presente da Fase 0 (config('orchestrator.features.mail_digest')).
+Schedule::command(MailSendDigestCommand::class)
+    ->cron((string) config('mail_pipeline.digest.schedule_cron'))
+    ->withoutOverlapping()
+    ->when(fn (): bool => (bool) config('orchestrator.features.mail_digest'));
+
+// E11 (§7.5.2/§10.2 del PRD, US-616): promemoria interno ogni 30 minuti, 09:00–15:30,
+// per gli sviluppatori con ticket assegnati ma nessuno in lavorazione. Cadenza
+// configurabile da config('ticketing.idle_developer_notice.schedule_cron'), dietro il
+// feature flag già presente da Fase 0 (config('orchestrator.features.tickets_idle_developer_notice')).
+Schedule::command(TicketsNotifyIdleDevelopersCommand::class)
+    ->cron((string) config('ticketing.idle_developer_notice.schedule_cron'))
+    ->withoutOverlapping()
+    ->when(fn (): bool => (bool) config('orchestrator.features.tickets_idle_developer_notice'));

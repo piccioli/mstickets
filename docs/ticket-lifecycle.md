@@ -97,6 +97,7 @@ quell'array.
 | `waiting` | *(risolto: `previous_status`)* | AdminOrManager, Assignee, **System** | `previous_status` valorizzato | `RestorePreviousStatus` |
 | `problem` | *(risolto: `previous_status`)* | AdminOrManager, Assignee | `previous_status` valorizzato | `RestorePreviousStatus` |
 | *qualsiasi altro stato non coperto sopra* | `rejected` | AdminOrManager | — | — |
+| *qualsiasi stato tranne* `done` | `done` | **System** | `type = scrum` | `SetDoneAt` |
 
 Note:
 
@@ -108,9 +109,14 @@ Note:
   assegna il ticket a sé stesso (`context['assignee_id'] === auth()->id`), mai a un altro utente —
   verificato sia lato Filament (US-110) sia direttamente contro la macchina a stati (US-114), a
   prova di un ipotetico punto di ingresso futuro che aggirasse la UI.
-- L'attore **System** compare solo su `assigned → todo`, `progress → todo` e
-  `waiting → previous_status`: righe già pronte per i comandi schedulati di Fase 6 (T3, T6), anche
-  se quei comandi non esistono ancora in questa fase.
+- L'attore **System** compare su `assigned → todo`, `progress → todo`, `waiting → previous_status` e
+  `* → done` (guardata da `type = scrum`): righe usate dai comandi schedulati di Fase 6
+  (`tickets:progress-to-todo`/T3, `tickets:auto-close-released`/T4, `tickets:restore-waiting`/T6,
+  `tickets:close-scrum`/T5 — quest'ultima riga dedicata, aggiunta in US-611, subito dopo il catch-all
+  generico `* → rejected` perché una riga più specifica va sempre elencata dopo un catch-all solo se
+  la macchina a stati prova le righe in ordine e si ferma alla prima che matcha per la coppia
+  `(from, to)`: qui il `to` differisce (`rejected` vs `done`), quindi l'ordine tra le due non cambia
+  quale delle due si applica).
 
 ## Validazioni di dominio (US-102)
 
@@ -149,9 +155,9 @@ ripristino. Due percorsi di ripristino attivi in Fase 1:
    del cliente), passa a `todo`. Sempre via `ChangeTicketStatus`, mai una scrittura diretta di
    `status`, attribuito all'utente di sistema.
 
-Il ripristino schedulato (T6, ticket `waiting` da troppi giorni) resta rimandato a Fase 6 (vedi
-sotto): la riga di tabella che lo renderà possibile (attore `System` su `waiting → previous_status`)
-esiste già.
+Il ripristino schedulato (T6, ticket `waiting` da troppi giorni) è attivo da Fase 6 (vedi sotto,
+`tickets:restore-waiting`, US-612): riusa la stessa riga di tabella (attore `System` su
+`waiting → previous_status`) già introdotta in Fase 1 per T7.
 
 ## Transizioni automatiche (§6.1.5)
 
@@ -159,15 +165,28 @@ esiste già.
 |---|---|---|---|
 | T1 | Assegnazione di un assegnatario a un ticket `new` | `new → assigned` | **Attivo**: effetto dell'Action `AssignTicket`/`ChangeTicketStatus`, non un hook Eloquent |
 | T2 | Cambio di stato manuale di un ticket `new` | azzeramento di `assignee_id` | **Escluso per decisione Q4**: comportamento del v1 esplicitamente non riprodotto |
-| T3 | Ogni giorno alle 18:00 | tutti i ticket `progress → todo` | **Rimandato a Fase 6** (comando `tickets:progress-to-todo` non ancora esistente). Nessuna riga di tabella dedicata: la userà lo stesso comando invocando la riga `progress → todo` già presente con attore System |
-| T4 | Ogni giorno alle 07:45 | `released` da ≥ 3 giorni lavorativi `→ done` | **Rimandato a Fase 6** (comando `tickets:auto-close-released`) |
-| T5 | Ogni giorno alle 16:00 | ticket `scrum` creati/aggiornati oggi `→ done` | **Rimandato a Fase 6** (comando `tickets:close-scrum` + riga dichiarata `* → done`, attore System, guard `type = scrum`: non presente in tabella oggi) |
-| T6 | Ogni giorno | `waiting` da ≥ N giorni `→ previous_status` | **Rimandato a Fase 6** (comando `tickets:restore-waiting`); la riga `waiting → previous_status` con attore System esiste già (serve anche a T7) |
+| T3 | Ogni giorno alle 18:00 (`config('ticketing.progress_to_todo.schedule_cron')`) | tutti i ticket `progress → todo` | **Attivo (Fase 6, US-610)**: comando `tickets:progress-to-todo`, dietro `config('orchestrator.features.tickets_progress_to_todo')` (default disattivo). Nessuna riga di tabella dedicata: invoca la riga `progress → todo` già presente con attore System |
+| T4 | Ogni giorno alle 07:45 (`config('ticketing.auto_close_released.schedule_cron')`) | `released` da ≥ `threshold_working_days` giorni lavorativi (default 3, `WorkingDaysCalculator`) `→ done` | **Attivo (Fase 6, US-610)**: comando `tickets:auto-close-released`, dietro `config('orchestrator.features.tickets_auto_close_released')` |
+| T5 | Ogni giorno alle 16:00 (`config('ticketing.close_scrum.schedule_cron')`) | ticket `type = scrum` creati/aggiornati oggi `→ done` | **Attivo (Fase 6, US-611)**: comando `tickets:close-scrum`, dietro `config('orchestrator.features.tickets_close_scrum')`. Riga dedicata `* → done` (qualsiasi stato tranne `done`), attore System, guard `type = scrum` — vedi tabella sopra |
+| T6 | Ogni giorno alle 06:30 (`config('ticketing.restore_waiting.schedule_cron')`) | `waiting` da ≥ `threshold_days` giorni **di calendario** (default 7, esplicito nel PRD a differenza di T3/T4) `→ previous_status` | **Attivo (Fase 6, US-612)**: comando `tickets:restore-waiting`, dietro `config('orchestrator.features.tickets_restore_waiting')`; riusa la riga `waiting → previous_status` con attore System (serve anche a T7) |
 | T7 | Il richiedente posta un messaggio | `waiting → previous_status`, oppure `assigned`/`progress → todo` | **Attivo** (US-106), vedi sopra |
 
-Tutte le transizioni automatiche, quando implementate, dovranno: scrivere un `ticket_log` con
-`is_system = true`, essere attribuite all'utente di sistema (`App\Domain\Identity\Models\User::system()`),
-essere idempotenti.
+Tutte le transizioni automatiche scrivono un `ticket_log` con `is_system = true`, sono attribuite
+all'utente di sistema (`App\Domain\Identity\Models\User::system()`) e sono idempotenti (la query
+`where('status', ...)` di ogni comando non riseleziona un ticket già transitato).
+
+### Archiviazione dei ticket scrum (`tickets:archive-scrum`, Fase 6, US-611)
+
+Non è una transizione di stato: `tickets:archive-scrum` (dietro
+`config('orchestrator.features.tickets_archive_scrum')`, cadenza
+`config('ticketing.archive_scrum.schedule_cron')`, default 05:00) valorizza `tickets.archived_at` sui
+ticket `type = scrum` già `done` da almeno `config('ticketing.archive_scrum.threshold_days')` giorni
+di calendario (default 30) — mai una cancellazione, mai un cambio di `status`. Ogni archiviazione
+scrive comunque un `ticket_log` dedicato (`event = archived`, `is_system = true`). Il comportamento
+esatto del v1 su questo punto non è ricostruibile con certezza dal dump disponibile (nessun comando
+né colonna di archiviazione nel codice applicativo v1, solo viste Nova "Archived\*" in sola lettura):
+questa è una lettura conservativa, da confermare col committente — vedi
+`docs/differences-from-v1.md`.
 
 ## Calcolo delle ore lavorate
 
@@ -186,3 +205,12 @@ senza testing, demozione "un solo progress per assegnatario" durante un percorso
 da `waiting`/`problem` (esplicito e via regola T7), e due tentativi di bypass di una transizione non
 ammessa (manipolazione dei dati di un'action Filament, e chiamata diretta a `ChangeTicketStatus` con
 un contesto di auto-assegnazione impersonato) — entrambi bloccati.
+
+## Documenti correlati
+
+- `docs/architecture.md` — principio A2 (macchina a stati dichiarativa) nel contesto architetturale
+  generale.
+- `docs/time-tracking.md` — algoritmo di calcolo delle ore lavorate dagli intervalli `progress`.
+- `docs/operations.md` — scheduler, cadenze e feature flag dei comandi T3-T6.
+- `docs/differences-from-v1.md` — decisioni Q4/Q5/Q14/Q15 e il caso `tickets:archive-scrum` (comportamento
+  v1 non ricostruibile con certezza).

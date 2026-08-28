@@ -1039,3 +1039,276 @@ verificati esplicitamente, non assunti allineati.
   regressione — da segnalare al committente/team come debito tecnico esistente (differenza di versione
   PHP fra ambiente di sviluppo locale e immagine Docker `app`), non da inseguire dentro il budget di un
   singolo checkpoint di fine fase.
+
+## Gruppo di navigazione condiviso staff/cliente — `getNavigationGroup()` dinamico, non `$navigationGroup` statico (US-602, §8.4)
+
+- **Quando una Resource è visibile sia allo staff sia al customer** (`TicketResource`, `ActivityReportResource`,
+  `DocumentationPageResource` — tutte policy-backed su permessi che *entrambi* i tipi di utente possono avere,
+  es. `TicketViewOwn`/`ActivityReportViewOwn` per customer e `TicketViewAny`/`ActivityReportViewAny` per
+  staff), il gruppo di navigazione **non può essere la proprietà statica** `protected static
+  UnitEnum|string|null $navigationGroup`: quella è condivisa da TUTTI gli utenti, staff compreso. Va
+  sovrascritto `public static function getNavigationGroup(): string|UnitEnum|null` (firma esatta di
+  `Filament\Resources\Resource`/`Filament\Pages\Page`) che ramifica su
+  `Auth::user()?->hasRole(UserRole::Customer->value)` — stesso idioma già in uso in
+  `CustomerDashboard::canAccess()` — restituendo `'Area cliente'` per un customer, il gruppo originale
+  altrimenti. Per una Resource **esclusivamente** customer (`canViewAny()`/`canAccess()` già vero SOLO per
+  quel ruolo, es. `CustomerFundraisingProjectResource`/`CustomerFundraisingOpportunityResource`,
+  `CustomerDashboard`) la proprietà statica resta corretta e più semplice: non serve il metodo dinamico se
+  nessun altro ruolo vedrà mai quella voce.
+- **Ogni voce di navigazione registrata globalmente in `AdminPanelProvider` va riverificata contro un login
+  reale da customer**, non solo le Resource toccate dalla story: la voce "Mailpit" (`->navigationItems()`,
+  US-324) era gated SOLO su `app()->environment(['local','staging'])` + URL configurato, **nessun controllo
+  di ruolo** — quindi visibile anche a un customer in locale/staging, violando silenziosamente l'AC "nessuna
+  voce dei gruppi staff visibile a un cliente". Scoperto SOLO nello screenshot di verifica browser richiesto
+  dalla story (mai dai test, che non toccavano quella classe): `MailpitNavigationItem::isVisible()` ora nega
+  esplicitamente se l'utente corrente ha il ruolo customer, PRIMA del check su ambiente/URL. Lezione
+  generale: la verifica in browser di una story di navigazione deve controllare l'INTERA sidebar per il
+  ruolo target, non solo le voci esplicitamente elencate nell'AC — un item pre-esistente e apparentemente
+  non correlato può violare la stessa regola.
+- La pagina `App\Filament\Pages\Dashboard` (root `/`, landing per ruolo) va tenuta fuori da qualunque voce di
+  navigazione (`protected static bool $shouldRegisterNavigation = false;`) da quando OGNI ruolo autenticato
+  viene reindirizzato altrove nel suo `mount()` (dopo US-602 anche customer e fundraising, prima di allora
+  solo staff): altrimenti resta una voce "Dashboard" cliccabile che si limita a rimbalzare l'utente altrove,
+  duplicando la voce "Dashboard" reale (`CustomerDashboard`) per un customer.
+
+## Badge di navigazione combinato con cache — `getNavigationBadge()` su una Resource singola (`TicketResource`, US-604, §8.4)
+
+- `TicketResource` è l'UNICA voce di menu per i ticket (US-110, AC #1: "nessuna sottoclasse per filtro" —
+  ogni vista per stato è una tab di `ListTickets`, mai una Resource/Page dedicata). Un requisito che chiede
+  un badge "per voce di menu" su più stati (qui: in attesa/problema/da testare) non può tradursi in tre
+  `getNavigationBadge()` distinti, perché non esistono tre voci — la soluzione è UN SOLO badge con il
+  conteggio combinato (somma) più `getNavigationBadgeColor()`/`getNavigationBadgeTooltip()` per comunicare
+  il dettaglio per categoria (colore = categoria più urgente presente, tooltip = riga con i tre conteggi).
+  Riusare questo stesso schema per qualunque futuro badge "per stato" su una Resource a viste-come-tab.
+- I conteggi riusano direttamente i query object esistenti (`WaitingQuery`/`ProblemTicketsQuery`/
+  `ToTestByMeQuery` in `App\Domain\Ticketing\Queries`, già scoped per Policy/`tester_id`) — mai una nuova
+  query duplicata solo per il badge.
+- Cache: UNA sola chiamata `Cache::remember()` per tutti e tre i conteggi insieme (array associativo),
+  chiave scoped per utente (`ticket-navigation-badge-counts:{user_id}`), TTL da
+  `config('ticketing.navigation_badges.cache_ttl_seconds')` (env `TICKET_NAVIGATION_BADGE_TTL`). I tre
+  metodi `getNavigationBadge*()` chiamano lo stesso helper privato: nessuna query duplicata anche se
+  Filament invoca badge/colore/tooltip separatamente nello stesso render.
+- Gotcha PHPStan: un metodo static **privato** chiamato con `static::` (non `self::`) dentro la stessa
+  classe genera `staticClassAccess.privateMethod` ("Unsafe call to private method ... through static.") —
+  usare sempre `self::` per chiamate a metodi privati statici, `static::` è per late static binding su
+  metodi che possono essere sovrascritti (non il caso di un helper privato).
+- Il tooltip è reso da Filament via Alpine (`x-tooltip="{content: '...'}"`, no attributo HTML `title`): per
+  verificarlo in browser leggere l'`innerHTML` del nodo badge, uno screenshot statico senza hover reale non
+  lo mostra.
+
+## MFA nativa Filament per ruolo — timing di `isRequired`, e una view di login custom che ignorava il challenge (US-606, §6.7.2)
+
+- `Panel::multiFactorAuthentication([...], isRequired: ...)`: il parametro `isRequired` (bool|Closure) è
+  valutato in `routes/web.php` (vendor) alla REGISTRAZIONE delle route — cioè al boot della richiesta,
+  PRIMA che la sessione/il guard `Auth::user()` siano disponibili (la sessione parte dentro la pipeline di
+  middleware 'web', che gira dopo il boot dei provider). Una closure che tenta di leggere il ruolo
+  dell'utente autenticato lì (`fn () => Auth::user()?->hasRole(...)`) vede sempre `null` e non funziona MAI
+  per un controllo per-ruolo — né in produzione né nei test (in test, la `config()` impostata dentro il
+  corpo del test arriva dopo che `setUp()` ha già ri-registrato le route per quella richiesta). La soluzione
+  adottata: `isRequired: true` sempre (così la route "set-up-required" e il middleware esistono sempre per
+  ogni richiesta), e tutta la logica per-ruolo spostata in un middleware custom
+  (`App\Filament\Auth\Middleware\EnsureRoleRequiresMultiFactorAuthentication`, sostituisce
+  `multiFactorAuthenticationRequiredMiddlewareName()`) che legge `config('mfa.required_roles')` e
+  `Filament::auth()->user()` A RUNTIME (dentro `handle()`, quando la sessione è reale) e delega al
+  middleware nativo `EnsureMultiFactorAuthenticationIsEnabled` solo se il ruolo dell'utente è nella lista —
+  altrimenti lascia passare. Con `mfa.required_roles` vuoto di default (nessun env impostato), ogni
+  richiesta esistente resta invariata: zero regressioni sui test HTTP già esistenti con utenti `admin`.
+- **Gotcha scoperto SOLO in verifica browser (i test Pest con `actingAs()` non lo intercettano, perché
+  bypassano interamente `Filament\Auth\Pages\Login::authenticate()`)**: questo repo sostituisce l'intera
+  view della pagina di login (`App\Filament\Auth\Pages\Login::$view = 'filament.auth.login'`, per il brand
+  "Montagna Servizi", da un ciclo precedente a questa MFA) con un blade scritto a mano che renderizza `<form
+  wire:submit="authenticate">` con i soli campi email/password — MAI attraverso il meccanismo
+  `content(Schema $schema)` nativo di Filament, che è quello che normalmente mostra/nasconde condizionalmente
+  il secondo step (`multiFactorChallengeForm`) in base alla proprietà Livewire
+  `$userUndertakingMultiFactorAuthentication`. Risultato: abilitare la MFA sul pannello NON bastava, un
+  utente con la MFA configurata restava bloccato per sempre sulla schermata email/password (il server
+  segnava correttamente lo stato "sfida in corso" ma la view non lo rifletteva mai). Fix: nella stessa view,
+  `@if ($this->userUndertakingMultiFactorAuthentication)` renderizza `{{ $this->multiFactorChallengeForm }}`
+  (la `Schema` di Filament implementa `Htmlable`, si stampa con `{{ }}` senza altro wiring) dentro un secondo
+  `<form wire:submit="authenticate">`, altrimenti il form originale. Ogni futura modifica a una pagina di
+  auth Filament con view completamente custom in questo repo deve verificare se sta bypassando un
+  meccanismo nativo condizionale (MFA, verifica email, ecc.) allo stesso modo.
+- Contratti Filament per l'autenticazione da app (`Filament\Auth\MultiFactor\App\Contracts\
+  HasAppAuthentication`/`HasAppAuthenticationRecovery`) implementati su `User` con cast `encrypted`/
+  `encrypted:array` sulle due nuove colonne (`app_authentication_secret`,
+  `app_authentication_recovery_codes`) — mai in chiaro a riposo, stesso principio delle altre colonne
+  sensibili del progetto.
+- `->profile()` (default `Filament\Auth\Pages\EditProfile`, mai creato prima in questo repo) è
+  l'UNICO punto in cui Filament espone la UI di gestione/setup della MFA (`getManagementSchemaComponents()`
+  per provider, via `content()`): abilitare la MFA senza abilitare anche `->profile()` lascerebbe la
+  configurazione teoricamente attiva ma senza alcuna schermata reale da cui un utente possa impostarla.
+- Verifica in browser end-to-end di un flusso MFA reale (setup + login con sfida) richiede di calcolare un
+  OTP valido per il secret generato: `docker exec <container> php artisan tinker --execute="echo
+  app(PragmaRX\Google2FAQRCode\Google2FA::class)->getCurrentOtp('<secret>');"` — riusabile per qualunque
+  verifica futura che tocchi l'autenticazione da app.
+
+## Impersonation — guardia `Impersonation::isImpersonating()` in `UserPolicy::viewAny()`, effetto collaterale noto (US-607, §6.7.2)
+
+- `stechstudio/filament-impersonate` richiede, per il proprio bug noto (documentato nel README del
+  pacchetto, sezione "Potential Issues and Workarounds — 403 when a ListUsers widget has
+  `InteractsWithPageTable`"), un guard esplicito in cima a `UserPolicy::viewAny()`:
+  `if (Impersonation::isImpersonating()) { return true; }`. Senza questo guard, il redirect
+  post-impersonation genera un 403 spurio perché i componenti Livewire della tabella tentano un
+  re-render con l'utente appena impersonato prima che il browser navighi via.
+- **Effetto collaterale accettato consapevolmente, non un bug di questa story**: finché
+  un'impersonation è attiva, QUALUNQUE utente impersonato (anche un customer) può navigare
+  direttamente a `/admin/users` e vedere l'elenco completo di tutti gli utenti reali — perché il guard
+  è cieco rispetto a CHI è impersonato, controlla solo "è in corso un'impersonation nella sessione".
+  Verificato in browser: un customer impersonato da un admin raggiunge `/admin/users` e vede anche
+  l'email dell'admin che lo sta impersonando. Non è uno sfruttamento praticabile da un attaccante reale
+  (la sessione è comunque guidata dall'admin che ha già il permesso `UserImpersonate` ed è quindi già
+  un utente privilegiato), ma rompe la premessa "vedere il pannello con gli occhi dell'altro utente" per
+  questa specifica Resource. Rimuovere il guard reintroduce il 403 spurio documentato dal pacchetto —
+  nessuna soluzione pulita nota che eviti entrambi i problemi con l'API pubblica del pacchetto. Flaggato
+  per revisione esplicita col committente al checkpoint US-618, non silenziato.
+- Metodi di contratto del pacchetto (`User::canImpersonate()`/`canBeImpersonated()`, rilevati via
+  `method_exists()`, nessuna interfaccia da implementare): `canImpersonate()` delega a
+  `Gate::forUser($this)->check('impersonate', $this)` (unica fonte di verità in
+  `UserPolicy::impersonate()`, mai un controllo di ruolo duplicato); `canBeImpersonated()` esprime solo
+  il vincolo indipendente dall'attore (`deactivated_at === null`).
+- Log strutturato tramite gli eventi nativi del pacchetto (`STS\FilamentImpersonate\Events\
+  EnterImpersonation`/`LeaveImpersonation`), NON un observer/hook Eloquent: due nuovi listener
+  (`App\Domain\Identity\Listeners\LogImpersonationStarted`/`LogImpersonationStopped`) registrati in
+  `AppServiceProvider::boot()`, stesso pattern `Log::info('dominio.azione.evento', [...])` già in uso
+  dai comandi schedulati — nessuna nuova tabella dedicata (l'impersonation non è legata a un ticket).
+  `LeaveImpersonation::$impersonated` è nullable nell'evento del pacchetto (sessione ripulita da un
+  guard esterno, es. logout): gestito come opzionale nel log, mai un accesso diretto che esploda.
+- Test dell'intero ciclo (impersona → banner → log → esci) NON affidabile con `Log::spy()->
+  shouldHaveReceived(...)->once()` quando lo stesso metodo viene invocato più volte nello stesso test
+  (le expectation successive sul metodo `info` contano le invocazioni cumulate, non solo quelle che
+  combaciano con la propria closure) — catturare invece la cronologia reale con `Log::listen(function
+  ($event) use (&$logs) { $logs[] = [...]; })` e asserire sull'array raccolto.
+
+## Disattivazione utente — un solo choke point per la soppressione email, `recordSelectOptionsQuery` per i picker M:N (US-608, §6.7.5)
+
+- Azione "Disattiva"/"Riattiva" unica (mai due Action separate) estratta in
+  `App\Filament\Resources\Users\Support\DeactivateUserAction::make()`, riusata sia dalla riga di
+  `UsersTable` sia dall'header di `ViewUser` (stesso idioma di `TicketTransitionActions`/`Impersonate`).
+  Autorizzazione delegata interamente a `UserPolicy::deactivate()` (`Permission::UserDeactivate`, unica
+  fonte di verità, nessun controllo di ruolo duplicato nell'Action). Valorizza/azzera `deactivated_at`
+  con un assegnamento diretto di proprietà + `save()`, mai `fill()`/`update()`: la colonna non è nel
+  `#[Fillable]` del model *di proposito* (non deve essere editabile dal form utente), quindi un
+  mass-assignment verrebbe scartato silenziosamente senza errore.
+- **La soppressione delle comunicazioni per un utente disattivato va aggiunta in UN SOLO punto**:
+  `SendOutboundTicketMail::blockedReason()`. È l'unico punto di invio dell'intero catalogo E1-E11
+  (documentato nella classe stessa), quindi un controllo `if ($recipient->deactivated_at !== null)`
+  lì copre automaticamente ogni Mailable futuro, senza dover filtrare a monte ogni possibile fonte del
+  destinatario (`NotificationRecipientResolver::usersForRole()` risolve `Requester`/`Assignee`/`Tester`
+  direttamente dalle relazioni del ticket, SENZA `->active()` — e va bene così: filtrare lì sarebbe
+  ridondante e più fragile di un controllo unico a valle, prima dell'invio vero e proprio).
+- **Verificare ogni picker "utente" prima di dare per scontato che escluda i disattivati**: `Select` su
+  relazioni dirette (`belongsTo`, es. `assignee_id`/`tester_id` di `TicketForm`) si scopano con
+  `->relationship('assignee', 'name', modifyQueryUsing: self::activeUsersQuery(...))`; un `AttachAction`
+  su relazione `belongsToMany` (es. `PartnersRelationManager`, partner ↔ progetto fundraising) è un
+  meccanismo DIVERSO e va scopato con `->recordSelectOptionsQuery(fn (Builder $query) => $query
+  ->active())` — nessuno dei due copre l'altro caso, un audit di "tutti i picker utente pertinenti"
+  deve controllare quale dei due meccanismi usa ciascuna Resource/RelationManager. Effetto lato server
+  gratuito: `AttachAction` ri-applica la stessa query scopata nel proprio `action()` per ri-risolvere il
+  record dal `recordId` inviato — un id di un utente disattivato non viene trovato, quindi non viene
+  mai allegato, anche in un'ipotetica richiesta malformata che aggirasse la UI.
+- Gotcha PHPStan: `Builder $query` (non generico) non porta il tipo del model collegato, quindi
+  `$query->active()` (local scope di `User`) risulta "metodo indefinito" — va estratto in un metodo
+  privato tipizzato `@param Builder<User> $query` / `@return Builder<User>` (mai una closure inline),
+  stesso pattern già in uso da `TicketForm::activeUsersQuery()`.
+
+## Comandi schedulati T3/T4 — `TransitionActor::System` spesso già pre-wired in `TicketStateMachine` (`tickets:progress-to-todo`/`tickets:auto-close-released`, US-610, §6.1.5/§10.2)
+
+- **Prima di aggiungere un attore a una riga della tabella dichiarativa, verificare se è già lì**: la riga
+  `progress → todo` (T3) aveva già `TransitionActor::System` fra gli attori ammessi fin da US-106 (aggiunto
+  per un motivo estraneo a questa story), quindi `tickets:progress-to-todo` non ha richiesto alcuna
+  modifica alla macchina a stati — solo il comando artisan che delega a `ChangeTicketStatus` con
+  `User::system()`. La riga `released → done` (T4) invece NON l'aveva: aggiunta qui
+  (`TicketStateMachine::transitions()`), unica modifica allo stato machine per questa story. Non fidarsi
+  del commento di classe che elenca "righe non ancora esistenti": può essere rimasto indietro rispetto al
+  codice reale, controllare sempre `transitions()` riga per riga.
+- Pattern comando ormai consolidato per queste automazioni (stesso schema di `mail:retry-failed`/
+  `reports:generate-monthly`): `User::system()` come attore, delega totale a `ChangeTicketStatus::run()`
+  (mai un update diretto su `status`/`done_at`/`previous_status` — gli `effects` della transizione e
+  `writeStatusLog()` con `is_system = $user->isSystem()` arrivano gratis), `--dry-run` che non chiama mai
+  l'Action, log strutturato `started`/`item_failed`/`finished`, idempotenza per costruzione (la query
+  `where('status', ...)` non seleziona più un ticket già transitato alla ri-esecuzione, nessun flag
+  "già processato" da gestire a mano).
+- I feature flag (`config('orchestrator.features.tickets_progress_to_todo')`/
+  `tickets_auto_close_released`) e le relative env var erano già scaffoldati in `config/orchestrator.php`/
+  `.env.example` da Fase 0: nessuna nuova voce lì, solo la cadenza cron (nuova sezione
+  `config('ticketing.progress_to_todo'/'auto_close_released')`, stesso env pattern
+  `*_SCHEDULE_CRON` di `reports.php`) e la soglia giorni lavorativi per T4 (riuso diretto di
+  `WorkingDaysCalculator::haveElapsed()`, stesso calcolo del reminder E7/US-316, mai una nuova
+  implementazione del conteggio giorni lavorativi).
+
+## Digest periodico E8 — Mailable multi-ticket senza `Ticket` singolo, query "utenti per ruolo" senza `RoleDoesNotExist` (`mail:send-digest`, US-614, §7.5.2/§10.2)
+
+- Un Mailable che riepiloga PIÙ ticket dello stesso destinatario (non uno solo) estende
+  `OutboundMailable` direttamente, non `TicketOutboundMailable` — stesso schema già usato da E9
+  (`UnknownSenderStaffMail`, "nessun Ticket associato"), qui applicato per un motivo diverso ("più
+  ticket", non "nessun ticket"). `SendOutboundTicketMail::run()` accetta comunque `ticket: null`
+  (parametro nullable da US-312): la riga `email_messages` outbound del digest ha `ticket_id = null`.
+  Contenuto aggregato per ticket incapsulato in un piccolo DTO immutabile dedicato
+  (`App\Domain\Mail\Support\TicketDigestEntry`: ticket + conteggio nuovi messaggi + eventuale
+  cambio di stato), non un array associativo libero — stesso principio di leggibilità già seguito
+  altrove nel dominio Mail.
+- **Query "tutti gli utenti con un dato ruolo" (qui: i clienti) non deve mai usare lo scope `role()`
+  di Spatie** (`User::role(UserRole::Customer->value)`): quello scope risolve il ruolo con
+  `findByName()` e lancia `RoleDoesNotExist` se la riga `roles` non esiste ancora nel DB (es. suite di
+  test senza `RolePermissionSeeder`, o ambiente reale senza mai un cliente registrato) — un comando
+  schedulato non deve mai poter fallire per questo. Usare invece
+  `User::query()->whereHas('roles', fn ($q) => $q->where('name', UserRole::Customer->value))`, che
+  produce semplicemente zero righe quando il ruolo non esiste. Stesso idioma già documentato da
+  `App\Domain\Ticketing\Queries\AllCustomerTicketsQuery` per un motivo identico — prima di scrivere
+  `::role(...)` in un nuovo comando, controllare se esiste già un precedente `whereHas('roles', ...)`
+  da riusare.
+- Idempotenza "un digest al giorno per cliente" verificata con lo stesso pattern già in uso per il
+  cooldown di `tickets:remind-waiting` (E7): `EmailMessage::where('user_id', $customer->id)
+  ->where('mailable_class', MailDigestMail::class)->where('created_at', '>=', $todayStart)->exists()`,
+  PRIMA di costruire il contenuto del digest (evita lavoro inutile se il cliente ha già ricevuto un
+  digest oggi). Distinto dalla finestra di contenuto "24h scorrevoli" (`now()->subHours(24)`, usata per
+  decidere COSA includere): l'idempotenza guarda il giorno di calendario (`today()`), il contenuto
+  guarda le ultime 24h assolute — le due finestre non vanno confuse né unificate.
+- Soppressioni/preferenze di notifica (E8 disabilitabile da US-605) NON richiedono nessun controllo
+  aggiuntivo nel comando: restano un'unica responsabilità di `SendOutboundTicketMail::blockedReason()`
+  (già verificato da `NotificationGate` + `deactivated_at` + `EmailSuppression`), stesso principio "un
+  solo punto di invio per l'intero catalogo E1-E11" già documentato per US-608.
+
+## Report attività pronto E10 — evento su "prima valorizzazione" di una colonna, Mailable verso tutti i membri di un'organizzazione (`ActivityReportPdfGenerated`, US-615, §7.5.2)
+
+- Un evento di dominio che deve scattare SOLO la prima volta che una colonna viene valorizzata (qui
+  `ActivityReport.pdf_generated_at`, mai per una rigenerazione successiva dello stesso PDF) si cattura
+  leggendo lo stato PRIMA della mutazione: `$isFirstGeneration = $report->pdf_generated_at === null;`
+  subito prima di `$report->update([...])`, poi `if ($isFirstGeneration) { event(...); }` dopo — non
+  `wasChanged()`/`getOriginal()` dopo l'update, che richiederebbero capire se l'update passa da un hook
+  Eloquent o da una chiamata diretta. L'evento arriva "gratis" su entrambi i percorsi che generano il PDF
+  (rigenerazione manuale e job schedulato da `reports:generate-monthly`, US-410) perché entrambi passano
+  dall'unico punto `GenerateActivityReportPdf::run()` — nessuna duplicazione del dispatch nei due chiamanti.
+- Un Mailable che deve raggiungere TUTTI i membri di un'organizzazione owner (non un singolo utente,
+  `ActivityReportOwnerKind::Organization`) non ha bisogno di nessuna nuova infrastruttura di invio
+  multiplo: iterare `$report->ownerOrganization->users` (stessa relazione `BelongsToMany` già usata da
+  `ActivityReport::isOwnedBy()`) e chiamare `SendOutboundTicketMail::run()` una volta per destinatario —
+  lo stesso Action pensato per un singolo utente, in loop. `Mail::assertQueued(MailableClass::class,
+  $count)` (secondo argomento intero) verifica il numero di invii in test, stesso idioma di
+  `Queue::assertPushed(JobClass::class, $count)`.
+- Gotcha Larastan: un accesso nullsafe (`$report->ownerOrganization?->users`) su una relazione `BelongsTo`
+  la cui firma è annotata `@return BelongsTo<Organization, $this>` (senza `|null`) produce l'errore
+  `nullsafe.neverNull` — Larastan la considera mai-null indipendentemente dalla nullabilità reale della
+  foreign key a livello di colonna DB. Verificare il tipo di ritorno annotato sul metodo relazione prima
+  di aggiungere un nullsafe "difensivo": nel contesto chiamante è spesso davvero superfluo.
+
+## Promemoria interno E11 — finestra oraria applicativa oltre al cron, "idle" esclude i ticket già conclusi (`tickets:notify-idle-developers`, US-616, §7.5.2/§10.2)
+
+- Un comando la cui cadenza PRD è "ogni 30 min, in una fascia oraria" (qui 09:00–15:30, correzione
+  esplicita v1→v2: nel v1 era un job ritardato da observer, mai un comando schedulato) non deve fidarsi
+  solo del cron in `routes/console.php` per rispettare la fascia: aggiungere anche un guard applicativo
+  (`now()->format('H:i')` confrontato con `config('ticketing.idle_developer_notice.window_start')`/
+  `window_end`, entrambi stringhe `H:i`) rende il vincolo testabile con `Carbon::setTestNow()` e protegge
+  anche un'esecuzione manuale da CLI fuori orario — nessun altro comando schedulato di questo repo ne ha
+  bisogno perché nessun altro ha un vincolo di fascia oraria, solo un singolo orario fisso.
+- "Developer idle" = ha almeno un ticket `assignee_id = lui` **escludendo `done`/`rejected`** (stessa
+  convenzione già stabilita da `MyTicketsQuery`/`ArchivedTicketsQuery` per "concluso") E nessuno di questi
+  è `status = progress`. Query diretta su `Ticket`, MAI `AssignedToMeQuery`/`scopeVisibleTo()`: quello
+  scope filtra per permesso Filament dell'utente (`ticket.view.any`/`.assigned`/`.own`), un concetto di
+  UI-authorization estraneo a un comando di sistema che deve valutare oggettivamente lo stato dei ticket
+  — con un developer di test senza permessi seedati, `visibleTo()` avrebbe azzerato silenziosamente ogni
+  risultato.
+- Idempotenza "un promemoria al giorno per developer" con lo stesso pattern già di E7/E8:
+  `EmailMessage::where('user_id', ...)->where('mailable_class', IdleDeveloperNoticeMail::class)
+  ->where('created_at', '>=', $todayStart)->exists()` — corretto qui perché la fascia oraria ricorre una
+  sola volta al giorno, quindi "oggi" e "questa finestra" coincidono.

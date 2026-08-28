@@ -6,11 +6,24 @@ namespace App\Domain\Identity\Policies;
 
 use App\Domain\Identity\Enums\Permission;
 use App\Domain\Identity\Models\User;
+use STS\FilamentImpersonate\Facades\Impersonation;
 
 class UserPolicy
 {
+    /**
+     * Guardia raccomandata dal README di `stechstudio/filament-impersonate` (US-607, §6.7.2):
+     * quando un admin impersona un utente senza `user.view.any` (es. un customer) dalla
+     * pagina lista utenti, i componenti Livewire della tabella tentano un re-render prima
+     * che il redirect post-impersonation avvenga, causando un 403 spurio. Nessun impatto
+     * sull'autorizzazione reale: un utente impersonato resta comunque scoped/soggetto a
+     * tutte le altre Policy per la durata dell'impersonation.
+     */
     public function viewAny(User $user): bool
     {
+        if (Impersonation::isImpersonating()) {
+            return true;
+        }
+
         return $user->can(Permission::UserView);
     }
 

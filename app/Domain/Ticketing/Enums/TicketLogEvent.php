@@ -17,6 +17,7 @@ enum TicketLogEvent: string implements HasIcon, HasLabel
     case AttachmentAdded = 'attachment_added';
     case AttachmentRemoved = 'attachment_removed';
     case System = 'system';
+    case Archived = 'archived';
 
     public function getLabel(): string
     {
@@ -29,6 +30,7 @@ enum TicketLogEvent: string implements HasIcon, HasLabel
             self::AttachmentAdded => 'Allegato aggiunto',
             self::AttachmentRemoved => 'Allegato rimosso',
             self::System => 'Sistema',
+            self::Archived => 'Archiviato',
         };
     }
 
@@ -43,6 +45,7 @@ enum TicketLogEvent: string implements HasIcon, HasLabel
             self::AttachmentAdded => 'heroicon-o-paper-clip',
             self::AttachmentRemoved => 'heroicon-o-x-mark',
             self::System => 'heroicon-o-cog-6-tooth',
+            self::Archived => 'heroicon-o-archive-box',
         };
     }
 }

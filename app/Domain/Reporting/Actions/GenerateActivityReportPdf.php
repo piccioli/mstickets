@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Reporting\Actions;
 
 use App\Domain\Documentation\Actions\GenerateDocumentationPagePdf;
+use App\Domain\Reporting\Events\ActivityReportPdfGenerated;
 use App\Domain\Reporting\Models\ActivityReport;
 use App\Http\Controllers\ActivityReportPdfDownloadController;
 use App\Support\Pdf\LogoDataUri;
@@ -26,6 +27,7 @@ final class GenerateActivityReportPdf
 {
     public static function run(ActivityReport $report): void
     {
+        $isFirstGeneration = $report->pdf_generated_at === null;
         $path = "activity-reports/{$report->id}.pdf";
 
         $tickets = $report->tickets()->orderBy('done_at')->get();
@@ -53,5 +55,9 @@ final class GenerateActivityReportPdf
             'pdf_path' => $path,
             'pdf_generated_at' => now(),
         ]);
+
+        if ($isFirstGeneration) {
+            event(new ActivityReportPdfGenerated($report));
+        }
     }
 }

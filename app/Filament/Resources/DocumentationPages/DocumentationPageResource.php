@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources\DocumentationPages;
 
 use App\Domain\Documentation\Models\DocumentationPage;
+use App\Domain\Identity\Enums\UserRole;
 use App\Domain\Identity\Models\User;
 use App\Filament\Resources\DocumentationPages\Pages\CreateDocumentationPage;
 use App\Filament\Resources\DocumentationPages\Pages\EditDocumentationPage;
@@ -35,11 +36,22 @@ class DocumentationPageResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBookOpen;
 
-    protected static UnitEnum|string|null $navigationGroup = 'Documentazione';
-
     protected static ?string $modelLabel = 'pagina di documentazione';
 
     protected static ?string $pluralModelLabel = 'documentazione';
+
+    /**
+     * Gruppo dinamico (US-602): un customer vede questa risorsa sotto "Area
+     * cliente" — staff/fundraising restano sotto "Documentazione" come prima.
+     */
+    public static function getNavigationGroup(): string|UnitEnum|null
+    {
+        $user = Auth::user();
+
+        return $user instanceof User && $user->hasRole(UserRole::Customer->value)
+            ? 'Area cliente'
+            : 'Documentazione';
+    }
 
     public static function form(Schema $schema): Schema
     {

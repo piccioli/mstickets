@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\Identity\Enums\UserRole;
 use App\Domain\Identity\Models\User;
 use App\Domain\Mail\Actions\SendOutboundTicketMail;
 use App\Domain\Mail\Enums\EmailDirection;
@@ -12,8 +13,11 @@ use App\Domain\Mail\Mailables\TicketReceivedByEmailMail;
 use App\Domain\Mail\Models\EmailMessage;
 use App\Domain\Mail\Models\EmailSuppression;
 use App\Domain\Mail\Models\NotificationPreference;
+use App\Filament\Pages\NotificationPreferences;
+use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
+use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
 
@@ -72,6 +76,19 @@ test('does not queue the mailable and marks the row suppressed when the recipien
     Mail::assertNothingQueued();
 });
 
+test('does not queue the mailable and marks the row suppressed when the recipient is deactivated (US-608)', function (): void {
+    Mail::fake();
+
+    $recipient = User::factory()->create(['email' => 'cliente@example.test', 'deactivated_at' => now()]);
+
+    $outbound = sendOutboundExampleMail($recipient);
+
+    expect($outbound->status)->toBe(EmailStatus::Suppressed)
+        ->and($outbound->failure_reason)->not->toBeNull();
+
+    Mail::assertNothingQueued();
+});
+
 test('does not queue the mailable when the recipient disabled this notification type', function (): void {
     Mail::fake();
 
@@ -104,6 +121,25 @@ test('sends when a notification preference row exists but is enabled', function 
     sendOutboundExampleMail($recipient);
 
     Mail::assertQueued(TicketReceivedByEmailMail::class);
+});
+
+test('does not queue the mailable after disabling the preference via the NotificationPreferences UI page (US-605)', function (): void {
+    Mail::fake();
+
+    $this->seed(RolePermissionSeeder::class);
+    $recipient = withRole(User::factory()->create(['email' => 'cliente@example.test']), UserRole::Customer);
+
+    $this->actingAs($recipient);
+
+    Livewire::test(NotificationPreferences::class)
+        ->set('enabled.'.NotificationType::TicketReceivedByEmail->value, false)
+        ->call('save');
+
+    $outbound = sendOutboundExampleMail($recipient);
+
+    expect($outbound->status)->toBe(EmailStatus::Suppressed);
+
+    Mail::assertNothingQueued();
 });
 
 test('falls back to the mail.from.address domain when no support address is configured', function (): void {

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domain\Identity\Enums\Permission as PermissionEnum;
 use App\Domain\Ticketing\Enums\TicketStatus;
+use App\Domain\Ticketing\Enums\TicketType;
 use App\Domain\Ticketing\Models\Ticket;
 use App\Domain\Ticketing\StateMachine\TicketStateMachine;
 use App\Domain\Ticketing\StateMachine\TransitionEffect;
@@ -182,19 +183,55 @@ test('only the assignee (or admin/manager) can release a tested ticket, not the 
         ->and(TicketStateMachine::can($t, TicketStatus::Released, $tester))->toBeFalse();
 });
 
-// --- released -> done (assignee, NOT system: T4 automation is out of scope) -------
+// --- released -> done (assignee, and system since US-610/T4) ---------------------
 
-test('released to done is allowed for the assignee but not for the system user in this phase', function (): void {
+test('released to done is allowed for the assignee and for the system user (T4 automation, US-610)', function (): void {
     $assignee = userWithPermissions(PermissionEnum::TicketUpdateAssigned);
     $system = systemUser();
     $t = ticket(['status' => TicketStatus::Released, 'assignee_id' => $assignee->id]);
 
     expect(TicketStateMachine::can($t, TicketStatus::Done, $assignee))->toBeTrue()
-        ->and(TicketStateMachine::can($t, TicketStatus::Done, $system))->toBeFalse();
+        ->and(TicketStateMachine::can($t, TicketStatus::Done, $system))->toBeTrue();
 
     $transition = collect(TicketStateMachine::transitions())
         ->first(fn ($transition) => $transition->appliesTo(TicketStatus::Released) && $transition->matchesTarget($t, TicketStatus::Done));
     expect($transition->effects)->toContain(TransitionEffect::SetDoneAt);
+});
+
+// --- * -> done, guarded by type = scrum (system only, T5, US-611) ----------------
+
+test('any status to done is allowed for the system user on a scrum ticket, and only for the system user', function (TicketStatus $from): void {
+    $admin = userWithPermissions(PermissionEnum::TicketTransitionAny);
+    $system = systemUser();
+    $t = ticket(['type' => TicketType::Scrum, 'status' => $from]);
+
+    expect(TicketStateMachine::can($t, TicketStatus::Done, $system))->toBeTrue()
+        ->and(TicketStateMachine::can($t, TicketStatus::Done, $admin))->toBeFalse();
+
+    $transition = collect(TicketStateMachine::transitions())
+        ->first(fn ($transition) => $transition->appliesTo($from) && $transition->matchesTarget($t, TicketStatus::Done));
+    expect($transition->effects)->toContain(TransitionEffect::SetDoneAt);
+})->with([
+    TicketStatus::New,
+    TicketStatus::Backlog,
+    TicketStatus::Assigned,
+    TicketStatus::Todo,
+    TicketStatus::Progress,
+    TicketStatus::Testing,
+    TicketStatus::Tested,
+    TicketStatus::Waiting,
+    TicketStatus::Problem,
+    TicketStatus::Rejected,
+]);
+
+test('the system user cannot move a non-scrum ticket to done via T5', function (): void {
+    $system = systemUser();
+    $t = ticket(['type' => TicketType::Bug, 'status' => TicketStatus::Todo]);
+
+    expect(TicketStateMachine::can($t, TicketStatus::Done, $system))->toBeFalse();
+
+    expect(fn () => TicketStateMachine::authorize($t, TicketStatus::Done, $system))
+        ->toThrow(ValidationException::class, 'La transizione è riservata ai ticket di tipo "scrum".');
 });
 
 // --- {new,backlog,assigned,todo,progress} -> waiting (reason guard) --------------

@@ -6,6 +6,7 @@ namespace App\Domain\Ticketing\StateMachine;
 
 use App\Domain\Identity\Models\User;
 use App\Domain\Ticketing\Enums\TicketStatus;
+use App\Domain\Ticketing\Enums\TicketType;
 use App\Domain\Ticketing\Models\Ticket;
 use App\Domain\Ticketing\Rules\TicketProblemReasonRequiredRule;
 use App\Domain\Ticketing\Rules\TicketTesterRequiredRule;
@@ -19,11 +20,13 @@ use Illuminate\Validation\ValidationException;
  *
  * Tutta la logica di transizione vive in {@see self::transitions()}: nessun `if` sparso
  * altrove. Copre le transizioni "manuali" del percorso principale/senza-testing,
- * waiting/problem e il relativo ripristino, e il catch-all verso `rejected`. ESCLUDE
- * deliberatamente le righe riservate a comandi schedulati non ancora esistenti (§6.1.5):
- * T3 (`tickets:progress-to-todo`), T4 (`tickets:auto-close-released`), T5
- * (`tickets:close-scrum`, riga `* → done` guardata da `type = scrum`) — arrivano in
- * Fase 6 insieme ai comandi artisan corrispondenti.
+ * waiting/problem e il relativo ripristino, e il catch-all verso `rejected`. Le righe
+ * T3 (`progress → todo`), T4 (`released → done`, aggiunta in Fase 6/US-610) e T5
+ * (`* → done` guardata da `type = scrum`, aggiunta in Fase 6/US-611) hanno
+ * `TransitionActor::System` fra gli attori ammessi, per i comandi schedulati
+ * `tickets:progress-to-todo`/`tickets:auto-close-released`/`tickets:close-scrum`
+ * (§6.1.5, §10.2). T5 è l'UNICO attore ammesso per quella riga (mai raggiungibile da
+ * UI): un ticket scrum non transita a `done` per nessun'altra via.
  *
  * Decisione Q4: nessuna riga per T2 (azzeramento di `assignee_id` su cambio di stato
  * manuale di un ticket `new`) — comportamento esplicitamente diverso dal v1.
@@ -139,7 +142,7 @@ final class TicketStateMachine
             new Transition(
                 from: [TicketStatus::Released],
                 to: TicketStatus::Done,
-                actors: [TransitionActor::AdminOrManager, TransitionActor::Assignee],
+                actors: [TransitionActor::AdminOrManager, TransitionActor::Assignee, TransitionActor::System],
                 effects: [TransitionEffect::SetDoneAt],
             ),
             new Transition(
@@ -190,6 +193,17 @@ final class TicketStateMachine
                 from: $anyOtherStatus,
                 to: TicketStatus::Rejected,
                 actors: [TransitionActor::AdminOrManager],
+            ),
+            new Transition(
+                from: array_values(array_filter(
+                    TicketStatus::cases(),
+                    static fn (TicketStatus $status): bool => $status !== TicketStatus::Done,
+                )),
+                to: TicketStatus::Done,
+                actors: [TransitionActor::System],
+                guard: self::guardTicketTypeScrum(...),
+                guardMessage: 'La transizione è riservata ai ticket di tipo "scrum".',
+                effects: [TransitionEffect::SetDoneAt],
             ),
         ];
     }
@@ -323,5 +337,17 @@ final class TicketStateMachine
     private static function guardPreviousStatusValued(Ticket $ticket, array $context): bool
     {
         return $ticket->previous_status !== null;
+    }
+
+    /**
+     * Guard di T5 (§6.1.3/§10.2, US-611): `tickets:close-scrum` è l'unico chiamante di
+     * questa riga (attore System), ma il guard resta comunque esplicito sul `type` del
+     * ticket invece di fidarsi del solo attore.
+     *
+     * @param  array<string, mixed>  $context
+     */
+    private static function guardTicketTypeScrum(Ticket $ticket, array $context): bool
+    {
+        return $ticket->type === TicketType::Scrum;
     }
 }

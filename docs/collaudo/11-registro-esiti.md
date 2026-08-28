@@ -5,7 +5,7 @@
 Tabella da compilare durante il collaudo, una riga per test. Il campo "Esito" accetta solo uno tra
 `PASS`, `FAIL`, `BLOCKED`, `NOT APPLICABLE` (vedi §17 di `00-istruzioni-generali.md` per i criteri generali
 e la sezione "Criterio di superamento" di ciascun test in `02-fase-0.md`/`03-fase-1.md`/`04-fase-1a.md`/
-`05-fase-2.md`/`06-fase-3.md`/`07-fase-4.md`/`10-fase-5.md` per il criterio specifico). Il campo "Anomalia" riporta l'ID assegnato secondo
+`05-fase-2.md`/`06-fase-3.md`/`07-fase-4.md`/`10-fase-5.md`/`13-fase-6.md` per il criterio specifico). Il campo "Anomalia" riporta l'ID assegnato secondo
 §19 di `00-istruzioni-generali.md` (es. `AN-001`), lasciare vuoto se non ci sono anomalie da segnalare per
 quel test.
 
@@ -479,9 +479,155 @@ quel test.
 | F5-59 | Un criterio aggiunto al catalogo a runtime viene incluso correttamente in un totale di valutazione reale, senza lasciare traccia permanente |  |  |  |  |  |  |  |
 | F5-60 | Il flusso completo opportunità -> progetto -> partner -> transizione di stato funziona end-to-end |  |  |  |  |  |  |  |
 
+## Fase 6 (Portale cliente e rifinitura) — 141 test
+
+| ID | Titolo | Esito | Tester | Data | Versione | Evidenza | Anomalia | Note |
+|---|---|---|---|---|---|---|---|---|
+| F6-01 | Un utente non-customer non può accedere alla dashboard cliente |  |  |  |  |  |  |  |
+| F6-02 | Un customer può accedere alla propria dashboard |  |  |  |  |  |  |  |
+| F6-03 | La card ticket aperti mostra il conteggio corretto per il cliente corrente, scoped ai soli propri ticket |  |  |  |  |  |  |  |
+| F6-04 | La card ticket che richiedono una risposta elenca solo i propri ticket in stato waiting/problem |  |  |  |  |  |  |  |
+| F6-05 | Un cliente senza ticket aperti e senza ticket in attesa di risposta vede stati vuoti espliciti, non un errore o una sezione silenziosa |  |  |  |  |  |  |  |
+| F6-06 | La card documentazione mostra la documentazione customer recente, con stato vuoto quando assente, e non mostra mai pagine interne |  |  |  |  |  |  |  |
+| F6-07 | I link drive_url/drive_budget_url compaiono solo quando valorizzati sull'utente autenticato |  |  |  |  |  |  |  |
+| F6-08 | La card report attività mostra i propri report, con stato vuoto quando assenti |  |  |  |  |  |  |  |
+| F6-09 | La card progetti fundraising mostra i progetti in cui il cliente è coinvolto, con stato vuoto quando assenti |  |  |  |  |  |  |  |
+| F6-10 | Un cliente con dati reali su ogni card li vede tutti, scoped a sé stesso, senza alcuno stato vuoto residuo |  |  |  |  |  |  |  |
+| F6-11 | Nessun riferimento a un link di chat di supporto compare mai nella dashboard cliente (help_desk_chat_url non confermato) |  |  |  |  |  |  |  |
+| F6-12 | Lo staff (admin/manager/developer) che atterra sulla dashboard viene reindirizzato alla WorkBoard, invariato rispetto a prima di questa story |  |  |  |  |  |  |  |
+| F6-13 | Un cliente che atterra sulla dashboard viene reindirizzato alla CustomerDashboard (US-601) |  |  |  |  |  |  |  |
+| F6-14 | Un membro del team fundraising che atterra sulla dashboard viene reindirizzato all'elenco opportunità |  |  |  |  |  |  |  |
+| F6-15 | Un customer vede in navigazione SOLO il gruppo "Area cliente", nessuna voce dei gruppi staff |  |  |  |  |  |  |  |
+| F6-16 | Uno staff member non vede mai il gruppo di navigazione "Area cliente" |  |  |  |  |  |  |  |
+| F6-17 | Una voce di navigazione riservata allo staff (es. Mailpit) resta nascosta a un customer, anche quando visibile per ambiente/URL configurato |  |  |  |  |  |  |  |
+| F6-18 | La ricerca globale trova un ticket per id |  |  |  |  |  |  |  |
+| F6-19 | La ricerca globale trova un ticket per titolo |  |  |  |  |  |  |  |
+| F6-20 | La ricerca globale trova un ticket per nome o email del richiedente |  |  |  |  |  |  |  |
+| F6-21 | La ricerca globale trova un ticket per un termine presente solo nel corpo di un messaggio |  |  |  |  |  |  |  |
+| F6-22 | Un cliente non trova nei risultati della ricerca globale ticket appartenenti ad altri richiedenti |  |  |  |  |  |  |  |
+| F6-23 | Il badge di navigazione mostra il conteggio combinato corretto e il tooltip col dettaglio per categoria |  |  |  |  |  |  |  |
+| F6-24 | Il badge è assente quando non c'è nulla che richieda attenzione |  |  |  |  |  |  |  |
+| F6-25 | I conteggi del badge sono cachati tra richieste entro il TTL: una seconda richiesta non genera una nuova query |  |  |  |  |  |  |  |
+| F6-26 | I conteggi del badge sono scoped per utente e non trapelano tra chiavi di cache di utenti diversi |  |  |  |  |  |  |  |
+| F6-27 | Ogni utente autenticato, a prescindere dal ruolo, può accedere alla pagina preferenze |  |  |  |  |  |  |  |
+| F6-28 | Un cliente non vede mai un tipo di comunicazione che riguarda solo lo staff (es. E6 "Assegnazione") |  |  |  |  |  |  |  |
+| F6-29 | Un membro dello staff non vede mai un tipo di comunicazione che riguarda solo i clienti |  |  |  |  |  |  |  |
+| F6-30 | Un tipo senza riga di preferenza esistente carica come abilitato di default al primo accesso alla pagina |  |  |  |  |  |  |  |
+| F6-31 | Un tipo con una riga di preferenza disabilitata già esistente carica come disabilitato |  |  |  |  |  |  |  |
+| F6-32 | Salvare persiste una riga updateOrCreate scoped al solo utente corrente, mai a un altro utente |  |  |  |  |  |  |  |
+| F6-33 | Salvare non scrive righe per tipi di comunicazione che non si applicano al ruolo corrente |  |  |  |  |  |  |  |
+| F6-34 | Disabilitare una preferenza dalla pagina reale delle preferenze di notifica impedisce l'invio di una comunicazione di quel tipo (verifica end-to-end UI -> invio) |  |  |  |  |  |  |  |
+| F6-35 | Un ruolo per cui la MFA è obbligatoria non può accedere al pannello senza averla configurata |  |  |  |  |  |  |  |
+| F6-36 | Un ruolo per cui la MFA è facoltativa accede normalmente senza averla configurata |  |  |  |  |  |  |  |
+| F6-37 | Un ruolo per cui la MFA è obbligatoria accede normalmente una volta che l'ha configurata |  |  |  |  |  |  |  |
+| F6-38 | Senza alcun ruolo configurato come obbligatorio, nessun utente è forzato alla MFA |  |  |  |  |  |  |  |
+| F6-39 | La pagina profilo espone la gestione della MFA (setup/recovery) per l'utente autenticato |  |  |  |  |  |  |  |
+| F6-40 | Un login con MFA attiva mostra la sfida di verifica e si completa solo fornendo un codice valido |  |  |  |  |  |  |  |
+| F6-41 | Un login con MFA attiva e un codice errato non completa l'accesso |  |  |  |  |  |  |  |
+| F6-42 | Un admin con user.impersonate vede l'azione "Impersona" nella tabella utenti |  |  |  |  |  |  |  |
+| F6-43 | Un admin con user.impersonate vede l'azione "Impersona" nella pagina di visualizzazione utente |  |  |  |  |  |  |  |
+| F6-44 | Un utente senza user.impersonate non vede mai l'azione "Impersona" |  |  |  |  |  |  |  |
+| F6-45 | Un admin può impersonare un utente, il cambio è loggato (chi ha impersonato chi, quando), il banner è visibile con azione per uscire, e uscire ripristina la sessione originale |  |  |  |  |  |  |  |
+| F6-46 | Un utente disattivato non può essere impersonato |  |  |  |  |  |  |  |
+| F6-47 | Un admin con user.deactivate vede l'azione di disattivazione/riattivazione nella tabella utenti e nella pagina di visualizzazione |  |  |  |  |  |  |  |
+| F6-48 | Un utente senza user.deactivate non vede l'azione di disattivazione/riattivazione |  |  |  |  |  |  |  |
+| F6-49 | L'azione disattiva un utente attivo e riattiva un utente disattivato (deactivated_at valorizzato/azzerato) |  |  |  |  |  |  |  |
+| F6-50 | Disattivare un utente non tocca la relazione storica assegnatario/richiedente/tester su un ticket esistente |  |  |  |  |  |  |  |
+| F6-51 | Un utente disattivato non è più selezionabile come partner di un progetto fundraising |  |  |  |  |  |  |  |
+| F6-52 | Un utente disattivato non riceve più comunicazioni email (la riga outbound viene marcata soppressa) |  |  |  |  |  |  |  |
+| F6-53 | Un utente disattivato non può accedere al pannello nemmeno con un ruolo valido (login bloccato) |  |  |  |  |  |  |  |
+| F6-54 | Lo scope "attivi" esclude gli utenti disattivati da una query di selezione utenti (base dei picker di assegnazione/tester/destinatari) |  |  |  |  |  |  |  |
+| F6-55 | Un customer senza i permessi di visualizzazione ticket non può accedere alla WorkBoard |  |  |  |  |  |  |  |
+| F6-56 | Un developer con il permesso sui campi interni può accedere alla WorkBoard |  |  |  |  |  |  |  |
+| F6-57 | Le colonne raggruppano i ticket visibili per stato e nascondono i ticket fuori dallo scope di visibilità |  |  |  |  |  |  |  |
+| F6-58 | Il selettore di assegnatario restringe la board a un singolo collega |  |  |  |  |  |  |  |
+| F6-59 | Le opzioni del selettore di assegnatario elencano solo membri dello staff (admin/manager/developer), mai clienti |  |  |  |  |  |  |  |
+| F6-60 | Il nome cliente sulla card si risolve dall'organizzazione del richiedente, con fallback sul nome del richiedente |  |  |  |  |  |  |  |
+| F6-61 | Le colonne eseguono un numero costante di query indipendentemente dal volume di ticket: nessuna regressione N+1 per card introdotta dalla ristilizzazione |  |  |  |  |  |  |  |
+| F6-62 | L'attività recente include solo i log dei ticket visibili all'utente corrente |  |  |  |  |  |  |  |
+| F6-63 | tickets:progress-to-todo in --dry-run esamina i ticket progress senza transitarne alcuno |  |  |  |  |  |  |  |
+| F6-64 | tickets:progress-to-todo transita ogni ticket progress a todo tramite la macchina a stati e lo logga come azione di sistema |  |  |  |  |  |  |  |
+| F6-65 | tickets:progress-to-todo non tocca ticket in uno stato diverso da progress |  |  |  |  |  |  |  |
+| F6-66 | Rieseguire tickets:progress-to-todo è idempotente: un ticket già todo non viene transitato di nuovo |  |  |  |  |  |  |  |
+| F6-67 | tickets:auto-close-released in --dry-run esamina i ticket released senza chiuderne alcuno |  |  |  |  |  |  |  |
+| F6-68 | tickets:auto-close-released chiude un ticket released da almeno la soglia configurata di giorni lavorativi e valorizza done_at |  |  |  |  |  |  |  |
+| F6-69 | tickets:auto-close-released non chiude un ticket rilasciato più recentemente della soglia |  |  |  |  |  |  |  |
+| F6-70 | tickets:auto-close-released non tocca ticket in uno stato diverso da released |  |  |  |  |  |  |  |
+| F6-71 | Rieseguire tickets:auto-close-released è idempotente: un ticket già done non viene transitato di nuovo |  |  |  |  |  |  |  |
+| F6-72 | La macchina a stati ammette la transizione released -> done sia per l'assegnatario sia per l'utente di sistema (automazione T4, US-610) |  |  |  |  |  |  |  |
+| F6-73 | tickets:close-scrum in --dry-run esamina i ticket scrum creati oggi senza chiuderne alcuno |  |  |  |  |  |  |  |
+| F6-74 | tickets:close-scrum chiude un ticket scrum creato oggi e valorizza done_at |  |  |  |  |  |  |  |
+| F6-75 | tickets:close-scrum chiude anche un ticket scrum aggiornato oggi pur se creato in precedenza |  |  |  |  |  |  |  |
+| F6-76 | tickets:close-scrum non tocca un ticket scrum né creato né aggiornato oggi |  |  |  |  |  |  |  |
+| F6-77 | tickets:close-scrum non tocca un ticket non-scrum creato oggi |  |  |  |  |  |  |  |
+| F6-78 | Rieseguire tickets:close-scrum è idempotente: un ticket scrum già done non viene transitato di nuovo |  |  |  |  |  |  |  |
+| F6-79 | tickets:archive-scrum in --dry-run esamina i ticket scrum archiviabili senza archiviarne alcuno |  |  |  |  |  |  |  |
+| F6-80 | tickets:archive-scrum archivia un ticket scrum done da almeno la soglia configurata di giorni e lo logga (colonna additiva archived_at, mai una cancellazione o un cambio di stato) |  |  |  |  |  |  |  |
+| F6-81 | tickets:archive-scrum non archivia un ticket scrum reso done più di recente della soglia |  |  |  |  |  |  |  |
+| F6-82 | tickets:archive-scrum non archivia un ticket scrum che non è done |  |  |  |  |  |  |  |
+| F6-83 | tickets:archive-scrum non archivia un ticket non-scrum reso done molto tempo fa |  |  |  |  |  |  |  |
+| F6-84 | Rieseguire tickets:archive-scrum è idempotente: un ticket già archiviato non viene archiviato di nuovo |  |  |  |  |  |  |  |
+| F6-85 | La macchina a stati ammette * -> done per l'utente di sistema su un ticket scrum, e SOLO per l'utente di sistema (T5, US-611) |  |  |  |  |  |  |  |
+| F6-86 | L'utente di sistema non può spostare un ticket non-scrum a done tramite la transizione T5 |  |  |  |  |  |  |  |
+| F6-87 | Il catalogo TicketLogEvent contiene esattamente gli 8 valori di §6.2.1 più il nuovo evento "archived" introdotto da US-611 |  |  |  |  |  |  |  |
+| F6-88 | tickets:restore-waiting in --dry-run esamina i ticket waiting ripristinabili senza ripristinarne alcuno |  |  |  |  |  |  |  |
+| F6-89 | tickets:restore-waiting ripristina un ticket in attesa da esattamente la soglia configurata di giorni di calendario |  |  |  |  |  |  |  |
+| F6-90 | tickets:restore-waiting ripristina un ticket in attesa da più della soglia configurata di giorni di calendario |  |  |  |  |  |  |  |
+| F6-91 | tickets:restore-waiting non ripristina un ticket in attesa da un giorno in meno della soglia configurata |  |  |  |  |  |  |  |
+| F6-92 | tickets:restore-waiting non tocca ticket in uno stato diverso da waiting |  |  |  |  |  |  |  |
+| F6-93 | tickets:restore-waiting non tocca un ticket in waiting privo di uno stato precedente |  |  |  |  |  |  |  |
+| F6-94 | Rieseguire tickets:restore-waiting è idempotente: un ticket già ripristinato non viene ritoccato |  |  |  |  |  |  |  |
+| F6-95 | timetracking:aggregate-daily consolida un ticket con attività odierna, producendo gli stessi aggregati di timetracking:recalculate |  |  |  |  |  |  |  |
+| F6-96 | timetracking:aggregate-daily ignora un ticket senza alcuna attività odierna |  |  |  |  |  |  |  |
+| F6-97 | timetracking:aggregate-daily in --dry-run esamina i ticket con attività odierna senza scrivere nulla |  |  |  |  |  |  |  |
+| F6-98 | Eseguire timetracking:aggregate-daily due volte nello stesso giorno non duplica le righe di ticket_work_logs (idempotenza via upsert) |  |  |  |  |  |  |  |
+| F6-99 | mail:send-digest invia un digest a un cliente con attività su uno dei propri ticket |  |  |  |  |  |  |  |
+| F6-100 | mail:send-digest non invia alcun digest a un cliente senza attività nelle ultime 24h |  |  |  |  |  |  |  |
+| F6-101 | mail:send-digest non invia a un cliente che ha già ricevuto un digest oggi (idempotenza) |  |  |  |  |  |  |  |
+| F6-102 | mail:send-digest rispetta la preferenza di notifica E8 disabilitata dal cliente |  |  |  |  |  |  |  |
+| F6-103 | mail:send-digest rispetta una soppressione email attiva per il cliente |  |  |  |  |  |  |  |
+| F6-104 | mail:send-digest in --dry-run non scrive né invia nulla |  |  |  |  |  |  |  |
+| F6-105 | mail:send-digest non fallisce e non invia nulla quando non ci sono clienti |  |  |  |  |  |  |  |
+| F6-106 | Il digest include un ticket con un nuovo messaggio pubblico dello staff nelle ultime 24h |  |  |  |  |  |  |  |
+| F6-107 | Il digest esclude un messaggio pubblicato dal cliente stesso a cui è destinato il digest |  |  |  |  |  |  |  |
+| F6-108 | Il digest esclude un messaggio interno (non pubblico) |  |  |  |  |  |  |  |
+| F6-109 | Il digest esclude un messaggio pubblicato prima della finestra delle 24h |  |  |  |  |  |  |  |
+| F6-110 | Il digest include un ticket con un cambio di stato nelle ultime 24h, riportando lo stato precedente e quello corrente |  |  |  |  |  |  |  |
+| F6-111 | Il digest aggrega più ticket con attività per lo stesso cliente, escludendo quelli senza attività |  |  |  |  |  |  |  |
+| F6-112 | Il digest ignora ticket appartenenti a un altro cliente |  |  |  |  |  |  |  |
+| F6-113 | Il Mailable E8 renderizza un HTML ben formato che elenca ogni ticket con conteggio messaggi ed eventuale cambio di stato |  |  |  |  |  |  |  |
+| F6-114 | Il Mailable E8 valorizza l'header Message-Id e il Reply-To VERP dalla riga email_messages outbound |  |  |  |  |  |  |  |
+| F6-115 | Il Mailable E8 genera anche una versione testo semplice accanto all'HTML |  |  |  |  |  |  |  |
+| F6-116 | Il Mailable E8 renderizza il corpo nella lingua impostata via ->locale(), mai una chiave non tradotta |  |  |  |  |  |  |  |
+| F6-117 | L'evento di dominio ActivityReportPdfGenerated viene dispatchato la prima volta che il PDF è generato |  |  |  |  |  |  |  |
+| F6-118 | L'evento di dominio non viene dispatchato di nuovo quando il PDF viene rigenerato |  |  |  |  |  |  |  |
+| F6-119 | Il listener invia E10 all'owner quando il PDF di un report di proprietà utente viene generato |  |  |  |  |  |  |  |
+| F6-120 | Il listener invia E10 a ogni membro di un report di proprietà di un'organizzazione |  |  |  |  |  |  |  |
+| F6-121 | Il listener non invia a un utente che ha disabilitato questo tipo di notifica |  |  |  |  |  |  |  |
+| F6-122 | Il listener implementa ShouldQueue così l'invio avviene in modo asincrono |  |  |  |  |  |  |  |
+| F6-123 | Il Mailable E10 renderizza un HTML ben formato col periodo del report e un link di download funzionante, autorizzato dalla Policy esistente |  |  |  |  |  |  |  |
+| F6-124 | Il Mailable E10 valorizza l'header Message-Id e il Reply-To VERP dalla riga email_messages outbound |  |  |  |  |  |  |  |
+| F6-125 | Il Mailable E10 genera anche una versione testo semplice accanto all'HTML |  |  |  |  |  |  |  |
+| F6-126 | Il Mailable E10 renderizza il corpo nella lingua impostata via ->locale(), mai una chiave non tradotta |  |  |  |  |  |  |  |
+| F6-127 | reports:generate-monthly, eseguito realmente end-to-end (comando -> job -> generazione PDF -> evento -> listener), accoda l'email E10 per il proprietario del report |  |  |  |  |  |  |  |
+| F6-128 | tickets:notify-idle-developers invia un promemoria a un developer con ticket assegnati e nessuno in lavorazione, entro la finestra oraria configurata (anche come notifica in-app) |  |  |  |  |  |  |  |
+| F6-129 | tickets:notify-idle-developers non invia alcun promemoria a un developer con un ticket in lavorazione |  |  |  |  |  |  |  |
+| F6-130 | tickets:notify-idle-developers non invia alcun promemoria a un developer il cui unico ticket assegnato è già chiuso |  |  |  |  |  |  |  |
+| F6-131 | tickets:notify-idle-developers non invia alcun promemoria fuori dalla finestra oraria configurata |  |  |  |  |  |  |  |
+| F6-132 | tickets:notify-idle-developers non invia un secondo promemoria lo stesso giorno, anche in un'esecuzione successiva entro la finestra (idempotenza sulla finestra) |  |  |  |  |  |  |  |
+| F6-133 | tickets:notify-idle-developers in --dry-run non scrive né invia nulla |  |  |  |  |  |  |  |
+| F6-134 | tickets:notify-idle-developers non fallisce e non invia nulla quando non ci sono developer |  |  |  |  |  |  |  |
+| F6-135 | Il Mailable E11 renderizza un HTML ben formato che elenca ogni ticket idle con il proprio stato |  |  |  |  |  |  |  |
+| F6-136 | Il Mailable E11 valorizza l'header Message-Id e il Reply-To VERP dalla riga email_messages outbound |  |  |  |  |  |  |  |
+| F6-137 | Il Mailable E11 genera anche una versione testo semplice accanto all'HTML |  |  |  |  |  |  |  |
+| F6-138 | Il Mailable E11 renderizza il corpo nella lingua impostata via ->locale(), mai una chiave non tradotta |  |  |  |  |  |  |  |
+| F6-139 | Due clienti con dati reali su ticket, report e fundraising restano completamente isolati attraverso dashboard, ricerca globale ed elenco ticket, non solo su una superficie alla volta |  |  |  |  |  |  |  |
+| F6-140 | Eseguire in sequenza tutti i comandi schedulati di Fase 6 transita ogni ticket guardato esattamente una volta e mai un ticket fuori dal proprio guard, anche ripetendo l'intera sequenza (idempotenza combinata) |  |  |  |  |  |  |  |
+| F6-141 | tickets:archive-scrum è un compromesso strettamente additivo: non tocca mai lo stato del ticket né alcun campo oltre archived_at, solo un log di sistema dedicato (garanzia esplicita del compromesso segnalato al committente, US-611) |  |  |  |  |  |  |  |
+
 ## Riepilogo aggregato (da compilare a collaudo concluso)
 
 | Totale test | PASS | FAIL | BLOCKED | NOT APPLICABLE |
 |---|---|---|---|---|
-| 435 |  |  |  |  |
+| 576 |  |  |  |  |
 
