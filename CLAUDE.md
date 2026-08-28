@@ -1502,3 +1502,30 @@ verificati esplicitamente, non assunti allineati.
   calcolo dell'inquadratura iniziale. Se si aggiunge una nuova mappa che usa dati RUNTS-CAI, verificare
   sempre con lo screenshot reale (non solo la fixture di test) prima di dichiarare la story completa, stesso
   principio già documentato per gli import (US-802).
+
+## Riusare un Infolist Filament dentro una pagina custom non-Resource (US-806, Fase 8)
+
+- `Filament\Pages\Page` (`filament/filament`, quella estesa da `CustomerDashboard`/`WorkBoard`) eredita già
+  `InteractsWithSchemas` tramite `Filament\Pages\BasePage` — **nessun trait/interfaccia aggiuntiva da
+  dichiarare** per embeddare uno Schema/Infolist in una pagina che non è una `ViewRecord` di una Resource.
+  Basta un metodo pubblico tipato `fn (Schema $schema): Schema` (es. `caiSectionInfolist(Schema $schema):
+  Schema`): la risoluzione dinamica (`ResolvesDynamicLivewireProperties::__get`) lo individua da solo per
+  nome. `Filament\Schemas\Schema` estende `ViewComponent implements Htmlable`, quindi
+  `{{ $this->caiSectionInfolist }}` in Blade lo renderizza direttamente (nessun `->render()` esplicito).
+  `->record($model)` (da `Concerns\BelongsToModel`) imposta il record su cui girano gli
+  entry/`RepeatableEntry::state()` dello schema.
+- Applicato per riusare `CaiSectionInfolist::configure()` (US-804) identico fra staff (`CaiSectionResource`),
+  cliente Sezione (`CustomerDashboard`, questa story) e — quando implementata — cliente Gruppo Regionale
+  (US-807): stesso schema PHP, stesso markup, cambia solo chi/quando viene chiamato e quale record viene
+  passato a `->record()`. Se serve estendere ancora questo pattern, **non duplicare i `TextEntry`/
+  `RepeatableEntry`**, aggiungere solo il nuovo punto di chiamata.
+- `CaiSectionInfolist` presuppone un record `CaiSection` (relazioni `subsections`/`runtsRegistrations`): un
+  utente collegato invece a una `CaiSubsection` (caso raro ma possibile, US-802 — Fase 7 non distingue
+  Sezione/Sottosezione come `customer_type`) **non può riusare questo schema tal quale** (niente
+  `region`/`runtsRegistrations`/`subsections` su quel modello) — gestito con un blocco Blade separato più
+  semplice (contatti diretti della sottosezione), non un secondo Infolist.
+- `CaiDocumentDownloadController` (US-804) ora ha due vie d'accesso, non più una sola: lo staff con
+  `Permission::CaiDirectoryView` (invariato) **oppure** il cliente proprietario, verificato risalendo
+  `CaiDocument::runtsRegistration->section->user_id === $user->id` — nessuna Policy dedicata, stesso stile
+  già in uso. Se US-807 (Gruppo Regionale) deve scaricare documenti di sezioni della propria regione, estendere
+  questo stesso metodo `authorized()`, non introdurne un secondo.

@@ -7,6 +7,30 @@
         </div>
     @endif
 
+    @if ($this->isSezione())
+        <div class="mb-4">
+            <x-filament::section heading="I miei dati CAI/RUNTS" icon="heroicon-o-identification">
+                @if ($this->caiSection() !== null)
+                    {{ $this->caiSectionInfolist }}
+                @elseif ($this->caiSubsection() !== null)
+                    <div class="grid grid-cols-1 gap-2 text-sm md:grid-cols-2">
+                        <div><span class="font-medium text-gray-950 dark:text-white">Denominazione:</span> {{ $this->caiSubsection()->name }}</div>
+                        <div><span class="font-medium text-gray-950 dark:text-white">Sezione di riferimento:</span> {{ $this->caiSubsection()->section?->name ?? '—' }}</div>
+                        <div><span class="font-medium text-gray-950 dark:text-white">Email:</span> {{ $this->caiSubsection()->email ?? '—' }}</div>
+                        <div><span class="font-medium text-gray-950 dark:text-white">Telefono:</span> {{ $this->caiSubsection()->phone ?? '—' }}</div>
+                        <div><span class="font-medium text-gray-950 dark:text-white">Indirizzo:</span> {{ $this->caiSubsection()->address ?? '—' }}</div>
+                        <div><span class="font-medium text-gray-950 dark:text-white">Anno di fondazione:</span> {{ $this->caiSubsection()->founded_year ?? '—' }}</div>
+                        <div><span class="font-medium text-gray-950 dark:text-white">Numero soci:</span> {{ $this->caiSubsection()->members_count ?? '—' }}</div>
+                    </div>
+                @else
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        Nessun dato CAI/RUNTS disponibile per la tua sezione
+                    </p>
+                @endif
+            </x-filament::section>
+        </div>
+    @endif
+
     @if ($this->isGruppoRegionale())
         <div class="mb-4">
             <x-filament::section heading="Sezioni del gruppo regionale" icon="heroicon-o-map">

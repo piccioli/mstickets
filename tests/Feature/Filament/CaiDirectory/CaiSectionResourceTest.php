@@ -260,3 +260,55 @@ test('a user without cai-directory.view is denied downloading a cai document', f
 
     $response->assertForbidden();
 });
+
+test('a customer can download a document belonging to their own cai section', function (): void {
+    Storage::fake('cai-documents');
+
+    $customer = withRole(User::factory()->create(), UserRole::Customer);
+    $section = caiSection(['user_id' => $customer->id]);
+    $registration = CaiRuntsRegistration::create([
+        'id_runts' => 'RUNTS-'.$section->codice_cai,
+        'cai_section_id' => $section->codice_cai,
+    ]);
+    Storage::disk('cai-documents')->put('bilanci/2024.pdf', '%PDF-1.4 fake content');
+    $document = CaiDocument::create([
+        'cai_runts_registration_id' => $registration->id_runts,
+        'document_type' => 'bilancio',
+        'year' => 2024,
+        'title' => 'Bilancio 2024',
+        'file_path' => 'bilanci/2024.pdf',
+        'file_name' => '2024.pdf',
+        'mime_type' => 'application/pdf',
+        'size' => 1024,
+    ]);
+
+    $response = $this->actingAs($customer)->get(route('cai-documents.download', $document));
+
+    $response->assertOk();
+});
+
+test('a customer cannot download a document belonging to another cai section', function (): void {
+    Storage::fake('cai-documents');
+
+    $customer = withRole(User::factory()->create(), UserRole::Customer);
+    $section = caiSection();
+    $registration = CaiRuntsRegistration::create([
+        'id_runts' => 'RUNTS-'.$section->codice_cai,
+        'cai_section_id' => $section->codice_cai,
+    ]);
+    Storage::disk('cai-documents')->put('bilanci/2024.pdf', '%PDF-1.4 fake content');
+    $document = CaiDocument::create([
+        'cai_runts_registration_id' => $registration->id_runts,
+        'document_type' => 'bilancio',
+        'year' => 2024,
+        'title' => 'Bilancio 2024',
+        'file_path' => 'bilanci/2024.pdf',
+        'file_name' => '2024.pdf',
+        'mime_type' => 'application/pdf',
+        'size' => 1024,
+    ]);
+
+    $response = $this->actingAs($customer)->get(route('cai-documents.download', $document));
+
+    $response->assertForbidden();
+});
