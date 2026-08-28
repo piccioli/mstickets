@@ -17,8 +17,16 @@ class CaiBoardMember extends Model
     protected function casts(): array
     {
         return [
-            'valid_from' => 'date',
-            'valid_to' => 'date',
+            // Formato esplicito `Y-m-d`: senza, Eloquent serializza comunque in scrittura
+            // col formato generico `Y-m-d H:i:s` (il cast `date` tronca solo in lettura) —
+            // su SQLite (nessuna tipizzazione reale delle colonne) questo lasciava un
+            // suffisso orario che rompeva il match per idempotenza in
+            // CaiDatapackImporter::importBoardMembers() (confrontato con la stringa nuda
+            // `Y-m-d` di CaiRuntsDateParser). Su Postgres il problema restava mascherato:
+            // la colonna è realmente `date`, quindi il DB stesso troncava l'orario in
+            // scrittura — ma l'idempotenza va garantita a prescindere dal driver.
+            'valid_from' => 'date:Y-m-d',
+            'valid_to' => 'date:Y-m-d',
         ];
     }
 

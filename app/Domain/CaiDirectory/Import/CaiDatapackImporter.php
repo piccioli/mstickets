@@ -473,8 +473,16 @@ final class CaiDatapackImporter
             $existing = CaiBoardMember::query()
                 ->where('cai_runts_registration_id', $row->id_runts)
                 ->where('role', $row->ruolo)
-                ->where('tax_code', $row->codice_fiscale)
-                ->where('valid_from', $validFrom)
+                ->when(
+                    $row->codice_fiscale === null,
+                    fn ($query) => $query->whereNull('tax_code'),
+                    fn ($query) => $query->where('tax_code', $row->codice_fiscale),
+                )
+                ->when(
+                    $validFrom === null,
+                    fn ($query) => $query->whereNull('valid_from'),
+                    fn ($query) => $query->where('valid_from', $validFrom),
+                )
                 ->first();
 
             if ($existing === null) {
