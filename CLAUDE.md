@@ -1362,3 +1362,36 @@ verificati esplicitamente, non assunti allineati.
   cliente stesso naviga senza errori ma il filtro viene ignorato dal tab — nessun leak di dati altrui, ma
   anche nessun risultato utile. Se serve davvero mostrare i ticket di un altro utente a un cliente, serve un
   permesso nuovo esplicito, non un trucco di URL.
+
+## Schema — dominio `App\Domain\CaiDirectory`, chiave naturale string non incrementale (US-801, Fase 8)
+
+- **Prima volta nel repo che un modello Eloquent usa una chiave primaria naturale string** (non
+  auto-incrementale): `CaiSection` (`codice_cai`), `CaiSubsection` (`cai_codice`), `CaiRuntsRegistration`
+  (`id_runts`) — chiavi del datapack sorgente RUNTS-CAI, non generate da Orchestrator. Pattern: migrazione
+  con `$table->string('<chiave>')->primary()` (niente `$table->id()`), modello con
+  `protected $primaryKey = '<chiave>'; protected $keyType = 'string'; public $incrementing = false;`. Le FK
+  verso queste tabelle sono colonne string (`$table->string('cai_section_id')` +
+  `->foreign(...)->references('codice_cai')->on('cai_sections')`), mai `foreignId()`/`constrained()` (quelli
+  presumono una PK `unsignedBigInteger` auto-incrementale).
+- Le altre 3 tabelle del dominio (`cai_financial_statements`, `cai_board_members`, `cai_documents`) restano
+  sullo schema standard del repo (`$table->id()`), perché non hanno una chiave naturale nella fonte.
+- `cai_sections.region`/`cai_runts_registrations.region` sono **string libere**, non castate
+  sull'enum `App\Domain\Identity\Enums\Region` già in uso su `users.region` (Fase 7): il dataset RUNTS-CAI
+  reale contiene valori come `EXTRA REGIONE` che non sono una delle 20 regioni italiane ufficiali — castare
+  su quell'enum romperebbe l'import per quelle righe. Se una fase futura (US-807, scoping Gruppo Regionale)
+  deve confrontare `cai_sections.region` con `users.region`, serve una normalizzazione esplicita a quel
+  punto, non un cast condiviso.
+- **`php artisan test` (l'intero suite, Unit+Feature insieme) crasha in modo deterministico e
+  preesistente**, indipendente da questa story — riprodotto identico con e senza le modifiche di US-801
+  (`git stash`), sempre subito dopo `Tests\Unit\Domain\Mail\MailPipelineConfigTest`, appena prima dei test
+  in `tests/Unit/Domain/Mail/Parsers/*` che esercitano `symfony/html-sanitizer` → `\Dom\HTMLDocument`
+  (l'API DOM nativa nuova di PHP 8.4). Con `memory_limit` di default (128M) l'errore è un OOM esplicito
+  ("Allowed memory size exhausted") in `NativeParser.php`; alzando il limite a 512M (`php -d
+  memory_limit=512M artisan test`) l'OOM sparisce ma il processo termina comunque con `exit 255` e **nessun
+  output**, compatibile con un segfault nativo dell'estensione (non catturabile da PHP) quando il DOM parser
+  viene invocato ripetutamente nello stesso processo lungo un'intera run del suite. Ogni file di test preso
+  singolarmente (incluso l'intera cartella `Mail/Parsers`) passa senza problemi. Per verificare "Tests pass"
+  su una story che non tocca il dominio Mail: eseguire i test del proprio dominio/story mirati
+  (`php artisan test --filter=...` o il path del file), più eventualmente `tests/Unit`/`tests/Feature` a
+  pezzi se serve una verifica di non regressione più ampia — non fidarsi del codice di uscita di una run
+  `php artisan test` senza filtri, che fallisce per questo motivo preesistente a prescindere dalle modifiche.
