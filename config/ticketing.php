@@ -177,4 +177,25 @@ return [
         'schedule_cron' => env('TICKET_ARCHIVE_SCRUM_SCHEDULE_CRON', '0 5 * * *'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Automazione schedulata T6 (§6.1.5, §10.2 del PRD, US-612)
+    |--------------------------------------------------------------------------
+    |
+    | Cadenza di `tickets:restore-waiting`: ticket `status = waiting` da almeno
+    | `threshold_days` giorni DI CALENDARIO (esplicito nel PRD, a differenza di
+    | T3/T4 che usano giorni lavorativi) → `previous_status`. Il PRD (§10.2)
+    | specifica solo "daily" senza un orario preciso: 06:30 è un valore assunto
+    | (tra `waiting_reminder` alle 06:00 e `auto_close_released` alle 07:45),
+    | comunque configurabile via env. Dietro il feature flag già presente da
+    | Fase 0 (config('orchestrator.features.tickets_restore_waiting')),
+    | disattivato di default.
+    |
+    */
+
+    'restore_waiting' => [
+        'threshold_days' => (int) env('TICKET_RESTORE_WAITING_DAYS', 7),
+        'schedule_cron' => env('TICKET_RESTORE_WAITING_SCHEDULE_CRON', '30 6 * * *'),
+    ],
+
 ];

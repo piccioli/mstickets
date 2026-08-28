@@ -10,6 +10,7 @@ use App\Console\Commands\TicketsAutoCloseReleasedCommand;
 use App\Console\Commands\TicketsCloseScrumCommand;
 use App\Console\Commands\TicketsProgressToTodoCommand;
 use App\Console\Commands\TicketsRemindWaitingCommand;
+use App\Console\Commands\TicketsRestoreWaitingCommand;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -94,3 +95,13 @@ Schedule::command(TicketsArchiveScrumCommand::class)
     ->cron((string) config('ticketing.archive_scrum.schedule_cron'))
     ->withoutOverlapping()
     ->when(fn (): bool => (bool) config('orchestrator.features.tickets_archive_scrum'));
+
+// T6 (§6.1.5/§10.2 del PRD, US-612): ripristina a `previous_status` i ticket "waiting"
+// da almeno config('ticketing.restore_waiting.threshold_days') giorni DI CALENDARIO
+// (esplicito nel PRD, a differenza di T3/T4). Cadenza configurabile da
+// config('ticketing.restore_waiting.schedule_cron'), dietro il feature flag già
+// presente da Fase 0 (config('orchestrator.features.tickets_restore_waiting')).
+Schedule::command(TicketsRestoreWaitingCommand::class)
+    ->cron((string) config('ticketing.restore_waiting.schedule_cron'))
+    ->withoutOverlapping()
+    ->when(fn (): bool => (bool) config('orchestrator.features.tickets_restore_waiting'));
