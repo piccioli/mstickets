@@ -28,6 +28,8 @@
     "Your daily ticket activity digest": "Your daily ticket activity digest",
     "Here is a summary of the activity on your tickets in the last 24 hours.": "Here is a summary of the activity on your tickets in the last 24 hours.",
     "New messages: :count": "New messages: :count",
+    "Your activity report for :period is ready.": "Your activity report for :period is ready.",
+    "Download the PDF": "Download the PDF",
 
     "Activity report": "Activity report",
     "Type": "Type",

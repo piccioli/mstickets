@@ -15,12 +15,14 @@ use App\Domain\Mail\Events\InboundEmailApplied;
 use App\Domain\Mail\Listeners\NotifyStaffOfNewCustomerTicketFromEmail;
 use App\Domain\Mail\Listeners\NotifyStaffOfNewCustomerTicketFromWeb;
 use App\Domain\Mail\Listeners\NotifyStaffOfUnknownSender;
+use App\Domain\Mail\Listeners\SendActivityReportPdfGeneratedNotification;
 use App\Domain\Mail\Listeners\SendNewTicketMessageNotification;
 use App\Domain\Mail\Listeners\SendTicketAssignedNotification;
 use App\Domain\Mail\Listeners\SendTicketOpenedFromWebMailNotification;
 use App\Domain\Mail\Listeners\SendTicketReceivedByEmailNotification;
 use App\Domain\Mail\Listeners\SendTicketStatusChangedNotification;
 use App\Domain\Mail\Listeners\SendTicketTesterAssignedNotification;
+use App\Domain\Reporting\Events\ActivityReportPdfGenerated;
 use App\Domain\Tags\Listeners\CreateTagForDocumentationPage;
 use App\Domain\Tags\Listeners\RenameTagForDocumentationPage;
 use App\Domain\Ticketing\Events\TicketAssigned;
@@ -84,6 +86,11 @@ class AppServiceProvider extends ServiceProvider
         // eseguito l'azione (guard nell'Action, non nel listener).
         Event::listen(TicketAssigned::class, SendTicketAssignedNotification::class);
         Event::listen(TicketTesterAssigned::class, SendTicketTesterAssignedNotification::class);
+
+        // E10 (§7.5.2, US-615): PDF di un report attività generato per la prima
+        // volta — mai per una rigenerazione successiva (guard nell'Action che
+        // dispatcha l'evento, non qui).
+        Event::listen(ActivityReportPdfGenerated::class, SendActivityReportPdfGeneratedNotification::class);
 
         // §6.4.2 (US-405): auto-tag di una pagina di documentazione — mai un hook
         // Eloquent sul model DocumentationPage, listener di dominio esplicito.

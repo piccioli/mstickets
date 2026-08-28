@@ -39,6 +39,8 @@
     "Your daily ticket activity digest": "Il tuo digest giornaliero di attività ticket",
     "Here is a summary of the activity on your tickets in the last 24 hours.": "Ecco un riepilogo dell'attività sui tuoi ticket nelle ultime 24 ore.",
     "New messages: :count": "Nuovi messaggi: :count",
+    "Your activity report for :period is ready.": "Il tuo report di attività per :period è pronto.",
+    "Download the PDF": "Scarica il PDF",
 
     "Activity report": "Report di attività",
     "Type": "Tipo",
