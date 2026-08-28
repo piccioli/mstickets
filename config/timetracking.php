@@ -32,4 +32,18 @@ return [
     // davvero (§6.2.2, §17.1 del PRD).
     'non_status_change_cap_minutes' => (int) env('TIMETRACKING_NON_STATUS_CHANGE_CAP_MINUTES', 30),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Consolidamento schedulato (§10.2 del PRD, US-613)
+    |--------------------------------------------------------------------------
+    |
+    | Cadenza di `timetracking:aggregate-daily`, dietro
+    | config('orchestrator.features.timetracking_aggregate').
+    |
+    */
+
+    'aggregate_daily' => [
+        'schedule_cron' => env('TIMETRACKING_AGGREGATE_SCHEDULE_CRON', '30 23 * * *'),
+    ],
+
 ];

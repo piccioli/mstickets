@@ -11,6 +11,7 @@ use App\Console\Commands\TicketsCloseScrumCommand;
 use App\Console\Commands\TicketsProgressToTodoCommand;
 use App\Console\Commands\TicketsRemindWaitingCommand;
 use App\Console\Commands\TicketsRestoreWaitingCommand;
+use App\Console\Commands\TimeTrackingAggregateDailyCommand;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -105,3 +106,15 @@ Schedule::command(TicketsRestoreWaitingCommand::class)
     ->cron((string) config('ticketing.restore_waiting.schedule_cron'))
     ->withoutOverlapping()
     ->when(fn (): bool => (bool) config('orchestrator.features.tickets_restore_waiting'));
+
+// §10.2 del PRD, US-613: consolida ogni sera `ticket_work_logs` per i ticket con
+// attività nella giornata, colmando il gap del v1 ("il job esiste ma non ha
+// alcuna cadenza schedulata"). Cadenza configurabile da
+// config('timetracking.aggregate_daily.schedule_cron'), dietro il feature flag
+// già presente da Fase 0 (config('orchestrator.features.timetracking_aggregate')).
+// `timetracking:recalculate` resta comunque richiamabile manualmente da CLI
+// indipendentemente da questo flag.
+Schedule::command(TimeTrackingAggregateDailyCommand::class)
+    ->cron((string) config('timetracking.aggregate_daily.schedule_cron'))
+    ->withoutOverlapping()
+    ->when(fn (): bool => (bool) config('orchestrator.features.timetracking_aggregate'));
