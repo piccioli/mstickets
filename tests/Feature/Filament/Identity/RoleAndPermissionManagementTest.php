@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Domain\Identity\Enums\CustomerType;
 use App\Domain\Identity\Enums\Permission as PermissionEnum;
+use App\Domain\Identity\Enums\Region;
 use App\Domain\Identity\Enums\UserRole;
 use App\Domain\Identity\Models\User;
 use App\Filament\Resources\Roles\Pages\ListRoles;
@@ -183,6 +185,125 @@ test('effective permissions are listed with their provenance (role vs direct)', 
     expect($viaRoleLine)->toContain(UserRole::Developer->getLabel())
         ->and($viaRoleLine)->not->toContain('diretto')
         ->and($directLine)->toContain('diretto');
+});
+
+test('customer_type and region are hidden when no customer role is selected', function (): void {
+    $admin = grantPanelAccess(userWithPermissions(
+        PermissionEnum::UserView,
+        PermissionEnum::UserUpdate,
+        PermissionEnum::UserAssignRoles,
+    ));
+    $target = User::factory()->create();
+
+    $this->actingAs($admin);
+
+    Livewire::test(EditUser::class, ['record' => $target->getKey()])
+        ->assertFormFieldHidden('customer_type')
+        ->assertFormFieldHidden('region');
+});
+
+test('customer_type becomes visible when the customer role is selected in the form', function (): void {
+    $admin = grantPanelAccess(userWithPermissions(
+        PermissionEnum::UserView,
+        PermissionEnum::UserUpdate,
+        PermissionEnum::UserAssignRoles,
+    ));
+    $customerRole = Role::query()->firstOrCreate(['name' => UserRole::Customer->value, 'guard_name' => 'web']);
+    $target = User::factory()->create();
+
+    $this->actingAs($admin);
+
+    Livewire::test(EditUser::class, ['record' => $target->getKey()])
+        ->fillForm(['roles' => [$customerRole->getKey()]])
+        ->assertFormFieldVisible('customer_type')
+        ->assertFormFieldHidden('region');
+});
+
+test('region becomes visible only when customer_type is Sezione or GruppoRegionale', function (): void {
+    $admin = grantPanelAccess(userWithPermissions(
+        PermissionEnum::UserView,
+        PermissionEnum::UserUpdate,
+        PermissionEnum::UserAssignRoles,
+    ));
+    $customerRole = Role::query()->firstOrCreate(['name' => UserRole::Customer->value, 'guard_name' => 'web']);
+    $target = User::factory()->create();
+
+    $this->actingAs($admin);
+
+    Livewire::test(EditUser::class, ['record' => $target->getKey()])
+        ->fillForm([
+            'roles' => [$customerRole->getKey()],
+            'customer_type' => CustomerType::Sezione->value,
+        ])
+        ->assertFormFieldVisible('region')
+        ->fillForm(['customer_type' => CustomerType::OrganoTecnicoStrutturaOperativa->value])
+        ->assertFormFieldHidden('region')
+        ->fillForm(['customer_type' => CustomerType::GruppoRegionale->value])
+        ->assertFormFieldVisible('region')
+        ->fillForm(['customer_type' => CustomerType::Generico->value])
+        ->assertFormFieldHidden('region');
+});
+
+test('an admin with user.assign-roles can persist customer_type and region via the edit form', function (): void {
+    $admin = grantPanelAccess(userWithPermissions(
+        PermissionEnum::UserView,
+        PermissionEnum::UserUpdate,
+        PermissionEnum::UserAssignRoles,
+    ));
+    $customerRole = Role::query()->firstOrCreate(['name' => UserRole::Customer->value, 'guard_name' => 'web']);
+    $target = User::factory()->create();
+
+    $this->actingAs($admin);
+
+    Livewire::test(EditUser::class, ['record' => $target->getKey()])
+        ->fillForm([
+            'roles' => [$customerRole->getKey()],
+            'customer_type' => CustomerType::GruppoRegionale->value,
+            'region' => Region::Lombardia->value,
+        ])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    $target->refresh();
+
+    expect($target->customer_type)->toBe(CustomerType::GruppoRegionale)
+        ->and($target->region)->toBe(Region::Lombardia);
+});
+
+test('region is cleared when customer_type is not Sezione or GruppoRegionale on save', function (): void {
+    $admin = grantPanelAccess(userWithPermissions(
+        PermissionEnum::UserView,
+        PermissionEnum::UserUpdate,
+        PermissionEnum::UserAssignRoles,
+    ));
+    $customerRole = Role::query()->firstOrCreate(['name' => UserRole::Customer->value, 'guard_name' => 'web']);
+    $target = User::factory()->create(['customer_type' => CustomerType::Sezione, 'region' => Region::Lombardia]);
+    $target->assignRole($customerRole);
+
+    $this->actingAs($admin);
+
+    Livewire::test(EditUser::class, ['record' => $target->getKey()])
+        ->fillForm([
+            'roles' => [$customerRole->getKey()],
+            'customer_type' => CustomerType::Generico->value,
+        ])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect($target->fresh()->region)->toBeNull();
+});
+
+test('an admin without user.assign-roles cannot see or modify customer_type and region', function (): void {
+    $admin = grantPanelAccess(userWithPermissions(PermissionEnum::UserView, PermissionEnum::UserUpdate));
+    $customerRole = Role::query()->firstOrCreate(['name' => UserRole::Customer->value, 'guard_name' => 'web']);
+    $target = User::factory()->create();
+    $target->assignRole($customerRole);
+
+    $this->actingAs($admin);
+
+    Livewire::test(EditUser::class, ['record' => $target->getKey()])
+        ->assertFormFieldDoesNotExist('customer_type')
+        ->assertFormFieldDoesNotExist('region');
 });
 
 test('a permission granted both via a role and directly lists both sources', function (): void {

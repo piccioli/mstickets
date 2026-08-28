@@ -430,6 +430,11 @@ Ogni fase completata (Fase 2 in poi) deve produrre, prima di essere considerata 
    successive (Fase 4/5/6).
 3. `php artisan collaudo:generate <N>` — PDF di collaudo con carta intestata Montagna Servizi, Parte 1
    (istruzioni: URL app UAT, URL Mailpit, credenziali) + una sezione per topic con i test numerati.
+   **Aggiungere sempre la fase a `CollaudoGenerateCommand::FASE_NARRATIVE_FILES`/`FASE_TITLES`** quando si
+   scrive il manuale narrativo del punto 2: l'esistenza del file `NN-fase-N.md` da sola non basta, se la
+   fase manca da quelle due const il comando ripiega silenziosamente (nessun errore) sul solo PDF sintetico
+   da manifest invece del PDF dettagliato — gap reale trovato per Fase 6 durante il checkpoint di Fase 7
+   (corretto in quella stessa story, insieme alla registrazione di Fase 7).
    `storage/app/collaudo/` deve contenere **sempre e solo l'ultima versione generata per ciascuna fase**
    (sia la variante sintetica `collaudo-fase-<N>-*.pdf` sia, quando applicabile, quella dettagliata
    `collaudo-dettagliato-fase-<N>-*.pdf`): `CollaudoGenerateCommand` cancella da sé ogni PDF precedente
@@ -1312,3 +1317,48 @@ verificati esplicitamente, non assunti allineati.
   `EmailMessage::where('user_id', ...)->where('mailable_class', IdleDeveloperNoticeMail::class)
   ->where('created_at', '>=', $todayStart)->exists()` — corretto qui perché la fascia oraria ricorre una
   sola volta al giorno, quindi "oggi" e "questa finestra" coincidono.
+
+## Filament Select condizionato dalla selezione corrente di ruoli/tipo e reso non-fillable per svista (US-703, Fase 7)
+
+- **`#[Fillable([...])]` sul model `User` (attributo PHP, non `$fillable` di Eloquent) è la fonte di
+  verità per quali colonne un `->update($data)` da Filament può davvero scrivere**: aggiungere una nuova
+  colonna nullable a `users` (migrazione + cast enum) NON basta per renderla salvabile da un form Filament
+  — se manca dalla lista dell'attributo, `EditRecord::save()` costruisce correttamente `$data` (verificato
+  con `dd()`/log: il valore c'è), ma `$record->update($data)` la scarta silenziosamente per mass-assignment
+  protection, **senza errori né eccezioni**, e il test fallisce solo su `$record->fresh()->colonna` dopo il
+  save. Prima di sospettare un bug nel form (visibility/dehydration), controllare sempre questo attributo
+  quando un campo "sembra salvarsi" (nessun errore di validazione) ma il valore persistito resta quello
+  vecchio/null.
+- **`->visible(fn (Get $get) => ...)` e `->dehydrated(fn (Get $get) => ...)` NON bastano per azzerare
+  esplicitamente un campo quando diventa non pertinente** (es. "Regione" quando il tipo cliente cambia da
+  Sezione a Organo Tecnico): di default un componente `hidden`/`visible(false)` viene escluso dalla
+  dehydration **a prescindere** da `->dehydrated(true)` — quel metodo controlla solo la dehydration di un
+  campo VISIBILE. Per forzare l'inclusione (e quindi l'azzeramento via `dehydrateStateUsing`) anche quando
+  il campo è nascosto serve **`->dehydratedWhenHidden()`** (proprietà distinta, default `false`, in
+  `Filament\Schemas\Components\Concerns\HasState`). Pattern completo per "campo B pertinente solo se campo
+  A ha un certo valore, altrimenti azzerato in salvataggio":
+  ```php
+  Select::make('region')
+      ->visible(fn (Get $get): bool => /* pertinente */)
+      ->dehydratedWhenHidden()
+      ->dehydrateStateUsing(fn (Get $get, $state) => /* pertinente */ ? $state : null),
+  ```
+  Vedi `app/Filament/Resources/Users/Schemas/UserForm.php` (`customer_type`/`region` condizionati dal ruolo
+  `customer` selezionato in un `CheckboxList::make('roles')->relationship(...)`, il cui stato via `Get` è un
+  array di ID di ruolo — non di nomi — perché legato a una relazione `BelongsToMany`).
+
+## Query object §8.5 per un utente arbitrario, e link cross-cliente su `TicketResource` sempre "sicuro ma inerte" per un customer (US-705, Fase 7)
+
+- **Un query object `*Query::for(User $user)` non presume `$user === Auth::user()`**: `MyTicketsQuery::for($altroUtente)->count()`
+  calcola correttamente il conteggio ticket aperti di un utente DIVERSO da quello loggato, perché
+  `Ticket::scopeVisibleTo()` chiama `$user->can(...)` sul parametro ricevuto (Laravel autorizza qualunque
+  istanza `User`, non solo l'`Auth::user()` corrente). Utile per metriche aggregate su record altrui senza
+  duplicare la logica di dominio ("aperti = non Done/Rejected") in una query nuova.
+- **Un cliente (qualunque `customer_type`) ha solo il permesso `ticket.view.own`**, mai
+  `ticket.view.any`/`ticket.manage-internal-fields`: in `ListTickets::getTabs()` vede sempre e solo le tab
+  "I miei ticket"/"Archivio", che sovrascrivono la query con `MyTicketsQuery::for($user)` **a prescindere**
+  dai query param nell'URL (`?tableFilters[requester_id][value]=...` incluso). Un link dalla dashboard cliente
+  verso `TicketResource::getUrl('index', ['tableFilters' => [...]])` puntato su un `requester_id` che non è il
+  cliente stesso naviga senza errori ma il filtro viene ignorato dal tab — nessun leak di dati altrui, ma
+  anche nessun risultato utile. Se serve davvero mostrare i ticket di un altro utente a un cliente, serve un
+  permesso nuovo esplicito, non un trucco di URL.

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Domain\Identity\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Domain\Identity\Enums\CustomerType;
+use App\Domain\Identity\Enums\Region;
 use App\Domain\Identity\Enums\UserRole;
 use App\Domain\Identity\Policies\UserPolicy;
 use Database\Factories\UserFactory;
@@ -24,7 +26,7 @@ use Illuminate\Support\Facades\Gate;
 use SensitiveParameter;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'password', 'locale', 'drive_url', 'drive_budget_url'])]
+#[Fillable(['name', 'email', 'password', 'locale', 'drive_url', 'drive_budget_url', 'customer_type', 'region'])]
 #[Hidden(['password', 'remember_token', 'app_authentication_secret', 'app_authentication_recovery_codes'])]
 class User extends Authenticatable implements FilamentUser, HasAppAuthentication, HasAppAuthenticationRecovery
 {
@@ -44,6 +46,8 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
             'password' => 'hashed',
             'app_authentication_secret' => 'encrypted',
             'app_authentication_recovery_codes' => 'encrypted:array',
+            'customer_type' => CustomerType::class,
+            'region' => Region::class,
         ];
     }
 

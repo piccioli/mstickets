@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\Users\Schemas;
 
+use App\Domain\Identity\Enums\CustomerType;
 use App\Domain\Identity\Enums\Permission as AppPermission;
+use App\Domain\Identity\Enums\Region;
 use App\Domain\Identity\Enums\UserRole;
 use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Auth;
 use Spatie\Permission\Models\Permission as SpatiePermission;
@@ -45,7 +49,27 @@ class UserForm
                                 fn (SpatieRole $record): string => UserRole::tryFrom($record->name)?->getLabel() ?? $record->name,
                             )
                             ->columns(2)
-                            ->hiddenLabel(),
+                            ->hiddenLabel()
+                            ->live(),
+
+                        Select::make('customer_type')
+                            ->label('Tipo cliente')
+                            ->options(collect(CustomerType::cases())->mapWithKeys(
+                                fn (CustomerType $type): array => [$type->value => $type->getLabel()],
+                            ))
+                            ->live()
+                            ->visible(fn (Get $get): bool => self::customerRoleSelected($get))
+                            ->dehydratedWhenHidden()
+                            ->dehydrateStateUsing(fn (Get $get, $state) => self::customerRoleSelected($get) ? $state : null),
+
+                        Select::make('region')
+                            ->label('Regione')
+                            ->options(collect(Region::cases())->mapWithKeys(
+                                fn (Region $region): array => [$region->value => $region->label()],
+                            ))
+                            ->visible(fn (Get $get): bool => self::customerRoleSelected($get) && self::regionRelevant($get))
+                            ->dehydratedWhenHidden()
+                            ->dehydrateStateUsing(fn (Get $get, $state) => self::customerRoleSelected($get) && self::regionRelevant($get) ? $state : null),
                     ]),
 
                 Section::make('Permessi diretti')
@@ -62,5 +86,28 @@ class UserForm
                             ->hiddenLabel(),
                     ]),
             ]);
+    }
+
+    /**
+     * `roles` è un `CheckboxList` legato a una relazione BelongsToMany: il suo stato nel
+     * form è un array di ID di ruolo, non di nomi. Risolviamo l'ID del ruolo `customer`
+     * per verificare se è tra quelli selezionati.
+     */
+    private static function customerRoleSelected(Get $get): bool
+    {
+        $customerRoleId = SpatieRole::query()->where('name', UserRole::Customer->value)->value('id');
+
+        if ($customerRoleId === null) {
+            return false;
+        }
+
+        return in_array($customerRoleId, (array) $get('roles'), false);
+    }
+
+    private static function regionRelevant(Get $get): bool
+    {
+        $customerType = CustomerType::tryFrom((string) $get('customer_type'));
+
+        return in_array($customerType, [CustomerType::Sezione, CustomerType::GruppoRegionale], true);
     }
 }

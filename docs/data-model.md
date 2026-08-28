@@ -76,7 +76,7 @@ in relazione applicativa con lo schema di dominio).
 
 | Tabella | Contenuto | Note |
 |---|---|---|
-| `users` | Anagrafica, `email` (unique, indice funzionale `lower(email)`), `locale`, `drive_url`/`drive_budget_url`, `deactivated_at` (§6.7.5), `app_authentication_secret`/`app_authentication_recovery_codes` (MFA, `encrypted`/`encrypted:array`, aggiunte Fase 6 US-606) | `password` nullable: utenti importati dall'ETL che non hanno mai fatto login |
+| `users` | Anagrafica, `email` (unique, indice funzionale `lower(email)`), `locale`, `drive_url`/`drive_budget_url`, `deactivated_at` (§6.7.5), `app_authentication_secret`/`app_authentication_recovery_codes` (MFA, `encrypted`/`encrypted:array`, aggiunte Fase 6 US-606), `customer_type`/`region` (nullable, aggiunte Fase 7 US-701) | `password` nullable: utenti importati dall'ETL che non hanno mai fatto login |
 | `organizations` | `name`, `locale` | id conservato dal v1 |
 | `organization_user` | pivot `organization_id`/`user_id` | unique sulla coppia |
 | `roles`, `permissions`, `model_has_roles`, `model_has_permissions`, `role_has_permissions` | tabelle standard `spatie/laravel-permission` | guard unico `web`, `teams` disabilitato — vedi `docs/authorization.md` |
@@ -179,6 +179,8 @@ Tutti backed enum PHP con `label()` localizzata; quelli con semantica di stato i
 | `TicketMessageVisibility` | `App\Domain\Ticketing\Enums\TicketMessageVisibility` | `public`, `internal` |
 | `TicketLogEvent` | `App\Domain\Ticketing\Enums\TicketLogEvent` | `created`, `status_changed`, `assigned`, `updated`, `message_posted`, `attachment_added`, `attachment_removed`, `system`, `archived` (Fase 6, US-611) |
 | `NotificationType` | `App\Domain\Mail\Enums\NotificationType` | un case per comunicazione E1-E11 effettivamente implementata — vedi `docs/email.md` |
+| `CustomerType` | `App\Domain\Identity\Enums\CustomerType` | `sezione`, `gruppo_regionale`, `organo_tecnico_struttura_operativa`, `generico` (Fase 7, US-701) |
+| `Region` | `App\Domain\Identity\Enums\Region` | le 20 regioni italiane ufficiali, Trentino-Alto Adige unificato — solo `label()`, nessun `HasColor`/`HasIcon` (Fase 7, US-701) |
 
 Enum del v1 non portati: `EpicStatus`, `QuoteStatus`, `DeadlineStatus`.
 
@@ -194,3 +196,20 @@ Enum del v1 non portati: `EpicStatus`, `QuoteStatus`, `DeadlineStatus`.
   `2026_08_26_120000_change_notifications_data_column_to_json.php`: correzione di un bug reale
   scoperto in Fase 3 (query Filament con l'operatore `->>'format'` su una colonna dichiarata
   `text`), vedi `docs/differences-from-v1.md`.
+
+## Note aggiuntive Fase 7
+
+- `users.customer_type`/`users.region` (migrazione
+  `2026_08_28_120000_add_customer_type_and_region_to_users_table.php`): colonne additive, nullable,
+  nessun vincolo DB — `region` è concettualmente pertinente solo per `customer_type` Sezione/Gruppo
+  Regionale, una convenzione applicativa rispettata da `CustomerClassificationStage` (ETL) e da
+  `UserForm` (UI Admin), mai imposta a livello di schema.
+- `App\Import\Stages\CustomerClassificationStage` (dipendenze `['users', 'roles_permissions']`)
+  deduce `customer_type`/`region` dal nome degli utenti con ruolo `customer` all'import (US-702):
+  prefisso `GR`/`GP` → Gruppo Regionale, prefisso `OTCO/SO` → Organo Tecnico Centrale/Struttura
+  Operativa (un unico tipo: il dato v1 non li distingue mai), formato `"nome | regione"` → Sezione,
+  nessun pattern → Cliente generico.
+- `App\Domain\Identity\Queries\SectionsInRegionQuery` (US-705): restituisce gli utenti
+  `customer_type = Sezione` della stessa `region` di un Gruppo Regionale — un concetto distinto
+  dalle `organizations`/`organization_user` introdotte in Fase 4 per il possesso degli Activity
+  Report, mai sovrapposto ad esse.
