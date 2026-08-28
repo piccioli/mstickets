@@ -1414,3 +1414,35 @@ verificati esplicitamente, non assunti allineati.
   |x| >= 1000 invece di propagarlo. La fixture di test (`tests/Feature/Console/
   CaiImportDatapackCommandTest.php`) include entrambi i casi (indirizzo JSON + coordinata fuori range):
   usata come riferimento per estendere la fixture stessa se emergono altri campi con lo stesso problema.
+
+## Filament staff `CaiSectionResource` (US-804, Fase 8): infolist riusabile, permesso unico, niente Policy
+
+- `App\Filament\Resources\CaiSections\Schemas\CaiSectionInfolist::configure()` è una classe statica
+  indipendente dalla Resource (non un metodo `infolist()` inline): il design doc di Fase 8 (§7) richiede che
+  US-806 (dashboard cliente Sezione) e US-807 (dettaglio da Gruppo Regionale) **riusino lo stesso
+  componente/vista** di questa, cambiando solo l'autorizzazione — chiamare `CaiSectionInfolist::configure()`
+  da lì invece di duplicare lo schema.
+- I tab "Dati RUNTS"/"Bilanci"/"Allegati" leggono da `RepeatableEntry::state(fn (CaiSection $record) => ...)`
+  esplicito (mai la relazione Eloquent grezza come nome del componente), perché `cai_runts_registrations` è
+  0..n rispetto a una sezione (nullable FK, US-801) e bilanci/documenti pendono da lì, non direttamente dalla
+  sezione: serve `flatMap` (es. `$record->runtsRegistrations->flatMap->financialStatements`). Ogni
+  `RepeatableEntry` ha un `->placeholder(...)` esplicito per il caso vuoto — mai una tab che va in errore o
+  appare bianca quando una sezione non ha ancora registrazioni RUNTS (caso normale, non un bug).
+- `cai_sections.region` è testo libero dal datapack RUNTS-CAI (include valori come "EXTRA REGIONE" che non
+  esistono nell'enum applicativo `App\Domain\Identity\Enums\Region`, pensato per le 20 regioni italiane):
+  il filtro regione della tabella (`CaiSectionsTable`) costruisce le opzioni da `CaiSection::query()->
+  distinct()->pluck('region', 'region')`, mai dall'enum, altrimenti alcuni valori reali sparirebbero dal
+  filtro senza errore visibile.
+- Nessuna Policy dedicata: `CaiSection`/`CaiDocument` sono popolati solo dall'importer (US-802), senza owner
+  applicativo da confrontare in una regola di autorizzazione — un unico permesso di catalogo
+  (`Permission::CaiDirectoryView`) gate sia i metodi `can*()` della Resource sia il controller di download
+  dedicato (`CaiDocumentDownloadController`, verificato con `Auth::user()?->can(...)` direttamente, non
+  `AuthorizesRequests`). Se una story futura introduce un vincolo di scope (es. US-807, solo sezioni della
+  propria regione), aggiungerlo come controllo aggiuntivo lato server nel punto d'accesso specifico, non
+  cambiare questo permesso di catalogo che resta "vedi l'intera anagrafica" per lo staff.
+- Verifica in browser via Playwright ad-hoc (nessun MCP registrato in questo repo): `npx --yes playwright
+  install chromium` poi uno script `.mjs` in `/tmp` (mai committato) che fa login su `/admin/login` con
+  l'account di collaudo (`php artisan collaudo:ensure-manager-account` → `manager@oc.test`/`uat`) e
+  screenshotta lista/dettaglio. Richiede prima `php artisan cai:import-datapack` sul dataset reale locale
+  (`cai-datapack/runts-cai.sqlite`) per avere dati non vuoti — verificare con `CaiSection::count()` prima di
+  assumere che i dati ci siano già (`v1:import` non tocca le tabelle CAI, ma un `migrate:fresh` sì).

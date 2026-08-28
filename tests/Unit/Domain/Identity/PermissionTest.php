@@ -35,11 +35,13 @@ test('contains exactly the permission catalog of PRD §9.3', function (): void {
         'email.view', 'email.manage',
         // Sistema
         'horizon.access', 'logs.access', 'import.view',
+        // Anagrafica CAI
+        'cai-directory.view',
     ];
 
     $actual = array_map(fn (Permission $permission): string => $permission->value, Permission::cases());
 
-    expect($actual)->toHaveCount(52)
+    expect($actual)->toHaveCount(53)
         ->and($actual)->toEqualCanonicalizing($expected);
 });
 

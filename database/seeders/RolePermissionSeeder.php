@@ -46,6 +46,7 @@ class RolePermissionSeeder extends Seeder
             PermissionEnum::ActivityReportViewAny,
             PermissionEnum::ActivityReportViewOwn,
             PermissionEnum::OrganizationView,
+            PermissionEnum::CaiDirectoryView,
         ],
         'developer' => [
             PermissionEnum::TicketViewAny,
@@ -63,6 +64,7 @@ class RolePermissionSeeder extends Seeder
             PermissionEnum::DocumentationViewInternal,
             PermissionEnum::DocumentationCreate,
             PermissionEnum::DocumentationUpdate,
+            PermissionEnum::CaiDirectoryView,
         ],
         'customer' => [
             PermissionEnum::TicketViewOwn,
