@@ -22,6 +22,13 @@ docker compose -f docker-compose.uat.yml --env-file .env.uat exec -T app php art
 docker compose -f docker-compose.uat.yml --env-file .env.uat exec -T app php artisan db:seed --class=RolePermissionSeeder --force
 docker compose -f docker-compose.uat.yml --env-file .env.uat exec -T app php artisan v1:import --anonymize
 
+# Dati CAI/RUNTS (Fase 8): letti dal bind-mount CAI_DATAPACK_HOST_PATH (vedi
+# docker-compose.uat.yml), popolato su msuat con bin/push-cai-datapack. A
+# differenza di "make setup" (locale, best-effort) qui va SEMPRE eseguito:
+# ogni deploy fa migrate:fresh, quindi senza questo passo i dati CAI andrebbero
+# persi ad ogni push su develop.
+docker compose -f docker-compose.uat.yml --env-file .env.uat exec -T app php artisan cai:import-datapack
+
 # manager@oc.test non esiste in v1 (nessun utente reale ha il ruolo "manager"):
 # creato ex novo, non dalla mappa reference_users dell'anonimizzazione.
 docker compose -f docker-compose.uat.yml --env-file .env.uat exec -T app php artisan collaudo:ensure-manager-account

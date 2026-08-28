@@ -18,6 +18,13 @@ services:
       # path di default letto da LEGACY_MEDIA_PATH, config/filesystems.php): non
       # serve valorizzare LEGACY_MEDIA_PATH in .env.uat.
       - ${LEGACY_MEDIA_HOST_PATH:-/opt/mstickets-uat/v1-media}:/app/storage/app/v1-media
+      # Datapack RUNTS-CAI (Fase 8, sezioni/sottosezioni CAI): stesso principio
+      # del bind-mount sopra, ma in sola lettura (il comando cai:import-datapack
+      # apre il file .sqlite con PDO::SQLITE_OPEN_READONLY e copia gli allegati
+      # verso lo storage privato, non scrive mai dentro questa cartella).
+      # Popolato su msuat con bin/push-cai-datapack (mai da CI, il datapack non
+      # è mai versionato con git).
+      - ${CAI_DATAPACK_HOST_PATH:-/opt/mstickets-uat/cai-datapack}:/app/cai-datapack:ro
     depends_on:
       db:
         condition: service_healthy
