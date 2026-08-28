@@ -1530,6 +1530,44 @@ verificati esplicitamente, non assunti allineati.
   già in uso. Se US-807 (Gruppo Regionale) deve scaricare documenti di sezioni della propria regione, estendere
   questo stesso metodo `authorized()`, non introdurne un secondo.
 
+## Checkpoint di fine Fase 8 (US-808): manuale dettagliato generato con uno script PHP usa-e-getta, non scritto a mano
+
+- I manuali dettagliati `docs/collaudo/NN-fase-N.md` precedenti (es. `14-fase-7.md`, 2467 righe per
+  36 test) erano scritti caso per caso a mano. Con 52 test su 8 topic, per Fase 8 è stato più
+  affidabile generare `15-fase-8.md` con uno script PHP one-off (`php` locale, fuori dal repo, non
+  committato — es. `/tmp/gen-fase8-collaudo.php` + un file dati `/tmp/fase8-collaudo-extra.php` con
+  le sole informazioni che NON si possono derivare dal manifest: priorità, ruolo, prerequisiti,
+  procedura passo-passo per i casi MANUALE UI) che legge `docs/collaudo/fase-N.php` (già scritto a
+  mano) e produce ogni blocco `### F8-xx — ...` col template esatto già in uso (stessi 13 campi:
+  Obiettivo/Riferimenti/Modalità/Priorità/Ruolo/Prerequisiti/Dati di test/Stato iniziale/Procedura/
+  Risultato finale/Controlli negativi/Evidenze/Criterio di superamento/Ripristino/Campi di
+  consuntivazione). Per i casi AUTOMATICO (verificati con `vendor/bin/pest --filter "..."`) quasi
+  tutto è derivabile per default dalla `descrizione`/`test_automatico` del manifest — lo script li
+  genera senza bisogno di dati extra, riducendo l'autoria manuale ai soli casi MANUALE UI (dove la
+  Procedura richiede passi UI specifici, non automatizzabili). Stesso principio riusabile per Fase 9+.
+- **Stesso script serve anche per `01-matrice-tracciabilita.md` e `11-registro-esiti.md`**: le righe
+  di quelle due tabelle sono anch'esse interamente derivabili dal manifest + dai metadati
+  modalità/priorità/ruolo già raccolti per il manuale dettagliato — generarle con lo stesso script
+  (append in coda alla tabella esistente) invece di scriverle a mano riga per riga evita errori di
+  trascrizione sui 50+ ID.
+- **Gotcha apostrofo, variante per la VISUALIZZAZIONE (distinto dal gotcha di `verify-manifest` già
+  documentato sopra)**: il manifest porta nel suffisso `::descrizione` di `test_automatico` un
+  backslash letterale prima dell'apostrofo quando serve per far combaciare `verify-manifest` coi
+  byte grezzi del test (es. `sezione\\'s data`). Quel backslash letterale NON va mai mostrato in un
+  documento per un tester umano (manuale dettagliato, matrice, registro esiti): va ripulito con
+  `str_replace("\\'", "'", $testDescription)` prima di qualunque uso testuale/visualizzazione, ma
+  MAI prima del confronto passato a `verify-manifest` (quello richiede il backslash intatto).
+- **Aggiornare anche i 5 file "vivi" cumulativi ad ogni fase**, non solo il manifest/manuale della
+  fase nuova: `docs/collaudo/00-istruzioni-generali.md` (§1 changelog versione, §2 conteggio totale,
+  §3 tabella argomenti della fase + aggiornamento contatore, §4 ambito escluso, §17 conteggio test nei
+  criteri di superamento, opzionalmente §glossario), `01-matrice-tracciabilita.md` (contatori modalità/
+  stato + append righe), `11-registro-esiti.md` (append sezione + contatore aggregato),
+  `12-verbale-collaudo.md` (conteggio test), `README.md` (riepilogo numerico + indice). Il PDF
+  generato da `collaudo:generate N` include SEMPRE questi file cumulativi in testa/coda
+  (`COMMON_PREFIX_FILES`/`COMMON_SUFFIX_FILES` di `CollaudoGenerateCommand`): se non aggiornati, il
+  PDF della nuova fase mostra ancora i conteggi della fase precedente nell'indice/istruzioni generali,
+  pur avendo il proprio manuale dettagliato corretto in mezzo.
+
 ## Pagina Filament custom con parametro di rotta + record scoping in `mount()` (US-807, Fase 8)
 
 - Un `Filament\Pages\Page` (non-Resource) può avere un parametro di rotta come una `ViewRecord`: basta

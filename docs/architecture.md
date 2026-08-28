@@ -41,14 +41,18 @@ app/
 │   ├── Reporting/        Models (ActivityReport, Organization), Actions, Enums, Events, Jobs, Services, Policies
 │   ├── Fundraising/      Models, Actions, Enums, Policies, Services, StateMachine
 │   ├── Identity/         Models (User), Enums (UserRole, Permission), Listeners, Policies
-│   └── Mail/             Contracts, Transports, Parsers, Actions, Events, Listeners, Mailables, Models, Support, Policies
+│   ├── Mail/             Contracts, Transports, Parsers, Actions, Events, Listeners, Mailables, Models, Support, Policies
+│   └── CaiDirectory/     Models (CaiSection/CaiSubsection/CaiRuntsRegistration/CaiFinancialStatement/
+│                         CaiBoardMember/CaiDocument), Import (CaiDatapackImporter)
 ├── Import/                ETL dal v1 (§11) — Stages, Mappers, Parsers, Validation, Security, Models, Enums, Inspect
 ├── Filament/
 │   ├── Resources/         una Resource per entità (Tickets, Users, Roles, Tags, DocumentationPages,
 │   │                      ActivityReports, Organizations, FundraisingOpportunities/Projects,
-│   │                      CustomerFundraisingOpportunities/Projects, EmailMessages)
+│   │                      CustomerFundraisingOpportunities/Projects, EmailMessages, CaiSections —
+│   │                      sola consultazione, nessun Create/Edit/Delete)
 │   ├── Pages/              pagine senza Resource dietro (WorkBoard, Dashboard, CustomerDashboard,
-│   │                      NotificationPreferences, EmailQuarantine, EmailSuppressions)
+│   │                      NotificationPreferences, EmailQuarantine, EmailSuppressions,
+│   │                      CaiSectionsMap, CaiSectionRegionalDetail)
 │   ├── Widgets/            (es. EmailPipelineMetricsOverview)
 │   ├── Navigation/         classi pure per voci di navigazione condizionali (es. MailpitNavigationItem)
 │   ├── Auth/               Pages/Login custom, Middleware MFA per ruolo
@@ -103,6 +107,7 @@ difetto da correggere, non un'eccezione tollerata.
 | Vista di lavoro (WorkBoard) | `app/Filament/Pages/WorkBoard.php` + `resources/views/filament/pages/work-board.blade.php` |
 | Dashboard cliente | `app/Filament/Pages/CustomerDashboard.php` |
 | Tipologia di cliente CAI — enum/classificazione | `app/Domain/Identity/Enums/{CustomerType,Region}.php`, `app/Import/Stages/CustomerClassificationStage.php`, `app/Domain/Identity/Queries/SectionsInRegionQuery.php` |
+| Integrazione dati RUNTS-CAI | `app/Domain/CaiDirectory/` (Models + `Import/CaiDatapackImporter.php`), `app/Console/Commands/CaiImportDatapackCommand.php`, `app/Filament/Resources/CaiSections/`, `app/Filament/Pages/{CaiSectionsMap,CaiSectionRegionalDetail}.php`, `app/Http/Controllers/CaiDocumentDownloadController.php` |
 | Preferenze di notifica | `app/Filament/Pages/NotificationPreferences.php` + `app/Domain/Mail/Enums/NotificationType.php` |
 
 ## Documenti correlati

@@ -2,8 +2,8 @@
 
 ## 1. Titolo, versione, data e stato del documento
 
-- **Titolo**: Documento di collaudo — Fase 0 (Fondazioni) + Fase 1 (Ticketing core) + Fase 1A (Landing, Login, Recupero password) + Fase 2 (Importazione dal v1 — ETL) + Fase 3 (Sottosistema email) + Fase 4 (Tag/commesse, Documentation, Activity Report/Organizations) + Fase 5 (Fundraising — opportunità/bandi, griglia di valutazione, progetti e vista cliente) + Fase 6 (Portale cliente e rifinitura) + Fase 7 (Tipologia di cliente CAI)
-- **Versione**: 7.0
+- **Titolo**: Documento di collaudo — Fase 0 (Fondazioni) + Fase 1 (Ticketing core) + Fase 1A (Landing, Login, Recupero password) + Fase 2 (Importazione dal v1 — ETL) + Fase 3 (Sottosistema email) + Fase 4 (Tag/commesse, Documentation, Activity Report/Organizations) + Fase 5 (Fundraising — opportunità/bandi, griglia di valutazione, progetti e vista cliente) + Fase 6 (Portale cliente e rifinitura) + Fase 7 (Tipologia di cliente CAI) + Fase 8 (Integrazione dati RUNTS-CAI — Sezioni/Sottosezioni)
+- **Versione**: 8.0
 
   La versione 1 era la matrice sintetica preesistente (`docs/collaudo/fase-0-1.php`, manifest di
   tracciabilità sorgente, più il PDF generato a partire da essa dal comando `php artisan
@@ -58,10 +58,18 @@
   conseguenza. §4 (Ambito escluso) resta vuoto: le Fasi 8/9 del roadmap rinumerato sono ancora "DA
   DEFINIRE" (nessuna funzionalità da collaudare) e la Fase 10 (Cutover) non è una fase funzionale
   collaudabile con questo stesso schema (prove di carico, verifica di sicurezza, finestra di
-  manutenzione).
+  manutenzione). La versione 8.0 (28 agosto 2026) aggiunge **Fase 8 (Integrazione dati RUNTS-CAI —
+  Sezioni/Sottosezioni)**: import del datapack RUNTS-CAI (dati Sezioni/Sottosezioni dal RUNTS +
+  directory ufficiale CAI — contatti, bilanci, allegati) collegato agli utenti clienti Sezione
+  esistenti (Fase 7) per email, consultazione staff, mappa/export e dashboard cliente Sezione/Gruppo
+  Regionale — scritta da subito come fine-fase (checkpoint US-808): manifest dedicato
+  `docs/collaudo/fase-8.php`, manuale dettagliato `15-fase-8.md`, 52 nuovi test. Il totale del
+  pacchetto passa da 612 a 664 test; §3 è aggiornato di conseguenza. §4 (Ambito escluso) resta
+  vuoto: la Fase 9 del roadmap rinumerato è ancora "DA DEFINIRE" (nessuna funzionalità da
+  collaudare) e la Fase 10 (Cutover) non è una fase funzionale collaudabile con questo stesso schema.
 - **Data di stesura**: 26 luglio 2026 (v2.0), 27 luglio 2026 (v2.1), 10 agosto 2026 (v2.2), 11 agosto
   2026 (v2.3), 24 agosto 2026 (v3.0), 27 agosto 2026 (v4.0), 27 agosto 2026 (v5.0), 28 agosto 2026
-  (v6.0), 28 agosto 2026 (v7.0)
+  (v6.0), 28 agosto 2026 (v7.0), 28 agosto 2026 (v8.0)
 - **Data di pubblicazione ufficiale**: DA VERIFICARE CON IL PRODUCT OWNER
 - **Stato**: Bozza per revisione
 
@@ -71,21 +79,23 @@ Verificare che il software realizzato in Fase 0 (Fondazioni), Fase 1 (Ticketing 
 (Landing, Login, Recupero password), Fase 2 (Importazione dal v1 — ETL), Fase 3 (Sottosistema
 email), Fase 4 (Tag/commesse, Documentation, Activity Report/Organizations), Fase 5 (Fundraising
 — opportunità/bandi, griglia di valutazione, progetti e vista cliente), Fase 6 (Portale cliente e
-rifinitura) e Fase 7 (Tipologia di cliente CAI) rispetti i requisiti funzionali e le regole di
-dominio descritti nel PRD di Orchestrator v2, attraverso un collaudo eseguibile sia da personale
-funzionale (che non deve conoscere il codice) sia da personale tecnico (che verifica anche a
-livello di terminale, database e suite di test automatica).
+rifinitura), Fase 7 (Tipologia di cliente CAI) e Fase 8 (Integrazione dati RUNTS-CAI —
+Sezioni/Sottosezioni) rispetti i requisiti funzionali e le regole di dominio descritti nel PRD di
+Orchestrator v2, attraverso un collaudo eseguibile sia da personale funzionale (che non deve
+conoscere il codice) sia da personale tecnico (che verifica anche a livello di terminale, database
+e suite di test automatica).
 
-Il collaudo copre 612 casi di test, organizzati in 103 argomenti, tracciati uno a uno nei manifest
+Il collaudo copre 664 casi di test, organizzati in 111 argomenti, tracciati uno a uno nei manifest
 `docs/collaudo/fase-0-1.php` (Fase 0/Fase 1), `docs/collaudo/fase-1a.php` (Fase 1A),
 `docs/collaudo/fase-2.php` (Fase 2), `docs/collaudo/fase-3.php` (Fase 3), `docs/collaudo/fase-4.php`
-(Fase 4), `docs/collaudo/fase-5.php` (Fase 5), `docs/collaudo/fase-6.php` (Fase 6) e
-`docs/collaudo/fase-7.php` (Fase 7) verso un test automatico realmente esistente nel repository.
+(Fase 4), `docs/collaudo/fase-5.php` (Fase 5), `docs/collaudo/fase-6.php` (Fase 6),
+`docs/collaudo/fase-7.php` (Fase 7) e `docs/collaudo/fase-8.php` (Fase 8) verso un test automatico
+realmente esistente nel repository.
 
 ## 3. Ambito incluso
 
-Il collaudo copre esattamente i 103 argomenti seguenti (titoli letterali dai manifest di
-tracciabilità), per un totale di 612 test.
+Il collaudo copre esattamente i 111 argomenti seguenti (titoli letterali dai manifest di
+tracciabilità), per un totale di 664 test.
 
 **Fase 0 — Fondazioni** (56 test, F0-01…F0-56):
 
@@ -235,21 +245,36 @@ tracciabilità), per un totale di 612 test.
 | 102 | Card "Sezioni del gruppo regionale" sulla dashboard (§14, US-705) | 4 (F7-32…F7-35) |
 | 103 | Checkpoint di fine fase — import, classificazione, correzione admin e riflesso in dashboard (US-706) | 1 (F7-36) |
 
+**Fase 8 — Integrazione dati RUNTS-CAI (Sezioni/Sottosezioni)** (52 test, F8-01…F8-52):
+
+| # | Argomento | Test |
+|---|---|---|
+| 104 | Schema dati App\Domain\CaiDirectory — tabelle e relazioni (US-801) | 10 (F8-01…F8-10) |
+| 105 | Comando cai:import-datapack — import e matching per email (US-802) | 4 (F8-11…F8-14) |
+| 106 | Wiring dell'import in make setup e nel deploy UAT (US-803) | 4 (F8-15…F8-18) |
+| 107 | Filament Resource staff — consultazione Sezioni/Sottosezioni CAI (US-804) | 13 (F8-19…F8-31) |
+| 108 | Mappa e export (staff, US-805) | 6 (F8-32…F8-37) |
+| 109 | Dati CAI sulla dashboard del cliente Sezione (US-806) | 5 (F8-38…F8-42) |
+| 110 | Dettaglio sezione dalla dashboard del Gruppo Regionale (US-807) | 9 (F8-43…F8-51) |
+| 111 | Checkpoint di fine fase — flusso end-to-end import, consultazione staff, dashboard cliente Sezione e Gruppo Regionale (US-808) | 1 (F8-52) |
+
 Il dettaglio di ciascun test (descrizione, passi, esito atteso, campi di consuntivazione) è nei
 file `02-fase-0.md`, `03-fase-1.md`, `04-fase-1a.md`, `05-fase-2.md`, `06-fase-3.md`, `07-fase-4.md`,
-`10-fase-5.md`, `13-fase-6.md` e `14-fase-7.md` del pacchetto.
+`10-fase-5.md`, `13-fase-6.md`, `14-fase-7.md` e `15-fase-8.md` del pacchetto.
 
 ## 4. Ambito escluso
 
 Nessuna fase funzionale già costruita del roadmap PRD (§14, rinumerato il 28 agosto 2026) è esclusa
-da questo collaudo: Fase 7 (Tipologia di cliente CAI) è ora coperta per intero (argomenti 98-103 di
-§3). Restano fuori scopo **Fase 8** e **Fase 9** (riservate a nuove funzionalità, ancora "DA
-DEFINIRE" col committente: nessuna funzionalità costruita da collaudare) e **Fase 10 — Cutover**
-(vecchia Fase 7 prima della rinumerazione): prova completa su staging, confronto v1/v2 su dati
-reali, test di carico sulla vista di lavoro e sulle tabelle grandi, verifica di sicurezza, piano di
-cutover e finestra di manutenzione — un'attività operativa di rilascio, non una fase funzionale
-collaudabile con lo stesso schema di questo documento (test numerati collegati a un test
-automatico).
+da questo collaudo: Fase 8 (Integrazione dati RUNTS-CAI — Sezioni/Sottosezioni) è ora coperta per
+intero (argomenti 104-111 di §3), limitatamente a Sezioni/Sottosezioni — Gruppi Regionali RUNTS,
+report PDF per singola sezione, refresh automatico del datapack e scraper Python restano
+esplicitamente fuori scope di questa fase (scope confermato col committente in fase di design).
+Resta fuori scopo **Fase 9** (riservata a nuove funzionalità, ancora "DA DEFINIRE" col committente:
+nessuna funzionalità costruita da collaudare) e **Fase 10 — Cutover** (vecchia Fase 7 prima della
+rinumerazione): prova completa su staging, confronto v1/v2 su dati reali, test di carico sulla
+vista di lavoro e sulle tabelle grandi, verifica di sicurezza, piano di cutover e finestra di
+manutenzione — un'attività operativa di rilascio, non una fase funzionale collaudabile con lo
+stesso schema di questo documento (test numerati collegati a un test automatico).
 
 ## 5. Riferimenti tecnici e funzionali
 
@@ -364,6 +389,14 @@ automatico).
   che elenca le Sezioni classificate nella sua stessa regione, con il relativo conteggio di ticket
   aperti — un concetto distinto dalle organizzazioni introdotte in Fase 4 per il possesso degli
   Activity Report, mai sovrapposto ad esse.
+- **Datapack RUNTS-CAI (Fase 8)**: l'estrazione dati (SQLite + allegati) del prototipo esterno
+  RUNTS-CAI — dati Sezioni/Sottosezioni dal RUNTS più la directory ufficiale CAI (contatti, bilanci,
+  cariche sociali, allegati) — importata in Orchestrator dal comando `cai:import-datapack` e
+  collegata agli utenti clienti Sezione esistenti (Fase 7) per email.
+- **Sezione/Sottosezione CAI (Fase 8)**: `App\Domain\CaiDirectory\Models\CaiSection`/`CaiSubsection`,
+  distinte dal cliente Sezione (Fase 7, `customer_type = Sezione` su `users`): il collegamento fra i
+  due è opzionale (`user_id` nullable) e avviene per email al momento dell'import, mai automatico
+  altrimenti.
 - **Anomalia**: uno scostamento tra il comportamento osservato durante il collaudo e quello atteso,
   da segnalare secondo la procedura del punto 19.
 - **PASS**: il test è stato eseguito e il comportamento osservato corrisponde a quello atteso.
@@ -571,7 +604,7 @@ manualmente.
 
 ## 17. Criteri generali di superamento
 
-Il collaudo nel suo complesso è considerato superato se, al termine dell'esecuzione dei 612 test:
+Il collaudo nel suo complesso è considerato superato se, al termine dell'esecuzione dei 664 test:
 
 - Non è aperta alcuna anomalia classificata come Critica.
 - Almeno il 95% dei test applicabili (esclusi quelli classificati NOT APPLICABLE) è in stato PASS.

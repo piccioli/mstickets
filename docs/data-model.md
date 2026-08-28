@@ -2,7 +2,8 @@
 
 Fonte: PRD-ORCHESTRATOR-V2.md §5 (Modello dati), §0.3 (glossario e mappa dei nomi). Schema
 verificato contro le migrazioni reali in `database/migrations/`. Questo documento descrive lo schema
-**come è oggi**, comprese le aggiunte della Fase 6 (`tickets.archived_at`, colonne MFA su `users`).
+**come è oggi**, comprese le aggiunte della Fase 6 (`tickets.archived_at`, colonne MFA su `users`) e
+il dominio `App\Domain\CaiDirectory` della Fase 8 (dati Sezioni/Sottosezioni RUNTS-CAI).
 
 ## Principi dello schema (§5.1)
 
@@ -63,6 +64,14 @@ erDiagram
     users }o--o{ roles : "ha (Spatie)"
     roles }o--o{ permissions : "comporta (Spatie)"
     users }o--o{ permissions : "diretti (Spatie)"
+
+    cai_sections ||--o{ cai_subsections : ha
+    cai_sections |o--o| users : "utente cliente collegato (nullable, per email)"
+    cai_subsections |o--o| users : "utente cliente collegato (nullable, per email)"
+    cai_sections |o--o{ cai_runts_registrations : "collegata a (nullable)"
+    cai_runts_registrations ||--o{ cai_financial_statements : ha
+    cai_runts_registrations ||--o{ cai_board_members : ha
+    cai_runts_registrations ||--o{ cai_documents : ha
 ```
 
 Il diagramma omette, per leggibilità, le tabelle di infrastruttura standard (`media`, `jobs`,
@@ -126,6 +135,17 @@ in relazione applicativa con lo schema di dominio).
 | `email_suppressions` | soppressioni per indirizzo: `reason` (`hard_bounce`/`soft_bounce`/`complaint`/`manual`/`loop_protection`), `bounce_count`, `expires_at` |
 | `notification_preferences` | `user_id`/`notification_type`/`channel`/`enabled`, unique sulla terna |
 | `email_message_logs` | audit trail delle azioni amministrative sulle email (Fase 3, US-322) |
+
+### CaiDirectory (dati RUNTS-CAI, Fase 8)
+
+| Tabella | Contenuto | Note |
+|---|---|---|
+| `cai_sections` | `codice_cai` (PK naturale), `name`, `tax_code`/`vat_number`, `email`/`pec`/`phone_office`/`phone`/`fax`, `address`/`postal_address`, `website`, `office_hours`/`notices`, `founded_year`, `members_count`, `latitude`/`longitude`, `region` (stringa libera, dal datapack), `user_id` (nullable, FK `users`) | da `sezioni_cai` del datapack RUNTS-CAI |
+| `cai_subsections` | `cai_codice` (PK naturale), `cai_section_id` (FK `cai_sections.codice_cai`), stessi campi di contatto di `cai_sections` (senza `tax_code`/`vat_number`/`pec`/`fax`/`postal_address`/`region`), `user_id` (nullable, FK `users`) | da `sottosezioni_cai` |
+| `cai_runts_registrations` | `id_runts` (PK naturale), `cai_section_id` (nullable, FK `cai_sections.codice_cai`), `tax_code`, `legal_form`/`legal_nature`, indirizzo RUNTS (`address`/`street_number`/`municipality`/`province`/`region`/`postal_code`), `registration_date`, `register_section`, `activity_sectors`, `legal_representative`, `website`/`pec`/`official_page_url` | da `enti`, solo le righe con match su una `cai_sections.tax_code` |
+| `cai_financial_statements` | `cai_runts_registration_id` (FK), `year`, oneri/proventi per le 5 categorie RUNTS (`*_a_interesse_generale`… rinominate in inglese) + totali, `pre_tax_result`/`taxes`/`net_result` | da `bilanci`; unique `(cai_runts_registration_id, year)` |
+| `cai_board_members` | `cai_runts_registration_id` (FK), `role`, `full_name`, `tax_code`, `valid_from`/`valid_to` | da `cariche_sociali` — tabella vuota all'origine nel datapack odierno, struttura pronta |
+| `cai_documents` | `cai_runts_registration_id` (FK), `document_type`, `year`, `title`, `file_path`/`file_name`/`mime_type`/`size`/`hash` (riferimento allo storage privato, stesso disco/pattern degli allegati ticket, Fase 1) | da `allegati` |
 
 ### Importazione e infrastruttura
 
@@ -213,3 +233,30 @@ Enum del v1 non portati: `EpicStatus`, `QuoteStatus`, `DeadlineStatus`.
   `customer_type = Sezione` della stessa `region` di un Gruppo Regionale — un concetto distinto
   dalle `organizations`/`organization_user` introdotte in Fase 4 per il possesso degli Activity
   Report, mai sovrapposto ad esse.
+
+## Note aggiuntive Fase 8
+
+- Dominio `App\Domain\CaiDirectory\Models\*` (migrazioni `2026_08_28_1300xx_create_cai_*_table.php`,
+  US-801): tutte le tabelle usano una chiave primaria naturale stringa (mai un id
+  auto-incrementale) presa dal datapack RUNTS-CAI — `codice_cai` per `cai_sections`, `cai_codice`
+  per `cai_subsections`, `id_runts` per `cai_runts_registrations` — tranne le tabelle "figlie"
+  (`cai_financial_statements`/`cai_board_members`/`cai_documents`), che restano `id` auto-
+  incrementale poiché il datapack non fornisce una chiave naturale stabile per quelle righe.
+- `cai_sections.user_id`/`cai_subsections.user_id` sono **distinti** da `users.customer_type =
+  Sezione` (Fase 7): il collegamento è opzionale (`nullable`, `nullOnDelete`) e avviene solo per
+  email al momento di `cai:import-datapack` (US-802) — un utente cliente Sezione senza email
+  coincidente resta senza `CaiSection`/`CaiSubsection` collegata, e viceversa.
+- `App\Console\Commands\CaiImportDatapackCommand` (US-802): apre il file SQLite del datapack
+  RUNTS-CAI (`cai-datapack/runts-cai.sqlite`, mai versionato con git) tramite una connessione DB
+  dedicata in sola lettura, importa le sei tabelle in ordine di dipendenza
+  (sezioni/sottosezioni → enti → bilanci/cariche sociali/allegati), copiando i file degli allegati
+  nello storage privato `cai-documents` (stesso pattern degli allegati ticket, Fase 1). Idempotente:
+  una seconda esecuzione non duplica né riscrive righe invariate; `--dry-run` non scrive.
+- Wiring del datapack (US-803): `make setup` esegue l'import best-effort in locale (nessun blocco se
+  `cai-datapack/runts-cai.sqlite` manca); il deploy UAT (`deploy/remote-deploy.sh`) lo esegue in modo
+  incondizionato dopo `v1:import --anonymize`, leggendo da un bind-mount di sola lettura
+  (`CAI_DATAPACK_HOST_PATH`, stesso pattern di `LEGACY_MEDIA_HOST_PATH`) popolato in anticipo da un
+  umano con `bin/push-cai-datapack`.
+- Gruppi Regionali RUNTS, report PDF per singola sezione, refresh automatico del datapack e scraper
+  Python sono esplicitamente fuori scope della Fase 8 (scope confermato col committente in fase di
+  design): nessuna tabella `gruppi_regionali_cai`/`geocoding_cache`.
