@@ -396,3 +396,35 @@ test('office hours and notices are shown as formatted text, not raw HTML source'
 
     expect($test->html())->not->toContain('background-color');
 });
+
+test('the differences tab shows the comparison between CaiSection and its RUNTS registration', function (): void {
+    $user = grantCaiDirectoryPanelAccess(userWithPermissions(PermissionEnum::CaiDirectoryView));
+    $section = caiSection(['name' => 'Sezione Confronto', 'pec' => 'sezione@pec.example.com']);
+    CaiRuntsRegistration::create([
+        'id_runts' => 'RUNTS-'.$section->codice_cai,
+        'cai_section_id' => $section->codice_cai,
+        'name' => 'Denominazione RUNTS diversa',
+        'pec' => 'sezione@pec.example.com',
+    ]);
+
+    $this->actingAs($user);
+
+    Livewire::test(ViewCaiSection::class, ['record' => $section->getKey()])
+        ->assertOk()
+        ->assertSee('Denominazione')
+        ->assertSee('Sezione Confronto')
+        ->assertSee('Denominazione RUNTS diversa')
+        ->assertSee('Diverso')
+        ->assertSee('Uguale');
+});
+
+test('the differences tab shows an explicit empty state when no RUNTS registration is linked', function (): void {
+    $user = grantCaiDirectoryPanelAccess(userWithPermissions(PermissionEnum::CaiDirectoryView));
+    $section = caiSection(['name' => 'Sezione Senza RUNTS']);
+
+    $this->actingAs($user);
+
+    Livewire::test(ViewCaiSection::class, ['record' => $section->getKey()])
+        ->assertOk()
+        ->assertSee('Nessuna registrazione RUNTS collegata: nessun confronto possibile');
+});

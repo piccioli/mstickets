@@ -8,6 +8,7 @@ use App\Domain\CaiDirectory\Models\CaiDocument;
 use App\Domain\CaiDirectory\Models\CaiRuntsRegistration;
 use App\Domain\CaiDirectory\Models\CaiSection;
 use App\Domain\CaiDirectory\Support\CaiRichTextSanitizer;
+use App\Domain\CaiDirectory\Support\CaiSectionRuntsComparator;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
@@ -37,6 +38,8 @@ class CaiSectionInfolist
                             ->schema([self::caiDataSection()]),
                         Tab::make('Dati RUNTS')
                             ->schema([self::runtsSection()]),
+                        Tab::make('Differenze')
+                            ->schema([self::differencesSection()]),
                         Tab::make('Bilanci')
                             ->schema([self::financialStatementsSection()]),
                         Tab::make('Allegati')
@@ -109,6 +112,41 @@ class CaiSectionInfolist
                     ])
                     ->columns(3)
                     ->placeholder('Nessuna registrazione RUNTS collegata'),
+            ]);
+    }
+
+    /**
+     * Confronto fra i campi CaiSection (fonte: sito web della sezione) e ciascuna
+     * registrazione RUNTS collegata (Fase 9): puro strumento diagnostico su dati GIÀ
+     * importati ({@see CaiSectionRuntsComparator}), nessun fetch esterno in tempo
+     * reale (design deliberato). `RepeatableEntry` FLAT (una riga per campo per
+     * registrazione, non annidata) — più semplice da costruire con lo schema
+     * Infolist e sufficiente quando (caso tipico) una sezione ha una sola
+     * registrazione collegata.
+     */
+    private static function differencesSection(): Section
+    {
+        return Section::make('Confronto dati CAI / RUNTS')
+            ->schema([
+                RepeatableEntry::make('runts_differences')
+                    ->hiddenLabel()
+                    ->state(fn (CaiSection $record) => CaiSectionRuntsComparator::compare($record))
+                    ->schema([
+                        TextEntry::make('registration_label')->label('Registrazione RUNTS'),
+                        TextEntry::make('field')->label('Campo'),
+                        TextEntry::make('cai_value')->label('Valore CAI')->placeholder('—'),
+                        TextEntry::make('runts_value')->label('Valore RUNTS')->placeholder('—'),
+                        TextEntry::make('status')
+                            ->label('Esito')
+                            ->badge()
+                            ->color(fn (string $state): string => match ($state) {
+                                'Diverso' => 'danger',
+                                'Uguale' => 'success',
+                                default => 'gray',
+                            }),
+                    ])
+                    ->columns(5)
+                    ->placeholder('Nessuna registrazione RUNTS collegata: nessun confronto possibile'),
             ]);
     }
 
