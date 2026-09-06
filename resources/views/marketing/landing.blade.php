@@ -38,13 +38,14 @@
             <img src="{{ asset('images/branding/montagna-servizi-logo-white.png') }}" alt="Montagna Servizi" style="height: 40px; width: auto;">
             <div style="font-size: var(--text-sm); line-height: var(--leading-relaxed); color: rgba(255,255,255,0.7);">
                 <strong style="color: #fff;">Sede legale:</strong><br>
-                Via Errico Petrella 19<br>
-                20124 Milano (MI)<br>
+                Via Decorati al Valor Civile 15<br>
+                20138 Milano (MI)<br>
                 P.IVA 11790660960 · SDI: M5UXCR1
             </div>
             <div style="font-size: var(--text-sm); display: flex; flex-direction: column; gap: 4px;">
                 <a href="mailto:info@montagnaservizi.com">info@montagnaservizi.com</a>
                 <a href="mailto:montagnaserviziscpa@legalmail.it">PEC: montagnaserviziscpa@legalmail.it</a>
+                <a href="tel:+390282197148">+39 02 82197148</a>
             </div>
         </div>
         <div class="mkt-footer__legal">

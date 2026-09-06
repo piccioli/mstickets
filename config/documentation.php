@@ -20,7 +20,7 @@ return [
     'pdf' => [
         'logo_path' => env('PDF_LOGO_PATH') ?: public_path('images/branding/montagna-servizi-logo.png'),
 
-        'footer' => env('PDF_FOOTER', 'Montagna Servizi SCPA — Via Errico Petrella 19, 20124 Milano (MI) · P.IVA 11790660960 · SDI: M5UXCR1 · info@montagnaservizi.com'),
+        'footer' => env('PDF_FOOTER', 'Montagna Servizi SCPA — Via Decorati al Valor Civile 15, 20138 Milano (MI) · Tel. +39 02 82197148 · P.IVA 11790660960 · SDI: M5UXCR1 · info@montagnaservizi.com'),
 
         // Disco privato dedicato (mai `public`, stesso ragionamento di
         // `documentation-attachments`, §6.4.1/§9.6): il download passa sempre

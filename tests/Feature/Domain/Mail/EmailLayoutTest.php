@@ -75,6 +75,24 @@ test('the plain-text version is generated alongside the HTML and carries the sam
         ->not->toContain('<strong>');
 });
 
+test('the footer shows the current company address and phone number, not the old address', function (): void {
+    $html = exampleTicketNotificationMail()->render();
+
+    expect($html)
+        ->toContain('Via Decorati al Valor Civile 15')
+        ->toContain('20138 Milano (MI)')
+        ->toContain('+39 02 82197148')
+        ->not->toContain('Errico Petrella');
+
+    $text = view('emails.examples.ticket-notification-text', exampleTicketNotificationData())->render();
+
+    expect($text)
+        ->toContain('Via Decorati al Valor Civile 15')
+        ->toContain('20138 Milano (MI)')
+        ->toContain('+39 02 82197148')
+        ->not->toContain('Errico Petrella');
+});
+
 test('the footer hides the notification preferences link when no URL is configured', function (): void {
     config(['mail_pipeline.notification_preferences_url' => '']);
 

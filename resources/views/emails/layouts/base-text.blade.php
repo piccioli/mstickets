@@ -3,9 +3,9 @@
 @yield('content')
 
 --
-Montagna Servizi SCPA - Via Errico Petrella 19, 20124 Milano (MI)
+Montagna Servizi SCPA - Via Decorati al Valor Civile 15, 20138 Milano (MI)
 P.IVA 11790660960 - SDI: M5UXCR1
-info@montagnaservizi.com
+info@montagnaservizi.com - +39 02 82197148
 @php($preferencesUrl = config('mail_pipeline.notification_preferences_url'))
 @if(filled($preferencesUrl))
 {{ __('Manage notification preferences') }}: {{ $preferencesUrl }}
