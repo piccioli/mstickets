@@ -1,7 +1,7 @@
 # Orchestrator v2 — note per agenti
 
-Repository Laravel 13 + Filament 4 per Montagna Servizi. Spec completa: `../PRD-ORCHESTRATOR-V2.md`.
-Piano e story: `../scripts/ralph/prd.json`. Log di avanzamento: `../scripts/ralph/progress.txt`.
+Repository Laravel 13 + Filament 4 per Montagna Servizi. Spec completa: `docs/project/PRD-ORCHESTRATOR-V2.md`.
+Piano e story: `docs/project/scripts/ralph/prd.json`. Log di avanzamento: `docs/project/scripts/ralph/progress.txt`.
 
 ## Convenzioni stabilite in Fase 0
 

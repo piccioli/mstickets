@@ -1,0 +1,162 @@
+{
+  "project": "Orchestrator v2 — Fase 5: Fundraising",
+  "branchName": "ralph/orchestrator-v2-fase-5",
+  "description": "Costruzione della logica applicativa e dell'interfaccia sopra i dati fundraising già importati dal v1 in Fase 2 (PRD-ORCHESTRATOR-V2.md §6.6 M6 Fundraising, roadmap §14 Fase 5): opportunità (bandi) con archivio scadute, griglia di valutazione reattiva sul catalogo dei criteri, progetti con partner e macchina a stati, vista cliente in sola lettura. Fonte scomposta in tasks/prd-fase-5-fundraising.md. Modulo visibile SOLO ai ruoli admin e fundraising (mai manager/developer); il cliente vede in sola lettura solo le opportunità e i propri progetti coinvolti (capofila o partner). Decisione vincolante presa col committente: la story \"crea opportunità da JSON\" del PRD principale (§6.6.1) NON va implementata in questa fase — verrà sostituita in futuro da una feature basata su AI, le opportunità si creano solo tramite il form CRUD standard. Il catalogo dei criteri di valutazione vive SOLO in configurazione/enum PHP, mai nel database: aggiungere un criterio non deve mai richiedere una migrazione (criterio di accettazione esplicito della roadmap). Lo schema DB (fundraising_opportunities, fundraising_evaluation_scores, fundraising_projects, fundraising_project_partners) esiste già da Fase 0/2 e non va ricreato.",
+  "userStories": [
+    {
+      "id": "US-501",
+      "title": "Modello FundraisingOpportunity — Policy e stato di scadenza",
+      "description": "As a membro del team fundraising, ho bisogno che ogni opportunità sappia da sola se è scaduta, per poter distinguere bandi ancora validi da quelli ormai archiviati (§6.6.1).",
+      "acceptanceCriteria": [
+        "Model App\\Domain\\Fundraising\\Models\\FundraisingOpportunity con isExpired(): bool (deadline < oggi, confronto sulla sola data) e scope active (deadline >= today)/expired",
+        "Policy FundraisingOpportunityPolicy (fundraising.view.any/.view.involved/.create/.update/.delete, §9.4: solo admin e fundraising hanno .view.any/.create/.update/.delete; customer ha solo .view.involved, mai le altre) — deny by default, coerente con le Policy già esistenti da Fase 0",
+        "Nessuna schermata del modulo compare in navigazione per manager/developer (nessun permesso fundraising nella loro matrice, §9.4)",
+        "Test unitari su isExpired()/scope active/expired (deadline oggi, ieri, domani); test feature sulla Policy riga per riga per ogni ruolo",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Model e Policy esistevano già da una fase precedente (scaffolding). Aggiunti solo isExpired()/scope active()/expired() (mancanti) + test unitari dedicati + test Policy per-ruolo riga per riga (dataset Pest ->with(), pattern copiato da TagPolicyTest). Il criterio 'nessuna schermata in navigazione per manager/developer' non è verificabile in questa story: FundraisingOpportunityResource Filament non esiste ancora, sarà creata in US-502 con gating automatico via Policy."
+    },
+    {
+      "id": "US-502",
+      "title": "Vista Filament opportunità — elenco, archivio, filtri",
+      "description": "As a membro del team fundraising, voglio un elenco delle opportunità attive separato da quelle scadute, con i filtri per restringere la ricerca, per non dover scorrere bandi non più rilevanti (§6.6.1).",
+      "acceptanceCriteria": [
+        "FundraisingOpportunityResource Filament: vista elenco (default: solo active, §6.6.1) e vista separata \"Archivio\" per le opportunità scadute (expired)",
+        "Filtri: ambito territoriale (TerritorialScope), cofinanziamento (con/senza quota), scaduto/attivo",
+        "Form CRUD standard con tutti i campi di fundraising_opportunities (§5.2): nome, URL ufficiale, dotazione del fondo, scadenza (obbligatoria), nome programma, ente finanziatore, quota di cofinanziamento, contributo massimo, ambito territoriale, requisiti beneficiario/capofila, creatore, responsabile",
+        "created_by valorizzato automaticamente dall'utente autenticato alla creazione, mai editabile in un secondo momento",
+        "Test feature: elenco mostra solo le attive di default, l'archivio mostra solo le scadute, ogni filtro produce il sottoinsieme atteso",
+        "Typecheck passes",
+        "Tests pass",
+        "Verifica in browser (screenshot Chrome headless) dell'elenco opportunità, dell'archivio scadute e dei filtri applicati"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "FundraisingOpportunityResource in app/Filament/Resources/FundraisingOpportunities/ (Pages/Schemas/Tables, pattern DocumentationPageResource). Tab 'Attive'/'Archivio' su scope active()/expired() del model (US-501). Filtri: SelectFilter ambito territoriale, TernaryFilter cofinanziamento (con/senza quota), TernaryFilter scaduto/attivo. created_by valorizzato in CreateFundraisingOpportunity::handleRecordCreation() da Auth::id(), mai un campo di form (mostrato in sola lettura via Placeholder). canViewAny() ristretto esplicitamente a Permission::FundraisingViewAny (non il default Filament->Policy, che includerebbe anche il customer via fundraising.view.involved): la Resource CRUD è per lo staff, la vista cliente separata arriva in US-508. Verificato in browser via Playwright (tab, filtri, screenshot) su dati reali temporanei poi rimossi."
+    },
+    {
+      "id": "US-503",
+      "title": "Catalogo criteri di valutazione + service di calcolo totali",
+      "description": "As a sistema, devo calcolare i totali di una valutazione in modo puro e testabile a partire da un catalogo di criteri configurabile, per garantire che i punteggi coincidano con quelli storici e che aggiungere un criterio non richieda mai una migrazione (§6.6.2, §14).",
+      "acceptanceCriteria": [
+        "Catalogo criteri in configurazione/enum PHP (non DB): i 5 blocchi di §6.6.2 — Criteri principali (criterion_a..criterion_f, range 0–5), Requisiti base (base_coerenza_bando, base_capofila_idoneo, base_partner_minimi, base_cofinanziamento, base_tempistiche, range 0–1), Qualitativi (qual_coerenza_cai, qual_imp_ambientale, qual_imp_sociale, qual_imp_economico, qual_obiettivi_chiari, qual_solidita_azioni, qual_capacita_partner, range 0–5), Premiali (prem_innovazione, prem_replicabilita, prem_comunita, prem_sostenibilita, range 0–3), Rischi (risk_tecnici 0–3, risk_finanziari -3..3, risk_organizzativi -2..2, risk_logistici -2..2) — ognuno con chiave, gruppo, etichetta, range minimo/massimo",
+        "fundraising_evaluation_scores (una riga per criterio, già esistente da Fase 0/2) — il range di ogni punteggio è validato dall'applicazione contro il catalogo, mai lasciato solo a un commento SQL (v1)",
+        "App\\Domain\\Fundraising\\Services\\CalculateEvaluationTotals — service puro: evaluation_positive_total = somma di tutti i punteggi >= 0, evaluation_negative_total = somma dei valori assoluti dei punteggi < 0 (solo i criteri del blocco Rischi possono essere negativi), evaluation_total = positivo - negativo. Invocato dall'action di salvataggio dei punteggi, mai da un hook saving()/saved() sul model",
+        "evaluated_by/evaluated_at si valorizzano quando viene salvato il primo punteggio di un'opportunità, mai sovrascritti da salvataggi successivi",
+        "Test unitari (requisito esplicito §13.1 \"Totali griglia fundraising\"): somme positive/negative, rischi negativi, valori limite (min/max di ogni range), un criterio aggiunto al catalogo runtime (senza toccare il DB) viene incluso correttamente nel calcolo",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Catalogo criteri (enum FundraisingEvaluationCriterion, 26 case) e model FundraisingEvaluationScore esistevano già da scaffolding Fase 0 (US-015), completi di label/group/min/max e test unitari — non ricreati. Aggiunti solo i due pezzi mancanti: App\\Domain\\Fundraising\\Services\\CalculateEvaluationTotals (service puro fromScores(array): {positive,negative,total}, nessuna dipendenza da enum/DB, così un criterio aggiunto solo a runtime viene sommato correttamente) e App\\Domain\\Fundraising\\Actions\\SaveEvaluationScores (valida ogni punteggio contro criterion->min()/max(), upserta le righe fundraising_evaluation_scores con updateOrCreate, ricalcola i totali sull'INTERO insieme dei punteggi persistiti dell'opportunità — non solo quelli appena passati, per restare corretto su salvataggi incrementali della griglia — e valorizza evaluated_by/evaluated_at solo se non già impostati). NOTA: questi file e i relativi test (Actions/, Services/, SaveEvaluationScoresTest.php, CalculateEvaluationTotalsTest.php) erano già presenti come untracked nel working tree all'inizio di questa iterazione — verificato codice e test contro tutti gli acceptance criteria della story, tutti soddisfatti, poi eseguiti i quality check e committato invece di riscrivere da zero."
+    },
+    {
+      "id": "US-504",
+      "title": "UI griglia di valutazione",
+      "description": "As a membro del team fundraising, voglio compilare la griglia di valutazione di un'opportunità raggruppata per blocco, con il totale visibile in tempo reale, per capire subito l'effetto di ogni punteggio senza dover salvare e ricaricare la pagina (§6.6.2).",
+      "acceptanceCriteria": [
+        "Sezione/tab dedicata su FundraisingOpportunityResource (view/edit) con un campo per ogni criterion_key del catalogo (US-503), raggruppati per blocco (Criteri principali, Requisiti base, Qualitativi, Premiali, Rischi) — i criteri del blocco \"Criteri principali\" hanno anche un campo nota testuale (§6.6.2)",
+        "Totale (evaluation_positive_total/.negative_total/.total) calcolato e mostrato in tempo reale mentre si compila (reattivo, senza submit), con una visualizzazione sintetica del punteggio complessivo",
+        "Validazione dei range direttamente in UI (min/max per criterio dal catalogo), messaggio d'errore leggibile su un valore fuori range",
+        "Test feature: compilare la griglia aggiorna i totali persistiti coerentemente col service di US-503; evaluated_by/evaluated_at valorizzati al primo salvataggio, invariati ai successivi",
+        "Typecheck passes",
+        "Tests pass",
+        "Verifica in browser (screenshot Chrome headless) della griglia compilata su un'opportunità reale, con il totale che si aggiorna mentre si inseriscono i punteggi"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Tab \"Valutazione\" aggiunto a FundraisingOpportunityForm (Filament\\Schemas\\Components\\Tabs, layout puro: non altera gli state path dei campi esistenti), visibile solo per un record già persistito e per chi ha il permesso fundraising.evaluate (distinto da fundraising.update, Policy/enum già esistenti da scaffolding ma mai consumati prima). Nuova classe FundraisingEvaluationGridForm: un campo scores.{criterion_key} per criterio (TextInput numeric, minValue/maxValue dal catalogo, ->live()), nota testuale notes.{criterion_key} solo per i criteri principali, e un Placeholder in cima che ricalcola il totale con CalculateEvaluationTotals (US-503) leggendo lo stato corrente via Get — nessun campo aggiuntivo serve per farlo reattivo, si aggiorna da solo ad ogni cambio di un campo ->live() nello stesso schema. EditFundraisingOpportunity: mutateFormDataBeforeFill idrata scores/notes dalla relazione evaluationScores, handleRecordUpdate li estrae dai dati del form e li passa a SaveEvaluationScores::run() con un abort_unless(fundraising.evaluate) come barriera lato server (la UI già esclude un tab non visibile dalla dehydration di getState(), ma il controllo server resta la difesa autorevole). Verificato in browser via Playwright su un'opportunità reale: il totale si aggiorna in tempo reale mentre si inseriscono i punteggi (screenshot), il salvataggio persiste correttamente (toast \"Salvato\" + valori confermati via tinker), poi utente/opportunità di test rimossi."
+    },
+    {
+      "id": "US-505",
+      "title": "Azioni \"crea un progetto\" / \"crea un ticket\" da un'opportunità",
+      "description": "As a membro del team fundraising, voglio poter avviare un progetto o un ticket direttamente da un'opportunità, per non dover ricopiare a mano i riferimenti al bando di origine (§6.6.1).",
+      "acceptanceCriteria": [
+        "Azione Filament \"Crea progetto\" su FundraisingOpportunityResource (view) che crea un FundraisingProject con fundraising_opportunity_id precompilato e title precompilato dal nome dell'opportunità (editabile prima del salvataggio)",
+        "Azione Filament \"Crea ticket\" su FundraisingOpportunityResource (view) che crea un Ticket con fundraising_project_id valorizzato solo se l'opportunità ha già un progetto collegato dall'azione precedente, altrimenti il campo resta vuoto (nessun collegamento forzato opportunità->ticket diretto, lo schema non lo prevede: tickets.fundraising_project_id, mai tickets.fundraising_opportunity_id)",
+        "Test feature: entrambe le azioni creano il record con i campi precompilati attesi e collegamenti corretti",
+        "Typecheck passes",
+        "Tests pass",
+        "Verifica in browser (screenshot Chrome headless) di entrambe le azioni su un'opportunità reale"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "Nessuna pagina 'view' separata esiste per FundraisingOpportunityResource (solo index/create/edit, mai creata in nessuna story precedente): le due azioni vivono su EditFundraisingOpportunity, il de facto pagina di dettaglio, invece che su una ViewRecord che avrebbe richiesto scope aggiuntivo non presente in nessun AC. Due classi Support (pattern CreateCommessaAction di Ticketing): CreateFundraisingProjectAction::build() (permesso fundraising.create, crea FundraisingProject con title precompilato dal nome opportunità/editabile, created_by=utente autenticato) e CreateTicketFromOpportunityAction::build() (permesso ticket.create, passa SEMPRE da App\\Domain\\Ticketing\\Actions\\CreateTicket::run() come da convenzione 'unico punto di ingresso', fundraising_project_id = $opportunity->projects()->first()?->id, quindi vuoto se nessun progetto ancora collegato). Entrambe ritornano null (nessun bottone) se l'utente non ha il permesso, stesso idioma di CreateCommessaAction."
+    },
+    {
+      "id": "US-506",
+      "title": "Modello FundraisingProject — stato e partner",
+      "description": "As a membro del team fundraising, ho bisogno che un progetto percorra un ciclo di vita chiaro dalla bozza alla decisione, con capofila e partner tracciati correttamente, per sapere sempre a che punto è una candidatura (§6.6.3).",
+      "acceptanceCriteria": [
+        "Model App\\Domain\\Fundraising\\Models\\FundraisingProject con enum FundraisingProjectStatus (draft->submitted->approved/rejected->completed) e transizioni ESPLICITE (stessa disciplina della macchina a stati dei ticket, Fase 1: nessuna transizione libera non in tabella)",
+        "Relazione N-N fundraising_project_partners (già esistente da Fase 0/2) verso users",
+        "Policy FundraisingProjectPolicy (stesso schema permessi di US-501: admin/fundraising pieno accesso, customer solo .view.involved sui progetti in cui è coinvolto — capofila O partner O responsabile O creatore, §6.6.3)",
+        "Fix del bug v1 esplicito nel PRD: il metodo v1 partnerCustomers() filtrava i partner con ruolo customer con whereHas('roles', ...) su una colonna JSON (query non eseguibile); in v2 i ruoli sono un pivot (model_has_roles, Fase 0), quindi lo stesso filtro è una join/whereHas normale — implementare questo filtro (dove serve distinguere partner interni da partner cliente) con la relazione pivot, mai riprodurre la query JSON del v1",
+        "Test unitari sulla macchina a stati (ogni transizione ammessa/vietata); test feature sulla Policy riga per riga per ogni ruolo, incluso lo scope \"coinvolti\"",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "Model/Policy/enum esistevano già da scaffolding (Policy identica a FundraisingOpportunityPolicy, enum a 5 case, migrazioni/relazioni pivot già presenti) — verificati e non ricreati. Aggiunti i 3 pezzi mancanti: App\\Domain\\Fundraising\\StateMachine\\FundraisingProjectStateMachine (versione 'leggera' della macchina a stati dei ticket: solo transitions()/canTransitionTo()/authorize() tabellare + ValidationException localizzata, senza il livello TransitionActor/effects perché nessun AC richiede un'autorizzazione differenziata per attore sulla stessa transizione); FundraisingProject::scopeInvolving()/involving() (capofila OR partner OR responsabile OR creatore, pattern OR-su-relazioni-multiple copiato da Ticket::scopeVisibleTo); FundraisingProjectPolicy::view() corretta per essere per-record (fix di un bug: prima delegava a viewAny(), quindi un customer con fundraising.view.involved vedeva QUALUNQUE progetto anche se non coinvolto — a differenza di FundraisingOpportunityPolicy dove 'coinvolto' è davvero un OK generico per modulo, §6.6.4). Fix esplicito del bug v1 richiesto dall'AC: FundraisingProject::partnerCustomers() ora filtra i partner con ruolo customer tramite la pivot Spatie model_has_roles (relazione roles() di HasRoles), mai la query JSON non eseguibile del v1."
+    },
+    {
+      "id": "US-507",
+      "title": "Vista Filament progetti — elenco, filtri, collegamento ticket",
+      "description": "As a membro del team fundraising, voglio un elenco dei progetti filtrabile per stato/capofila/partner/coinvolgimento, e la possibilità di collegare un ticket esistente a un progetto, per tenere insieme il lavoro operativo e la candidatura che lo ha originato (§6.6.3).",
+      "acceptanceCriteria": [
+        "FundraisingProjectResource Filament: elenco con stato, capofila, importo richiesto/approvato, date di presentazione/decisione",
+        "Filtri: per stato, per capofila, per partner, \"coinvolti\" (capofila OR partner OR responsabile OR creatore, stessa definizione di US-506)",
+        "Gestione partner (aggiungi/rimuovi utenti) sulla vista/edit del progetto",
+        "tickets.fundraising_project_id collegabile da TicketResource (campo select sui progetti visibili all'utente corrente secondo la Policy) — non il contrario: nessuna azione \"aggiungi ticket\" dal lato progetto in questa story, il collegamento si fa dal ticket (coerente con fundraising_project_id come unica FK dello schema, §5.2)",
+        "Test feature: ogni filtro produce il sottoinsieme atteso; collegare un ticket a un progetto dalla TicketResource persiste correttamente fundraising_project_id",
+        "Typecheck passes",
+        "Tests pass",
+        "Verifica in browser (screenshot Chrome headless) dell'elenco progetti con i filtri applicati e del collegamento di un ticket reale a un progetto"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "FundraisingProjectResource creata da zero (nessuno scaffolding preesistente, a differenza delle story precedenti di questa fase): elenco/filtri stato-capofila-partner-coinvolti (coinvolti riusa scopeInvolving di US-506), form CRUD con status in sola lettura (nessun AC richiede transizioni via UI in questa story), PartnersRelationManager (attach/detach, pattern UsersRelationManager di Organizations) solo su Edit. TicketForm esteso con Select fundraising_project_id nella sezione interna esistente, ristretto ai progetti visibili secondo FundraisingProjectPolicy. Scoperta rilevante: ->fillForm() nei test Livewire è rotto per qualunque form Filament del repo (preesistente, confermato con git stash, non causato da questa story) — tutti i nuovi test usano ->set('data.<campo>', ...) come workaround, documentato in CLAUDE.md e progress.txt. Verificato in browser via Playwright: elenco, filtri, collegamento ticket->progetto, gestione partner (con gotcha lazy-load x-intersect del RelationManager)."
+    },
+    {
+      "id": "US-508",
+      "title": "Vista cliente — opportunità e progetti coinvolti",
+      "description": "As a cliente, voglio vedere le opportunità di finanziamento disponibili e i progetti in cui sono coinvolto, in sola lettura, per tenermi informato senza dover chiedere allo staff (§6.6.4).",
+      "acceptanceCriteria": [
+        "Un utente customer vede, in sola lettura: elenco e dettaglio delle opportunità (nessuna differenza tra attive/scadute in questa vista, §6.6.4 non lo richiede) e i progetti in cui è coinvolto (capofila o partner — non \"responsabile\"/\"creatore\", quei ruoli sono interni allo staff, §6.6.4 li limita esplicitamente a capofila/partner)",
+        "Il dettaglio di un progetto in cui il cliente non è coinvolto non è raggiungibile nemmeno via URL diretto (test su policy + query scope, stesso principio già applicato a DocumentationPage in Fase 4)",
+        "Nessuna azione di scrittura visibile/eseguibile da un cliente su opportunità o progetti (sola lettura reale, non solo azioni nascoste in UI — verificato anche via richiesta manipolata)",
+        "Test feature: un cliente coinvolto vede il progetto, uno non coinvolto riceve 403; le opportunità sono visibili a qualunque cliente autenticato",
+        "Typecheck passes",
+        "Tests pass",
+        "Verifica in browser (screenshot Chrome headless) della vista cliente con un utente reale coinvolto in almeno un progetto"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": "Due nuove Resource Filament di sola lettura (CustomerFundraisingOpportunityResource, CustomerFundraisingProjectResource), stesso model delle Resource staff ma getPages() solo index+view, nessuna create/edit/delete. Nuovo scope FundraisingProject::scopeInvolvingAsCustomer() (solo capofila/partner, non responsabile/creatore) usato SOLO da getEloquentQuery() del nuovo Resource progetti, mai dalla Policy generica (che resta piu ampia, usata dallo staff, US-506). canViewAny() delle due nuove Resource: has(view.involved) AND NOT has(view.any), unico ruolo che matcha oggi e customer, niente doppie voci di navigazione. Verificato in browser (Playwright, utente ralph-qa-us508@example.com ruolo customer) elenco/dettaglio opportunita, elenco/dettaglio progetto capofila, e 404 reale su URL diretto di un progetto non coinvolto."
+    },
+    {
+      "id": "US-509",
+      "title": "Checkpoint di fine fase — verifica end-to-end e pacchetto di collaudo",
+      "description": "As a team, prima di considerare chiusa la fase dobbiamo verificare l'intero flusso su dati reali importati dal v1 e produrre il pacchetto di collaudo completo, come per ogni fase da Fase 4 in poi (obbligo esplicito in CLAUDE.md, \"Processo di collaudo\").",
+      "acceptanceCriteria": [
+        "Verifica end-to-end su dati reali (post v1:import): i totali di valutazione ricalcolati da CalculateEvaluationTotals su opportunità reali importate COINCIDONO con evaluation_positive_total/.negative_total/.total già presenti dall'ETL (criterio di accettazione esplicito della roadmap, §14) — uno scostamento qui è un bug da correggere in questa story, non un compromesso da annotare",
+        "Aggiungere un criterio di prova al catalogo (solo in codice, nessuna migrazione) e verificare che venga incluso correttamente nel calcolo su un'opportunità di test — poi rimuoverlo, nessuna traccia permanente",
+        "docs/collaudo/fase-5.php — manifest topic -> test numerati (F5-01, F5-02, ...) -> riferimento a un test automatico realmente esistente; php artisan collaudo:verify-manifest 5 passa",
+        "Manuale narrativo docs/collaudo/<N>-fase-5.md (stesso formato per-test già in uso, numerazione file da verificare sullo stato reale di docs/collaudo/ al momento dell'implementazione — Fase 4 ha lasciato 07-fase-4.md/08-registro-esiti.md/09-verbale-collaudo.md), scritto per ultimo, dopo che tutte le story US-501->US-508 sono complete e il manifest passa",
+        "Aggiornamento del pacchetto cumulativo: README.md, 00-istruzioni-generali.md, 01-matrice-tracciabilita.md, registro-esiti (nome file corrente da verificare)",
+        "php artisan collaudo:generate 5 produce il PDF di collaudo senza errori; storage/app/collaudo/ contiene solo l'ultima versione generata per questa fase",
+        "Report dei compromessi/gap emersi (se presenti) rivisto con il committente",
+        "Typecheck passes",
+        "Tests pass — l'intera suite (non solo i file toccati da questa fase)"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": "Verifica end-to-end su dati reali (v1:import --anonymize, dump latest.sql): 21 opportunità/33 progetti/9 partner fundraising reali, ma 0 righe fundraising_evaluation_scores/0 totali non nulli — v1 non ha mai usato la griglia di valutazione (coerente con FundraisingScoresStage, Fase 2/US-213), quindi l'AC1 (totali ricalcolati == ETL) è verificabile solo in modo vacuo sui dati reali odierni. Riconciliazione non vacua verificata a parte persistendo punteggi reali via SaveEvaluationScores su un'opportunità importata e confrontando col ricalcolo indipendente di CalculateEvaluationTotals: nessuna discrepanza, nessun bug. Criterio di prova aggiunto/verificato/rimosso dal catalogo via tinker, nessuna traccia permanente. Pacchetto di collaudo: docs/collaudo/fase-5.php (60 test F5-01..F5-60), docs/collaudo/10-fase-5.md, registro-esiti/verbale-collaudo rinumerati a 11/12, README/00-istruzioni-generali/01-matrice-tracciabilita aggiornati, CollaudoGenerateCommand esteso per Fase 5. collaudo:verify-manifest 5 passa; collaudo:generate 5 produce il PDF dettagliato (399 pagine), letterhead verificato visivamente. Nuovo test tests/Feature/EndToEnd/Fase5CheckpointEndToEndTest.php. Quality: phpstan 0 errori, pint pulito, suite host 1372 passed/10 failed (solo i Collaudo*/LatexPdfCompilerTest noti per mancanza pdflatex sull'host), filtro Fundraising 172/172 verde. GAP DA RIVEDERE COL COMMITTENTE (non risolvibile autonomamente in questo loop, richiede sign-off umano): (1) AC1 vacuo per assenza di dati storici di valutazione in v1; (2) suite completa nel container app mostra 50 fallimenti stabili/riproducibili estranei a Fase 5 (divergenza PHP 8.4 container vs 8.5 host, in gran parte il bug ->fillForm() già noto da US-507) — da investigare come debito tecnico separato, documentato in CLAUDE.md. Committed 9263ad1 su ralph/orchestrator-v2-fase-5."
+    }
+  ]
+}

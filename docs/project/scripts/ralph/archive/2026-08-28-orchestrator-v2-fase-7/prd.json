@@ -1,0 +1,114 @@
+{
+  "project": "Orchestrator v2 — Fase 7: Tipologia di cliente CAI",
+  "branchName": "ralph/orchestrator-v2-fase-7",
+  "description": "Rappresentazione dei ruoli istituzionali CAI dei clienti (Sezione/Sottosezione, Gruppo Regionale, Organo Tecnico Centrale/Struttura Operativa, Cliente generico): PRD-ORCHESTRATOR-V2.md §14 (Roadmap, Fase 7, riservata dopo la rinumerazione del 2026-08-28), fonte scomposta in tasks/prd-fase-7-tipologia-clienti-cai.md, design approvato col committente in orchestrator/docs/superpowers/specs/2026-08-28-tipologia-clienti-cai-design.md. Scope confermato col committente: la differenziazione si limita a (1) badge tipo/regione su ogni dashboard cliente, (2) card 'sezioni del gruppo regionale' sulla dashboard di un cliente Gruppo Regionale. Nessun altro comportamento differenziato per tipo. Organo Tecnico Centrale e Struttura Operativa sono un unico tipo (il dato v1 reale non li distingue mai, prefisso comune 'OTCO/SO'). Verificato sui dati reali (596 utenti ruolo customer): 503 Sezione (pattern '<nome> | <Regione>', 1 senza regione), ~20 Gruppo Regionale (pattern 'GR/GP <Regione>'), ~21 Organo Tecnico/Struttura Operativa (pattern 'OTCO/SO <sigla>'), resto Cliente generico.",
+  "userStories": [
+    {
+      "id": "US-701",
+      "title": "Schema e cataloghi CustomerType/Region",
+      "description": "As a developer, ho bisogno di persistere il tipo cliente e la regione di appartenenza per poterli usare in UI e nell'ETL.",
+      "acceptanceCriteria": [
+        "Migrazione additiva su users: colonna customer_type (string, nullable) e region (string, nullable)",
+        "Nuovo enum backed App\\Domain\\Identity\\Enums\\CustomerType: Sezione, GruppoRegionale, OrganoTecnicoStrutturaOperativa, Generico. Cast sul model User",
+        "Nuovo enum backed App\\Domain\\Identity\\Enums\\Region con le 20 regioni italiane ufficiali (Trentino-Alto Adige unificato, non split Trentino/Alto Adige), ognuna con un metodo label(): string per la UI (es. \"Valle d'Aosta\", \"Friuli-Venezia Giulia\"). Cast sul model User",
+        "region è concettualmente pertinente solo per Sezione/GruppoRegionale (nessun vincolo DB, solo convenzione applicativa rispettata da ETL e form nelle story successive)",
+        "Test unit: cast enum funzionano nei due sensi (lettura/scrittura), un utente senza customer_type resta null senza errori",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-702",
+      "title": "Stage ETL CustomerClassificationStage",
+      "description": "As a sistema, all'import dal v1 devo dedurre automaticamente il tipo cliente e la regione dal nome, per non dover riclassificare manualmente 596 utenti già esistenti.",
+      "acceptanceCriteria": [
+        "Nuovo stage App\\Import\\Stages\\CustomerClassificationStage, dipendenze ['users', 'roles_permissions'] (opera solo su utenti con ruolo customer già assegnato)",
+        "Regole di inferenza sul nome, verificate in quest'ordine (il primo pattern che matcha vince): (1) /^(GR|GP)\\s+(.+)$/ui → GruppoRegionale, regione dal gruppo 2 (normalizzata); (2) /^OTCO\\s*\\/\\s*SO\\b/ui → OrganoTecnicoStrutturaOperativa, regione null; (3) /\\|\\s*(.+)$/u con testo non vuoto dopo il separatore → Sezione, regione dal testo dopo | (normalizzata) — se il testo dopo | è vuoto → Sezione con regione null (non Generico); (4) nessun pattern → Generico, regione null",
+        "Normalizzazione regione: mappa varianti note del dump (maiuscole/minuscole, apostrofi, TRENTINO-ALTO ADIGE/ALTO ADIGE → stesso case enum, VALLE D'AOSTA/varianti apostrofo, ecc.) ai case dell'enum Region. Una stringa non normalizzabile logga Log::warning(...) e lascia region = null, mai un'eccezione che blocca l'import",
+        "Idempotente: due esecuzioni consecutive sullo stesso dataset non modificano nulla alla seconda (stesso pattern diff/update di OrganizationsStage)",
+        "Non tocca customer_type/region di utenti senza ruolo customer (restano sempre null)",
+        "Wiring in v1:import: nuovo stage eseguito nell'ordine di dipendenza corretto, riportato nell'output del comando come gli altri stage (letti X, creati Y, aggiornati Z, saltati W)",
+        "Verificato sui dati reali importati (dump di test ridotto o dataset reale): numeri coerenti con quanto atteso — la maggioranza degli utenti customer classificata Sezione, un gruppo più piccolo GruppoRegionale, un gruppo simile OrganoTecnicoStrutturaOperativa, il resto Generico",
+        "Test unit: ogni pattern (GR/GP, OTCO/SO, sezione con/senza prefisso \"C.A.I. SEZ.\", sezione senza regione, nessun pattern → Generico), normalizzazione regione per le varianti note, idempotenza",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-703",
+      "title": "UI Admin — assegnazione tipo cliente e regione",
+      "description": "As an admin, voglio assegnare o correggere il tipo cliente e la regione di un utente dallo stesso punto in cui già ne gestisco il ruolo, per non dover imparare un meccanismo separato.",
+      "acceptanceCriteria": [
+        "Due Select (customer_type, region) nella sezione ruoli/permessi di UserResource (stesso file del form già esistente), ->visible() solo quando il ruolo selezionato nel form è customer (stesso pattern reattivo già in uso altrove nel form per campi condizionati dal ruolo)",
+        "region visibile solo quando customer_type è Sezione o GruppoRegionale; nascosto (e azzerato in dehydration) per OrganoTecnicoStrutturaOperativa/Generico",
+        "Gated dallo stesso permesso che già governa l'assegnazione ruoli su questo form — nessun nuovo permesso nel catalogo",
+        "Colonna customer_type (badge colorato, stesso componente Filament badge già in uso altrove) aggiunta a UsersTable per vista rapida/filtro",
+        "Test feature: i campi appaiono/spariscono correttamente al cambio di ruolo/tipo nel form; il salvataggio persiste customer_type/region correttamente; un utente senza permesso non vede/non può modificare questi campi (riuso della stessa asserzione già in test esistenti per l'assegnazione ruoli)",
+        "Typecheck passes",
+        "Tests pass",
+        "Verifica in browser (screenshot Chrome headless) dell'assegnazione tipo/regione su un utente reale"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-704",
+      "title": "Badge tipo cliente sulla dashboard",
+      "description": "As a cliente, voglio vedere subito il mio tipo (Sezione, Gruppo Regionale, Organo Tecnico Centrale / Struttura Operativa, o generico) sulla mia dashboard, per avere conferma di come sono rappresentato nel sistema.",
+      "acceptanceCriteria": [
+        "Badge/etichetta in testa a CustomerDashboard (Fase 6) con la label italiana del customer_type corrente + regione se presente (es. \"Sezione — Lombardia\", \"Gruppo Regionale — Abruzzo\", \"Organo Tecnico Centrale / Struttura Operativa\", \"Cliente generico\")",
+        "Visibile per tutti i tipi, incluso Generico (mostra solo il tipo, senza regione)",
+        "Test feature: il badge mostra il testo corretto per ciascuno dei 4 tipi, con e senza regione",
+        "Typecheck passes",
+        "Tests pass",
+        "Verifica in browser (screenshot Chrome headless) del badge per un cliente Sezione, uno Gruppo Regionale e uno Generico"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-705",
+      "title": "Card \"Sezioni del gruppo regionale\" sulla dashboard",
+      "description": "As a cliente Gruppo Regionale, voglio vedere l'elenco delle Sezioni della mia regione sulla mia dashboard, per avere una visione d'insieme del territorio che rappresento.",
+      "acceptanceCriteria": [
+        "Nuova card \"Sezioni del gruppo regionale\" su CustomerDashboard, visibile solo quando customer_type === GruppoRegionale",
+        "Nuovo query object (stesso stile §8.5 già in uso per le viste ticket) che restituisce gli utenti customer_type = Sezione con la stessa region del Gruppo Regionale corrente — mai una query sull'organizations/organization_user esistente (concetto distinto, introdotto in Fase 4 per il possesso degli Activity Report — non va sovraccaricato con questo significato)",
+        "Ogni riga: nome sezione, conteggio ticket aperti, link (coerente con lo stile delle altre card della dashboard, Fase 6)",
+        "Stato vuoto esplicito se la regione non ha ancora nessuna sezione classificata, o se il Gruppo Regionale ha region = null (mai un errore o una sezione vuota silenziosa, stesso principio già stabilito in Fase 6)",
+        "Nessuna card per Sezione/Organo Tecnico Centrale-Struttura Operativa/Generico",
+        "Test feature: la card mostra solo le sezioni della stessa regione (mai di un'altra regione anche se esistono sezioni classificate altrove); stato vuoto quando pertinente; assente per gli altri 3 tipi",
+        "Typecheck passes",
+        "Tests pass",
+        "Verifica in browser (screenshot Chrome headless) della card popolata con dati reali per un Gruppo Regionale con più sezioni nella propria regione"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-706",
+      "title": "Checkpoint di fine fase — verifica end-to-end e pacchetto di collaudo",
+      "description": "As a team, prima di considerare la fase conclusa, voglio un test end-to-end che replichi il flusso completo (import → classificazione → assegnazione admin → dashboard) e un pacchetto di collaudo aggiornato.",
+      "acceptanceCriteria": [
+        "Nuovo test end-to-end in tests/Feature/EndToEnd/ che copre: import di un dataset con almeno un utente per ciascuno dei 4 tipi → verifica customer_type/region dedotti correttamente → un admin corregge manualmente il tipo di un utente → la dashboard del cliente corretto riflette il nuovo tipo",
+        "docs/collaudo/fase-7.php (manifest di tracciabilità, stesso formato delle fasi precedenti) e manuale dettagliato docs/collaudo/14-fase-7.md, con un topic per ciascuna user story di questa fase",
+        "php artisan collaudo:verify-manifest 7 passa",
+        "php artisan collaudo:generate 7 genera il PDF, verificato visivamente",
+        "docs/data-model.md/docs/architecture.md (Fase 6) aggiornati per riflettere lo schema/enum nuovi, se pertinente",
+        "Typecheck passes",
+        "Tests pass (suite completa, nessuna regressione sulle fasi precedenti)"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": ""
+    }
+  ]
+}

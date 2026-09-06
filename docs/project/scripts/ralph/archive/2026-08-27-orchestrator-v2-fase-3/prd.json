@@ -1,0 +1,428 @@
+{
+  "project": "Orchestrator v2 — Fase 3: Sottosistema email",
+  "branchName": "ralph/orchestrator-v2-fase-3",
+  "description": "Riscrittura completa del sottosistema email (PRD-ORCHESTRATOR-V2.md §7, roadmap §14 Fase 3): pipeline inbound (fetch IMAP → parse → classifica anti-loop → identifica mittente → risolvi thread → applica su ticket), outbound con coda per il catalogo E1-E7+E9, localizzazione reale, amministrazione email (registro/quarantena/soppressioni/metriche) e una voce di menu 'Mailpit' visibile solo in locale/UAT. Fonte scomposta in tasks/prd-fase-3-email-subsystem.md. Decisioni vincolanti prese col committente: inbound via IMAP polling (webklex/php-imap) dietro l'interfaccia InboundMailTransport, non un provider a webhook; il dominio email supporta il plus-addressing (ticket+<ulid>@dominio) quindi il threading VERP è il metodo prioritario; E8/E10/E11 restano fuori scope (Fase 6 se approvati); la UI cliente per gestire le preferenze di notifica resta fuori scope (Fase 6), questa fase applica solo le preferenze già presenti a DB. Lo schema DB del dominio Mail (email_messages, email_threads, email_attachments, email_suppressions, notification_preferences, modelli/enum/policy) esiste già da Fase 0 (US-016) e non va ricreato: questa fase è pipeline, Mailable e UI, non migrazioni.",
+  "userStories": [
+    {
+      "id": "US-301",
+      "title": "Configurazione IMAP e interfaccia InboundMailTransport",
+      "description": "As a developer, ho bisogno di un punto di accesso alla casella email configurabile e sostituibile dietro un'interfaccia, per poter aggiungere in futuro un provider a webhook senza toccare la pipeline (§7.4).",
+      "acceptanceCriteria": [
+        "Interfaccia App\\Domain\\Mail\\Contracts\\InboundMailTransport con un metodo che restituisce i messaggi grezzi (.eml + metadati imap_folder/imap_uid) rispettando un limit obbligatorio (default 50 da config) e un since opzionale, e un metodo per spostare un messaggio tra cartelle (INBOX → Processed/Errors/Quarantine)",
+        "Implementazione WebklexImapTransport con webklex/php-imap (nuova dipendenza Composer, libreria standalone non il wrapper Laravel), configurata interamente da env (host/porta/crittografia/utente/password/cartelle)",
+        "Nuove variabili IMAP_* documentate in .env.example (oggi non esiste nessuna variabile IMAP_, problema 20 del PRD)",
+        "Nuovo file config/mail_pipeline.php (distinto da config/mail.php nativo Laravel): account IMAP, cartelle, limit/since di default, soglie di rate limit anti-loop, gruppo di notifica staff (MAIL_STAFF_NOTIFICATION_GROUP), indirizzo di supporto per gli auto-reply. Nessuna chiamata env() fuori da questo file config",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-302",
+      "title": "Comando mail:fetch-inbound — fetch e archiviazione grezza",
+      "description": "As a sistema, devo scaricare le nuove email dalla casella e archiviarle prima di qualunque elaborazione, per avere sempre una rete di sicurezza per riprocessare senza dipendere da IMAP (§7.3.3).",
+      "acceptanceCriteria": [
+        "Comando mail:fetch-inbound che usa InboundMailTransport per leggere fino a limit messaggi da INBOX, mai tutti gli unseen con fetch_body indiscriminato (rischio OOM del v1)",
+        "Ogni messaggio grezzo è salvato come .eml su uno storage disco dedicato PRIMA di qualunque parsing; un record email_messages viene creato con direction=inbound, status=received, imap_folder, imap_uid, raw_path",
+        "Un messaggio il cui (imap_folder, imap_uid) esiste già in email_messages viene saltato (il vincolo unique esiste già da Fase 0): rieseguire il comando sullo stesso stato IMAP non crea duplicati — test dedicato che lo dimostra",
+        "WithoutOverlapping sul job/comando, $timeout esplicito, $tries con backoff, disconnect IMAP sempre in un finally anche in caso di eccezione",
+        "Comando registrato nello scheduler (routes/console.php, Laravel 13, niente app/Console/Kernel.php) con cadenza configurabile",
+        "Test con fixture .eml reali in tests/Fixtures/emails/ e connessione IMAP mockata dietro l'interfaccia, mai un vero server IMAP nei test",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-303",
+      "title": "Parsing del messaggio (subject, corpo, charset)",
+      "description": "As a sistema, devo estrarre in modo affidabile subject e corpo da un'email grezza, senza regex distruttive né perdita di contenuto (§7.3.5).",
+      "acceptanceCriteria": [
+        "App\\Domain\\Mail\\Parsers\\SubjectNormalizer rimuove prefissi Re:/RE:/R:/Fw:/Fwd:/AW:/I:/Rif: anche ripetuti/in cascata, e restituisce separatamente l'eventuale token [#<id>]",
+        "App\\Domain\\Mail\\Parsers\\EmailBodyParser preferisce text/plain, converte l'HTML in testo solo se manca il plain; nessuna regex generica non testata come preg_replace('/---.*?---/s', ...) (problema 8 del v1)",
+        "App\\Domain\\Mail\\Parsers\\QuotedTextRemover rimuove testo citato e firme (On ... wrote:, Il ... ha scritto:, righe >, -----Original Message-----, separatore -- di firma, blocchi Outlook From:/Da:); il testo rimosso resta comunque nel .eml archiviato da US-302, la rimozione riguarda solo body_text/body_html salvati sul ticket_message",
+        "body_html è sempre sanitizzato riusando lo stesso principio allowlist di App\\Domain\\Ticketing\\Support\\TicketMessageSanitizer (US-106) o un allowlist equivalente — mai output non sanitizzato salvato o mostrato (problema 9, XSS stored)",
+        "Charset gestito esplicitamente con fallback documentato e log quando il decoding fallisce, mai un'eccezione non gestita che fa fallire l'intero fetch",
+        "Al termine, email_messages.status passa a parsed con subject normalizzato e corpo scritti sul record",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-304",
+      "title": "Classificazione anti-loop e scarti obbligatori",
+      "description": "As a sistema, devo scartare prima di ogni azione i messaggi che non devono generare ticket né risposta, per non produrre mail loop, spam confermato o duplicati (§7.3.4, problema 7).",
+      "acceptanceCriteria": [
+        "App\\Domain\\Mail\\Actions\\ClassifyInboundEmail scarta (status=discarded, motivo registrato, NESSUN invio) i messaggi con: Auto-Submitted diverso da no; Precedence: bulk/list/junk; List-Id o List-Unsubscribe presenti; X-Auto-Response-Suppress; mittente MAILER-DAEMON/postmaster@/no-reply@/noreply@/vuoto; mittente in email_suppressions; mittente uguale all'indirizzo della piattaforma stessa",
+        "Content-Type: multipart/report; report-type=delivery-status è riconosciuto come DSN e instradato alla gestione bounce (US-319), mai al ticketing",
+        "Rate limit configurabile (default 3/ora, 10/giorno per indirizzo, da config/mail_pipeline.php): oltre soglia il messaggio è comunque elaborato ma nessun auto-reply parte, e l'indirizzo va in email_suppressions con reason=loop_protection ed expires_at valorizzato",
+        "Un test per ciascuna regola di scarto con un caso che deve essere scartato e uno che non deve esserlo, non un solo test generico",
+        "Un messaggio non scartato passa a status=classified",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-305",
+      "title": "Identificazione del mittente",
+      "description": "As a sistema, devo risolvere l'utente users mittente di un'email in modo affidabile, senza attribuzioni sbagliate (§7.3.6).",
+      "acceptanceCriteria": [
+        "Match case-insensitive su users.email riusando l'indice funzionale lower(email) già presente da Fase 0/US-010, nessuna nuova migrazione",
+        "Se non trovato, prova il sub-address (nome+tag@dominio → nome@dominio)",
+        "Non inferisce MAI l'utente dal solo dominio del mittente (esplicitamente vietato dal PRD, rischio di attribuzione errata)",
+        "Se non identificato, il messaggio è marcato per la gestione di US-308 (quarantena), mai scartato",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-306",
+      "title": "Risoluzione del thread (VERP, In-Reply-To, subject, euristica)",
+      "description": "As a sistema, devo capire se un'email è la risposta a un ticket esistente o l'apertura di uno nuovo, usando il metodo più affidabile disponibile (§7.3.6, il dominio email supporta il plus-addressing).",
+      "acceptanceCriteria": [
+        "Ogni email in uscita generata da questa fase (da US-311 in poi) usa un Reply-To nella forma ticket+<ulid>@dominio, dove <ulid> è quello del ticket_message a cui la notifica si riferisce (plus-addressing/VERP)",
+        "In ingresso, App\\Domain\\Mail\\Actions\\ResolveEmailThread prova IN QUESTO ORDINE, fermandosi al primo match: (1) token ticket+<ulid> nel destinatario To; (2) In-Reply-To/References confrontati con email_messages.message_id; (3) token [#<id ticket>] nel subject normalizzato (regex ancorata, funziona anche sui ticket importati dal v1 perché l'ETL conserva gli id originali); (4) euristica stesso mittente + subject normalizzato identico + thread aperto negli ultimi N giorni (default 30, da config), registrando esplicitamente che il match è euristico",
+        "Nessun match su nessuno dei quattro livelli → il messaggio genera un nuovo ticket (US-307)",
+        "Un test per livello che dimostra che un match a un livello più affidabile non viene mai scavalcato da un livello successivo (es. un messaggio con token VERP valido non deve mai finire sull'euristica)",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-307",
+      "title": "Applicazione — creazione ticket o nuovo messaggio, notifiche post-commit",
+      "description": "As a cliente, quando scrivo una nuova richiesta o rispondo a una notifica, il sistema deve creare/aggiornare il ticket corretto e avvisare chi deve saperlo, in modo transazionale (§7.3.7, R4).",
+      "acceptanceCriteria": [
+        "Nuovo ticket: riusa App\\Domain\\Ticketing\\Actions\\CreateTicket (US-103) con title=subject normalizzato, primo ticket_message con channel=email e il corpo parsato (US-303), type=helpdesk, requester_id=utente identificato (US-305) o null se non identificato (→ US-308)",
+        "Risposta a ticket esistente: nuovo ticket_message collegato con channel=email, e applica la transizione T7 già esistente (RestoreTicketStatusOnRequesterMessage, US-106) quando l'autore è il richiedente",
+        "La creazione/aggiornamento del ticket e l'aggiornamento di email_messages (status=applied, ticket_id collegato) avvengono nella STESSA transazione: un fallimento in una delle due annulla entrambe",
+        "Dopo il commit, in coda: conferma di ricezione al mittente (E1, US-311) e notifica allo staff (E3, US-312) — mai dentro la transazione, mai in modo sincrono",
+        "Test che verifica: se l'invio della notifica fallisce (coda che lancia un'eccezione), il ticket/messaggio restano comunque creati (a differenza del v1, dove un fallimento SMTP impediva di marcare l'email come elaborata causando duplicati infiniti — problema 2)",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-308",
+      "title": "Mittente non riconosciuto — quarantena",
+      "description": "As a membro dello staff, voglio essere avvisato quando scrive un mittente mai visto prima, per poterlo associare a un cliente esistente o crearne uno nuovo, senza perdere il messaggio (§7.3.8).",
+      "acceptanceCriteria": [
+        "Un messaggio classificato ma con mittente non identificato (US-305) va in status=quarantined, mai scartato",
+        "Notifica E9 allo staff (US-312) con mittente, subject, estratto del corpo, e un link diretto alla pagina di quarantena in amministrazione (US-322)",
+        "Auto-reply al mittente SOLO se passa tutti i controlli anti-loop di US-304, con l'indirizzo di supporto letto da config/mail_pipeline.php (mai hard-coded, problema 18 del v1)",
+        "Le azioni 'associa a utente esistente' / 'crea nuovo utente e ticket' vivono nell'amministrazione (US-322): applicandole, il messaggio viene RIPROCESSATO dalla pipeline (da US-305 in poi) e genera il ticket",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-309",
+      "title": "Allegati inbound",
+      "description": "As a sistema, devo importare gli allegati di un'email in modo sicuro, senza path traversal né perdite silenziose (§7.3.9, problema 15).",
+      "acceptanceCriteria": [
+        "Nome file sanitizzato (slug + validazione estensione) con path su disco costruito da un ULID, MAI il nome file originale usato come path",
+        "Limiti (dimensione per allegato, totale per messaggio, numero massimo) letti da config/mail_pipeline.php, configurazione propria distinta da TicketAttachmentTypes (US-107) perché il contesto email è più permissivo",
+        "Allegati inline (loghi, firme) esclusi per default, con flag esplicito per includerli",
+        "Validazione MIME reale (sniffing del contenuto, non l'header dichiarato)",
+        "Un allegato scartato produce comunque un record email_attachments con status che inizia con rejected_ e il motivo — mai uno scarto silenzioso (i campi esistono già nello schema di Fase 0)",
+        "Un errore su un singolo allegato non fa fallire l'elaborazione dell'intero messaggio",
+        "L'allegato importato con successo è collegato al ticket_message creato/aggiornato in US-307 riusando la collection medialibrary attachments già usata dagli allegati web (US-107); email_attachments.media_id valorizzato",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-310",
+      "title": "Layout email unico e componenti riusabili",
+      "description": "As a utente che riceve una notifica, voglio un'email leggibile, coerente col design della piattaforma, e utilizzabile anche senza client HTML (§7.5.4).",
+      "acceptanceCriteria": [
+        "Un solo layout resources/views/emails/layouts/base.blade.php con logo/palette/tipografia dal design system esistente (docs/design-system.md/theme.css, US-004) — zero CSS duplicato tra template",
+        "Ogni email ha una versione plain-text generata insieme all'HTML, mai solo HTML",
+        "Componenti Blade riusabili: intestazione ticket, badge di stato (riusa la stessa logica colore/icona di TicketStatus::getColor(), non una seconda palette), blocco messaggio, bottone call-to-action, footer con dati societari",
+        "Footer con link alle preferenze di notifica (US-317) e, dove pertinente, header List-Unsubscribe",
+        "Test che verifica che nessun HTML malformato viene prodotto per almeno un Mailable reale per tipo di comunicazione",
+        "Typecheck passes",
+        "Tests pass",
+        "Verifica in browser: screenshot (Chrome headless, stesso approccio già usato in US-004+) di almeno un'email renderizzata, o ispezione via Mailpit locale"
+      ],
+      "priority": 10,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-311",
+      "title": "Mailable E1/E2 — conferme di ricezione/apertura ticket",
+      "description": "As a richiedente, voglio una conferma quando il mio ticket è stato ricevuto, sia che l'abbia aperto via email sia via portale (§7.5.2 E1/E2).",
+      "acceptanceCriteria": [
+        "TicketReceivedByEmailMail (E1): inviata al mittente quando un ticket è creato via email (da US-307), contiene numero ticket e link al portale",
+        "TicketOpenedFromWebMail (E2, nuovo — il v1 non la manda): inviata al richiedente quando crea un ticket dal pannello web",
+        "Entrambe implements ShouldQueue con $tries/$backoff/retryUntil, producono un record email_messages direction=outbound con message_id generato e Reply-To = indirizzo VERP del ticket (US-306)",
+        "Subject con token [#<id>] (fallback di threading)",
+        "Nessun invio se il destinatario è in email_suppressions o ha disattivato questo tipo di notifica in notification_preferences",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 11,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-312",
+      "title": "Mailable E3/E9 — notifica staff (nuovo ticket cliente, mittente sconosciuto)",
+      "description": "As a membro dello staff, voglio essere avvisato quando un cliente apre un nuovo ticket o scrive un mittente mai visto, per non lasciare nulla senza risposta (§7.5.2 E3/E9, corregge il problema 10 del v1).",
+      "acceptanceCriteria": [
+        "NewCustomerTicketStaffMail (E3): inviata al gruppo staff configurabile (MAIL_STAFF_NOTIFICATION_GROUP, US-301) quando un ticket è creato da un cliente via web o via email — mai un foreach sincrono su 'tutti i developer' come nel v1",
+        "UnknownSenderStaffMail (E9): inviata allo stesso gruppo quando un messaggio va in quarantena (US-308), con link diretto alla riga di quarantena",
+        "Entrambe in coda, con notifica in-app Filament database notification per ciascun destinatario interno",
+        "Test che verifica che il gruppo destinatari è letto da configurazione, non hard-coded: cambiare il gruppo in config cambia i destinatari senza toccare il Mailable",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 12,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-313",
+      "title": "Mailable E4 — cambio di stato",
+      "description": "As a richiedente o membro dello staff, voglio sapere quando lo stato del mio ticket cambia, con un messaggio che indica chiaramente il nuovo stato e mi porta alla pagina giusta per il mio ruolo (§7.5.2 E4, corregge il problema 11: nel v1 $recipient->role non esiste e manda sempre lo stesso template).",
+      "acceptanceCriteria": [
+        "TicketStatusChangedMail ascolta l'evento TicketStatusChanged (già esistente da US-103) e determina contenuto/link in base al RUOLO REALE del destinatario ($user->hasRole()/permessi, mai un attributo inesistente)",
+        "Il template mostra esplicitamente il nuovo stato (label localizzata) e linka la pagina corretta per lo staff o la vista cliente per un customer",
+        "Applica la regola di destinazione di US-318 (nessuno riceve la notifica di un'azione che ha eseguito lui stesso)",
+        "Un test per ciascuna transizione 'rilevante' (definita in US-318) che verifica destinatario e contenuto del template",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 13,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-314",
+      "title": "Mailable E5 — nuovo messaggio sul ticket",
+      "description": "As a partecipante di un ticket, voglio essere avvisato quando arriva un nuovo messaggio pubblico, ma mai di quelli interni (§7.5.2 E5).",
+      "acceptanceCriteria": [
+        "NewTicketMessageMail inviata quando un ticket_message con visibility=public viene creato (evento TicketMessagePosted, US-106), a partecipanti + richiedente + assegnatario + tester, MENO l'autore (riusa Ticket::messageRecipients(), già esposto da US-106 per questo scopo esatto)",
+        "I messaggi visibility=internal non generano MAI questa email, nemmeno verso lo staff: test che crea un messaggio interno e asserisce zero mail accodate",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 14,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-315",
+      "title": "Mailable E6 — assegnazione",
+      "description": "As a developer/tester, voglio sapere quando mi viene assegnato un ticket (§7.5.2 E6).",
+      "acceptanceCriteria": [
+        "TicketAssignedMail inviata al nuovo assegnatario quando il cambio di assignee_id o tester_id (US-110) avviene, SOLO SE l'assegnatario è diverso da chi esegue l'azione",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 15,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-316",
+      "title": "Mailable E7 — reminder ticket in attesa + scheduling",
+      "description": "As a richiedente, voglio un promemoria se il mio ticket è in attesa da troppo tempo senza attività, per non doverlo controllare manualmente (§7.5.2 E7 — nel v1 il comando esiste ma non è mai schedulato).",
+      "acceptanceCriteria": [
+        "Comando tickets:remind-waiting che seleziona i ticket status=waiting senza attività rilevante (da ticket_views/ticket_logs) da almeno 3 giorni LAVORATIVI (esclusi sabato/domenica, stesso principio di WorkedTimeCalculator US-109) e invia TicketWaitingReminderMail al richiedente",
+        "Il comando è EFFETTIVAMENTE registrato nello scheduler (routes/console.php, cadenza giornaliera) — questo è esattamente il gap del v1 da correggere, non solo scrivere il comando",
+        "Un ticket già ricordato di recente (finestra configurabile) non riceve un secondo reminder duplicato nello stesso periodo",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 16,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-317",
+      "title": "Preferenze di notifica — applicazione effettiva",
+      "description": "As a utente, voglio poter disattivare un tipo di notifica e non riceverla più, con la piattaforma che rispetta davvero questa scelta ad ogni invio (§7.5.1).",
+      "acceptanceCriteria": [
+        "Un helper/trait condiviso (es. App\\Domain\\Mail\\Support\\NotificationGate::allows(User $user, string $notificationType): bool) legge notification_preferences (schema già esistente da Fase 0) ed è chiamato da OGNI Mailable di questa fase prima dell'invio — un solo punto di verità",
+        "Un utente senza righe in notification_preferences per un dato tipo riceve la notifica (default abilitato, coerente con enabled default true dello schema)",
+        "La UI per GESTIRE le proprie preferenze resta esplicitamente fuori scope (assegnata alla Fase 6): questa story implementa solo il rispetto delle preferenze già presenti, non l'interfaccia per modificarle — un comando artisan/tinker basta per popolare righe di test",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 17,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-318",
+      "title": "Regole di destinazione (tabella attore × transizione → destinatari)",
+      "description": "As a developer, ho bisogno di un'unica fonte di verità testata per 'chi riceve cosa', per non ripetere il bug di precedenza operatori del v1 (§7.5.3, problema 12: $a && $b && $c || $d).",
+      "acceptanceCriteria": [
+        "App\\Domain\\Mail\\Support\\NotificationRecipientResolver (o struttura equivalente) con una tabella ESPLICITA 'attore che ha eseguito l'azione × transizione → destinatari', non un'espressione booleana con && / || misti",
+        "Principio applicato ovunque: nessuno riceve la notifica di un'azione che ha eseguito lui stesso — un test per ogni combinazione rilevante che lo dimostra esplicitamente",
+        "Riusata da E4 (US-313) e da qualunque altra comunicazione trigger-da-transizione di questa fase",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 18,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-319",
+      "title": "Bounce, DSN e soppressioni",
+      "description": "As a sistema, devo riconoscere quando un'email non è arrivata a destinazione e smettere di inviarne altre a quell'indirizzo, in modo visibile e reversibile (§7.5.5).",
+      "acceptanceCriteria": [
+        "I DSN (riconosciuti in US-304) sono correlati all'email originale via Message-ID citato nel corpo del report (App\\Domain\\Mail\\Actions\\ProcessDeliveryStatusNotification)",
+        "Hard bounce → riga in email_suppressions con reason=hard_bounce; l'utente collegato è segnalato in UI (US-323) come 'email non recapitabile'",
+        "Soft bounce → bounce_count incrementato sulla riga esistente (o creata se assente); la soppressione scatta solo dopo N occorrenze consecutive (soglia da config)",
+        "Le soppressioni sono RIMOVIBILI da amministrazione (US-323): un admin può far ripartire l'invio verso un indirizzo tornato valido",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 19,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-320",
+      "title": "Localizzazione reale delle comunicazioni",
+      "description": "As a utente non italiano, voglio ricevere le comunicazioni nella mia lingua, con un testo sempre completo, mai una chiave grezza (§7.6, problema 14).",
+      "acceptanceCriteria": [
+        "Lingua di ogni comunicazione = users.locale del destinatario, fallback organizations.locale, poi APP_LOCALE",
+        "lang/it.json e lang/en.json presenti e COMPLETI per tutte le chiavi usate da questa fase (Mailable + subject)",
+        "Test dedicato che itera ogni chiave __()/trans() usata dal codice di questa fase e verifica che esista in ENTRAMBE le lingue supportate — un fallimento blocca la CI, non solo un warning",
+        "Nessuna stringa hard-coded in italiano in nessun Mailable/template di questa fase",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 20,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-321",
+      "title": "Amministrazione email — Registro e dettaglio",
+      "description": "As a admin, voglio vedere tutte le email transitate nel sistema, con un dettaglio completo per ognuna, per capire cosa è successo senza consultare i log del server (§7.7).",
+      "acceptanceCriteria": [
+        "Nuova Filament Resource EmailMessageResource (sola visualizzazione, nessuna creazione/modifica manuale del contenuto), gated su un permesso email.view/email.manage (verificare che esista nel catalogo enum Permission §9.3, altrimenti aggiungerlo qui) e visibile solo ad admin",
+        "Tabella filtrabile per: direzione, stato, mittente, destinatario, ticket collegato, periodo",
+        "Vista di dettaglio: header (from/to/cc/bcc/subject/message-id/in-reply-to), corpo (plain + html sanitizzato), allegati, ticket/thread collegato, numero tentativi, ultimo errore",
+        "Typecheck passes",
+        "Tests pass",
+        "Verifica in browser (screenshot Chrome headless) del registro con almeno un'email reale/di fixture visibile"
+      ],
+      "priority": 21,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-322",
+      "title": "Amministrazione email — Azioni e quarantena",
+      "description": "As a admin, voglio poter intervenire manualmente su un messaggio (riprocessarlo, collegarlo, scartarlo, reinviarlo) e risolvere la quarantena senza toccare il DB a mano (§7.3.8, §7.7).",
+      "acceptanceCriteria": [
+        "Azioni sulla vista di dettaglio (US-321): riprocessa (rilancia la pipeline da classified in poi), assegna a utente (per un mittente sconosciuto), collega a ticket (override manuale del thread risolto da US-306), scarta (forza status=discarded con motivo manuale), reinvia (per un outbound failed/bounced)",
+        "Pagina/tab dedicato 'Quarantena' con le azioni specifiche di US-308: 'associa a utente esistente' (poi riprocessa), 'crea nuovo utente e ticket' (crea l'utente, poi riprocessa)",
+        "Ogni azione è tracciata (chi l'ha eseguita, quando)",
+        "Typecheck passes",
+        "Tests pass",
+        "Verifica in browser (screenshot Chrome headless) di almeno un'azione, es. 'riprocessa' su un messaggio di fixture in quarantena"
+      ],
+      "priority": 22,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-323",
+      "title": "Amministrazione email — Soppressioni e metriche",
+      "description": "As a admin, voglio vedere quali indirizzi non ricevono più email e perché, rimuoverli se non serve più, e avere un polso generale della salute del sottosistema (§7.5.5, §7.7).",
+      "acceptanceCriteria": [
+        "Elenco email_suppressions filtrabile per motivo (hard_bounce/loop_protection/altro), con azione di rimozione (elimina la riga, riabilita l'invio)",
+        "Widget/pagina con metriche essenziali: messaggi elaborati/scartati/falliti nelle ultime 24h, tempo medio di elaborazione (fetch → applied), bounce rate",
+        "Typecheck passes",
+        "Tests pass",
+        "Verifica in browser (screenshot Chrome headless) della pagina soppressioni/metriche"
+      ],
+      "priority": 23,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-324",
+      "title": "Voce di menu Email con Mailpit come prima sotto-voce",
+      "description": "As a admin che lavora in locale o su UAT, voglio un link diretto a Mailpit dal pannello, per ispezionare le email inviate durante lo sviluppo/collaudo senza dover ricordare un URL a parte.",
+      "acceptanceCriteria": [
+        "Nuovo gruppo di navigazione Filament 'Email' in AdminPanelProvider che raggruppa: la voce 'Mailpit' (PRIMA sotto-voce) seguita da 'Registro' (US-321), 'Quarantena' (US-322), 'Soppressioni' (US-323) — un unico gruppo, non due separati",
+        "'Mailpit' è un Filament\\Navigation\\NavigationItem (non una Resource) con url() letto da una nuova config config('mail_pipeline.mailpit_url') popolata da env MAILPIT_URL, apre l'URL in una nuova scheda (shouldOpenInNewTab: true), mai nella stessa finestra del pannello",
+        "Nuove variabili: .env.example → MAILPIT_URL=http://localhost:${MAILPIT_UI_PORT:-8025} (coerente col servizio mailpit già esposto dal docker-compose.yml locale); .env.uat.example → MAILPIT_URL=https://mailpit-ticket-uat.montagnaservizi.com (stesso host già documentato in docs/collaudo/00-istruzioni-generali.md §10, protetto da Basic Auth a livello di reverse proxy — questa story non tocca quell'autenticazione)",
+        "La voce 'Mailpit' è visibile SOLO quando app()->environment(['local', 'staging']) (staging è il valore di APP_ENV usato da .env.uat.example per l'ambiente UAT) E config('mail_pipeline.mailpit_url') non è vuoto — se la variabile non è configurata, la voce è NASCOSTA, mai un link rotto",
+        "In un ambiente con APP_ENV=production (o altro valore), il gruppo 'Email' resta visibile (registro/quarantena/soppressioni servono anche in produzione) ma la sotto-voce 'Mailpit' specificamente NON compare",
+        "Test Filament che verifica la visibilità condizionale nei tre casi: locale con URL configurato (visibile), staging con URL configurato (visibile), produzione o URL assente (non visibile)",
+        "Typecheck passes",
+        "Tests pass",
+        "Verifica in browser (screenshot Chrome headless) del pannello in ambiente locale con la voce 'Mailpit' visibile nel menu e funzionante (click → apre Mailpit in una nuova scheda)"
+      ],
+      "priority": 24,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-325",
+      "title": "Comando mail:retry-failed",
+      "description": "As a admin/sistema, voglio poter far ripartire l'invio dei messaggi outbound falliti senza doverli reinviare uno per uno da UI (§7.3.3).",
+      "acceptanceCriteria": [
+        "Comando mail:retry-failed {--limit=} {--email-message=} che riaccoda i Mailable con status=failed rispettando comunque email_suppressions/notification_preferences come un invio normale (US-317/US-311+)",
+        "Un messaggio il cui destinatario è nel frattempo finito in soppressione NON viene reinviato: il comando lo segnala e passa al successivo, non si ferma",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 25,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-326",
+      "title": "Checkpoint di fine fase — verifica end-to-end su dati reali",
+      "description": "As a team, prima di chiudere la Fase 3 dobbiamo dimostrare che il sottosistema funziona con email reali, non solo con la suite unitaria (§14, criteri di accettazione Fase 3).",
+      "acceptanceCriteria": [
+        "Fixture .eml reali in tests/Fixtures/emails/ che coprono almeno: risposta a una notifica (thread via VERP), risposta su un ticket importato dal v1 (thread via token subject [#id], nessun VERP disponibile per la storia pregressa), un bounce hard, un mittente sconosciuto, un'email da un dominio in blacklist anti-loop",
+        "Test di integrazione end-to-end (Artisan::call('mail:fetch-inbound') con transport mockato sulle fixture sopra) che verifica l'intera pipeline fetch→parse→classify→apply per ciascun caso",
+        "Criteri di accettazione espliciti dal PRD principale, ciascuno con un test dedicato: rispondere a un'email di notifica aggiorna il ticket esistente invece di crearne uno nuovo anche su un ticket importato dal v1; riprocessare lo stesso messaggio non duplica nulla; un DSN non genera auto-reply; ogni email è ispezionabile dall'amministrazione (US-321); le comunicazioni arrivano nella lingua dell'utente (US-320)",
+        "Manifest di collaudo aggiornato (docs/collaudo/fase-3.php): php artisan collaudo:verify-manifest 3 deve passare",
+        "PDF di collaudo rigenerato con php artisan collaudo:generate 3 e verificato visivamente",
+        "Typecheck passes",
+        "Tests pass — l'intera suite (non solo i file toccati da questa fase)"
+      ],
+      "priority": 26,
+      "passes": true,
+      "notes": ""
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+# Ralph Progress Log
+Project: Orchestrator v2 — Fase 2: Importazione dal v1 (ETL)
+Started: (fresh run, dopo Fase 1 completata — v0.3.2, branch develop; run precedente archiviata in archive/2026-08-01-orchestrator-v2-fase-1/)
+---
+
+## Codebase Patterns
+- Tutti i pattern riusabili di Fase 0/Fase 1 (macchina a stati, Action di dominio, policy, query object, WorkedTimeCalculator, sanitizzazione, ecc.) sono documentati in `orchestrator/CLAUDE.md`, non ripetuti qui: leggerlo prima di iniziare, in particolare le sezioni "ETL / dump v1 (US-007+)" (connessione `legacy`, dove si trovano i dump reali, come resettare `db_legacy`) e "Schema — Ticketing/Rendicontazione/Sottosistema email" per i vincoli di schema già presi in Fase 0 che l'ETL deve rispettare.
+- `app/Import/` è isolato dal resto del dominio (§4.3 del PRD): può dipendere da `App\Domain\*` (riuso di `WorkedTimeCalculator`, `RecalculateWorkedTime`, `TicketMessageSanitizer`, `User::system()`, ecc.), ma nessuna classe `App\Domain\*` deve mai dipendere da `App\Import\*`.
+- Connessione Eloquent dedicata `legacy` verso `db_legacy` (già configurata in Fase 0): leggere le tabelle v1 con `DB::connection('legacy')->table(...)` (query builder), mai con un Model Eloquent — le tabelle v1 non hanno (e non devono avere) un Model in questo repo.
+---

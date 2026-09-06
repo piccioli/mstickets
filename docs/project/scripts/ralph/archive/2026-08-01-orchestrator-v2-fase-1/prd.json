@@ -1,0 +1,347 @@
+{
+  "project": "Orchestrator v2 — Fase 2: Importazione dal v1 (ETL)",
+  "branchName": "ralph/orchestrator-v2-fase-2",
+  "description": "Fase 2 (Importazione dal v1) della riscrittura di Orchestrator per Montagna Servizi S.C.p.A., a partire dalla Fase 1 completata e pubblicata (v0.3.2, branch develop). Fonte: PRD-ORCHESTRATOR-V2.md §11 (M11 — ETL) e §14 (Fase 2), scomposta in tasks/prd-fase-2-etl-import-v1.md. Costruisce app/Import/ (isolato, eliminabile a cutover concluso): 21 stage idempotenti che portano i dati reali del dump v1 nello schema v2, un comando v1:validate con report di integrità/derivati/compromessi, anonimizzazione obbligatoria fuori produzione, e una fixture ridotta eseguita in CI. Assunzione operativa per Q6 del PRD (tolleranza ore lavorate): ±5% per ticket, da confermare col committente in US-219 dopo aver visto la distribuzione reale degli scostamenti. Dump reale di riferimento: v1dumps/production_dump_20260726_101158.sql.gz (già usato per v1:inspect in Fase 0). Criteri di accettazione complessivi della fase (§14): v1:import su un dump reale passa v1:validate; una seconda esecuzione consecutiva non modifica nulla (idempotenza dimostrata); i totali fundraising coincidono esattamente; gli scostamenti sulle ore lavorate sono entro la tolleranza concordata; il report dei compromessi è rivisto col committente.",
+  "userStories": [
+    {
+      "id": "US-201",
+      "title": "Scaffold del comando v1:import e registro degli stage",
+      "description": "As a developer, prima di scrivere un singolo stage mi serve l'infrastruttura che li esegue in ordine, rispettando le dipendenze dichiarate, con le opzioni richieste dal PRD, così che ogni stage successivo si limiti a registrarsi nel runner invece di reimplementare parsing opzioni/gestione errori/audit.",
+      "acceptanceCriteria": [
+        "php artisan v1:import esiste con le opzioni --dry-run, --stage=<nome>, --from-stage=<nome>, --limit=N, --truncate (con conferma interattiva, rifiutato fuori da un ambiente non-produzione), --anonymize (§11.2 del PRD)",
+        "Contratto App\\Import\\Stages\\Contracts\\ImportStage (nome, dipendenze dichiarate, metodo run(ImportContext $context): StageResult) e un runner che risolve l'ordine di esecuzione dalle dipendenze dichiarate, segnalando errore esplicito (non un ordine arbitrario) se --stage/--from-stage richiede uno stage le cui dipendenze non sono state eseguite in questa sessione",
+        "Ogni esecuzione crea/aggiorna una riga import_runs (§5.2 del PRD: started_at, finished_at, dump_label, stages jsonb con righe lette/create/aggiornate/saltate/errori per stage, status, is_dry_run) — la tabella e il modello Eloquent import_runs esistono già da Fase 0 (App\\Import\\Models\\ImportRun)",
+        "--dry-run non scrive alcuna riga nelle tabelle di destinazione (verificato con un test che conta le righe prima/dopo su uno stage fittizio)",
+        "Nessuno stage reale è ancora implementato in questa story (arrivano nelle successive): il test copre il runner con 2-3 stage fittizi di esempio, rimossi prima del merge o marcati come fixture di test isolate",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-202",
+      "title": "Stage users + roles_permissions",
+      "description": "As a developer, l'anagrafica utenti e i loro ruoli/permessi devono essere importati per primi (ogni altro stage referenzia users.id), traducendo la colonna JSON users.roles del v1 nelle tabelle Spatie già seedate in Fase 0.",
+      "acceptanceCriteria": [
+        "Stage users: importa users con id conservato (§11.4 stage 1), mapping colonna per colonna (no epic_id/project_id/altre colonne fuori scope), email case-insensitive deduplicate e segnalate se in conflitto",
+        "Stage roles_permissions: parse tollerante di users.roles (JSON in varchar) — ruolo riconosciuto assegnato via Spatie; ruolo editor NON è un ruolo, l'utente riceve i permessi diretti documentation.create/documentation.update (D14) e viene segnalato se editor era il suo unico ruolo; ruolo non riconosciuto scartato + segnalato; utente senza ruoli segnalato; valore non parsabile → nessun ruolo + segnalato",
+        "horizon.access/logs.access NON assegnati automaticamente: lo stage produce solo l'elenco dei developer esistenti nel report (assegnazione manuale successiva, fuori dall'ETL)",
+        "Il seeder di ruoli/permessi (§9.2, già esistente da Fase 0, RolePermissionSeeder) deve aver girato prima: lo stage fallisce con un errore esplicito (non un errore Spatie criptico) se un ruolo del catalogo enum UserRole non esiste ancora nel DB",
+        "Idempotenza: rieseguire lo stage due volte sullo stesso dump non duplica utenti né righe model_has_roles/model_has_permissions (test dedicato: conteggi identici dopo la seconda esecuzione)",
+        "Test con fixture di users.roles reali multiple: JSON valido con più ruoli, JSON con editor, valore non-JSON, valore vuoto/null",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-203",
+      "title": "Stage organizations + organization_members",
+      "description": "As a developer, importo enti e appartenenze utente↔organizzazione, propedeutici a activity_reports (owner_kind = organization) e ai filtri ticket per organizzazione del richiedente.",
+      "acceptanceCriteria": [
+        "Stage organizations: id conservato, mapping diretto",
+        "Stage organization_members: pivot (organization_id, user_id), idempotente su quella chiave",
+        "Dipende dichiaratamente da users (US-202)",
+        "Test di idempotenza (doppia esecuzione, conteggi invariati) e di orfani (riga v1 che referenzia un utente/organizzazione inesistente → segnalata nel report, non un crash)",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-204",
+      "title": "Stage documentation + tags",
+      "description": "As a developer, importo pagine di documentazione e tag prima dei ticket, perché tags.documentation_id e ticket_tag dipendono da entrambe.",
+      "acceptanceCriteria": [
+        "Stage documentation: documentations → documentation_pages, id conservato, nessuna relazione creator() verso colonna inesistente riprodotta (§16, anti-pattern esplicito del PRD)",
+        "Stage tags: id conservato; il morph polimorfico v1 (taggables/tags.taggable_*) collassa a tag semplici, TRANNE il link a Documentation che diventa la FK esplicita documentation_id (§3.2, regola per l'ETL); conta e segnala quanti tags avevano un taggable_type diverso da Documentation",
+        "Slug generato con unicità garantita (suffisso numerico sui duplicati) — nota: il ricalcolo definitivo/idempotente dello slug è delegato allo stage derive (US-215); questo stage può produrre uno slug provvisorio purché non violi il vincolo unique",
+        "Test di idempotenza e test sul conteggio dei tag con link perso",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-205",
+      "title": "Stage tickets — mapping principale",
+      "description": "As a developer, importo l'entità centrale del sistema (stories → tickets), applicando le normalizzazioni di tipo/priorità/stato e derivando le colonne che non esistono nel v1 (status_changed_at, previous_status).",
+      "acceptanceCriteria": [
+        "id conservato; colonne v1 non portate (epic_id, project_id, history_log, pull_request_link, customer_request) esplicitamente escluse dal mapping",
+        "Tipo: mapping case-insensitive e tollerante agli spazi (Bug→bug, Feature→feature, Help desk/Helpdesk/help desk→helpdesk, Scrum/scrum→scrum); default helpdesk + segnalazione per valori non riconosciuti",
+        "Priorità: 1→low, 2→medium, 3→high; altri valori → low + segnalazione",
+        "status_changed_at: derivato dal story_logs più recente con cambio di stato per quel ticket; fallback stories.updated_at se assente; conta e segnala quanti ticket usano il fallback",
+        "previous_status: per ticket in waiting/problem, risale ai log fino al primo stato diverso da waiting/problem; fallback new; conta e segnala i fallback",
+        "worked_minutes importato come 0 in questa story (il valore reale arriva dallo stage derive, US-215)",
+        "Dipende da users (requester/assignee/tester); tags non ancora collegato (arriva in US-207)",
+        "Test di idempotenza; test sui casi limite di tipo/priorità con valori fuori enum noti dal report v1:inspect (storage/app/import/inspect-20260726_101916.md, già prodotto in Fase 0 — usarlo come fonte dei valori reali distinti da coprire nei test, non inventarli)",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-206",
+      "title": "Stage ticket_hierarchy",
+      "description": "As a developer, ricostruisco la gerarchia padre/figlio dei ticket da due fonti v1 potenzialmente in conflitto (stories.parent_id e la tabella pivot story_story, eliminata in v2), rispettando il vincolo di profondità massima 1 di v2.",
+      "acceptanceCriteria": [
+        "stories.parent_id è la fonte primaria; le righe di story_story non riflesse nella colonna sono applicate solo se non creano conflitto",
+        "Un figlio con due padri diversi tra le due fonti → si mantiene parent_id, si segnala il conflitto (mai un merge silenzioso)",
+        "Una gerarchia che violerebbe la profondità massima 1 → viene appiattita e segnalata nel report",
+        "Dipende da tickets (US-205)",
+        "Test con fixture che riproducono: gerarchia coerente a 1 livello, conflitto padre singolo vs pivot, gerarchia a 2+ livelli da appiattire",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-207",
+      "title": "Stage ticket_tags + ticket_participants",
+      "description": "As a developer, importo le associazioni ticket↔tag e i partecipanti espliciti, entrambe pivot semplici senza logica di trasformazione.",
+      "acceptanceCriteria": [
+        "Stage ticket_tags: taggables (solo lato Story) → ticket_tag, idempotente su (ticket_id, tag_id)",
+        "Stage ticket_participants: story_participants → ticket_participants, idempotente su (ticket_id, user_id); il report segnala il conteggio (atteso vicino a zero, §6.1.7 del PRD principale)",
+        "Dipende da tickets (US-205) e tags (US-204)",
+        "Test di idempotenza e test su righe orfane (ticket o tag inesistente lato v1)",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-208",
+      "title": "Stage ticket_logs",
+      "description": "As a developer, traduco il JSON libero changes dei log v1 nelle colonne esplicite di v2 (event, from_status, to_status, changes), che è la correzione strutturale più importante rispetto al v1.",
+      "acceptanceCriteria": [
+        "Presenza di status nel JSON → event = status_changed, to_status = valore, from_status = stato del log precedente dello stesso ticket (null se non ricostruibile)",
+        "Presenza di user_id (senza status) → event = assigned",
+        "Altre chiavi → event = updated con il diff in changes (mai il corpo di description, solo il marker previsto dal PRD)",
+        "viewed_at del v1 → occurred_at; user_id mancante → utente di sistema (User::system(), già esistente da Fase 1)",
+        "I log con SOLA chiave watch NON diventano ticket_logs: esclusi da questo stage (vanno allo stage ticket_views, US-209)",
+        "Idempotenza tramite import_mappings su story_logs.id",
+        "Dipende da tickets (US-205), users (US-202)",
+        "Test con fixture reali di story_logs.changes per ciascuna delle 4 casistiche sopra",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-209",
+      "title": "Stage ticket_views",
+      "description": "As a developer, separo la tracciabilità delle visualizzazioni (mescolata nel v1 dentro story_logs con chiave watch) nella tabella dedicata ticket_views di v2.",
+      "acceptanceCriteria": [
+        "I story_logs con changes->watch diventano righe ticket_views (ticket_id, user_id, viewed_on, last_viewed_at, view_count)",
+        "Idempotente sul vincolo unique (ticket_id, user_id, viewed_on) già esistente da Fase 0/1: righe ripetute nello stesso giorno si aggregano in view_count, non duplicano",
+        "Dipende da tickets, users; consuma la stessa lettura sorgente di ticket_logs (US-208) — chiarire nel codice che sono due stage letti dalla stessa tabella story_logs ma filtrati in modo mutuamente esclusivo",
+        "Test di idempotenza e test che verifica la mutua esclusione con US-208 (stesso set di story_logs in input, zero sovrapposizioni in output)",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-210",
+      "title": "Stage ticket_messages — parser della conversazione",
+      "description": "As a developer, scompongo l'HTML accumulato di stories.customer_request nei messaggi strutturati di v2, con un fallback esplicito quando il parsing non è affidabile — è il punto più delicato dell'intero import e merita una story dedicata con fixture reali, non solo casi sintetici.",
+      "acceptanceCriteria": [
+        "Parser che scompone i blocchi HTML prepesi del v1, ricavando per ciascuno autore (da nome/stile), timestamp se presente, corpo; l'ordine è INVERTITO rispetto al v1 (v1 prepende, v2 è cronologico)",
+        "Messaggi ricostruiti: is_legacy_import = true, channel = email se identificabile altrimenti system, visibility = public",
+        "Autore non ricavabile → author_id = null, messaggio attribuito a 'storico importato' (author_email valorizzata se disponibile)",
+        "posted_at non ricavabile → distribuzione monotona tra created_at/updated_at del ticket (l'ordine relativo resta coerente); conta e segnala",
+        "Se il parsing fallisce: fallback a un unico messaggio con l'HTML integrale sanitizzato, is_legacy_import = true, posted_at = stories.created_at — nessuna perdita di contenuto",
+        "HTML sempre sanitizzato con TicketMessageSanitizer già esistente da Fase 1 (US-106): riuso diretto, nessuna seconda implementazione di sanitizzazione nell'ETL",
+        "Idempotenza tramite import_mappings su (story_id, indice, hash)",
+        "Il report conta: messaggi ricostruiti, ticket con fallback a blocco unico, ticket senza conversazione",
+        "Test con fixture HTML reali estratte da un campione del dump v1 (non solo HTML sintetico scritto a mano): almeno un caso di scomposizione riuscita multi-messaggio, un caso di fallback a blocco unico, un caso senza customer_request, un caso con tentativo di XSS nel corpo (verifica che la sanitizzazione lo neutralizzi)",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-211",
+      "title": "Stage ticket_attachments",
+      "description": "As a developer, sposto i media v1 (attaccati alla Story) sui messaggi v2, verificando che i file esistano fisicamente prima di considerarli importati.",
+      "acceptanceCriteria": [
+        "Ogni media v1 viene attaccato al primo messaggio legacy del ticket corrispondente (creato da US-210); se il ticket non ha messaggi, crea un messaggio di sistema 'Allegati importati' e allega lì",
+        "Verifica l'esistenza fisica del file sorgente: media orfani (riga DB senza file su disco) sono SEGNALATI nel report, non ignorati e non contati come importati con successo",
+        "I file sono copiati sul disco privato dedicato (ticket-attachments, già esistente da Fase 1 US-107), non su un disco pubblico",
+        "Idempotenza tramite media.uuid: rieseguire lo stage non duplica gli allegati",
+        "Dipende da ticket_messages (US-210)",
+        "Test con almeno un media presente e uno orfano (file mancante simulato) nella fixture",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-212",
+      "title": "Stage activity_reports + activity_report_tickets",
+      "description": "As a developer, importo i report di attività storici e le loro associazioni ai ticket, rispettando il vincolo che ogni report appartiene esclusivamente a un utente o a un'organizzazione (mai entrambi).",
+      "acceptanceCriteria": [
+        "id conservato; owner_kind/owner_user_id/owner_organization_id valorizzati coerentemente (il v1 aveva customer_id che in realtà puntava a users, §0.3 del PRD)",
+        "Rispetta il vincolo CHECK già esistente in v2 (Fase 0, activity_reports_owner_check): un record che lo violerebbe è segnalato e scartato, non causa un errore SQL non gestito che interrompe l'intero stage",
+        "Stage activity_report_tickets: pivot (report_id, ticket_id), idempotente",
+        "Dipende da users, organizations, tickets",
+        "Test di idempotenza e test sul caso limite (report v1 con dati ambigui su owner)",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-213",
+      "title": "Stage fundraising_opportunities + fundraising_scores",
+      "description": "As a developer, importo le opportunità di fundraising e normalizzo le 34 colonne evaluation_* del v1 in righe di fundraising_evaluation_scores, un mapping non banale che richiede il catalogo criteri già definito nell'enum PHP (§6.6.2, esistente).",
+      "acceptanceCriteria": [
+        "fundraising_opportunities: id conservato, mapping diretto delle colonne",
+        "Ogni colonna evaluation_*_score non nulla → riga fundraising_evaluation_scores con la criterion_key corrispondente (mappa §6.6.2); le colonne evaluation_criterion_*_description diventano notes della riga omonima",
+        "Punteggi fuori range → CLAMPATI al range del catalogo criteri e segnalati (conteggio nel report)",
+        "I totali (evaluation_positive_total/negative_total/total) NON si importano da v1: restano vuoti qui, ricalcolati dallo stage derive (US-215) e confrontati col v1 nel report di validazione",
+        "Idempotenza su (opportunity_id, criterion_key)",
+        "Dipende da users (created_by/responsible_user_id/evaluated_by)",
+        "Test con fixture che copre: punteggio nel range, punteggio fuori range (verifica clamp), colonna evaluation_* nulla (nessuna riga generata)",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-214",
+      "title": "Stage fundraising_projects + fundraising_partners",
+      "description": "As a developer, importo i progetti candidati collegati alle opportunità e i loro partner, completando il modulo fundraising.",
+      "acceptanceCriteria": [
+        "fundraising_projects: id conservato, mapping diretto, collegato a fundraising_opportunities (US-213)",
+        "fundraising_project_partners: pivot (project_id, user_id), idempotente",
+        "Dipende da fundraising_opportunities (US-213), users",
+        "Test di idempotenza",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-215",
+      "title": "Stage derive — ricalcolo dei valori derivati",
+      "description": "As a developer, dopo che tutte le entità primarie sono importate, ricalcolo da zero ogni valore derivato di v2 (mai importato direttamente da v1), garantendo che sia sempre rigenerabile (A9 del PRD) e riallineo le sequenze PostgreSQL per gli id conservati.",
+      "acceptanceCriteria": [
+        "tickets.released_at/done_at mancanti pur essendo il ticket in stato released/done → ricostruiti dai ticket_logs importati (US-208)",
+        "tickets.worked_minutes ricalcolato con WorkedTimeCalculator/RecalculateWorkedTime già esistenti da Fase 1 (riuso diretto, nessuna seconda implementazione nell'ETL) per l'intero storico importato",
+        "ticket_work_logs popolato per l'intero storico (stesso riuso di Fase 1)",
+        "Totali di valutazione fundraising (evaluation_positive_total/negative_total/total) ricalcolati dalle righe fundraising_evaluation_scores (US-213) secondo la stessa formula del catalogo criteri",
+        "Slug univoci definitivi per tags e documentation_pages (suffisso numerico sui duplicati)",
+        "email_threads generati per i ticket con conversazione importata (US-210), così che il threading funzioni anche su ticket storici quando il cliente risponde a una vecchia email (prerequisito per Fase 3)",
+        "Riallineamento esplicito delle sequenze PostgreSQL per ogni tabella con id conservato (users, tickets, tags, documentation_pages, organizations, activity_reports, fundraising_*): un passo dedicato e verificato (test che inserisce una nuova riga applicativa dopo il riallineamento e verifica che non vada in conflitto di chiave primaria)",
+        "Idempotente per definizione: ogni derivato è ricalcolato da zero (cancella e ricrea, mai un upsert differenziale) — rieseguire lo stage due volte produce lo stesso risultato esatto",
+        "Test che confronta i totali fundraising ricalcolati con un dataset noto (numeri attesi calcolati a mano nel test)",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-216",
+      "title": "Comando v1:validate e report di validazione",
+      "description": "As a developer/PM, ho bisogno di un report unico che confronti v1 e v2 su conteggi, integrità referenziale, derivati e compromessi applicati, per poter dichiarare un import riuscito con evidenza verificabile invece che a sensazione.",
+      "acceptanceCriteria": [
+        "php artisan v1:validate produce un report salvato in storage/app/import/validate-<timestamp>.md (stesso pattern di v1:inspect, Fase 0)",
+        "Conteggi a confronto: per ogni entità con id conservato, conteggio v1 vs v2 con Δ atteso (0 per la maggior parte; per ticket_logs l'atteso è n_v1 − n_watch perché i watch migrano a ticket_views)",
+        "Controlli di integrità: orfani per ogni FK in scope, unicità violate, valori enum fuori catalogo, ticket senza richiedente, messaggi senza ticket, media mancanti sul disco — ciascuno con conteggio esplicito, zero è il valore atteso per dichiarare il controllo superato",
+        "Confronto dei derivati: ore lavorate per ticket v1 vs v2, con distribuzione degli scostamenti e l'elenco dei ticket oltre la tolleranza del ±5% per ticket (assunzione operativa per Q6 del PRD, documentata come tale); totali di valutazione fundraising v1 vs v2, che DEVONO coincidere esattamente",
+        "Compromessi applicati, con i conteggi già raccolti dagli stage precedenti: ticket con status_changed_at/previous_status da fallback, conversazioni con fallback a blocco unico, messaggi senza autore, messaggi con data stimata, ruoli scartati, tipi normalizzati per default, punteggi clampati, conflitti di gerarchia, media orfani",
+        "Verifica di idempotenza esplicita: un comando/test dedicato esegue v1:import due volte consecutive sullo stesso dump e verifica che la seconda esecuzione produca zero righe create/aggiornate (solo 'saltate') su ogni stage",
+        "Il comando esce con status di errore se un qualunque controllo di integrità fallisce o se i conteggi delle entità con id conservato non coincidono, così che sia usabile come gate in CI",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-217",
+      "title": "Anonimizzazione (--anonymize, §11.8)",
+      "description": "As a developer, quando importo dati reali in un ambiente non di produzione (sviluppo, staging, CI), devo poter sostituire nomi/email/corpi dei messaggi con dati fittizi che preservano relazioni e distribuzione, così da poter lavorare su un dataset realistico senza esporre dati reali dei clienti.",
+      "acceptanceCriteria": [
+        "--anonymize su v1:import sostituisce, per ogni utente: nome, email (dominio di test, mai un dominio reale), e per ogni messaggio: il corpo — stesso utente v1 → stessa identità fittizia v2 in tutta l'esecuzione (deterministico per id, non casuale ad ogni riga)",
+        "Le relazioni (chi ha scritto cosa, a chi è assegnato cosa) restano invariate: solo i valori 'di superficie' cambiano",
+        "Un guard applicativo (non solo un vincolo dell'ETL) impedisce l'invio di email verso indirizzi reali quando APP_ENV !== 'production': allowlist di domini di test in configurazione — verificato con un test che tenta un invio verso un dominio non in allowlist e verifica che venga bloccato/reindirizzato",
+        "--anonymize è OBBLIGATORIO (documentato, non solo disponibile) per ogni ambiente non di produzione nel README/CLAUDE.md",
+        "Il dump v1 e ogni file di import non vengono mai committati: verificare che .gitignore copra anche eventuali nuovi path di lavoro introdotti da questa fase, non solo v1dumps/ già coperto da Fase 0",
+        "Test che, sullo stesso input, produce output anonimizzato deterministico a ogni esecuzione (stesso utente v1 → stessa email fittizia), diverso dall'originale, con le relazioni intatte",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 17,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-218",
+      "title": "Dump di test ridotto per CI",
+      "description": "As a developer, la CI deve poter eseguire l'intera pipeline ETL senza un dump di produzione reale (troppo grande, sensibile, non versionabile): serve una fixture ridotta ma rappresentativa di ogni caso limite già noto dal report v1:inspect di Fase 0.",
+      "acceptanceCriteria": [
+        "Fixture SQL ridotta (poche decine di righe per tabella, non l'intero dump) versionata nel repository (a differenza del dump reale), già anonimizzata alla creazione — non generata anonimizzando un dump reale a ogni run di CI",
+        "Copre esplicitamente i casi limite già documentati in storage/app/import/inspect-20260726_101916.md (Fase 0): almeno un valore di status/type/priority fuori enum, un users.roles con editor, un customer_request non parsabile, un conflitto di gerarchia story_story/parent_id, un media orfano, un'email duplicata a meno del case",
+        "Un job CI dedicato esegue v1:import (su questa fixture) → v1:validate → verifica che il comando esca con successo E che il report non segnali controlli di integrità falliti (i 'compromessi' attesi sulla fixture sono invece l'obiettivo esplicito del test: verificare che vengano rilevati e contati, non che siano zero)",
+        "Il job CI esegue l'import DUE VOLTE per verificare l'idempotenza direttamente in pipeline (non solo in un test locale)",
+        "README/CLAUDE.md documentano dove si trova la fixture e come rigenerarla se lo schema v1 cambia",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 18,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-219",
+      "title": "Checkpoint di fine fase — import su dump reale e revisione col committente",
+      "description": "As a product owner, prima di dichiarare conclusa la Fase 2 voglio vedere l'ETL girare davvero su un dump di produzione reale e rivedere il report dei compromessi, coerentemente con il checkpoint obbligatorio già usato per la Fase 0 (§14 del PRD).",
+      "acceptanceCriteria": [
+        "v1:import eseguito sul dump reale più recente disponibile (v1dumps/production_dump_20260726_101158.sql.gz, già usato per v1:inspect in Fase 0) contro db_legacy, con esito v1:validate allegato alla PR di chiusura fase",
+        "Seconda esecuzione consecutiva sullo stesso dump reale dimostra idempotenza (conteggi 'creati'/'aggiornati' a zero, solo 'saltati') — evidenza allegata, non solo asserita",
+        "I totali di valutazione fundraising v2 coincidono esattamente con quelli calcolati dal v1 sullo stesso dump",
+        "Gli scostamenti sulle ore lavorate sono entro la tolleranza concordata (±5% per ticket, US-216); i ticket oltre soglia sono elencati esplicitamente, non nascosti",
+        "Il report dei compromessi è presentato e rivisto ESPLICITAMENTE col committente prima di considerare la fase chiusa (stesso pattern del 'punto di controllo obbligatorio' di Fase 0) — questa story si considera completa solo dopo la conferma esplicita, non al solo superamento tecnico di v1:validate",
+        "Manifest di collaudo (docs/collaudo/fase-2.php) esteso con i topic della Fase 2, verificato da php artisan collaudo:verify-manifest 2 (processo obbligatorio già stabilito, vedi CLAUDE.md sezione 'Processo di collaudo')",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 19,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}

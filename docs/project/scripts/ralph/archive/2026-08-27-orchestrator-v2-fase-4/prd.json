@@ -1,0 +1,200 @@
+{
+  "project": "Orchestrator v2 — Fase 4: Rendicontazione, documentazione, commesse",
+  "branchName": "ralph/orchestrator-v2-fase-4",
+  "description": "Costruzione della logica applicativa e dell'interfaccia sopra i dati già importati dal v1 in Fase 2 (PRD-ORCHESTRATOR-V2.md §6.3 M3 Tag/commesse, §6.4 M4 Documentation, §6.5 M5 Activity Report e Organizations, roadmap §14 Fase 4): calcolo SAL delle commesse, generazione PDF della documentazione con tag automatico e rigenerazione batch, rendicontazione periodica dell'attività verso clienti e organizzazioni. Fonte scomposta in tasks/prd-fase-4-rendicontazione-documentazione-commesse.md. Decisione vincolante presa col committente: il renderer PDF per Documentation e Activity Report è spatie/laravel-pdf (Chromium headless), non dompdf — nello stesso repo dompdf è già stato abbandonato per il PDF di collaudo perché incapace di riprodurre fedelmente la carta intestata Montagna Servizi, e pdflatex (la sua sostituzione) è deliberatamente escluso dall'immagine UAT/produzione, mentre questi PDF devono generarsi in coda in produzione per utenti reali. Lo schema DB (tags, documentation_pages, organizations, activity_reports) esiste già da Fase 0/2 e non va ricreato: questa fase è Model/Policy/servizi/UI/PDF, non migrazioni. Vista cliente/portale completo resta fuori scope (Fase 6): qui il cliente accede in sola lettura solo ai propri report attività. Fundraising resta Fase 5.",
+  "userStories": [
+    {
+      "id": "US-401",
+      "title": "Modello Tag con SAL — implementazione unica",
+      "description": "As a manager, ho bisogno che ogni commessa mostri ore lavorate e stato di avanzamento calcolati in modo corretto e coerente, per poter valutare a colpo d'occhio se una commessa è in linea con la stima (§6.3).",
+      "acceptanceCriteria": [
+        "Model App\\Domain\\Tagging\\Models\\Tag con workedMinutes(): int (somma di tickets.worked_minutes dei ticket collegati via ticket_tag) e sal(): ?float (worked_hours / estimated_hours * 100), una sola implementazione — nel v1 esistevano un accessor e un metodo duplicato con la stessa formula, qui va rimossa l'ambiguità",
+        "sal() ritorna null quando estimated_hours è nullo o zero (non un errore di divisione, non zero fuorviante)",
+        "isClosed(): bool — nessun ticket collegato in uno stato diverso da released/done; un tag senza ticket collegati non è considerato chiuso",
+        "Policy TagPolicy (tag.view/.create/.update/.delete, §9.4) — deny by default, coerente con le Policy già esistenti da Fase 0",
+        "Test unitari su sal(): stima nulla, nessun ticket collegato, arrotondamenti (requisito esplicito §13.1)",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-402",
+      "title": "Azione \"crea tag da ticket\" + relazione ticket ↔ tag",
+      "description": "As a developer, voglio poter trasformare un ticket in una commessa con un'azione, per non dover compilare a mano nome e stima quando la commessa nasce da un ticket già esistente (§6.3).",
+      "acceptanceCriteria": [
+        "Azione Filament \"Crea commessa\" su TicketResource (view/edit) che crea un Tag con estimated_hours precompilato dal tickets.estimated_hours del ticket sorgente e collega il ticket al nuovo tag",
+        "slug generato e reso univoco (suffisso numerico sui duplicati), stesso pattern già stabilito in Fase 0/2 per entità con slug unique",
+        "Un ticket può avere più tag e un tag più ticket (ticket_tag, N-N già esistente da Fase 0/2); l'azione non duplica il collegamento se il ticket è già taggato con lo stesso tag",
+        "Test feature: creazione tag da ticket, campi precompilati correttamente, collegamento N-N verificato",
+        "Typecheck passes",
+        "Tests pass",
+        "Verifica in browser (screenshot Chrome headless) dell'azione \"Crea commessa\" su un ticket reale, dal click all'esito (tag creato e collegato visibile)"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-403",
+      "title": "Vista elenco tag e filtri ticket per commessa",
+      "description": "As a manager, voglio un elenco delle commesse con stima, ore lavorate e SAL, e la possibilità di filtrare i ticket per commessa, per individuare rapidamente commesse fuori stima o ticket non ancora taggati (§6.3).",
+      "acceptanceCriteria": [
+        "TagResource Filament: elenco con nome, ore stimate, ore lavorate, barra di avanzamento SAL, numero di ticket aperti/chiusi, badge stato chiuso/aperto (isClosed())",
+        "Filtri su TicketResource: ticket senza tag (whereDoesntHave('tags')), ticket con più di un tag, tag per trimestre (pattern sul nome del tag, coerente con la convenzione di naming già in uso nei dati importati)",
+        "Nessuna azione di CRUD oltre a quelle già coperte dalla Policy (tag.create/.update/.delete, §9.4: manager non ha tag.delete)",
+        "Test feature: filtri producono il sottoinsieme corretto di ticket; policy testata riga per riga per ruolo",
+        "Typecheck passes",
+        "Tests pass",
+        "Verifica in browser (screenshot Chrome headless) dell'elenco tag con barra SAL e dei filtri applicati su TicketResource"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-404",
+      "title": "Modello DocumentationPage — visibilità e Policy",
+      "description": "As an editor di documentazione, ho bisogno che ogni pagina abbia una categoria che ne determina la visibilità (solo staff o anche clienti), per poter pubblicare contenuti interni e contenuti cliente nello stesso sistema senza esporre l'uno all'altro (§6.4.1-6.4.2).",
+      "acceptanceCriteria": [
+        "Model App\\Domain\\Documentation\\Models\\DocumentationPage (title, slug, body rich text obbligatorio, category enum DocumentationCategory = internal|customer), media collection documents e images (medialibrary, stesso pattern degli allegati ticket)",
+        "body sanificato allo stesso modo di ticket_messages.body_html (riuso di TicketMessageSanitizer o estrazione di un sanitizer condiviso se la logica diverge da quella dei messaggi ticket)",
+        "Policy DocumentationPagePolicy: documentation.view.customer (staff + cliente + fundraising, §9.4), documentation.view.internal (staff + fundraising, mai cliente), .create/.update/.delete come da matrice — nessuna relazione creator() verso una colonna inesistente (bug v1 esplicitamente da non riprodurre, §5.2); se in futuro servirà tracciare l'autore, sarà una story dedicata con una migrazione, non un'aggiunta implicita qui",
+        "Una pagina internal non è raggiungibile da un utente customer nemmeno via URL diretto (test su policy + su query scope)",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-405",
+      "title": "DocumentationPageResource, auto-tag e ricerca full-text",
+      "description": "As an editor, mi aspetto di poter gestire le pagine di documentazione dal pannello, che ogni pagina sia automaticamente collegabile come commessa dal sistema, e che clienti/staff possano trovare rapidamente una pagina cercando nel titolo o nel corpo (§6.4.2).",
+      "acceptanceCriteria": [
+        "DocumentationPageResource Filament (index/create/edit) con form title/body (rich editor)/category/media documents e images, esposta nel pannello secondo la Policy di US-404",
+        "Listener su evento DocumentationPageCreated: crea un Tag denominato \"Documentation: <titolo>\" collegato alla pagina (tags.documentation_id); non un hook booted()/creating() sul model (correzione esplicita rispetto al v1, §6.4.2)",
+        "Listener su evento DocumentationPageRenamed (dispatchato quando title cambia): rinomina il tag collegato mantenendo lo stesso Tag, non creandone uno nuovo",
+        "Ricerca full-text su title e body (stesso meccanismo già in uso per tickets.title, §5.2), esposta come filtro/ricerca in DocumentationPageResource",
+        "Test feature: creazione pagina → tag creato con nome atteso e collegato; rinomina → tag rinominato, nessun tag duplicato; ricerca full-text trova pagine per corrispondenza su titolo e su corpo",
+        "Typecheck passes",
+        "Tests pass",
+        "Verifica in browser (screenshot Chrome headless) di creazione/rinomina di una pagina di documentazione con il tag \"Documentation: ...\" collegato visibile, e della ricerca full-text"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-406",
+      "title": "Generazione PDF documentazione (spatie/laravel-pdf) + rigenerazione batch",
+      "description": "As a cliente o membro dello staff, voglio poter scaricare una pagina di documentazione come PDF con la stessa identità visiva del sito, per condividerla o archiviarla, e as an admin voglio poter rigenerare tutti i PDF in blocco dopo un cambio di logo o layout (§6.4.3).",
+      "acceptanceCriteria": [
+        "spatie/laravel-pdf aggiunto come nuova dipendenza Composer; verificato che Chromium headless è disponibile sia nell'immagine di sviluppo sia nell'immagine UAT/produzione (docker/uat/Dockerfile, FrankenPHP) — a differenza di pdflatex, qui è un requisito di runtime, non solo di dev",
+        "Job in coda che genera il PDF da una vista Blade che riusa gli stessi componenti/stili del design system (docs/design-system.md/resources/css/theme.css, stessa fonte di verità già stabilita per il layout email in Fase 3), con header logo da PDF_LOGO_PATH e footer dati societari da PDF_FOOTER (nuove variabili .env.example, documentate con commento come da convenzione del file)",
+        "Rigenerazione automatica in coda alla creazione della pagina e a ogni modifica di title o body",
+        "File salvato su storage privato, colonne pdf_path + pdf_generated_at valorizzate; download solo tramite route autorizzata dalla Policy (stesso pattern di ticket_messages allegati, §6.1.8)",
+        "Comando documentation:regenerate-pdfs (manuale, §10.2): rigenera tutti i PDF, rispetta le regole comuni di §10.1 (--dry-run, log strutturato, idempotente — non fallisce l'intero batch per un errore su una singola pagina)",
+        "Scelta del renderer motivata in README.md (richiesto esplicitamente da §6.4.3)",
+        "Test: generazione PDF (contenuto/non-vuoto, non il rendering pixel-per-pixel), rigenerazione su modifica di titolo/corpo, comando batch con --dry-run che non scrive nulla",
+        "Typecheck passes",
+        "Tests pass",
+        "Verifica in browser (screenshot Chrome headless) del download del PDF di una pagina di documentazione reale, con header/footer corretti"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-407",
+      "title": "Modello Organization e gestione membri",
+      "description": "As an admin, voglio raggruppare più utenti cliente sotto un'unica organizzazione, per poter rendicontare l'attività a livello di ente invece che di singolo utente (§6.5.4).",
+      "acceptanceCriteria": [
+        "Model App\\Domain\\Identity\\Models\\Organization (name, locale default it) con relazione N-N verso users via organization_user (già esistente da Fase 0/2)",
+        "Policy OrganizationPolicy (organization.view/.create/.update/.delete, §9.4: manager vede ma non modifica, solo admin fa CRUD completo)",
+        "OrganizationResource Filament: gestione anagrafica + gestione membri (aggiungi/rimuovi utenti) + vista dei report attività generati per quell'ente (collegamento a US-408/US-410)",
+        "Test feature: policy per ruolo riga per riga; aggiunta/rimozione membro riflessa correttamente nella relazione N-N",
+        "Typecheck passes",
+        "Tests pass",
+        "Verifica in browser (screenshot Chrome headless) della gestione membri di un'organizzazione reale (aggiunta/rimozione utente)"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-408",
+      "title": "Modello ActivityReport + servizio di sincronizzazione ticket",
+      "description": "As a sistema, devo determinare quali ticket appartengono a un report attività di un periodo dato, in modo ripetibile e senza effetti collaterali se rieseguito, per garantire che la rendicontazione non diverga tra generazioni successive (§6.5.2).",
+      "acceptanceCriteria": [
+        "Model App\\Domain\\Reporting\\Models\\ActivityReport (owner_kind user|organization, FK owner coerenti col CHECK già esistente da Fase 0, period_type monthly|annual, year, month nullable coerente col tipo periodo, locale), con accessor derivati: data inizio/fine periodo, nome owner, etichetta periodo (\"2026\", \"Febbraio 2026\" — localizzata)",
+        "Vincolo di unicità applicativo replicato sopra il vincolo DB già esistente (owner_kind + owner + tipo + periodo): un tentativo di creare un duplicato fallisce con un errore leggibile, non con l'eccezione SQL grezza",
+        "App\\Domain\\Reporting\\Services\\ActivityReportSyncService::syncTickets(ActivityReport $report): void — service esplicito, non un Observer su created/updated come nel v1: seleziona i ticket con done_at nel periodo del report (owner utente: requester_id = owner; owner organizzazione: richiedente appartenente all'organizzazione), poi sync() sul risultato; se l'owner risulta assente/non risolvibile, detach() totale. Invocato esplicitamente dall'action di creazione/aggiornamento e dal comando di generazione (US-410), mai da un hook implicito sul model",
+        "Idempotenza verificata: invocare syncTickets() due volte di seguito sullo stesso report produce lo stesso insieme di ticket collegati, senza duplicati né effetti collaterali aggiuntivi",
+        "Dipendenza esplicita da verificare: la selezione usa tickets.done_at, sul dump v1 molti ticket storici hanno done_at nullo — verificare che tickets:backfill-dates (comando già previsto da §11.5/§10.2, stage derive di Fase 2) sia stato eseguito sui dati reali prima di generare report su dati storici, altrimenti ticket validi spariscono dalla rendicontazione (verifica da fare al checkpoint US-411, non blocca questa story)",
+        "Test feature: selezione per periodo e owner (utente e organizzazione), idempotenza, unicità (requisito esplicito §13.1 \"Sync ActivityReport\")",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-409",
+      "title": "Generazione PDF report attività",
+      "description": "As a cliente o organizzazione, voglio ricevere/scaricare un PDF che riepiloga l'attività svolta nel periodo, con lo stesso taglio grafico del resto della piattaforma, per avere un documento condivisibile con il mio ente (§6.5.3).",
+      "acceptanceCriteria": [
+        "Job in coda (stesso renderer spatie/laravel-pdf di US-406, stessi componenti di design system) che genera il PDF nella lingua dell'owner (report.locale, già derivata in US-408 da users.locale/organizations.locale), memorizzata sul record",
+        "Nome file basato su PLATFORM_ACRONYM, owner e periodo — variabile nuova, non presente in nessuna fase precedente (verificato), da introdurre in .env.example con lo stesso livello di dettaglio delle altre",
+        "Contenuto: intestazione con periodo e owner, elenco ticket (titolo, tipo, date, ore), totali di periodo",
+        "Cancellazione del record ActivityReport rimuove anche il file PDF associato (nessun file orfano su storage)",
+        "Download autorizzato da activity-report.generate-pdf/policy coerente con §9.4 (cliente/organizzazione scaricano solo i propri report — activity-report.view.own; mai quelli di altri owner, nemmeno via richiesta manipolata sull'URL/ID)",
+        "Test: generazione PDF con contenuto atteso (ticket e totali corretti per un caso noto), rimozione file alla cancellazione, autorizzazione testata per ruolo/owner",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-410",
+      "title": "Comando reports:generate-monthly e accesso ai propri report",
+      "description": "As an admin, voglio che i report del mese precedente vengano generati automaticamente per tutti gli owner attivi, e as a cliente voglio vedere l'elenco dei miei report senza dover chiedere allo staff (§6.5.3, §10.2).",
+      "acceptanceCriteria": [
+        "Comando reports:generate-monthly, schedulato il primo del mese alle 12:00 per il mese precedente, dietro feature flag ENABLE_REPORTS_MONTHLY (default false, §10.2), conforme alle regole comuni di §10.1 (--dry-run, idempotente, log strutturato, withoutOverlapping())",
+        "Per ogni owner attivo (utente cliente con almeno un ticket con done_at nel periodo, organizzazione con almeno un membro/ticket collegato nel periodo) crea (se non esiste già per quel periodo, US-408) l'ActivityReport, invoca syncTickets() e accoda la generazione PDF (US-409)",
+        "Vista Filament per customer/membri organizzazione: elenco dei propri report (activity-report.view.own) con download PDF; non una dashboard cliente completa (fuori scope, Fase 6) — solo l'elenco/download",
+        "Test: comando in --dry-run non scrive nulla; esecuzione reale non duplica report già esistenti per lo stesso periodo (idempotenza su ri-esecuzione); vista cliente mostra solo i propri report",
+        "Typecheck passes",
+        "Tests pass",
+        "Verifica in browser (screenshot Chrome headless) della vista cliente con l'elenco dei propri report attività e il download del PDF"
+      ],
+      "priority": 10,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-411",
+      "title": "Checkpoint di fine fase — verifica end-to-end e pacchetto di collaudo",
+      "description": "As a team, prima di considerare chiusa la fase dobbiamo verificare l'intero flusso su dati reali importati dal v1 e produrre il pacchetto di collaudo completo, da subito e non come retrofit successivo (obbligo esplicito in CLAUDE.md, \"Processo di collaudo\", valido per ogni fase da Fase 4 in poi, §14).",
+      "acceptanceCriteria": [
+        "Verifica end-to-end su dati reali (post v1:import + tickets:backfill-dates): SAL calcolato su commesse reali, PDF documentazione generato e scaricabile con carta intestata corretta, almeno un ActivityReport generato per un owner reale con ticket e totali verificati a campione",
+        "docs/collaudo/fase-4.php — manifest topic → test numerati (F4-01, F4-02, ...) → riferimento a un test automatico realmente esistente; php artisan collaudo:verify-manifest 4 passa",
+        "Manuale narrativo docs/collaudo/0N-fase-4.md (stesso formato per-test già in uso: Obiettivo/Riferimenti/Modalità di esecuzione/Priorità/Ruolo del tester/Prerequisiti/Procedura di esecuzione/Criterio di superamento/Campi di consuntivazione), scritto per ultimo, dopo che tutte le story US-401→US-410 sono complete e il manifest passa — mai in parallelo alle story",
+        "Aggiornamento del pacchetto cumulativo: README.md (indice + riepilogo numerico), 00-istruzioni-generali.md (§1 versione, ambito incluso/escluso), 01-matrice-tracciabilita.md (una riga per test), 07-registro-esiti.md (una riga ID+Titolo per test, generabile dal manifest)",
+        "php artisan collaudo:generate 4 produce il PDF di collaudo (carta intestata Montagna Servizi) senza errori; storage/app/collaudo/ contiene solo l'ultima versione generata per questa fase",
+        "Report dei compromessi/gap emersi (se presenti) rivisto con il committente, stesso pattern di checkpoint già usato in Fase 2 (US-219) e Fase 3 (US-326)",
+        "Typecheck passes",
+        "Tests pass — l'intera suite (non solo i file toccati da questa fase)"
+      ],
+      "priority": 11,
+      "passes": true,
+      "notes": ""
+    }
+  ]
+}

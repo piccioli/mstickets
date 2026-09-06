@@ -1,0 +1,10 @@
+# Ralph Progress Log
+Project: Orchestrator v2 — Seeding con dati reali (ETL) per locale e UAT
+Started: (fresh run, dopo Fase 2 completata 19/19 — v0.3.2+ETL, branch develop; run precedente archiviata in archive/2026-08-02-orchestrator-v2-fase-2/)
+---
+
+## Codebase Patterns
+- Tutti i pattern riusabili di Fase 0/1/2 sono documentati in `orchestrator/CLAUDE.md`, non ripetuti qui: leggerlo prima di iniziare, in particolare le sezioni ETL (US-201+) e "Calcolo ore lavorate" (US-109/US-219) per le convenzioni su insert-only vs diff-comparabile già consolidate — US-R01 di questa run le riusa per la password.
+- Il design approvato per questo lavoro è in `docs/superpowers/specs/2026-08-02-etl-real-data-seeding-design.md`: le decisioni lì prese (convenzione v1dumps/latest.sql, UAT sempre-da-zero, docs/collaudo/* fuori scope, nessuna azione dal vivo su msuat) sono vincolanti, non vanno riaperte.
+- US-R05/US-R06 toccano configurazione per un server reale (msuat) ma NON devono MAI eseguire nulla dal vivo contro quel server: solo preparare/modificare file nel repository, verificati con controlli statici (syntax/config check), mai un ssh o un deploy reale.
+---

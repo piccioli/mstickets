@@ -1,0 +1,472 @@
+# Ralph Progress Log
+Started: 2026-08-27 (Fase 6 — Portale cliente e rifinitura)
+---
+
+## Codebase Patterns
+- Il progetto Laravel/Filament vive in `../../orchestrator` rispetto a questa cartella `scripts/ralph`
+  (working dir di questo script), NON qui — sempre `cd` lì prima di git/composer/artisan.
+- Quality gate di questo progetto: `vendor/bin/pint --test` (lint), `vendor/bin/phpstan analyse
+  --memory-limit=1G` (typecheck), `vendor/bin/pest` (test). Su host servono SEMPRE `php -d
+  memory_limit=1G` davanti a `vendor/bin/pest`/`phpstan` (il default CLI 128M non basta per la suite
+  completa) — nota bene: passare `-d` a `php artisan test` non funziona (spawna un sotto-processo che non
+  eredita l'ini), invocare `vendor/bin/pest` direttamente.
+- Sull'host la suite completa ha SEMPRE 10 test rossi noti e ambientali (mancanza di `pdflatex`/
+  `csquotes.sty`): tutti in `Collaudo*Test`/`LatexPdfCompilerTest`. Non è una regressione — confermato
+  identico anche su `git stash` del proprio diff.
+- Per una Filament Resource condivisa fra staff e customer, il gruppo di navigazione va reso dinamico con
+  `public static function getNavigationGroup(): string|UnitEnum|null` (ramifica su
+  `Auth::user()?->hasRole(...)`), MAI lasciato come proprietà statica `$navigationGroup` (quella è
+  condivisa da ogni ruolo). Dettagli completi in `CLAUDE.md` → "Gruppo di navigazione condiviso
+  staff/cliente".
+- Verificare una story di navigazione in browser significa guardare l'INTERA sidebar per il ruolo target,
+  non solo le voci elencate nell'AC: un `NavigationItem` registrato globalmente in `AdminPanelProvider`
+  (es. "Mailpit") può violare silenziosamente un AC su un ruolo mai considerato dalla sua story originale.
+- Docker locale: `docker ps` mostra `orchestrator-v2-app-1`/`orchestrator-v2-web-1` (nginx su
+  `localhost:8080`) già in esecuzione con bind-mount del repo — utile per verifica browser reale senza
+  `artisan serve` (che fallisce: `.env` punta a host Docker `db`, irraggiungibile da fuori container).
+  `docker exec orchestrator-v2-app-1 php artisan tinker --execute="..."` per creare/pulire utenti di test.
+- Verifica browser senza MCP disponibile: `npx --yes playwright install chromium --with-deps` seguito da
+  uno script Node ad-hoc (`chromium.launch()` + screenshot) contro `localhost:8080` funziona bene come
+  fallback quando nessun tool MCP di browser è configurato in sessione — impostare una password via
+  tinker (`$user->password = bcrypt(...)`) per poter fare login reale dal form invece di bypassarlo.
+- Filament 4 Global Search: `getGlobalSearchEloquentQuery()` di default delega a `static::getEloquentQuery()`
+  — se una Resource ha già uno scoping Policy lì (es. `TicketResource::getEloquentQuery()` ->
+  `Ticket::scopeVisibleTo()`), la ricerca globale eredita lo scoping automaticamente, NESSUN override
+  necessario. `getGloballySearchableAttributes()` supporta dot-notation per relazioni (es.
+  `'requester.name'`, `'messages.body_text'`) — Filament genera da solo `orWhereHas(...)`, gestisce
+  case-insensitive/driver differences internamente, non serve scrivere SQL raw nella query Eloquent:
+  l'indice full-text Postgres (`to_tsvector`) resta confinato alla sola migration per le performance, mai
+  nella query stessa (altrimenti si rompe su sqlite in test).
+- `TicketResource` è l'UNICA voce di menu per i ticket (US-110, AC #1: "nessuna sottoclasse per
+  filtro", tutte le viste di stato sono tab di `ListTickets`). Una story che chiede badge/voci "per
+  stato" (es. US-604 "In attesa"/"Problemi"/"Da testare") non può creare tre Resource/Page separate
+  senza violare quel vincolo: la soluzione adottata è UN SOLO `getNavigationBadge()` con i conteggi
+  combinati e `getNavigationBadgeTooltip()` per il dettaglio per categoria — non tre voci di menu
+  distinte. Interpretazione applicata quando l'architettura a Resource singola confligge con un AC
+  scritto pensando a più voci di menu.
+- Interpolazione `${VAR}` nei file `.env`/`.env.example`: si risolve SOLO se `VAR` è definito PRIMA
+  nello stesso file (parser single-pass di phpdotenv) — riferirsi a una variabile definita più in basso
+  (es. `APP_PORT`, definito in fondo al file nella sezione Docker) produce un'interpolazione vuota senza
+  errore. Verificare sempre l'ordine, o usare un valore letterale.
+- Nessuna pagina Filament di questo repo usava un form editabile "vero" (stato + salvataggio) prima di
+  US-605: per un bisogno semplice (lista di toggle/preferenze), niente Filament Schema/`InteractsWithForms`
+  — bastano proprietà Livewire pubbliche + `wire:model.live` + blade custom (`<x-filament::input.checkbox>`,
+  `<x-filament::button wire:click="...">`), stesso stile "custom blade + metodi" già in uso da
+  `CustomerDashboard`. Il Form builder completo di Filament 4 (visto in `Filament\Auth\Pages\EditProfile`
+  del vendor) è overkill per un semplice elenco di booleani.
+- Una pagina di autenticazione Filament (Login/EditProfile/ecc.) con `$view` completamente custom (qui:
+  `App\Filament\Auth\Pages\Login`, brand "Montagna Servizi") bypassa qualunque meccanismo condizionale nativo
+  reso normalmente da `content(Schema $schema)` — inclusa la sfida MFA (`multiFactorChallengeForm`), mostrata
+  solo se il blade la controlla esplicitamente (`@if ($this->userUndertakingMultiFactorAuthentication)`,
+  poi `{{ $this->multiFactorChallengeForm }}`: una `Schema` Filament implementa `Htmlable`, si stampa con
+  `{{ }}`). `actingAs()` nei test Pest bypassa `Login::authenticate()` interamente: NON basta per verificare
+  che la sfida sia effettivamente mostrata/completabile, serve un test con `Livewire::test(Login::class)`
+  che chiama `authenticate()` due volte (password, poi codice). Verificato SOLO in browser la prima volta —
+  vedi `CLAUDE.md` → "MFA nativa Filament per ruolo" per il dettaglio completo, incluso il gotcha di timing
+  di `Panel::multiFactorAuthentication(isRequired: ...)` (valutato al boot delle route, prima che la sessione
+  esista: mai una closure che legge `Auth::user()` lì, la granularità per-ruolo va in un middleware custom
+  valutato a runtime).
+- Test di regressione "nessuna N+1" con `DB::enableQueryLog()`/`getQueryLog()`: `DB::disableQueryLog()`
+  NON svuota il log, solo ferma la registrazione — misurare due volte nella stessa run (dataset piccolo vs
+  grande) senza `DB::flushQueryLog()` fra le due finestre fa sommare i conteggi (falso N+1) invece di
+  confrontarli. Pattern corretto: `enableQueryLog()` → azione → `count(getQueryLog())` → `flushQueryLog()`
+  → `disableQueryLog()`, ripetuto per ciascuna misura, con `disableQueryLog()` anche durante il seeding fra
+  le due misure (altrimenti le query di setup/factory finiscono nel conteggio). Per isolare il costo di un
+  singolo metodo di una Filament Page (qui `WorkBoard::columns()`) da quello dell'intero ciclo di vita
+  Livewire (mount+render, che in questo caso esegue ANCHE `assigneeOptions()`/`recentActivity()`), istanziare
+  la Page direttamente (`new WorkBoard()`) invece di `Livewire::test(...)->instance()`: quest'ultimo va bene
+  per i test di correttezza (già usato altrove in `WorkBoardTest.php`), non per isolare il conteggio query
+  di un solo metodo. Attenzione anche alla cache dei permessi: `$user->can(...)` dentro uno scope (qui
+  `Ticket::scopeVisibleTo()`) carica/cachea le relazioni roles/permissions sul model Eloquent al primo
+  utilizzo — una chiamata di "riscaldamento" prima della prima misura evita che quella query una-tantum
+  sballi il confronto fra dataset piccolo e grande.
+- Quando una story chiede di "verificare il comportamento v1 prima di riprodurlo" (nota "Q" del PRD
+  principale), `v1dumps/orchestrator-v1-backup-20260726.tar.gz` contiene l'INTERO codice applicativo v1
+  (non solo un dump Postgres): `tar -xzf v1dumps/*.tar.gz 'orchestrator/app' 'orchestrator/routes'
+  'orchestrator/database/migrations'` (BSD tar su macOS supporta i pattern senza `--wildcards`) in una
+  directory temporanea, poi `grep -rli` sul termine cercato, PRIMA di concludere "non recuperabile con
+  certezza" e ripiegare sulla lettura conservativa. Verificato concretamente per US-611
+  (`tickets:archive-scrum`): nessun comando/colonna di archiviazione esiste nel v1 (solo tre viste Nova
+  "Archived*" in sola lettura filtrate per `status`), quindi il ripiego conservativo era l'unica opzione
+  corretta — ma la verifica va fatta comunque, non assunta.
+- Aggiungere una riga alla state machine dichiarativa con `from` = "qualunque stato tranne uno" si scrive
+  con lo stesso idioma già in uso per il catch-all reject (`array_values(array_filter(TicketStatus::cases(),
+  ...))`), non elencando gli stati a mano: resta valido anche se in futuro si aggiungono nuovi `TicketStatus`.
+- Query "tutti gli utenti con un dato ruolo" (es. in un comando schedulato): MAI lo scope `role()` di
+  Spatie (`User::role($value)`) — lancia `RoleDoesNotExist` se la riga `roles` non esiste ancora nel DB
+  (test senza seeding, o ambiente reale senza mai un utente di quel ruolo). Usare invece
+  `User::query()->whereHas('roles', fn ($q) => $q->where('name', $value))`, che produce zero righe invece
+  di un'eccezione — idioma già in uso da `AllCustomerTicketsQuery` (US-non ricordata) e da US-614.
+- Se il `ralph-run.log` mostra un'iterazione che ha dispatchato un agente in background e quella
+  successiva partire subito dopo senza un commit intermedio nella storia, controllare SEMPRE `git
+  status`/`git diff --stat` nel repo target (`../../orchestrator`) PRIMA di ripartire da zero sulla
+  stessa story: il lavoro dell'agente in background può essere già presente ma solo non verificato/non
+  committato (visto concretamente per US-617: 6/8 file di documentazione già scritti, un errore fattuale
+  trovato solo verificandoli contro il codice reale; poi di nuovo per US-618: manifest/manuale/test E2E
+  del checkpoint di fine Fase 6 già scritti da un'iterazione interrotta, verificati e completati invece
+  di essere riscritti). Verificare, correggere se serve, mai buttare via e riscrivere alla cieca.
+- Il database Postgres del container Docker locale (`orchestrator-v2-app-1`/`orchestrator-v2-db-1`) NON
+  contiene dati reali per definizione: se una verifica end-to-end richiede dati reali e le query via
+  tinker restituiscono conteggi a zero, il DB applicativo è vuoto (schema migrato ma mai popolato, o
+  svuotato da un `migrate:fresh` di sessioni precedenti) mentre `db_legacy` (il dump v1) resta comunque
+  popolato: `php artisan db:seed --class=RolePermissionSeeder` (necessario altrimenti `v1:import` si
+  interrompe subito con "il ruolo admin non esiste nel catalogo Spatie") poi `php artisan v1:import
+  --anonymize` (idempotente) poi `php artisan collaudo:ensure-manager-account` ripopolano l'ambiente da
+  zero in un paio di minuti, nessun bisogno di `bin/load-v1-dump` se `db_legacy` è già popolato.
+- Verifica browser reale di isolamento fra due clienti: cercare un termine presente SOLO nel corpo di un
+  messaggio di un ticket (mai nel titolo, altrimenti il match sul titolo confonde cosa si sta davvero
+  verificando) via tinker (`TicketMessage::whereIn('ticket_id', ...)->whereNotNull('body_text')->get()`),
+  poi la stessa ricerca globale da due sessioni Playwright autenticate come clienti diversi: risultati
+  diversi (o assenti) per lo stesso termine confermano lo scoping Policy meglio di un solo login. Un
+  accesso diretto via URL (`page.goto` a un record id noto di un altro cliente) che risponde 404 è la
+  controprova indipendente dal test automatico equivalente.
+---
+
+## 2026-08-27 23:32 - US-601
+- Nuova Filament Page `CustomerDashboard` (§8.6): panoramica scoped al solo cliente autenticato — ticket aperti, ticket in attesa di una sua risposta, documentazione customer recente, link drive_url/drive_budget_url propri (solo se valorizzati), propri report attività e progetti fundraising coinvolti. Ogni card ha uno stato vuoto esplicito. Nessun riferimento a chat di supporto (help_desk_chat_url non confermato).
+- `canAccess()` riusa l'idioma già in uso nel dominio Mail (`hasRole(UserRole::Customer->value)`). Nuovo query object `MyTicketsAwaitingResponseQuery` (stesso stile di `MyTicketsQuery`/`WaitingQuery`) per i ticket in waiting/problem del richiedente corrente. Pagina registrata in `AdminPanelProvider::pages()`.
+- Files: `app/Filament/Pages/CustomerDashboard.php`, `app/Filament/Queries/MyTicketsAwaitingResponseQuery.php`, `resources/views/filament/pages/customer-dashboard.blade.php`, `AdminPanelProvider.php`, test relativi.
+- Commit: `c01a7a2` — feat: US-601 - Dashboard cliente. 11/11 test passano.
+- Il redirect di ruolo su `Dashboard::mount()` resta fuori scope, è US-602.
+- **Learnings for future iterations:**
+  - Nota di bookkeeping: questo entry è stato ricostruito a posteriori — l'iterazione originale ha implementato, testato e committato US-601 correttamente ma il processo si è interrotto prima di aggiornare `prd.json`/`progress.txt`. Nessuna reimplementazione necessaria, solo flag e log riallineati.
+---
+
+## 2026-08-27 - US-602
+- Landing per ruolo estesa in `App\Filament\Pages\Dashboard::mount()` (US-113/Fase 1, invariata per admin/manager/developer → WorkBoard): customer → redirect a `CustomerDashboard::getUrl()` (US-601), fundraising → redirect a `FundraisingOpportunityResource::getUrl('index')`. La pagina `Dashboard` (root `/`) è ora esclusa dalla navigazione (`$shouldRegisterNavigation = false`): da quando ogni ruolo autenticato viene sempre rimbalzato altrove, non è più una destinazione reale.
+- Gruppo di navigazione "Area cliente": `CustomerDashboard`, `CustomerFundraisingProjectResource`, `CustomerFundraisingOpportunityResource` hanno la proprietà statica `$navigationGroup` cambiata direttamente (sono resource/pagine esclusivamente customer). `TicketResource`, `ActivityReportResource`, `DocumentationPageResource` (condivise con staff) hanno invece un nuovo `getNavigationGroup()` dinamico che ramifica su `Auth::user()?->hasRole(UserRole::Customer->value)`.
+- Gotcha scoperto SOLO in verifica browser (non dai test): la voce "Mailpit" (`MailpitNavigationItem`, US-324, gated solo su ambiente+URL, nessun controllo di ruolo) era visibile anche a un customer in locale/staging, in violazione dell'AC "nessuna voce dei gruppi staff visibile a un cliente". Fixato aggiungendo un controllo esplicito su `hasRole(Customer)` in `MailpitNavigationItem::isVisible()`.
+- Test: `DashboardTest.php` aggiornato (il test "customer non reindirizzato" ora asserisce il redirect a `CustomerDashboard`; nuovo test per il redirect fundraising). Nuovo `tests/Feature/Filament/CustomerAreaNavigationTest.php` (asserisce via `Filament::getNavigation()` che un customer vede SOLO il gruppo "Area cliente" e uno staff member non lo vede mai). `MailpitNavigationItemTest.php` esteso con un test per il nuovo gating customer (richiedeva aggiungere `RefreshDatabase`, mancante prima perché nessun test toccava il DB).
+- Files: `app/Filament/Pages/Dashboard.php`, `app/Filament/Pages/CustomerDashboard.php`, `app/Filament/Resources/{Tickets/TicketResource,ActivityReports/ActivityReportResource,DocumentationPages/DocumentationPageResource,CustomerFundraisingProjects/CustomerFundraisingProjectResource,CustomerFundraisingOpportunities/CustomerFundraisingOpportunityResource}.php`, `app/Filament/Navigation/MailpitNavigationItem.php`, test relativi.
+- Verifica browser: screenshot reali via Playwright headless Chrome contro lo stack Docker già in esecuzione (`localhost:8080`, bind-mount del repo) con un utente customer e uno fundraising creati/eliminati ad-hoc via tinker — confermato: customer atterra su `/admin/customer-dashboard` con sidebar "Area cliente" (Dashboard/Report Attività/Opportunità/Progetti/Documentazione/Ticket) e nessun'altra voce; fundraising atterra su `/admin/fundraising-opportunities` con i gruppi staff invariati.
+- Quality: `pint --test` OK, `phpstan analyse` OK (0 errori), suite completa 1389 passed / 10 failed (gli stessi 10 ambientali noti, confermati pre-esistenti anche su `git stash`).
+- Commit: `feat: US-602 - Navigazione "Area cliente" e landing per ruolo`.
+- **Learnings for future iterations:**
+  - Vedi "Codebase Patterns" in cima a questo file e la sezione dedicata in `CLAUDE.md` (dinamica `getNavigationGroup()`, gotcha Mailpit) per il dettaglio completo — non ripetuto qui.
+---
+
+## 2026-08-28 - US-603
+- Global Search Filament nativa aggiunta su `TicketResource` (§8.7): keyword-based su `id`, `title`, `requester.name`, `requester.email`, `messages.body_text` via `getGloballySearchableAttributes()`. Nessun override di `getGlobalSearchEloquentQuery()` necessario: il default Filament delega a `getEloquentQuery()`, già scoped con `Ticket::scopeVisibleTo()` — lo scoping per Policy arriva "gratis". Aggiunti anche `getGlobalSearchResultTitle()` (`#id — title`), `getGlobalSearchResultDetails()` (richiedente + stato), `getGlobalSearchResultUrl()` (solo se `canView()`).
+- Nuova migration `2026_08_28_090000_add_fulltext_index_to_ticket_messages_table.php`: indice GIN Postgres-only (`to_tsvector('italian', body_text)`), stesso template/guardia driver di `2026_08_27_090000_add_fulltext_index_to_documentation_pages_table.php` — no-op su sqlite (suite di test).
+- Files: `app/Filament/Resources/Tickets/TicketResource.php`, `database/migrations/2026_08_28_090000_add_fulltext_index_to_ticket_messages_table.php`, `tests/Feature/Filament/Ticketing/TicketGlobalSearchTest.php`.
+- Test: 5 nuovi in `TicketGlobalSearchTest.php` (ricerca per id/titolo/richiedente-nome/richiedente-email/corpo messaggio; un cliente non trova ticket altrui), invocano `TicketResource::getGlobalSearchResults($term)` direttamente (nessun precedente in questo repo per testare la Global Search Filament, a differenza della table-search `->searchable()` già documentata altrove).
+- Verifica browser: utente reale creato via tinker (ruolo developer, `TicketViewAny`) con un ticket e un messaggio il cui `body_text` contiene "fatturazione elettronica" (termine assente da titolo/id/richiedente) — login reale dal form (password impostata via tinker), ricerca globale nella topbar trova il ticket con dettagli "Richiedente"/"Stato" corretti. Utente e dati di test rimossi a fine verifica.
+- Quality: `pint --test` OK, `phpstan analyse` OK (0 errori), suite completa 1394 passed / 10 failed (stessi 10 ambientali noti pdflatex/csquotes, non una regressione).
+- Commit: `feat: US-603 - Ricerca globale`.
+- **Learnings for future iterations:**
+  - Vedi "Codebase Patterns" in cima a questo file per il pattern Global Search + Policy scoping "gratuito" e per il fallback Playwright quando non c'è un tool MCP di browser in sessione.
+---
+
+## 2026-08-28 - US-604
+- `getNavigationBadge()`/`getNavigationBadgeColor()`/`getNavigationBadgeTooltip()` su `TicketResource` (§8.4): un unico badge combinato (somma di "In attesa" + "Problemi" + "Da testare (io tester)", riuso diretto di `WaitingQuery`/`ProblemTicketsQuery`/`ToTestByMeQuery`, già scoped per Policy/`tester_id`) con colore che riflette la categoria più urgente presente (danger > warning > info) e tooltip col dettaglio per categoria. **Decisione presa senza conferma del committente** (vedi "Codebase Patterns"): l'AC parlava di badge su "voci di menu" plurali, ma `TicketResource` è l'unica voce di menu per i ticket (US-110, AC #1) — tre voci separate avrebbero richiesto tre Resource/Page duplicate, in conflitto con quel vincolo. Da rivedere col committente al checkpoint US-618 se l'interpretazione non è gradita.
+- Cache: `Cache::remember()` con chiave `ticket-navigation-badge-counts:{user_id}` e TTL configurabile (`config('ticketing.navigation_badges.cache_ttl_seconds')`, env `TICKET_NAVIGATION_BADGE_TTL`, default 60s) — UNA sola chiamata a cache per i tre conteggi insieme (non tre `Cache::remember` separate), popolata da tutti e tre i metodi `getNavigationBadge*()` senza rieseguire le query.
+- Files: `app/Filament/Resources/Tickets/TicketResource.php`, `config/ticketing.php`, `tests/Feature/Filament/Ticketing/TicketNavigationBadgeTest.php`.
+- Test: 4 nuovi in `TicketNavigationBadgeTest.php` — conteggio/colore/tooltip corretti, badge nullo quando non c'è nulla da segnalare, verifica di cache-hit con `DB::enableQueryLog()`/`getQueryLog()` (nessuna query alla seconda chiamata entro il TTL — in test `CACHE_STORE=array`, quindi zero query anche dalla cache stessa, non solo dai ticket), scoping per utente (chiave di cache diversa per utente, "Da testare" di un tester non trapela su un altro).
+- Verifica browser: utente developer reale con `TicketViewAny` e 3 ticket (waiting/problem/testing con `tester_id` proprio) creati via tinker sullo stack Docker (`localhost:8080`) — sidebar mostra "Ticket" con badge rosso "3", tooltip Alpine (`x-tooltip`) con testo esatto "1 in attesa · 1 in problema · 1 da testare" (ispezionato via `innerHTML`, non visibile in uno screenshot statico perché richiede hover). Dati di test rimossi a fine verifica.
+- Quality: `pint --test` OK, `phpstan analyse` OK (0 errori dopo aver corretto `static::` → `self::` per la chiamata al metodo privato `navigationBadgeCounts()` — PHPStan la segnala come "Unsafe call to private method through static::"), suite completa 1398 passed / 10 failed (stessi 10 ambientali noti pdflatex/csquotes, non una regressione).
+- Commit: `feat: US-604 - Badge di navigazione con cache`.
+- **Learnings for future iterations:**
+  - Vedi "Codebase Patterns" in cima a questo file per il vincolo "Resource singola" e per il gotcha PHPStan `static::` vs `self::` su metodi privati.
+  - Verificare il tooltip Alpine (`x-tooltip="{content: '...'}"`) via `innerHTML`/attributo, non via screenshot: un hover reale in Playwright headless non produce sempre il popover in uno screenshot statico.
+---
+
+## 2026-08-28 - US-605
+- Nuova pagina Filament personale `NotificationPreferences` (§6.7.4): accessibile da ogni ruolo autenticato (`canAccess()` = solo `Auth::user() instanceof User`, nessun permesso/Policy — niente Gate coinvolto, la query è sempre scoped esplicitamente su `user_id = Auth::id()`, stesso principio di `CustomerDashboard`). Mostra solo i tipi di `NotificationType` applicabili al ruolo dell'utente corrente (nuovo metodo `NotificationType::appliesToUser(User $user): bool` — un cliente non vede mai E6 "Assegnazione ticket", uno staff non vede mai E1/E2/E7 tipici del cliente; E4/E5 restano visibili a tutti perché riguardano entrambi i lati). Nessun form Filament Schema/`InteractsWithForms`: pagina Livewire "semplice" con `public array $enabled` bound via `wire:model.live` su checkbox custom (`<x-filament::input.checkbox>`), stesso stile "custom blade + metodi" già usato da `CustomerDashboard` — nessuna pagina precedente in questo repo aveva un form editabile, quindi niente pattern esistente da riusare per quello specifico bisogno.
+- `NotificationType` ora implementa `HasLabel` (etichette italiane per gli 8 case E1-E9 esistenti; E8/E10/E11 non esistono ancora come case, arriveranno con US-614/615/616 e verranno raccolti automaticamente da `NotificationType::cases()`).
+- `save()` fa `updateOrCreate` per ogni tipo applicabile al ruolo (rispetta il vincolo unique `user_id+notification_type+channel`) — i tipi NON applicabili al ruolo non vengono mai scritti, anche se il default interno sarebbe "abilitato".
+- Navigazione: `getNavigationGroup()` dinamico (mai proprietà statica) — "Area cliente" solo per il ruolo customer, altrimenti `null` (nessun gruppo nuovo per lo staff, per non rompere l'assert esatto `['Area cliente']` di `CustomerAreaNavigationTest` da US-602).
+- Footer email: `config/mail_pipeline.php` → `notification_preferences_url` ora valorizzato in `.env`/`.env.example` (`MAIL_NOTIFICATION_PREFERENCES_URL=${APP_URL}:8080/admin/notification-preferences`) — non più vuoto, come richiesto esplicitamente dall'AC. **Gotcha interpolazione .env**: `${VAR}` in un file .env si risolve solo se `VAR` è definito PRIMA nello stesso file (parser single-pass di phpdotenv) — `APP_PORT` è definito più in basso nel file, quindi ho usato la porta letterale `8080` invece di `${APP_PORT}` per evitare un'interpolazione silenziosamente vuota.
+- Files: `app/Domain/Mail/Enums/NotificationType.php`, `app/Filament/Pages/NotificationPreferences.php`, `resources/views/filament/pages/notification-preferences.blade.php`, `app/Filament/Providers/AdminPanelProvider.php`, `.env.example` (+ `.env` locale, non tracciato), `tests/Feature/Filament/NotificationPreferencesPageTest.php`, `tests/Feature/Domain/Mail/Actions/SendOutboundTicketMailTest.php` (esteso, non riscritto, per l'AC "riuso dei test di rispetto preferenze già esistenti da Fase 3, estesi a coprire l'aggiornamento via questa UI").
+- Test: 7 nuovi in `NotificationPreferencesPageTest.php` (accesso per ogni ruolo, filtro E6 nascosto al cliente / E1 nascosto allo staff, default "abilitato" senza riga esistente, caricamento di una riga disabilitata esistente, scoping per utente al salvataggio, nessuna scrittura per tipi non applicabili al ruolo) + 1 nuovo in `SendOutboundTicketMailTest.php` (disabilitare via Livewire la preferenza e verificare che `SendOutboundTicketMail` la sopprima davvero — copre l'AC end-to-end, non solo la persistenza).
+- **Gotcha scoperto in un test iniziale (poi corretto)**: un test che disabilita un tipo *customer-only* (es. `TicketReceivedByEmail`) su un utente SENZA ruolo customer sembra "silenziosamente" non fare nulla — non è un bug del `save()` (che correttamente ignora i tipi non applicabili al ruolo), ma un errore di setup del test: va sempre assegnato il ruolo giusto (`withRole($user, UserRole::Customer)`) quando si esercita un tipo customer-only nei test.
+- Verifica browser: utente reale con ruolo `customer` creato via tinker sullo stack Docker (`localhost:8080`), login reale dal form — sidebar "Area cliente" mostra "Preferenze di notifica" fra "Dashboard" e "Report Attività"; la pagina mostra solo i 5 tipi applicabili al cliente (niente "Assegnazione ticket"); disattivare "Conferma di ricezione ticket (email)" e salvare mostra il toast "Preferenze di notifica aggiornate" e persiste `enabled=false` nella riga corrispondente in `notification_preferences` (verificato via tinker) senza toccare le altre 4 righe. Utente di test rimosso a fine verifica.
+- Quality: `pint --test` OK, `phpstan analyse` OK (0 errori), suite completa 1406 passed / 10 failed (stessi 10 ambientali noti pdflatex/csquotes, non una regressione — confermato invariato rispetto al baseline di US-604).
+- Commit: `feat: US-605 - Schermata preferenze di notifica`.
+- **Learnings for future iterations:**
+  - Vedi "Codebase Patterns" in cima a questo file per il pattern `getNavigationGroup()` dinamico e per il gotcha interpolazione `.env`.
+  - Quando un AC richiede un elenco di toggle/preferenze filtrato per ruolo su un enum condiviso fra ruoli diversi (qui `NotificationType` per E1-E9), preferire un metodo sull'enum stesso che riceve l'utente reale (`appliesToUser(User $user)`) piuttosto che un parametro `UserRole` fittizio scelto a caso fra i ruoli staff — quest'ultimo è un code smell perché suggerisce (falsamente) che la risposta vari per ruolo staff specifico quando invece oggi la distinzione è solo customer/non-customer.
+  - Questa è la prima pagina Filament in questo repo con un form editabile "reale" (stato + salvataggio): non esisteva un pattern precedente per `InteractsWithForms`/Filament Schema su una Page (solo Action con `->schema([...])` in modali). Ho scelto la via più semplice — proprietà Livewire pubbliche + `wire:model.live` + blade custom — invece del Form builder completo di Filament 4 (`Filament\Schemas\Concerns\InteractsWithSchemas`, visto in `Filament\Auth\Pages\EditProfile` del vendor), perché il bisogno reale (una lista di toggle booleani) non giustificava la complessità aggiuntiva del builder.
+---
+
+## 2026-08-28 - US-606
+- MFA nativa Filament 4 (autenticazione da app/TOTP, `Filament\Auth\MultiFactor\App\AppAuthentication::make()->recoverable()`) abilitata su `AdminPanelProvider`, opzionale per ruolo tramite `config('mfa.required_roles')` (nuovo `config/mfa.php`, env `MFA_REQUIRED_ROLES`, comma-separated, default vuoto = nessun ruolo obbligato — stesso principio "flag di deploy, mai default applicativo" di `config/orchestrator.php`).
+- `->profile()` abilitato per la prima volta in questo repo (era `false`): è l'unico punto in cui Filament espone la UI di setup/gestione MFA (`Filament\Auth\Pages\EditProfile`, QR + codice manuale + codici di recupero).
+- `Panel::multiFactorAuthentication(isRequired: true)` sempre vero (il parametro è valutato al boot delle route, prima che la sessione esista — non utilizzabile per un controllo per-ruolo, vedi Codebase Patterns/CLAUDE.md). La granularità per-ruolo è in un middleware custom nuovo, `App\Filament\Auth\Middleware\EnsureRoleRequiresMultiFactorAuthentication` (sostituisce `multiFactorAuthenticationRequiredMiddlewareName`), che legge il ruolo dell'utente a runtime e delega al middleware nativo `EnsureMultiFactorAuthenticationIsEnabled` solo se richiesto per quel ruolo.
+- `User` (`App\Domain\Identity\Models\User`) implementa i contratti `HasAppAuthentication`/`HasAppAuthenticationRecovery`: due nuove colonne (`app_authentication_secret`, `app_authentication_recovery_codes`, migration `2026_08_28_100000_...`) con cast `encrypted`/`encrypted:array`, mai in chiaro a riposo.
+- **Bug reale scoperto SOLO in verifica browser** (i test con `actingAs()` non lo intercettano): la view di login custom di questo repo (`resources/views/filament/auth/login.blade.php`, brand "Montagna Servizi", da un ciclo precedente) renderizzava a mano il form email/password e non conosceva affatto il concetto di sfida MFA — un utente con MFA configurata restava bloccato per sempre sulla schermata email/password dopo aver inserito la password corretta (lo stato server-side "sfida in corso" c'era, la view non lo mostrava mai). Fix: `@if ($this->userUndertakingMultiFactorAuthentication)` nella stessa view, con `{{ $this->multiFactorChallengeForm }}` (Schema Filament, implementa `Htmlable`) dentro un secondo `<form wire:submit="authenticate">`.
+- Aggiunti di conseguenza 2 test con `Livewire::test(Login::class)` che chiamano `authenticate()` due volte (password, poi codice OTP calcolato con `PragmaRX\Google2FAQRCode\Google2FA` nel test) — gli unici in questo file che esercitano davvero il flusso di sfida, non solo il gate di accesso post-autenticazione.
+- Files: `config/mfa.php`, `database/migrations/2026_08_28_100000_add_app_authentication_columns_to_users_table.php`, `app/Domain/Identity/Models/User.php`, `app/Filament/Auth/Middleware/EnsureRoleRequiresMultiFactorAuthentication.php`, `app/Filament/Providers/AdminPanelProvider.php`, `resources/views/filament/auth/login.blade.php`, `.env.example`, `tests/Feature/Filament/Auth/MultiFactorAuthenticationTest.php` (7 test).
+- Verifica browser: utente developer reale creato via tinker sullo stack Docker (`localhost:8080`) — ciclo completo screenshot: profilo con sezione "Autenticazione a due fattori (2FA)" → modale di setup con QR reale + codice manuale → codice OTP calcolato via tinker (`Google2FA::getCurrentOtp()`) → step codici di recupero → "Abilita l'app di autenticazione" → logout/login → schermata "Verifica la tua identità" con input a 6 caselle + link "Utilizza un codice di recupero" → codice valido → atterraggio su WorkBoard autenticato. Utente di test rimosso a fine verifica.
+- Quality: `pint --test` OK, `phpstan analyse` OK (0 errori), suite completa 1413 passed / 10 failed (stessi 10 ambientali noti pdflatex/csquotes, non una regressione — 1406 passed a baseline US-605 + 7 nuovi test).
+- Commit: `feat: US-606 - Autenticazione MFA opzionale`.
+- **Learnings for future iterations:**
+  - Vedi "Codebase Patterns" in cima a questo file e `CLAUDE.md` → "MFA nativa Filament per ruolo" per il dettaglio completo (timing di `isRequired`, gotcha della view di login custom, comando tinker per calcolare un OTP valido).
+  - Prima di fidarsi che `actingAs()` + una richiesta HTTP verifichi davvero un flusso di autenticazione Filament (login, MFA, ecc.), controllare cosa bypassa: `actingAs()` salta `Login::authenticate()` per intero, quindi non è mai sufficiente per testare login/sfide multi-step — serve `Livewire::test(Login::class)`.
+---
+
+## 2026-08-28 - US-607
+- Impersonation (§6.7.2): integrato `stechstudio/filament-impersonate` v5.6. Azione "Impersona" su `UsersTable` (riga) e `ViewUser` (header), autorizzazione delegata interamente al pacchetto tramite `User::canImpersonate()`/`canBeImpersonated()` (nuovi metodi, contratto rilevato via `method_exists()`) — `canImpersonate()` delega a `Gate::forUser($this)->check('impersonate', $this)`, unica fonte di verità in `UserPolicy::impersonate()` (già esistente, `Permission::UserImpersonate`, §9.4 solo admin); `canBeImpersonated()` nega se `deactivated_at` è valorizzato. `redirectTo` esplicito verso l'home del pannello (che poi smista per ruolo, US-602) invece del default `/` fuori da Filament.
+- Log strutturato tramite gli eventi nativi del pacchetto (`EnterImpersonation`/`LeaveImpersonation`, NON un observer Eloquent): due nuovi listener `App\Domain\Identity\Listeners\LogImpersonationStarted`/`LogImpersonationStopped`, registrati in `AppServiceProvider::boot()`, stesso pattern `Log::info('dominio.azione.evento', [...])` dei comandi schedulati — nessuna tabella dedicata.
+- `UserPolicy::viewAny()` ha ricevuto un guard `if (Impersonation::isImpersonating()) return true;`, raccomandato dal README del pacchetto per un 403 spurio noto (i componenti Livewire della tabella tentano un re-render con l'utente appena impersonato prima che il redirect avvenga). **Effetto collaterale scoperto SOLO in verifica browser**: finché un'impersonation è attiva, l'utente impersonato (anche un customer) può navigare direttamente a `/admin/users` e vedere l'elenco di TUTTI gli utenti reali — il guard non distingue chi è impersonato, solo se una sessione è "in impersonation". Non sfruttabile da un attaccante reale (la sessione resta guidata dall'admin, già privilegiato), ma rompe la premessa "occhi dell'altro utente" per questa Resource specifica. Nessuna soluzione pulita nota che eviti sia questo sia il 403 originale con l'API pubblica del pacchetto — **flaggato in `prd.json` (nota su US-607) per revisione esplicita col committente al checkpoint US-618**, non silenziato.
+- Files: `composer.json`/`composer.lock` (nuova dipendenza), `app/Domain/Identity/Models/User.php`, `app/Domain/Identity/Policies/UserPolicy.php`, `app/Filament/Resources/Users/Pages/ViewUser.php`, `app/Filament/Resources/Users/Tables/UsersTable.php`, `app/Providers/AppServiceProvider.php`, `app/Domain/Identity/Listeners/LogImpersonationStarted.php`, `app/Domain/Identity/Listeners/LogImpersonationStopped.php`, `tests/Feature/Filament/Identity/ImpersonationTest.php`.
+- Test: 5 in `ImpersonationTest.php` — azione visibile su tabella e su ViewUser con il permesso, nascosta senza; ciclo completo impersona→banner (`__('filament-impersonate::banner.impersonating')`)→log (catturato con `Log::listen()`, NON `Log::spy()->shouldHaveReceived()->once()` perché inaffidabile su invocazioni multiple dello stesso metodo nello stesso test)→uscita→sessione originale ripristinata→log di stop; un utente disattivato non è impersonabile.
+- Verifica browser: utenti admin/customer reali creati via tinker sullo stack Docker (`localhost:8080`), ciclo completo via script Playwright ad-hoc — login admin → `ViewUser` di un customer → click "Impersona" → redirect a `/admin/customer-dashboard` (US-601/602, la landing per ruolo funziona anche sotto impersonation) con banner "Stai impersonando l'utente Ralph Target"/"Abbandona" visibile → click "Abbandona" → ritorno a `/admin/users/{id}` come admin originale. Confermati nel log applicativo entrambi gli eventi strutturati (`identity.impersonation.started`/`stopped`) con `impersonator_id`/`impersonated_id` corretti. Utenti di test rimossi a fine verifica.
+- Quality: `pint --test` OK, `phpstan analyse` OK (0 errori), suite completa 1418 passed / 10 failed (stessi 10 ambientali noti pdflatex/csquotes, non una regressione — 1413 passed a baseline US-606 + 5 nuovi test).
+- Commit: `feat: US-607 - Impersonation`.
+- **Learnings for future iterations:**
+  - Vedi `CLAUDE.md` → "Impersonation — guardia `Impersonation::isImpersonating()`" per il dettaglio completo del trade-off accettato e per il pattern di test con `Log::listen()`.
+  - Questa iterazione ha trovato il lavoro già implementato/testato ma non committato da un ciclo precedente interrotto (stesso schema già visto per US-601): verificato quality gate e comportamento in browser da zero prima di fidarsi, poi committato.
+---
+
+## 2026-08-28 01:25 - US-608
+- Disattivazione e riattivazione utente (§6.7.5): azione unica "Disattiva"/"Riattiva" estratta in `App\Filament\Resources\Users\Support\DeactivateUserAction::make()`, riusata sia sulla riga di `UsersTable` sia sull'header di `ViewUser` (stesso idioma di `TicketTransitionActions`/`Impersonate`, US-607). Autorizzazione delegata a `UserPolicy::deactivate()` (`Permission::UserDeactivate`, già esistente da una fase precedente, mai toccata). Valorizza/azzera `deactivated_at` con assegnamento diretto di proprietà + `save()` (colonna non nel `#[Fillable]` del model di proposito).
+- Audit dei picker utente richiesto dall'AC: `assignee_id`/`tester_id`/`requester_id` su `TicketForm`/`TicketTransitionActions`/`ViewTicket`/`EmailQuarantine` erano già scopati con `User::scopeActive()` da fasi precedenti (nessuna modifica). Trovato e corretto un gap reale: `PartnersRelationManager` (partner fundraising, `AttachAction`) non scopava affatto — aggiunto `->recordSelectOptionsQuery(self::activeUsersQuery(...))`.
+- Soppressione email per utente disattivato aggiunta in UN SOLO punto: `SendOutboundTicketMail::blockedReason()` (nuovo controllo `deactivated_at !== null`, prima di `email_suppressions`/`NotificationGate`) — copre automaticamente tutto il catalogo E1-E11 presente e futuro, senza dover filtrare `NotificationRecipientResolver::usersForRole()` (che risolve Requester/Assignee/Tester direttamente dalle relazioni del ticket, senza scope, di proposito).
+- Storico preservato per costruzione: nessuna relazione `belongsTo` (ticket_logs, messaggi, membership organizzazioni) è mai scopata da `->active()` — solo le query di *selezione* (Select/AttachAction) lo sono. Verificato con un test dedicato (assignee relation risolve ancora dopo la disattivazione).
+- Files: `app/Filament/Resources/Users/Support/DeactivateUserAction.php` (nuovo), `app/Filament/Resources/Users/Tables/UsersTable.php`, `app/Filament/Resources/Users/Pages/ViewUser.php`, `app/Filament/Resources/FundraisingProjects/RelationManagers/PartnersRelationManager.php`, `app/Domain/Mail/Actions/SendOutboundTicketMail.php`, `tests/Feature/Filament/Identity/UserDeactivationTest.php` (nuovo), `tests/Feature/Filament/Fundraising/PartnersRelationManagerTest.php`, `tests/Feature/Domain/Mail/Actions/SendOutboundTicketMailTest.php`.
+- Test: 4 nuovi in `UserDeactivationTest.php` (azione visibile/nascosta per permesso, toggle disattiva/riattiva, storico ticket non toccato) + 1 in `PartnersRelationManagerTest.php` (utente disattivato non allegabile come partner) + 1 in `SendOutboundTicketMailTest.php` (destinatario disattivato → riga Suppressed, mail non accodata). Login bloccato e `scopeActive()` generico erano già coperti da `PanelAccessTest.php` (Fase 0/1), non duplicati.
+- Verifica browser: utenti admin/target reali creati via tinker sullo stack Docker (`localhost:8080`), ciclo completo via script Playwright ad-hoc — login admin → `/admin/users` → click "Disattiva" → modale di conferma → notifica "Utente disattivato" → colonna "Disattivato dal" valorizzata, azione "Impersona" scomparsa dalla riga, label diventata "Riattiva" → click "Riattiva" → notifica "Utente riattivato" → riga tornata "Attivo" con "Impersona" di nuovo visibile. Confermato via tinker `canAccessPanel()` false durante la disattivazione. Utenti di test rimossi a fine verifica.
+- Quality: `pint --test` OK, `phpstan analyse` OK (0 errori), suite completa 1424 passed / 10 failed (stessi 10 ambientali noti pdflatex/csquotes, non una regressione — 1418 passed a baseline US-607 + 6 nuovi test).
+- Aggiornato `CLAUDE.md` (nuova sezione "Disattivazione utente — un solo choke point...") con il pattern riusabile: un solo punto di invio email da controllare, `recordSelectOptionsQuery` per i picker M:N vs `modifyQueryUsing`/`relationship()` per i `belongsTo`, e il gotcha PHPStan sul generico `Builder<User>`.
+- Commit: `feat: US-608 - Disattivazione e riattivazione utente`.
+- **Learnings for future iterations:**
+  - Vedi `CLAUDE.md` → "Disattivazione utente — un solo choke point per la soppressione email, `recordSelectOptionsQuery` per i picker M:N (US-608, §6.7.5)" per il dettaglio completo.
+  - Quando un AC chiede di "verificare che ogni picker pertinente" rispetti uno scope, non fidarsi che tutti i picker usino lo stesso meccanismo: un `Select` su `belongsTo` e un `AttachAction` su `belongsToMany` sono due API Filament diverse con due modi diversi di iniettare la query, un audit grep va fatto su entrambe.
+---
+
+## 2026-08-28 - US-609
+- Rifinitura della WorkBoard (§8.6, Kanban a colonne per stato, nessun cambio di paradigma): allineati alla fonte di verità `docs/design-system.md`/`resources/css/theme.css` i valori di raggio, ombra e sfondo delle card e delle colonne, referenziando direttamente le custom property `--ms-*` (`rounded-[var(--ms-radius-card)]`, `shadow-[var(--ms-shadow-card)]`, hover `shadow-[var(--ms-shadow-hover-brand)]`, colonna `bg-[var(--ms-surface-muted)]`/`rounded-[var(--ms-radius-xl)]`, titolo card `font-extrabold` come da peso 800 dei titoli di card nel design system).
+- **Decisione di scope importante**: `theme.css` NON definisce varianti dark-mode per i token `--ms-*` (il mockup importato è un prototipo desktop-only, mai pensato per dark mode) — ho quindi applicato i token solo a proprietà mode-agnostiche (radius/ombra/sfondo con `dark:` esplicito lasciato invariato), mai a colori di testo/superficie che avrebbero rotto la leggibilità in dark mode. Le altre due pagine Fase 6 già ristilizzate (`CustomerDashboard`, `NotificationPreferences`) NON usano token `--ms-*` letterali in blade (solo componenti `x-filament::*` + Tailwind gray-scale con `dark:`), quindi questa è la prima pagina del pannello a referenziare le custom property direttamente — nessun pattern preesistente da copiare, verificato via Explore prima di scrivere.
+- Selettore di assegnatario ("vedere la board di un collega"): **era già presente e funzionante** dalla versione essenziale (Fase 1/US-113) — `assigneeId`/`assigneeOptions()`/select Livewire, già testato. Nessun nuovo lavoro backend, solo verificato che sopravvivesse invariato alla ristilizzazione.
+- Performance: `WorkBoard::columns()` era già a query aggregate (1 query ticket + eager load `requester.organizations`/`tags`, nessuna per-card) da quando è stata scritta in Fase 1 — nessuna regressione introdotta dalla ristilizzazione (solo CSS/classi, zero tocchi alla logica di query). Aggiunto un test di regressione dedicato che non esisteva prima in questo repo per la WorkBoard.
+- Files: `resources/views/filament/pages/work-board.blade.php`, `tests/Feature/Filament/Pages/WorkBoardTest.php`.
+- Test: 1 nuovo — `columns run a constant number of queries regardless of ticket volume (no N+1 per card)`, confronta il conteggio query di `columns()` fra un dataset con 1 ticket/stato e uno con 4 ticket/stato (12 vs 48 ticket totali), assertisce conteggio identico (4 query: tickets/users/organizations/tags) e `<=5`. Vedi "Codebase Patterns" in cima a questo file per il gotcha `DB::flushQueryLog()`/isolamento da `Livewire::test()` scoperto scrivendo questo test (la prima versione dava falsi positivi di N+1 per un bug nel test stesso, non nel codice).
+- Verifica browser: utente developer reale + 6 ticket (uno per stato New/Todo/Progress/Waiting/Problem/Done, tutti assegnati a lui, priorità Alta) creati via tinker sullo stack Docker (`localhost:8080`) — screenshot: card con raggio visibilmente più arrotondato (10px) e titolo in grassetto pieno, colonne sempre tutte presenti anche vuote ("Nessun ticket"), hover su una card mostra il bordo brand-colorato, selettore "Board di" impostato su "Ralph Sviluppatore" mantiene la board coerente (tutti i ticket sono suoi). Utente/organizzazione/ticket di test rimossi a fine verifica.
+- Quality: `pint --test` OK, `phpstan analyse` OK (0 errori), suite completa 1425 passed / 10 failed (stessi 10 ambientali noti pdflatex/csquotes, non una regressione — 1424 passed a baseline US-608 + 1 nuovo test).
+- Commit: `feat: US-609 - Rifinitura della vista di lavoro (WorkBoard) secondo il design system`.
+- **Learnings for future iterations:**
+  - Vedi "Codebase Patterns" in cima a questo file per il pattern di test "nessuna N+1" (gotcha `flushQueryLog`, isolamento da `Livewire::test()`, cache permessi sul model) — riusabile per qualunque futura story che chieda di misurare/testare un conteggio query.
+  - Prima di applicare token `--ms-*` letterali a una pagina Filament, verificare se il file `theme.css` ha varianti dark-mode: qui non le ha (mockup desktop-only), quindi i token vanno usati solo per proprietà mode-agnostiche (radius/ombra/spaziatura/tipografia), mai per colori di testo/superficie già gestiti con `dark:` da Tailwind.
+---
+
+## 2026-08-28 - US-610
+- Due nuovi comandi schedulati T3/T4 (§6.1.5, §10.2): `tickets:progress-to-todo` (18:00, tutti i ticket `progress` → `todo`) e `tickets:auto-close-released` (07:45, ticket `released` da ≥ 3 giorni lavorativi → `done` con `done_at`). Entrambi delegano interamente a `ChangeTicketStatus::run()` con `User::system()` come attore — mai un update diretto su `status`/`done_at` — rispettando §10.1 (`--dry-run`, log strutturato started/item_failed/finished, idempotenza per costruzione, `ticket_logs.is_system=true` gratis via `writeStatusLog()`).
+- **Scoperta chiave verificando la macchina a stati prima di scrivere i comandi**: la riga `progress → todo` (T3) aveva GIÀ `TransitionActor::System` fra gli attori ammessi fin da US-106 (per un motivo estraneo a questa story) — zero modifiche alla state machine per T3. La riga `released → done` (T4) invece NON l'aveva: unica modifica a `TicketStateMachine::transitions()`, aggiunto `TransitionActor::System`. Il commento di classe che elencava "T3/T4/T5 non ancora esistenti" era parzialmente stale (T3 già pronto) — aggiornato per riflettere lo stato reale, e per non ripetere l'errore: verificare sempre `transitions()` riga per riga, non fidarsi del commento.
+- Corretto un test pre-esistente ora invalidato dalla modifica: `TicketStateMachineTest.php` asseriva esplicitamente `released → done` NON permesso per l'utente di sistema ("T4 automation is out of scope") — aggiornato per asserire il contrario, con nome e commento aggiornati.
+- Cadenza configurabile in `config/ticketing.php` (nuove chiavi `progress_to_todo.schedule_cron`/`auto_close_released.schedule_cron`+`threshold_working_days`, stesso pattern env `*_SCHEDULE_CRON` già in uso per `reports.php`/`waiting_reminder`), soglia giorni lavorativi T4 riusa `WorkingDaysCalculator::haveElapsed()` (stesso calcolo del reminder E7/US-316, nessuna nuova implementazione). I feature flag (`ENABLE_TICKETS_PROGRESS_TO_TODO`/`ENABLE_TICKETS_AUTO_CLOSE_RELEASED`) erano già scaffoldati in `config/orchestrator.php`/`.env.example` da Fase 0.
+- Files: `app/Console/Commands/TicketsProgressToTodoCommand.php`, `app/Console/Commands/TicketsAutoCloseReleasedCommand.php`, `app/Domain/Ticketing/StateMachine/TicketStateMachine.php`, `config/ticketing.php`, `.env.example`, `routes/console.php`, `tests/Feature/Console/TicketsProgressToTodoCommandTest.php`, `tests/Feature/Console/TicketsAutoCloseReleasedCommandTest.php`, `tests/Feature/Domain/Ticketing/TicketStateMachineTest.php`.
+- Test: 4 nuovi in `TicketsProgressToTodoCommandTest.php` (dry-run non scrive, transizione reale + log is_system, non tocca altri stati, idempotenza) + 5 nuovi in `TicketsAutoCloseReleasedCommandTest.php` (dry-run, chiusura a soglia raggiunta con `done_at` valorizzato, non chiude prima della soglia, non tocca altri stati, idempotenza) + 1 aggiornato in `TicketStateMachineTest.php`. Nessuna verifica browser: story senza UI (solo comandi artisan/scheduler).
+- Quality: `pint --test` OK (dopo autofix su ordering import/spazi negli operatori nei due nuovi comandi), `phpstan analyse` OK (0 errori), suite completa 1434 passed / 10 failed (stessi 10 ambientali noti pdflatex/csquotes, non una regressione — 1425 passed a baseline US-609 + 9 nuovi test).
+- Commit: `feat: US-610 - Comandi tickets:progress-to-todo e tickets:auto-close-released`.
+- **Learnings for future iterations:**
+  - Vedi `CLAUDE.md` → "Comandi schedulati T3/T4 — `TransitionActor::System` spesso già pre-wired in `TicketStateMachine`" per il dettaglio completo, riusabile per US-611/US-612 (T5, T-restore-waiting): prima di assumere che una riga della state machine richieda una modifica per ammettere l'attore System, controllare `transitions()` — potrebbe già esserci (come per la riga `waiting → previous_status`, già System-abilitata, rilevante per US-612).
+  - Il pattern comando "System + ChangeTicketStatus + dry-run + log strutturato" di `mail:retry-failed`/`reports:generate-monthly` si applica identico a queste automazioni sui ticket: nessuna nuova astrazione necessaria, solo query di selezione + delega all'Action esistente.
+---
+
+## 2026-08-28 - US-611
+- Implementati `tickets:close-scrum` (T5, §10.2: ticket `type=scrum` creati/aggiornati oggi → `done`, schedulato 16:00, flag `ENABLE_TICKETS_CLOSE_SCRUM`) e `tickets:archive-scrum` (§10.2 "Q9": ticket `type=scrum` già `done` da ≥ soglia giorni → archiviati, schedulato 05:00, flag `ENABLE_TICKETS_ARCHIVE_SCRUM`).
+- `tickets:close-scrum`: nuova riga T5 dichiarativa in `TicketStateMachine` (`* → done`, unico attore `System`, guard `type = scrum`, effetto `SetDoneAt`) — `from` copre letteralmente ogni stato tranne `Done` (PRD §6.1.3: "qualsiasi"), incluso `Rejected` (un ticket scrum rifiutato può comunque essere chiuso dall'automazione: non è più un vicolo cieco assoluto, solo per l'attore di sistema). Comando identico nello stile a `tickets:progress-to-todo`/`tickets:auto-close-released`: query di selezione + delega a `ChangeTicketStatus::run()`, nessuna logica ad-hoc.
+- `tickets:archive-scrum`: comportamento v1 verificato a fondo (non assunto) estraendo l'intero codice applicativo da `v1dumps/orchestrator-v1-backup-20260726.tar.gz` — nessun comando/colonna di archiviazione esiste nel v1 (il `Kernel.php` v1 non ha alcuno schedule alle 05:00; solo tre viste Nova "Archived*" in sola lettura, filtrate per `status IN (done, rejected)`, senza alcuna mutazione). Comportamento non recuperabile con certezza → implementata la lettura più conservativa richiesta dal PRD: nuova colonna additiva `tickets.archived_at` (mai una cancellazione, mai un cambio di `status`), nuova Action `ArchiveTicket` che valorizza il flag e scrive sempre un `ticket_log` (`event = archived`, `is_system = true`) per non ripetere il gotcha esplicito del PRD §10.1 (il comando v1 equivalente mutava senza lasciare traccia, falsando ore lavorate/storico). Soglia di retention (`TICKET_ARCHIVE_SCRUM_THRESHOLD_DAYS`, default 30 giorni di calendario) è un **valore assunto**, nessuna indicazione nel v1/PRD: da confermare col committente al checkpoint US-618, insieme alla presenza stessa di un comportamento da riprodurre.
+- Files: `app/Console/Commands/{TicketsCloseScrumCommand,TicketsArchiveScrumCommand}.php`, `app/Domain/Ticketing/Actions/ArchiveTicket.php`, `app/Domain/Ticketing/Enums/TicketLogEvent.php` (nuovo case `Archived`), `app/Domain/Ticketing/Models/Ticket.php` (fillable/cast `archived_at`), `app/Domain/Ticketing/StateMachine/TicketStateMachine.php` (riga T5 + guard `guardTicketTypeScrum`), `config/ticketing.php` (`close_scrum`/`archive_scrum`), `database/migrations/2026_08_28_110000_add_archived_at_to_tickets_table.php`, `routes/console.php` (entrambi schedulati), test relativi (`TicketsCloseScrumCommandTest`, `TicketsArchiveScrumCommandTest`, estensione `TicketStateMachineTest` per T5, estensione `TicketLogEventTest` per il nuovo case).
+- Quality: `pint --test` OK, `phpstan analyse` OK (0 errori), suite completa 1457 passed / 10 failed (gli stessi 10 ambientali noti, `pdflatex`/`csquotes.sty` mancanti sull'host).
+- Commit: `feat: US-611 - Comandi tickets:close-scrum e tickets:archive-scrum`.
+- **Learnings for future iterations:**
+  - Vedi "Codebase Patterns" in cima a questo file per il dettaglio riusabile su come verificare un comportamento v1 dal dump completo (non solo Postgres) prima di ripiegare su una lettura conservativa, e sull'idioma "qualunque stato tranne uno" per una riga della state machine.
+  - `US-612` (`tickets:restore-waiting`) può riusare esattamente lo stesso impianto: la riga `waiting → previous_status` è già `System`-abilitata in `TicketStateMachine` (nessuna nuova riga necessaria, solo il comando + query sulla soglia in giorni).
+---
+
+## 2026-08-28 - US-612
+- Nuovo comando schedulato T6 (§6.1.5/§10.2 del PRD): `tickets:restore-waiting` — ticket `status=waiting` da almeno `config('ticketing.restore_waiting.threshold_days')` giorni **DI CALENDARIO** (esplicito nel PRD §10.2, a differenza di T3/T4 che usano `WorkingDaysCalculator`/giorni lavorativi) → `previous_status`, soglia misurata su `status_changed_at`. Nessuna modifica a `TicketStateMachine`: la riga `waiting → null` (risolve dinamicamente su `previous_status` del ticket, via `Transition::matchesTarget()`) era già `System`-abilitata da prima di questa fase — confermato il pattern già annotato nei "Learnings" di US-611. Comando identico nello stile a `tickets:auto-close-released`/`tickets:close-scrum`: query di selezione (`status=waiting`, `previous_status` non nullo, `status_changed_at <= now()->subDays($threshold)`) + delega a `ChangeTicketStatus::run($ticket, $ticket->previous_status, User::system())`, nessuna logica ad-hoc. Il ripristino risulta annotato "gratis" nella conversazione tramite il `ticket_log` che `ChangeTicketStatus` scrive comunque (mostrato nella timeline di `TicketInfolist`) — soddisfa la nota esplicita del PRD "il ripristino va annotato nella conversazione, non nella description (il v1 scrive nella description: sbagliato)" senza scrivere un `ticket_message` dedicato.
+- **Valore assunto, da confermare col committente**: l'orario di schedulazione. Il PRD (§10.2, tabella comandi) specifica solo "daily" per `tickets:restore-waiting`, senza un orario preciso (a differenza di T3/T4/T5 che hanno un orario esplicito) — scelto 06:30 (`TICKET_RESTORE_WAITING_SCHEDULE_CRON`), tra `waiting_reminder` (06:00) e `auto_close_released` (07:45), documentato come assunzione sia nel commento di `config/ticketing.php` sia nel docblock del comando.
+- Gap pre-esistente notato ma non corretto (fuori scope): US-611 non aveva aggiunto le voci `.env.example` per `TICKET_CLOSE_SCRUM_SCHEDULE_CRON`/`TICKET_ARCHIVE_SCRUM_THRESHOLD_DAYS`/`TICKET_ARCHIVE_SCRUM_SCHEDULE_CRON` (solo `config/ticketing.php` le legge con `env()` e default) — per US-612 le variabili sono state aggiunte in `.env.example` seguendo invece lo stile più completo di US-610.
+- Files: `app/Console/Commands/TicketsRestoreWaitingCommand.php` (nuovo), `config/ticketing.php`, `.env.example`, `routes/console.php`, `tests/Feature/Console/TicketsRestoreWaitingCommandTest.php` (nuovo).
+- Test: 7 nuovi — dry-run non scrive; ripristino a soglia esatta (N giorni) con `previous_status` azzerato e `ticket_log` corretto; ripristino oltre soglia (N+1); nessun ripristino un giorno prima della soglia (N-1); nessun tocco a ticket non-waiting; nessun tocco a un ticket waiting senza `previous_status`; idempotenza su ri-esecuzione. **Gotcha di timing scoperto scrivendo i test di soglia esatta**: la query del comando usa `now()->subDays($threshold)` (timestamp esatto, stesso idioma già in uso per `tickets:auto-close-released`/`tickets:archive-scrum`), NON un confronto allineato a inizio giornata (`startOfDay()`) — un test "esattamente N giorni fa" deve impostare lo stesso orario del `travelTo()` di **now**, non una data generica con un orario diverso, altrimenti la differenza di poche ore fa fallire l'asserzione sul boundary.
+- Quality: `pint --test` OK, `phpstan analyse` OK (0 errori), suite completa 1464 passed / 10 failed (stessi 10 ambientali noti pdflatex/csquotes, non una regressione — 1457 passed a baseline US-611 + 7 nuovi test).
+- Nessuna verifica browser: story senza UI (solo comando artisan/scheduler), come US-610/611.
+- Commit: `feat: US-612 - Comando tickets:restore-waiting`.
+- **Learnings for future iterations:**
+  - Vedi "Codebase Patterns" in cima a questo file per il pattern generale dei comandi schedulati T3-T6. Nuovo gotcha da ricordare per qualunque futuro test di soglia "esattamente N giorni" costruito con `now()->subDays()` (calendario, non `WorkingDaysCalculator`): allineare l'orario del fixture a quello di `travelTo()`, non solo la data.
+  - Se in futuro si torna su US-611 (`tickets:close-scrum`/`tickets:archive-scrum`), notare il gap `.env.example` mancante segnalato sopra.
+---
+
+## 2026-08-28 - US-613
+- Implementato `timetracking:aggregate-daily` (§10.2 del PRD): consolida ogni sera `ticket_work_logs`
+  per i ticket con almeno un `ticket_log` nella giornata odierna, dietro
+  `config('orchestrator.features.timetracking_aggregate')` (flag già pre-provisionato da Fase 0,
+  `ENABLE_TIMETRACKING_AGGREGATE`). Nessuna nuova logica di calcolo: il comando seleziona i ticket
+  toccati oggi (`TicketLog::occurred_at` nella giornata) e delega interamente a
+  `RecalculateWorkedTime::run($ticket)` — la stessa Action già usata da `timetracking:recalculate`
+  (Fase 1) — che ricalcola per intero `tickets.worked_minutes`/`ticket_work_logs` del ticket via
+  `WorkedTimeCalculator`. Idempotente per costruzione (stesso pattern delete-then-recreate già in uso,
+  vincolo unique `work_date`/`user_id`/`ticket_id`). `--dry-run` non scrive nulla, log strutturato
+  (`timetracking.aggregate_daily.started`/`finished`). Schedulato alle 23:30
+  (`config('timetracking.aggregate_daily.schedule_cron')`, `TIMETRACKING_AGGREGATE_SCHEDULE_CRON`).
+- Files changed: `app/Console/Commands/TimeTrackingAggregateDailyCommand.php` (nuovo),
+  `tests/Feature/Console/TimeTrackingAggregateDailyCommandTest.php` (nuovo), `config/timetracking.php`
+  (aggiunta sezione `aggregate_daily.schedule_cron`), `routes/console.php` (registrazione schedule),
+  `.env.example` (`TIMETRACKING_AGGREGATE_SCHEDULE_CRON`).
+- **Learnings for future iterations:**
+  - Il test "produce gli stessi aggregati di `timetracking:recalculate` sullo stesso giorno" (AC
+    esplicito) si soddisfa banalmente per costruzione chiamando la STESSA Action
+    (`RecalculateWorkedTime::run()`) da entrambi i comandi — non serve né utile duplicare la logica di
+    confronto, un test che chiama prima `aggregate-daily` poi azzera lo stato e richiama `recalculate`
+    confrontando i risultati basta a provarlo concretamente (vedi il test nel file sopra), oltre a
+    verificare i valori assoluti attesi.
+  - "Ticket con attività nella giornata" = ticket con un `ticket_logs.occurred_at` compreso tra
+    inizio e fine del giorno corrente (query diretta su `TicketLog`, non su `Ticket::updated_at`, che
+    potrebbe essere toccato da cause estranee ai log di stato).
+---
+
+## 2026-08-28 02:21 - US-614
+- Implementato E8 (§7.5.2 del PRD): digest giornaliero di attività ticket per i clienti che lo hanno
+  abilitato. Comando `mail:send-digest` (schedulato 07:00, `config('mail_pipeline.digest.schedule_cron')`,
+  dietro `config('orchestrator.features.mail_digest')` — già provisionato da Fase 0, verificato inutilizzato
+  fino a questa story) itera i clienti (`whereHas('roles', ...)`, mai lo scope `role()` di Spatie — vedi
+  gotcha sotto), costruisce il contenuto via `BuildCustomerTicketDigest::run($customer, now()->subHours(24))`
+  (un `TicketDigestEntry` per ticket con attività: nuovi messaggi pubblici non scritti dal cliente stesso,
+  cambio di stato nella finestra), salta i clienti senza attività, salta chi ha già ricevuto un digest OGGI
+  (idempotenza), poi delega a `SendOutboundTicketMail::run(ticket: null, ...)` — soppressioni/preferenze
+  (E8 disattivabile da US-605) sono già coperte lì, nessun controllo duplicato. Riscritto da zero, nessun
+  codice v1 riusato (dead code con bug noti, come da nota del PRD).
+- Files: `app/Console/Commands/MailSendDigestCommand.php` (nuovo), `app/Domain/Mail/Actions/
+  BuildCustomerTicketDigest.php` (nuovo), `app/Domain/Mail/Support/TicketDigestEntry.php` (nuovo),
+  `app/Domain/Mail/Mailables/MailDigestMail.php` (nuovo), `app/Domain/Mail/Enums/NotificationType.php`
+  (nuovo case `MailDigest`, applicabile solo ai clienti), `resources/views/emails/mail-digest.blade.php` e
+  `mail-digest-text.blade.php` (nuovi), `lang/it.json`/`lang/en.json` (nuove chiavi), `config/mail_pipeline.php`
+  (nuova sezione `digest.schedule_cron`), `.env.example` (`MAIL_DIGEST_SCHEDULE_CRON`), `routes/console.php`
+  (registrazione schedule), 3 nuovi file di test (`BuildCustomerTicketDigestTest`, `MailDigestMailTest`,
+  `MailSendDigestCommandTest`), `CLAUDE.md` (nuova sezione "Digest periodico E8").
+- **Learnings for future iterations:**
+  - **Gotcha da ricordare per qualunque futuro comando che itera "tutti gli utenti con un dato ruolo"**:
+    MAI `User::role(UserRole::X->value)` (scope Spatie) — lancia `RoleDoesNotExist` se la riga `roles` non
+    esiste ancora nel DB (test senza seeding, o ambiente reale senza mai un utente di quel ruolo). Usare
+    `User::query()->whereHas('roles', fn ($q) => $q->where('name', UserRole::X->value))`, che produce
+    zero righe invece di un'eccezione — stesso idioma già usato da `AllCustomerTicketsQuery` (US non
+    ricordata puntualmente, scoperta solo eseguendo i test di questa story con "nessun cliente").
+  - Un Mailable che copre PIÙ ticket dello stesso destinatario in una sola email estende `OutboundMailable`
+    direttamente (non `TicketOutboundMailable`), esattamente come E9 (`UnknownSenderStaffMail`) — stesso
+    schema, motivo diverso ("più ticket" invece di "nessun ticket"). `SendOutboundTicketMail::run()`
+    accetta `ticket: null` anche per questo caso (già nullable da US-312).
+  - Due finestre temporali distinte da non confondere in un comando "digest giornaliero": la finestra di
+    CONTENUTO ("cosa è successo nelle ultime 24h", scorrevole, `now()->subHours(24)`) e la finestra di
+    IDEMPOTENZA ("è già stato inviato un digest oggi", giorno di calendario, `today()`) — usare la stessa
+    variabile per entrambe produrrebbe falsi negativi/positivi a cavallo di mezzanotte.
+  - `TicketMessage`/`TicketLog` non hanno bisogno di query aggiuntive di scoping "clienti" quando si parte
+    già da `requester_id = $customer->id`: `Ticket::query()->where('requester_id', ...)` basta, senza
+    `visibleTo()` (quel gate riguarda i permessi Policy dell'attore che *guarda*, non l'appartenenza del
+    ticket al cliente digest — ridondante quando si itera già "i ticket di questo cliente specifico").
+  - Nessuna verifica browser: story senza UI (solo comando artisan/scheduler + email), come US-610/611/612/613.
+- Quality: `pint --test` OK, `phpstan analyse` OK (0 errori), suite completa 1486 passed / 10 failed (stessi
+  10 ambientali noti pdflatex/csquotes, non una regressione — 1464 passed a baseline US-612/613 + nuovi test).
+- Commit: `feat: US-614 - Mailable E8 - Digest periodico`.
+---
+
+## 2026-08-28 - US-615
+- Nuovo evento di dominio `ActivityReportPdfGenerated` (§7.5.2 E10), dispatchato da `GenerateActivityReportPdf::run()` (Fase 4) SOLO quando `pdf_generated_at` era `null` prima dell'update (flag `$isFirstGeneration` catturato PRIMA della chiamata a `$report->update()`, dato che `update()` muta l'istanza in place) — una rigenerazione successiva dello stesso PDF non invia un secondo avviso. Nessuna modifica al comando `reports:generate-monthly`/al job: l'evento arriva "gratis" perché entrambi i percorsi (manuale e schedulato) passano dall'unico punto `GenerateActivityReportPdf`.
+- Nuovo Listener `SendActivityReportPdfGeneratedNotification implements ShouldQueue` → Action `SendActivityReportPdfGeneratedMail::run()`: risolve i destinatari in base a `owner_kind` (`User` → l'owner diretto, `Organization` → TUTTI i membri via `$report->ownerOrganization->users`, stesso principio di `ActivityReport::isOwnedBy()`), poi invia con `SendOutboundTicketMail::run(ticket: null, ...)` (già generico/nullable da US-312) — soppressioni/preferenze restano l'unica responsabilità di quell'Action, non duplicate qui.
+- Nuovo `NotificationType::ActivityReportPdfGenerated` (E10), aggiunto alla lista `appliesToUser()` per i customer (i report sono sempre di owner customer/organizzazione customer, mai staff).
+- Nuovo Mailable `ActivityReportPdfGeneratedMail extends OutboundMailable` (nessun ticket associato, stesso schema di `MailDigestMail`/E8): link di download `route('activity-reports.pdf-download', ['activityReport' => $report->id])` (riuso della Policy/rotta già esistenti da Fase 4, nessuna nuova autorizzazione), periodo via `$report->periodLabel()`. Viste `emails/activity-report-pdf-generated(-text).blade.php`, layout condiviso `emails.layouts.base(-text)`. Stringhe aggiunte a `lang/en.json`/`lang/it.json`.
+- Wiring in `AppServiceProvider::boot()`: `Event::listen(ActivityReportPdfGenerated::class, SendActivityReportPdfGeneratedNotification::class)`.
+- Files: `app/Domain/Reporting/Events/ActivityReportPdfGenerated.php`, `app/Domain/Reporting/Actions/GenerateActivityReportPdf.php`, `app/Domain/Mail/Enums/NotificationType.php`, `app/Domain/Mail/Mailables/ActivityReportPdfGeneratedMail.php`, `app/Domain/Mail/Actions/SendActivityReportPdfGeneratedMail.php`, `app/Domain/Mail/Listeners/SendActivityReportPdfGeneratedNotification.php`, `app/Providers/AppServiceProvider.php`, `resources/views/emails/activity-report-pdf-generated(-text).blade.php`, `lang/{en,it}.json`, test relativi.
+- Test: nuovo `ActivityReportPdfGeneratedEventTest.php` (evento dispatchato la prima volta, non su rigenerazione), `SendActivityReportPdfGeneratedNotificationTest.php` (owner utente, TUTTI i membri di un'organizzazione, rispetto di una preferenza disabilitata, `ShouldQueue`), `ActivityReportPdfGeneratedMailTest.php` (HTML/testo/localizzazione/header VERP, stesso stile di `MailDigestMailTest`), e un test end-to-end dedicato `ReportsGenerateMonthlySendsActivityReportPdfGeneratedMailTest.php` che NON fa `Queue::fake()` (a differenza di `ReportsGenerateMonthlyCommandTest.php`) per far girare per davvero l'intera catena comando → job → `GenerateActivityReportPdf` → evento → listener → Mailable accodato, sfruttando `QUEUE_CONNECTION=sync` in `phpunit.xml`.
+- Quality: `pint --test` OK dopo un fix automatico (`ordered_imports` in `AppServiceProvider.php`, più `fully_qualified_strict_types`/`braces_position`/`single_line_empty_body`/`ordered_imports` nel nuovo file evento), `phpstan analyse` OK dopo un fix (`$report->ownerOrganization?->users ?? collect()` → `$report->ownerOrganization->users`: Larastan infra BelongsTo come mai-null qui, il nullsafe era superfluo — errore `nullsafe.neverNull`), suite completa 1497 passed / 10 failed (stessi 10 ambientali noti pdflatex/csquotes, non una regressione — 1486 passed a baseline US-614 + 11 nuovi test).
+- Commit: `feat: US-615 - Mailable E10 - Report attività disponibile`.
+- **Learnings for future iterations:**
+  - Un evento di dominio "solo alla prima valorizzazione di una colonna" si cattura leggendo lo stato PRIMA della chiamata che muta il model (`$isFirstGeneration = $report->pdf_generated_at === null;` prima di `$report->update(...)`), non confrontando `wasChanged()`/`getOriginal()` dopo: più semplice e non richiede capire se l'update passa da un hook Eloquent o da una chiamata diretta.
+  - Per un Mailable "verso tutti i membri di un'organizzazione" (owner_kind Organization), iterare `$organization->users` (BelongsToMany) e chiamare `SendOutboundTicketMail::run()` una volta per destinatario — nessuna nuova infrastruttura di invio multiplo, lo stesso Action generico già usato per un singolo utente basta in loop.
+  - `Mail::assertQueued(MailableClass::class, $count)` (secondo argomento intero) verifica il NUMERO di invii quando serve controllare "un destinatario per membro" senza dover ispezionare il `to` di ciascuno — stesso idioma di `Queue::assertPushed(JobClass::class, $count)` già in uso altrove.
+  - Larastan può inferire una relazione `BelongsTo` come mai-null anche quando la foreign key è nullable a livello di colonna DB: se PHPStan segnala `nullsafe.neverNull` su un accesso a relazione, verificare il tipo di ritorno annotato sul metodo relazione (qui `@return BelongsTo<Organization, $this>` senza `|null`) prima di aggiungere un nullsafe "difensivo" — spesso è davvero superfluo nel contesto chiamante.
+---
+
+## 2026-08-28 - US-616
+- Nuovo comando schedulato `tickets:notify-idle-developers` (E11, §7.5.2/§10.2): promemoria interno a un developer con almeno un ticket `assignee_id = lui` (escludendo `done`/`rejected`, stessa convenzione "concluso" già usata da `MyTicketsQuery`/`ArchivedTicketsQuery`) ma nessuno `status = progress`. Colma il gap esplicito v1→v2: nel v1 era un job ritardato di 30 minuti lanciato da un observer, qui è un comando schedulato (`*/30 9-15 * * *`, config `ticketing.idle_developer_notice.schedule_cron`), dietro il feature flag già provisionato da Fase 0 (`ENABLE_TICKETS_IDLE_DEVELOPER_NOTICE`, default false).
+- Fascia oraria 09:00–15:30 applicata SIA dal cron SIA da un guard applicativo nel comando (`config('ticketing.idle_developer_notice.window_start'/'window_end')`, confronto stringhe `H:i`): riproduce il vincolo v1 ("solo prima delle 15:30") ed è testabile con `Carbon::setTestNow()` senza dover simulare lo scheduler.
+- Query "developer idle" scritta direttamente su `Ticket::query()`, MAI `AssignedToMeQuery`/`scopeVisibleTo()`: quello scope filtra per permesso Filament dell'utente corrente (UI-authorization), non pertinente a un comando di sistema che valuta oggettivamente lo stato dei ticket di un altro utente.
+- Nuovo `NotificationType::IdleDeveloperNotice` (E11), aggiunto alla lista `appliesToUser()` per i ruoli non-customer (destinatario sempre interno, mai un cliente).
+- Nuovo Mailable `IdleDeveloperNoticeMail extends OutboundMailable` (nessun ticket singolo, elenco di ticket in coda, stesso schema di `MailDigestMail`/E8) + notifica in-app Filament via `StaffDatabaseNotification::send()` (già esistente da E3/E9, riusata qui senza modifiche: §7.5.2 richiede la notifica in-app per ogni destinatario interno). Viste `emails/idle-developer-notice(-text).blade.php`, layout condiviso. Stringhe aggiunte a `lang/en.json`/`lang/it.json`.
+- Idempotenza "un promemoria al giorno per developer" con lo stesso pattern di E7/E8 (`EmailMessage::where('user_id', ...)->where('mailable_class', IdleDeveloperNoticeMail::class)->where('created_at', '>=', $todayStart)->exists()`) — corretto perché la fascia oraria ricorre una sola volta al giorno.
+- Registrato in `routes/console.php` (`Schedule::command(...)->cron(...)->withoutOverlapping()->when(...)`), stesso schema di tutti gli altri comandi schedulati di Fase 6.
+- Files: `app/Console/Commands/TicketsNotifyIdleDevelopersCommand.php`, `app/Domain/Mail/Mailables/IdleDeveloperNoticeMail.php`, `app/Domain/Mail/Enums/NotificationType.php`, `config/ticketing.php`, `routes/console.php`, `resources/views/emails/idle-developer-notice(-text).blade.php`, `lang/{en,it}.json`, `CLAUDE.md`, test relativi.
+- Test: nuovo `TicketsNotifyIdleDevelopersCommandTest.php` (invio nella finestra, nessun invio con un ticket in progress, nessun invio se l'unico ticket assegnato è già chiuso, nessun invio fuori finestra, non duplica lo stesso giorno, `--dry-run` non scrive/invia nulla, nessun developer → exit 0), `IdleDeveloperNoticeMailTest.php` (HTML/testo/localizzazione/header VERP, stesso stile di `MailDigestMailTest`).
+- Quality: `pint --test` OK dopo un fix automatico (`fully_qualified_strict_types`/`ordered_imports`/spaziatura nel nuovo comando), `phpstan analyse` OK, suite completa 1508 passed / 10 failed (stessi 10 ambientali noti pdflatex/csquotes, non una regressione — 1497 passed a baseline US-615 + 11 nuovi test).
+- Commit: `feat: US-616 - Mailable E11 - Developer senza ticket in lavorazione + comando`.
+- **Learnings for future iterations:**
+  - Un comando con vincolo di FASCIA oraria (non un singolo orario fisso) va difeso anche a livello applicativo, non solo dal cron: confrontare `now()->format('H:i')` con due config string `H:i` rende il vincolo testabile con `Carbon::setTestNow()` e protegge un'esecuzione manuale da CLI fuori orario.
+  - Le query object `*Query` del dominio Ticketing (es. `AssignedToMeQuery`) incorporano `scopeVisibleTo()`, pensato per l'autorizzazione UI dell'utente corrente — MAI riusarle in un comando di sistema che deve valutare lo stato oggettivo dei ticket di UN ALTRO utente: con un utente di test senza permessi seedati, `visibleTo()` azzera silenziosamente ogni risultato. Scrivere la query direttamente su `Ticket::query()` in quel caso.
+  - "Concluso" per un ticket, in questo dominio, è sempre `status IN (done, rejected)` — convenzione già stabilita da `MyTicketsQuery`/`ArchivedTicketsQuery`/`MyArchivedTicketsQuery`: riusarla ogni volta che serve un filtro "ticket ancora attivo/in coda", non reinventarla.
+---
+
+## 2026-08-28 - US-617
+- Documentazione completa di progetto (§13.4): scritti gli 8 file richiesti in `docs/` (architecture.md, data-model.md, email.md, time-tracking.md, authorization.md, import-v1.md, operations.md, differences-from-v1.md), README.md aggiornato con indice della documentazione, ticket-lifecycle.md aggiornato per riflettere le automazioni T3-T6 già shippate in questa fase.
+- Situazione di partenza: un'iterazione precedente (17) aveva dispatchato un agente in background che aveva scritto 6/8 file ma non aveva verificato l'accuratezza né committato (processo interrotto). Questa iterazione ha verificato i 6 file esistenti contro il codice reale (trovato e corretto un errore in email.md: comando E7 citato come `tickets:send-waiting-reminders` invece del reale `tickets:remind-waiting`), scritto i 2 file mancanti, verificato/aggiornato README.md e ticket-lifecycle.md.
+- `docs/ticket-lifecycle.md` era rimasto disallineato: T3/T4/T5/T6 ancora segnati "Rimandato a Fase 6" nonostante i comandi fossero già stati implementati e testati in US-610/611/612. Corretto con lo stato reale (Attivo, cron/flag/config specifici) e aggiunta una sezione dedicata per `tickets:archive-scrum` (non una transizione di stato, un campo `archived_at`).
+- `docs/operations.md` documenta anche un gap reale scoperto durante la verifica incrociata col codice (non richiesto da questa story, non riguarda nessuna story precedente): `Permission::HorizonAccess` esiste nel catalogo permessi ma `App\Providers\HorizonServiceProvider::gate()` è ancora lo stub vuoto generato di default da Horizon (lista email autorizzate vuota) — oggi nessun utente può aprire `/horizon` fuori da `local`, a prescindere dal permesso applicativo. Da segnalare al committente, nessuna story lo copre ancora.
+- Files: `docs/architecture.md`, `docs/data-model.md`, `docs/email.md`, `docs/time-tracking.md`, `docs/authorization.md`, `docs/import-v1.md`, `docs/operations.md` (nuovo), `docs/differences-from-v1.md` (nuovo), `README.md`, `docs/ticket-lifecycle.md`.
+- Quality: `pint --test` OK, `phpstan analyse --memory-limit=1G` OK (0 errori, 421 file) — nessuna suite di test richiesta da questa story (AC elenca solo "Typecheck passes", storia solo documentazione).
+- Commit: `feat: US-617 - Documentazione completa del progetto`.
+- **Learnings for future iterations:**
+  - Quando un'iterazione precedente ha dispatchato un agente in background e il log mostra l'iterazione successiva partire subito dopo senza un commit intermedio, verificare SEMPRE `git status`/`git diff --stat` nel repo target prima di ripartire da zero: qui 6/8 file erano già scritti, buttarli via e riscriverli sarebbe stato lavoro sprecato. Verificarli contro il codice reale prima di fidarsene ciecamente (un errore concreto trovato: nome comando sbagliato).
+  - Una story di sola documentazione con AC che elenca solo "Typecheck passes" (non "Tests pass") non richiede l'esecuzione della suite Pest: solo pint + phpstan, coerente con la natura del cambiamento (nessun codice applicativo toccato).
+  - Un gap operativo reale scoperto per caso durante la stesura della documentazione (qui: Horizon gate mai collegato al permesso applicativo) va scritto esplicitamente nel documento con tanto di correzione suggerita, non silenziato solo perché fuori scope della story corrente — permette al checkpoint US-618 di portarlo davanti al committente.
+---
+
+## 2026-08-28 - US-618
+- Checkpoint di fine Fase 6 (§14 del PRD, ultima fase funzionale prima del cutover, Fase 7). Lavoro di
+  un'iterazione precedente interrotta prima di verifica/commit trovato già presente (docs/collaudo/fase-6.php,
+  141 test F6-01..F6-141 su 17 argomenti; docs/collaudo/13-fase-6.md, manuale narrativo; tests/Feature/EndToEnd/Fase6CheckpointEndToEndTest.php,
+  3 test end-to-end): verificato con `collaudo:verify-manifest 6` (passa), `pint --test`/`phpstan analyse` (puliti),
+  suite Pest completa (1511 passed / 10 failed, stessi 10 fallimenti ambientali noti pdflatex/csquotes — nessuna
+  regressione), tutto trovato corretto e completo, nessuna riscrittura necessaria.
+- Verifica end-to-end su dati reali (AC1): il DB Postgres del container Docker locale era vuoto (mai importato in
+  questa sessione); rieseguiti `db:seed --class=RolePermissionSeeder` + `v1:import --anonymize` (596 utenti, 3996
+  ticket, 550 report attività, 33 progetti fundraising, 23 organizzazioni) + `collaudo:ensure-manager-account`.
+  Login browser reale (Playwright headless Chrome contro `localhost:8080`) di due clienti reali distinti importati
+  dal dump v1 (SEZ. S.A.T. TRENTINO id 477, OTCO/SO CNC id 42, password `uat` come da `--anonymize`): entrambi
+  atterrano sulla propria `CustomerDashboard` con dati reali su ogni card (ticket aperti/in attesa, documentazione,
+  cartella Drive/Budget, report attività, progetti fundraising) o il relativo stato vuoto scritto quando assenti
+  (es. CNC senza progetti fundraising mostra "Nessun progetto fundraising", non un errore). Isolamento verificato
+  su più superfici per lo stesso utente nella stessa sessione (non una alla volta): ricerca globale per un termine
+  presente SOLO nel corpo di un messaggio ("redigere") trova il ticket corretto per ciascun cliente (#1332 per SAT,
+  #166 per CNC) e mai quello dell'altro; accesso diretto via URL al ticket di un altro cliente (`/admin/tickets/1332`
+  da sessione CNC) risponde 404.
+- Ogni comando schedulato di Fase 6 (US-610→613, US-616) verificato con `--dry-run` sul dataset reale appena
+  importato, log strutturato e coerente: `tickets:progress-to-todo` (0 progress da transitare), `tickets:auto-close-released`
+  (6 released → done), `tickets:close-scrum` (2 scrum di oggi → done), `tickets:archive-scrum` (473 scrum done da
+  ≥ soglia → archiviabili), `tickets:restore-waiting` (74 waiting da ≥ soglia → ripristinabili), `timetracking:aggregate-daily`
+  (0 ticket con attività odierna, coerente con dati storici da mesi fa), `mail:send-digest` (583 clienti esaminati,
+  0 digest per assenza di attività nelle 24h), `tickets:notify-idle-developers` (correttamente inerte: fuori dalla
+  finestra oraria 09:00-15:30 configurata, ora reale 02:21 UTC).
+- Compromesso `tickets:archive-scrum` (US-611) rivisto qui come richiesto dall'AC: nessun elemento nuovo emerso,
+  riconfermato che il comportamento v1 non è recuperabile con certezza e che l'implementazione resta strettamente
+  additiva (colonna `archived_at`, mai una cancellazione o un cambio di stato) — garantito anche da un test E2E
+  dedicato (verifica che l'unico campo di dominio toccato sia `archived_at`). Soglia e l'intera esistenza di un
+  comportamento da riprodurre restano da confermare col committente, esplicitamente segnalato di nuovo qui insieme
+  agli altri due gap aperti da story precedenti (effetto collaterale della guardia `Impersonation::isImpersonating()`
+  su `UserPolicy::viewAny()`, US-607; gate Horizon mai collegato al permesso applicativo, US-617) — nessun nuovo
+  compromesso introdotto da questo checkpoint.
+- Pacchetto di collaudo cumulativo aggiornato (AC obbligo esplicito): `README.md` (root), `docs/collaudo/README.md`,
+  `00-istruzioni-generali.md` (v5.0→v6.0, nuovo §3 con i 17 argomenti di Fase 6, §4 "Ambito escluso" riscritto
+  perché Fase 6 era l'ultima fase ancora esclusa, nuove voci di glossario), `01-matrice-tracciabilita.md` (141
+  righe aggiunte), `11-registro-esiti.md` (nuova sezione Fase 6), `12-verbale-collaudo.md`: il pacchetto passa da
+  435 a 576 test, da 80 a 97 argomenti. Corretti anche, incontrati per caso durante la modifica di
+  `00-istruzioni-generali.md`, 3 riferimenti stale pre-esistenti (`08-registro-esiti.md`/`09-verbale-collaudo.md`
+  invece di `11-registro-esiti.md`/`12-verbale-collaudo.md`, mai aggiornati dalla rinumerazione fatta in v5.0/Fase 5)
+  e una nota obsoleta in `README.md` root che dichiarava `docs/collaudo/*` interamente fuori scope per questo
+  repository — contraddetta di fatto dai 5 checkpoint di fine fase già committati (US-219/US-326/US-411/US-509/
+  US-618), corretta per riflettere il pattern reale già in uso ("Collaudo di fine fase" in CLAUDE.md).
+- `php artisan collaudo:generate 6` fallisce sull'host (manca `csquotes.sty` in TeX Live, gotcha ambientale già
+  noto per la suite Pest): eseguito con successo dentro il container Docker `orchestrator-v2-app-1` (bind-mount
+  del repository, `pdflatex`/`csquotes` presenti), PDF di 13 pagine copiato fuori e verificato visivamente pagina
+  per pagina (carta intestata Montagna Servizi, tutti i 17 argomenti e 141 test presenti, formattazione coerente
+  con le fasi precedenti).
+- Files: `docs/collaudo/fase-6.php`, `docs/collaudo/13-fase-6.md`, `tests/Feature/EndToEnd/Fase6CheckpointEndToEndTest.php`
+  (già scritti da un'iterazione precedente, solo verificati), `README.md`, `docs/collaudo/{README,00-istruzioni-generali,01-matrice-tracciabilita,11-registro-esiti,12-verbale-collaudo}.md` (aggiornati da questa iterazione).
+- Quality: `pint --test` OK, `phpstan analyse --memory-limit=1G` OK (0 errori), suite completa 1511 passed / 10
+  failed (stessi 10 ambientali noti, nessuna regressione). `collaudo:verify-manifest 6` passa.
+- Commit: `feat: US-618 - Checkpoint di fine fase — verifica end-to-end e pacchetto di collaudo`.
+- **Learnings for future iterations:**
+  - Tutte le 18 user story della Fase 6 sono ora `passes: true`: questa è l'ultima fase funzionale del roadmap
+    PRD prima del cutover (Fase 7, §14) — nessuna nuova user story di prodotto attesa in questo PRD oltre a questa.
+  - Il deploy su UAT via merge a `develop` resta un passo separato gestito dal committente/dev umano, non
+    automatizzato dentro questo loop (esplicito in CLAUDE.md).
+---

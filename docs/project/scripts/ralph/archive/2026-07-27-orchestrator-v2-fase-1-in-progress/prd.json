@@ -1,0 +1,262 @@
+{
+  "project": "Orchestrator v2 — Fase 1: Ticketing core",
+  "branchName": "ralph/orchestrator-v2-fase-1",
+  "description": "Fase 1 (Ticketing core) della riscrittura di Orchestrator per Montagna Servizi S.C.p.A., a partire dalla Fase 0 completata e pubblicata (v0.1.0, branch main). Fonte: PRD-ORCHESTRATOR-V2.md, §14 Fase 1, con riferimenti a §6.1 (Ticketing), §6.2 (log/time tracking), §8.5-8.6 (viste/vista di lavoro), §9.5 (regole sul record), §13.1 (test), §17.2 (allegati). Costruisce macchina a stati dichiarativa, action, conversazione, allegati, time tracking derivato, e la UI Filament del ticket — NIENTE email (Fase 3) e NIENTE automazioni schedulate (Fase 6, restano dietro feature flag già scaffoldate in Fase 0). Decisioni del committente prese prima di questa fase (§17.3 del PRD), vincolanti per le story sotto: Q4 NO (nessun azzeramento assignee_id sui cambi di stato manuali di un ticket 'new'); Q5 azione esplicita (nessuna propagazione automatica dello stato ai ticket figli); Q10 nessun vincolo di compatibilità con URL pubbliche preesistenti sugli allegati; Q14 regola T7 = semplificazione del PRD (messaggio del richiedente: se stato='waiting' torna a previous_status, altrimenti se il ticket era in attesa del cliente passa a 'todo'); Q15 unifica le due politiche di calcolo ore su una sola (i numeri storici vs v1 potranno divergere, da documentare in Fase 2); Q16 confermato 'Montagna Servizi' (nessuna modifica). Criteri di accettazione complessivi della fase (§14): un ticket percorre tutti i flussi di §6.1.3; nessuna transizione vietata è eseguibile via UI o via richiesta manipolata; le ore si calcolano correttamente sui casi di test noti.",
+  "userStories": [
+    {
+      "id": "US-101",
+      "title": "Macchina a stati dichiarativa del ticket",
+      "description": "As a developer, la logica di transizione degli stati deve vivere in un'unica tabella dichiarativa (A2 del PRD), non in if sparsi, così che ogni transizione ammessa/vietata sia verificabile ed estendibile senza toccare codice sparso.",
+      "acceptanceCriteria": [
+        "Classe App\\Domain\\Ticketing\\StateMachine\\TicketStateMachine con una tabella dichiarativa di Transition (from, to, roles, guards, effects) che copre TUTTE le transizioni 'manuali' di §6.1.3 (percorso principale, percorso senza testing, waiting/problem e relativo ripristino, rejected catch-all) ESCLUSE le righe riservate a comandi schedulati non ancora esistenti (T3 progress-to-todo, T4 auto-close-released, T5 close-scrum, che arrivano in Fase 6 insieme ai rispettivi comandi artisan)",
+        "La transizione 'waiting → previous_status' include l'attore 'sistema' tra quelli ammessi (serve alla story US-106 per l'effetto T7), anche se il comando schedulato tickets:restore-waiting che la userà arriva in Fase 6",
+        "DECISIONE Q4 (nessuna riga T2 nella tabella): un cambio di stato manuale su un ticket 'new' NON azzera assignee_id — comportamento esplicitamente diverso dal v1",
+        "Guard espliciti nel codice, non impliciti: per le transizioni da 'new'/'backlog' un developer può eseguirle solo se l'action valorizza contestualmente assignee_id con l'utente corrente (auto-assegnazione, §6.1.3 nota)",
+        "'Chi' verifica sia il permesso (ticket.transition.any / ticket.update.own / ticket.update.assigned di §9.3) sia il rapporto col ticket (assignee_id/tester_id = auth()) per i ruoli non-admin/manager, coerente con §9.5",
+        "Una transizione non presente in tabella o il cui guard fallisce produce un errore di validazione localizzato (messaggio leggibile), MAI un'eccezione generica (§4.4 A2)",
+        "Nessuna business logic in boot()/booted()/Observer del modello Ticket (A1): la macchina a stati è invocata solo da una Action esplicita (arriva in US-103)",
+        "Typecheck passes",
+        "Tests pass (ogni transizione ammessa e ogni transizione vietata della tabella, per ogni ruolo elencato in 'chi', inclusi i casi limite dei guard)"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-102",
+      "title": "Validazioni di dominio come regole, non eccezioni",
+      "description": "As a developer, le regole di business del ticket devono essere Validation Rules Laravel testabili in isolamento (A3 del PRD), non throw new Exception dentro un metodo di salvataggio.",
+      "acceptanceCriteria": [
+        "Validation Rule 'la transizione verso testing richiede tester_id valorizzato'",
+        "Validation Rule 'la transizione verso waiting richiede waiting_reason non vuoto'",
+        "Validation Rule 'la transizione verso problem richiede problem_reason non vuoto'",
+        "Validation Rule 'un ticket con parent_id valorizzato non può a sua volta avere figli' (profondità massima 1, §6.1.6)",
+        "Ogni regola produce un messaggio di errore in italiano, leggibile dall'utente finale, non un messaggio tecnico",
+        "Le regole sono usate sia dalla macchina a stati (US-101) sia da qualunque punto di ingresso futuro (form Filament, API), senza duplicare la logica",
+        "Typecheck passes",
+        "Tests pass (ogni regola testata isolatamente con casi validi e non validi)"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-103",
+      "title": "Action di creazione e cambio di stato del ticket, eventi di dominio, ticket_logs",
+      "description": "As a developer, ogni mutazione significativa del ticket deve passare da un'Action esplicita che orchestra macchina a stati, validazioni, log e eventi — mai un hook Eloquent (A1).",
+      "acceptanceCriteria": [
+        "Action CreateTicket: crea il ticket in stato 'new', scrive un ticket_log con event='created', emette l'evento TicketCreated",
+        "Action ChangeTicketStatus: invoca TicketStateMachine (US-101) + le Validation Rules (US-102), aggiorna status/previous_status (solo entrando in waiting/problem)/status_changed_at, scrive un ticket_log con event='status_changed'/from_status/to_status, emette TicketStatusChanged. Una transizione vietata NON scrive nulla e restituisce l'errore di validazione",
+        "Action AssignTicket: valorizza assignee_id, scrive un ticket_log con event='assigned', emette TicketAssigned",
+        "Ogni ticket_log ha SEMPRE user_id valorizzato: utente autenticato o, in sua assenza, l'utente di sistema (mai un id hard-coded, §6.2.1)",
+        "Il corpo di 'description' non viene mai salvato per valore nel campo 'changes' di un log 'updated': si registra solo il marker 'changed' (comportamento v1 da mantenere, §6.2.1)",
+        "'changes' è un DTO tipizzato serializzato, non un array libero",
+        "REGOLA §6.1.4 'un solo ticket in progress per assegnatario': quando un'action porta un ticket a 'progress', tutti gli altri ticket dello stesso assignee_id già in 'progress' passano a 'todo' nella STESSA transazione, e ciascuna demozione produce il proprio ticket_log",
+        "Nessun saveQuietly() in nessun punto (§16.1 anti-pattern #2)",
+        "Typecheck passes",
+        "Tests pass (creazione, transizione ammessa/vietata, assegnazione, la regola di demozione con più ticket in progress dello stesso assegnatario, transazionalità verificata con un test che fa fallire la demozione e verifica il rollback)"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-104",
+      "title": "Azione esplicita 'applica anche ai ticket figli'",
+      "description": "As a developer con permesso di transizione, voglio poter propagare esplicitamente un cambio di stato ai ticket figli, perché la propagazione automatica del v1 non è più desiderata (decisione Q5).",
+      "acceptanceCriteria": [
+        "DECISIONE Q5: il cambio di stato di un ticket padre NON si propaga MAI automaticamente ai figli (comportamento diverso dal v1, che lo faceva in cascata)",
+        "Nuova Action ApplyStatusToChildren (o parametro esplicito sull'action di cambio stato) che, se invocata esplicitamente, applica lo stesso cambio di stato a tutti i figli diretti del ticket, rispettando per ciascun figlio le stesse regole di transizione/guard di US-101 (un figlio per cui la transizione non è ammessa viene saltato e riportato nel risultato, non blocca gli altri)",
+        "Ogni figlio aggiornato produce il proprio ticket_log indipendente",
+        "Typecheck passes",
+        "Tests pass (propagazione riuscita su più figli, figlio con transizione non ammessa che viene saltato senza bloccare gli altri, nessuna propagazione se l'azione esplicita non viene invocata)"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-105",
+      "title": "Regole sul record nella TicketPolicy",
+      "description": "As a security-conscious team, la TicketPolicy creata in Fase 0 (solo livello permesso) va estesa con le regole legate al singolo record (§9.5 del PRD): un developer non aggiornabile un ticket che non è suo, un cliente non vede i ticket altrui.",
+      "acceptanceCriteria": [
+        "TicketPolicy::update() nega se l'utente ha solo ticket.update.assigned e NON è assignee_id né tester_id del ticket",
+        "TicketPolicy::view() per un cliente nega se requester_id non è l'utente stesso (a meno di ticket.view.any)",
+        "Query scope 'visibleTo(User $user)' su Ticket che restringe alle righe consentite (staff con ticket.view.any vede tutto, developer/manager con .assigned vede assegnati+testing propri, cliente vede solo i propri) — usato sia dalla policy sia da qualunque query futura, non duplicato",
+        "Un ticket_message con visibility='internal' non entra MAI nella query di un cliente (scope sulla relazione, non un filtro applicato in vista): verificato con un test che tenta l'accesso diretto by-id, non solo tramite indice",
+        "Typecheck passes",
+        "Tests pass (per ogni regola di §9.5 relativa ai ticket: developer su ticket proprio/altrui, cliente su ticket proprio/altrui, staff con permesso 'any')"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-106",
+      "title": "Conversazione del ticket (ticket_messages)",
+      "description": "As a user coinvolto in un ticket, voglio scrivere e leggere messaggi in una timeline strutturata (D9), non un blob HTML, con destinatari calcolati automaticamente.",
+      "acceptanceCriteria": [
+        "Action PostTicketMessage: crea un ticket_message (channel='web' per questa fase — 'email' arriva con la Fase 3), corpo HTML SANITIZZATO con allowlist + versione testuale, scrive un ticket_log con event='message_posted', emette l'evento TicketMessagePosted (nessun invio email reale in questa fase: l'evento resta senza listener che spedisce, pronto per essere consumato dalla Fase 3)",
+        "Calcolo destinatari: partecipanti + richiedente + assegnatario + tester, DEDUPLICATI, ESCLUSO l'autore del messaggio (§6.1.7) — esposto come metodo riusabile (es. Ticket::messageRecipients()), anche se in questa fase non viene ancora usato per un invio reale",
+        "Chi scrive un messaggio viene aggiunto ai ticket_participants se non già presente",
+        "DECISIONE Q14 (regola T7): quando il RICHIEDENTE posta un messaggio, se lo stato corrente è 'waiting' il ticket torna a previous_status (via ChangeTicketStatus, attore 'sistema'); altrimenti, se il ticket era in uno stato che indica attesa di risposta del cliente (assigned/todo/progress con conversazione già avviata da parte staff), passa a 'todo'. Implementare come listener dell'evento TicketMessagePosted, non come logica dentro l'action di posting",
+        "Messaggi con is_legacy_import=true (verranno popolati dall'ETL in Fase 2, nessuno ancora in questa fase) sono già gestiti nel modello/query, pronti per essere resi visivamente distinguibili dalla UI (US-110)",
+        "'visibility' è già nello schema (internal/public) ma questa fase espone SOLO messaggi 'public' in scrittura da UI: non aggiungere un modo per postare un messaggio internal (punto di estensione §15.2, fuori scope)",
+        "Nessun '{!! !!}' su contenuto proveniente da input utente (§8.7)",
+        "Typecheck passes",
+        "Tests pass (creazione messaggio, calcolo destinatari con vari mix di partecipanti/assegnatario/tester/autore, aggiunta automatica ai partecipanti, regola T7 sia nel ramo 'waiting→previous_status' sia nel ramo 'assigned/todo/progress→todo', sanitizzazione di un payload HTML con script)"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-107",
+      "title": "Allegati sui messaggi (disco privato)",
+      "description": "As a user, voglio allegare file ai messaggi del ticket senza che chiunque conosca l'URL possa scaricare il file di un altro cliente — nel v1 questo è un problema di sicurezza reale (§9.6, §16.4).",
+      "acceptanceCriteria": [
+        "Configurazione condivisa (una sola lista, non duplicata tra UI e — in futuro — inbound email) dei tipi ammessi secondo §17.2: TICKET_ALLOWED_DOCUMENT_TYPES/MIMES, TICKET_ALLOWED_IMAGE_TYPES/MIMES, TICKET_ALLOWED_AUDIO_TYPES/MIMES, TICKET_MAX_FILE_SIZE (default 10 MB), in config/ticketing.php letto da env, valori di default esattamente quelli elencati in §17.2 (inclusi i formati che il v1 scartava silenziosamente: gif/webp/heic/svg/bmp/tiff, e mp4 come MIME video/mp4 tra gli audio)",
+        "Gli allegati appartengono alla collection medialibrary 'attachments' su TicketMessage, salvati su un disco PRIVATO (non pubblico)",
+        "Rotta di download dedicata, autorizzata dalla policy del ticket (chi può vedere il ticket può scaricare l'allegato, nessun altro): verificata con un test che tenta l'accesso diretto con un utente non autorizzato",
+        "DECISIONE Q10: nessun meccanismo di compatibilità con URL pubbliche v1 preesistenti richiesto (il committente ha confermato che non ce ne sono di note)",
+        "Se un file SVG è ammesso, viene sanitizzato prima di essere servito (può contenere script, §17.2 nota)",
+        "Ogni caricamento/rimozione di un allegato produce un ticket_log dedicato",
+        "Typecheck passes",
+        "Tests pass (upload di tipo ammesso/non ammesso, dimensione oltre il limite, download autorizzato/negato, sanitizzazione SVG)"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-108",
+      "title": "Tracciamento visualizzazioni (ticket_views)",
+      "description": "As a developer, serve sapere se un ticket ha avuto attività recente di visualizzazione, con un record per (ticket, utente, giorno) invece che mescolato ai log di dominio (§6.2.3).",
+      "acceptanceCriteria": [
+        "Hook ESPLICITO sulla pagina di dettaglio del ticket (non un middleware con pattern matching sulle URL) che registra/aggiorna un ticket_view per (ticket_id, user_id, viewed_on=oggi)",
+        "last_viewed_at si aggiorna al massimo ogni 30 minuti, view_count incrementa solo quando last_viewed_at viene effettivamente aggiornato",
+        "Al massimo un record per (ticket, utente, giorno): una seconda visualizzazione nello stesso giorno aggiorna la riga esistente, non ne crea una seconda",
+        "Nessuna scrittura in ticket_logs per le visualizzazioni (restano tabelle separate, §6.2.1)",
+        "Typecheck passes",
+        "Tests pass (prima visualizzazione crea la riga, visualizzazioni ravvicinate entro 30' non toccano last_viewed_at/view_count, visualizzazioni oltre i 30' aggiornano entrambi, giorni diversi creano righe diverse)"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-109",
+      "title": "Calcolo delle ore lavorate (WorkedTimeCalculator)",
+      "description": "As a manager, le ore lavorate sul ticket devono derivare automaticamente dai cambi di stato, con un algoritmo puro e testabile invece di query sparse (§6.2.2).",
+      "acceptanceCriteria": [
+        "Configurazione in config/timetracking.php da env: TIMETRACKING_WORKDAY_START=9, TIMETRACKING_WORKDAY_END=18, TIMETRACKING_GRANULARITY_MINUTES=10, TIMETRACKING_NON_STATUS_CHANGE_CAP_MINUTES=30 — nessun valore hard-coded nel service",
+        "Service puro App\\Domain\\TimeTracking\\WorkedTimeCalculator: considera gli intervalli tra un ticket_log con to_status='progress' e il successivo con from_status='progress'; conta solo lunedì-venerdì nella finestra oraria configurata; granularità 10 minuti",
+        "DECISIONE Q15: UNA SOLA politica di calcolo, usata sia per tickets.worked_minutes sia per l'aggregato ticket_work_logs (nessuna duplicazione delle due politiche divergenti del v1) — documentare esplicitamente nel codice/CLAUDE.md che i numeri storici confrontati col v1 in Fase 2 potranno divergere per questa scelta",
+        "ticket_work_logs aggrega per (work_date, user_id, ticket_id)",
+        "Il ricalcolo avviene in CODA, come listener dell'evento TicketStatusChanged (US-103), con debounce per ticket (una transizione non ricalcola il ticket N volte se ne arrivano altre a raffica)",
+        "Comando artisan timetracking:recalculate {--from=} {--to=} {--ticket=} per il ribuild massivo, con --help descrittivo",
+        "Typecheck passes",
+        "Tests pass (casi noti: ticket a cavallo della mezzanotte, weekend, riaperto dopo settimane, con più assegnatari nel tempo, intervallo aperto/ancora in progress, idempotenza di una seconda esecuzione del ricalcolo)"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-110",
+      "title": "TicketResource Filament — campi, comportamenti, gerarchia, partecipanti, storico",
+      "description": "As a staff member, voglio gestire i ticket da un'unica risorsa Filament con i campi e i comportamenti descritti in §6.1.9, non 15 resource ridondanti come nel v1.",
+      "acceptanceCriteria": [
+        "Una sola TicketResource (nessuna sottoclasse per filtro, §8.5): status READ-ONLY nel form, con badge colorato+icona (da TicketStatus::getColor()/getIcon(), Fase 0); il cambio di stato avviene SOLO tramite azioni di transizione esplicite (bottoni che invocano ChangeTicketStatus, US-103), mai editando il campo",
+        "waiting_reason/problem_reason visibili e obbligatori SOLO quando la transizione verso quello stato lo richiede (non sempre visibili nel form)",
+        "estimated_hours/worked_minutes visibili solo a admin/manager/developer (nascosti al cliente); worked_minutes mostrato in formato leggibile (es. '3h 20m'), non minuti grezzi",
+        "type/priority/assignee_id/tester_id nascosti ai clienti; description (interna) mai visibile ai clienti; title read-only per i clienti dopo la creazione",
+        "staging_url/production_url: link cliccabili, visibili solo allo staff",
+        "Timeline della conversazione (US-106) con i messaggi 'public', form per postare un nuovo messaggio con upload allegati (US-107); i messaggi is_legacy_import sono visivamente distinguibili (badge/etichetta)",
+        "Gerarchia padre/figlio: selezione del padre nel form, con validazione lato UI che rispecchia il vincolo di profondità massima 1 (US-102) mostrando un errore leggibile invece di un errore generico",
+        "Gestione partecipanti (ticket_participants): elenco e possibilità di aggiungere/rimuovere un partecipante, ristretta a chi ha il permesso ticket.assign",
+        "Storico: timeline dei ticket_logs con diff leggibile; le transizioni di stato si leggono direttamente da from_status/to_status (non da un JSON)",
+        "Blocco compatto e riepilogativo per tempo lavorato e date (creazione, ultimo aggiornamento, released_at, done_at, status_changed_at)",
+        "Ogni campo/azione rispetta la TicketPolicy (US-105) e le regole di campo di §9.5 (un cliente non modifica tipo/priorità/assegnatario/tester/ore/description/URL nemmeno con una richiesta manipolata: verificato con un test che tenta il submit diretto, non solo l'assenza del campo in UI)",
+        "Typecheck passes",
+        "Tests pass",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 10,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-111",
+      "title": "TicketResource — viste come query object",
+      "description": "As a staff member, voglio le viste operative del v1 (Richieste attive, Nuovi, In lavorazione, ecc.) come tab della stessa risorsa, non 15 resource duplicate (§8.5, A6).",
+      "acceptanceCriteria": [
+        "Ogni vista della tabella di §8.5 è un query object riusabile in app/Domain/Ticketing/Queries/, testabile in isolamento: Richieste attive, Tutti i ticket di clienti, Nuovi, In lavorazione, Assegnati a me, Da testare (io tester), In test, In attesa (ordinata per status_changed_at CRESCENTE — le più vecchie in cima), Problemi, Backlog, Archivio, Interni, I miei ticket (cliente), Archivio (cliente)",
+        "Le viste sono esposte come tab della tabella (getTabs() con modifyQueryUsing) o pagine ListRecords dedicate quando serve una URL propria, secondo il ruolo (staff vs customer, §8.4)",
+        "'giorni in attesa' calcolato da now() - status_changed_at (colonna diretta, nessuna subquery sul JSON come nel v1)",
+        "Le viste rispettano già lo scope di visibilità di TicketPolicy::visibleTo() (US-105): un customer non vede mai le viste/i dati riservati allo staff",
+        "Typecheck passes",
+        "Tests pass (ogni query object verificato con dataset di fixture che include righe che DEVONO e righe che NON DEVONO comparire in ciascuna vista)",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 11,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-112",
+      "title": "TicketResource — filtri",
+      "description": "As a staff member, voglio filtrare l'elenco ticket per gli attributi richiesti da §8.5.1, oltre alle viste fisse.",
+      "acceptanceCriteria": [
+        "Filtri implementati: stato (multi-selezione), tipo, priorità, assegnatario, tester, richiedente, organizzazione del richiedente (join su organization_user), tag, senza tag (whereDoesntHave), con più di un tag (conteggio > 1), tag per trimestre (pattern sul nome), periodo (intervallo su created_at/done_at)",
+        "I filtri sono componibili con le viste/tab di US-111 (non un set di query alternativo)",
+        "Typecheck passes",
+        "Tests pass (ogni filtro verificato singolarmente e in combinazione con almeno una vista)",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 12,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-113",
+      "title": "Vista di lavoro essenziale (landing di admin/manager/developer)",
+      "description": "As an admin/manager/developer, voglio una schermata operativa che sostituisca il vecchio Kanban Blade del v1 (§8.6), landing di questi ruoli (§6.7.2).",
+      "acceptanceCriteria": [
+        "Colonne per stato, card per ticket con: id, titolo, cliente, tag, priorità, tempo trascorso nello stato corrente (da status_changed_at)",
+        "Selettore di assegnatario per vedere la board di un collega",
+        "Cambio di stato SOLO tramite le transizioni consentite (US-101): se implementato drag & drop, la validazione lato server resta l'unica fonte di verità (un drop non valido viene rifiutato dal server, non solo impedito lato client)",
+        "Sezione 'attività recenti' alimentata da ticket_logs",
+        "Diventa la landing page per i ruoli admin, manager, developer dopo il login (§6.7.2): customer continua ad atterrare sulla propria dashboard esistente (Fase 0), fundraising sull'elenco opportunità esistente",
+        "Performance: query aggregate per le card (conteggi/tempo nello stato), non N+1 per card",
+        "Rifinitura estetica secondo il design e ottimizzazioni ulteriori restano esplicitamente in Fase 6: questa è la versione essenziale funzionale",
+        "Typecheck passes",
+        "Tests pass",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 13,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-114",
+      "title": "Verifica end-to-end e criteri di accettazione Fase 1",
+      "description": "As a developer, prima di chiudere la Fase 1 verifico che l'intero ciclo di vita del ticket funzioni end-to-end secondo i criteri di §14 del PRD, non solo story per story in isolamento.",
+      "acceptanceCriteria": [
+        "Un ticket percorre l'intero percorso principale di §6.1.3 (new→assigned→todo→progress→testing→tested→released→done) e il percorso senza testing (new→assigned→todo→progress→released→done), verificato con un test di integrazione end-to-end",
+        "Nessuna transizione vietata dalla tabella di US-101 è eseguibile né via UI (US-110/111/112) né via richiesta HTTP manipolata direttamente ai controller/azioni Filament (test che tenta il bypass)",
+        "Le ore lavorate si calcolano correttamente sui casi di test noti di US-109, verificate anche end-to-end (creazione ticket → cambi di stato reali → worked_minutes/ticket_work_logs coerenti)",
+        "La regola 'un solo progress per assegnatario' (US-103) e il ripristino da waiting/problem (US-101/US-106) sono verificati anche end-to-end, non solo a livello di singola Action",
+        "Suite di qualità verde sull'intera Fase 1: Pint, Larastan livello 6, Pest",
+        "docs/ticket-lifecycle.md (§13.4) prodotto: macchina a stati con diagramma, validazioni, transizioni automatiche (incluse quelle rimandate a Fase 6, esplicitamente annotate come tali)",
+        "CLAUDE.md aggiornato con i pattern riusabili scoperti in questa fase (macchina a stati, eventi, WorkedTimeCalculator, query object)",
+        "Typecheck passes",
+        "Tests pass (suite completa)",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 14,
+      "passes": true,
+      "notes": ""
+    }
+  ]
+}

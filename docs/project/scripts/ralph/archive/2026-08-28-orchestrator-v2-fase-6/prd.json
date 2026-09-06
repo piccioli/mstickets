@@ -1,0 +1,307 @@
+{
+  "project": "Orchestrator v2 — Fase 6: Portale cliente e rifinitura",
+  "branchName": "ralph/orchestrator-v2-fase-6",
+  "description": "Fase di chiusura funzionale prima del cutover (Fase 7): PRD-ORCHESTRATOR-V2.md §6.7 (M7 — utenti, ruoli, portale cliente), §7.5.2 (E8/E10/E11), §8.4/§8.6/§8.7 (navigazione, WorkBoard, requisiti UI trasversali), §10.2 (automazioni schedulate), §13.4 (documentazione), §14 (Roadmap Fase 6). Fonte scomposta in tasks/prd-fase-6-portale-cliente-rifinitura.md. Decisioni vincolanti prese col committente: la WorkBoard resta Kanban a colonne per stato (nessun cambio di paradigma), solo rifinita nello stile secondo il design system già importato; E8/E10/E11 tutte approvate; help_desk_chat_url NON confermato, nessuna colonna/link nel portale cliente. Verificato prima di scrivere le story: nessuna implementazione esiste ancora per ricerca globale, badge di navigazione, impersonation, MFA, disattivazione utente, dashboard cliente dedicata, né per i 6 comandi schedulati mancanti (tickets:progress-to-todo, tickets:auto-close-released, tickets:close-scrum, tickets:archive-scrum, tickets:restore-waiting, timetracking:aggregate-daily).",
+  "userStories": [
+    {
+      "id": "US-601",
+      "title": "Dashboard cliente",
+      "description": "As a cliente, voglio una dashboard con una panoramica della mia attività (ticket, report, progetti, documentazione), per orientarmi subito senza dover cercare tra i menu (§6.7.3).",
+      "acceptanceCriteria": [
+        "Nuova Filament Page CustomerDashboard (sostituisce la Dashboard di base per il ruolo customer, stesso pattern già usato per il redirect di admin/manager/developer verso la WorkBoard in App\\Filament\\Pages\\Dashboard::mount(), Fase 1)",
+        "Contenuto: card ticket aperti (conteggio + link), card ticket che richiedono una risposta (stato waiting/problem di competenza del cliente), documentazione customer recente, link drive_url/drive_budget_url (se valorizzati), propri report attività (Fase 4), progetti fundraising in cui è coinvolto (link a CustomerFundraisingProjectResource, Fase 5). Nessun link chat di supporto (help_desk_chat_url non confermato)",
+        "Ogni card mostra dati solo dell'utente autenticato (query scope esplicito, mai un elenco generico)",
+        "Test feature: ogni card mostra i conteggi/link corretti per un cliente con dati reali; un cliente senza dati in una sezione vede uno stato vuoto scritto, non un errore o una sezione vuota silenziosa",
+        "Typecheck passes",
+        "Tests pass",
+        "Verifica in browser (screenshot Chrome headless) della dashboard con un cliente reale che ha ticket, report e almeno un progetto fundraising coinvolto"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-602",
+      "title": "Navigazione \"Area cliente\" e landing per ruolo",
+      "description": "As a cliente, voglio un menu che raggruppi solo le voci che mi riguardano, e as a membro del team fundraising voglio atterrare direttamente sull'elenco opportunità al login, per non dover navigare a mano ogni volta (§8.4, §6.7.2).",
+      "acceptanceCriteria": [
+        "Gruppo di navigazione \"Area cliente\": Dashboard (US-601), I miei ticket, Nuovo ticket, Archivio, I miei report, Documentazione, Fundraising — visibile solo al ruolo customer, nessuna voce dei gruppi staff visibile a un cliente",
+        "Landing per ruolo aggiornata in App\\Filament\\Pages\\Dashboard::mount() (Fase 1): customer → redirect a CustomerDashboard (US-601), fundraising → redirect a FundraisingOpportunityResource (elenco), invariato per admin/manager/developer (→ WorkBoard)",
+        "Test feature: login come cliente mostra solo il gruppo Area cliente in navigazione e reindirizza alla dashboard cliente; login come fundraising reindirizza all'elenco opportunità",
+        "Typecheck passes",
+        "Tests pass",
+        "Verifica in browser (screenshot Chrome headless) della navigazione per un utente customer e per un utente fundraising"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-603",
+      "title": "Ricerca globale",
+      "description": "As a membro dello staff, voglio cercare un ticket per id, titolo, richiedente o contenuto di un messaggio da un unico campo di ricerca, per non dover aprire l'elenco ticket e applicare filtri ogni volta (§8.7).",
+      "acceptanceCriteria": [
+        "Global Search Filament nativa su TicketResource: risultati per id, title, nome/email del richiedente, corpo dei messaggi (ticket_messages.body_text) — keyword-based, non conversazionale/AI",
+        "Risultati scoped secondo la Policy dell'utente corrente (un cliente cerca solo tra i propri ticket, mai tra quelli di altri)",
+        "Query indicizzata (riuso dell'indice full-text già esistente su tickets.title da Fase 0, nuovo indice se necessario su ticket_messages.body_text per performance)",
+        "Test feature: ricerca per id/titolo/richiedente/corpo messaggio trova il ticket atteso; un cliente non trova ticket di altri nei risultati",
+        "Typecheck passes",
+        "Tests pass",
+        "Verifica in browser (screenshot Chrome headless) della ricerca globale con un termine che matcha solo nel corpo di un messaggio"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-604",
+      "title": "Badge di navigazione con cache",
+      "description": "As a membro dello staff, voglio vedere a colpo d'occhio nel menu quanti ticket sono in attesa, in problema o da testare, per capire dove intervenire senza aprire ogni vista (§8.4).",
+      "acceptanceCriteria": [
+        "getNavigationBadge() sulle voci di menu pertinenti (In attesa, Problemi, Da testare — almeno queste tre), scoped per l'utente corrente dove rilevante (es. \"Da testare\" solo i ticket con tester_id = auth())",
+        "Con cache (requisito esplicito §8.4: non una query per voce a ogni render) — TTL breve configurabile, invalidata o naturalmente scaduta, mai una query sincrona a ogni caricamento di pagina per ogni voce di menu",
+        "Test feature: il badge mostra il conteggio corretto; una seconda richiesta entro il TTL non genera una nuova query (verificabile con un contatore di query in test)",
+        "Typecheck passes",
+        "Tests pass",
+        "Verifica in browser (screenshot Chrome headless) dei badge visibili nel menu con dati reali"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "TicketResource è l'unica voce di menu per i ticket (US-110 AC#1, nessuna sottoclasse per filtro): implementato un unico getNavigationBadge() combinato (In attesa + Problemi + Da testare) con getNavigationBadgeTooltip() per il dettaglio, invece di tre voci di menu distinte. Interpretazione non confermata dal committente, da rivedere al checkpoint US-618."
+    },
+    {
+      "id": "US-605",
+      "title": "Schermata preferenze di notifica",
+      "description": "As a utente, voglio poter scegliere quali comunicazioni ricevere, per tipo e canale, da una schermata dedicata, invece di dover chiedere allo staff di disattivarle per me (§6.7.4).",
+      "acceptanceCriteria": [
+        "Pagina Filament (Page personale, non una Resource — accessibile da ogni ruolo autenticato) su notification_preferences (tabella già esistente da Fase 0): un utente vede e modifica solo le proprie preferenze",
+        "Le preferenze coprono almeno i tipi di comunicazione del catalogo E1-E11 applicabili al ruolo dell'utente (un cliente non vede il toggle per E6 \"Assegnazione\", che non lo riguarda mai)",
+        "Il footer email (già presente da Fase 3, link \"preferenze di notifica\" condizionale a mail_pipeline.notification_preferences_url) punta ora a questa pagina reale — valorizzare quella config, non lasciarla vuota",
+        "Test feature: modificare una preferenza e verificare che una comunicazione di quel tipo non venga più inviata (riuso dei test di rispetto preferenze già esistenti da Fase 3, estesi a coprire l'aggiornamento via questa UI)",
+        "Typecheck passes",
+        "Tests pass",
+        "Verifica in browser (screenshot Chrome headless) della pagina preferenze con un utente reale"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-606",
+      "title": "Autenticazione MFA opzionale",
+      "description": "As an admin, voglio poter richiedere l'autenticazione a due fattori per ruolo, per alzare la sicurezza degli account con più privilegi senza imporla a tutti (§6.7.2).",
+      "acceptanceCriteria": [
+        "MFA nativa Filament 4 abilitata, opzionale e abilitabile per ruolo (es. obbligatoria per admin, opzionale per gli altri — la granularità esatta è una scelta di configurazione, non hardcoded per ruolo nel codice applicativo)",
+        "Flusso di setup/recovery funzionante (QR/codici di recupero), documentato in docs/operations.md (US-617)",
+        "Test feature: un ruolo per cui MFA è richiesta non può completare il login senza; un ruolo per cui è opzionale può accedere senza averla configurata",
+        "Typecheck passes",
+        "Tests pass",
+        "Verifica in browser (screenshot Chrome headless) del flusso di setup MFA e di un login con MFA attiva"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-607",
+      "title": "Impersonation",
+      "description": "As an admin, voglio poter vedere il pannello con gli occhi di un altro utente per riprodurre un problema che mi ha segnalato, con la certezza che l'azione resti tracciata (§6.7.2).",
+      "acceptanceCriteria": [
+        "Pacchetto di impersonation consolidato (es. stechstudio/filament-impersonate o equivalente maturo per Filament 4) integrato, usando i metodi canImpersonate()/canBeImpersonated() già esistenti sul model User (Fase 0, non duplicarli)",
+        "Azione \"Impersona\" disponibile solo dove Permission::UserImpersonate lo consente (§9.4: solo admin)",
+        "Banner sempre visibile mentre l'impersonation è attiva, con azione esplicita per uscire",
+        "Ogni impersonation genera un log dell'azione (chi ha impersonato chi, quando — riuso del pattern ticket_logs/email_message_logs con attore di sistema se serve una nuova tabella dedicata, oppure log applicativo strutturato se basta)",
+        "Test feature: un admin può impersonare, il banner compare, l'azione è loggata, uscire ripristina la sessione originale; un utente senza il permesso non vede l'azione",
+        "Typecheck passes",
+        "Tests pass",
+        "Verifica in browser (screenshot Chrome headless) di un ciclo completo impersona → banner visibile → esci"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "Guardia `Impersonation::isImpersonating()` in UserPolicy::viewAny() (raccomandata dal README del pacchetto per evitare un 403 spurio da re-render Livewire) ha un effetto collaterale noto: un utente impersonato (anche un customer) può navigare direttamente a /admin/users e vedere l'elenco completo degli utenti reali per l'intera durata dell'impersonation. Non sfruttabile da un attaccante reale (la sessione resta guidata dall'admin che ha già il permesso), ma rompe la premessa \"occhi dell'altro utente\" per questa Resource. Rimuovere il guard reintroduce il 403 documentato dal pacchetto. Da rivedere esplicitamente col committente al checkpoint US-618 (dettaglio completo in CLAUDE.md → \"Impersonation — guardia Impersonation::isImpersonating()\")."
+    },
+    {
+      "id": "US-608",
+      "title": "Disattivazione e riattivazione utente",
+      "description": "As an admin, voglio poter disattivare un utente che non deve più accedere, senza cancellarlo e senza perdere lo storico in cui compare, per gestire il turnover di staff e clienti (§6.7.5).",
+      "acceptanceCriteria": [
+        "Azione Filament \"Disattiva\"/\"Riattiva\" su UserResource, dietro Permission::UserDeactivate, che valorizza/azzera deactivated_at (colonna già esistente da Fase 0)",
+        "Un utente disattivato: non può accedere (guard di login), non compare come opzione selezionabile in assegnatario/tester/partner fundraising/destinatari di comunicazioni da questo punto in poi (verificare se gli scope/query builder rilevanti già escludono deactivated_at non nullo — Fase 0 ha lo scope whereNull('deactivated_at') sul model, verificare che ogni select/picker pertinente lo usi davvero) — resta invece visibile nei dati storici (ticket_logs, messaggi, membership organizzazioni) senza alcuna modifica",
+        "Un utente disattivato non riceve più comunicazioni (integrazione con le regole di destinazione già esistenti da Fase 3, non una nuova soppressione: un controllo aggiuntivo su deactivated_at prima dell'invio)",
+        "Test feature: disattivare un utente lo rimuove dai picker di assegnazione/partner ma non dallo storico; un utente disattivato non riceve email; il login è bloccato",
+        "Typecheck passes",
+        "Tests pass",
+        "Verifica in browser (screenshot Chrome headless) di disattivazione/riattivazione su un utente reale"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-609",
+      "title": "Rifinitura della vista di lavoro (WorkBoard) secondo il design system",
+      "description": "As a membro dello staff, voglio che la vista di lavoro rifletta la cura visiva del resto del pannello, restando comunque veloce sull'intero dataset importato, per lavorarci quotidianamente senza attrito (§8.6). Decisione presa: stesso paradigma Kanban a colonne per stato della versione essenziale di Fase 1, solo rifinito nello stile.",
+      "acceptanceCriteria": [
+        "Ristilizzazione della WorkBoard esistente (Fase 1, US-113) secondo docs/design-system.md/resources/css/theme.css — stessa fonte di verità già usata per il resto del pannello e per le email (Fase 3): tipografia, palette, densità delle card coerenti col design system, nessun cambio di paradigma (resta colonne per stato)",
+        "Card ticket: id, titolo, cliente, tag, priorità, tempo trascorso nello stato corrente (status_changed_at) — tutti già presenti nella versione essenziale, verificare che restino tutti visibili dopo la ristilizzazione",
+        "Selettore di assegnatario (vedere la board di un collega) — se non già presente nella versione essenziale, aggiungerlo qui",
+        "Performance verificata sull'intero dataset importato: query aggregate (conteggi/raggruppamenti in poche query), non N+1 per card — misurare (es. assertQueryCountLessThan o log query in un test) prima e dopo, non assumere che la ristilizzazione non abbia introdotto regressioni",
+        "Drag & drop resta fuori scope salvo la validazione lato server sia già invariata (nessun nuovo lavoro di validazione richiesto da questa story)",
+        "Test feature: la board carica con i dati attesi per ogni colonna di stato; il selettore di assegnatario cambia la board mostrata",
+        "Typecheck passes",
+        "Tests pass",
+        "Verifica in browser (screenshot Chrome headless) della board rifinita, prima/dopo a confronto se utile"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-610",
+      "title": "Comandi tickets:progress-to-todo e tickets:auto-close-released",
+      "description": "As a sistema, alle 18:00 devo riportare in todo i ticket rimasti progress a fine giornata, e alle 7:45 chiudere automaticamente i ticket released da abbastanza giorni lavorativi, per mantenere la board pulita senza intervento manuale (§10.2).",
+      "acceptanceCriteria": [
+        "tickets:progress-to-todo (schedulato 18:00, flag ENABLE_TICKETS_PROGRESS_TO_TODO): tutti i ticket progress → todo, tramite la macchina a stati esistente (mai un update diretto sulla colonna status che bypassa ChangeTicketStatus)",
+        "tickets:auto-close-released (schedulato 07:45, flag ENABLE_TICKETS_AUTO_CLOSE_RELEASED): ticket released da ≥ 3 giorni lavorativi (weekend esclusi, stesso calcolo giorni lavorativi già stabilito per il time tracking, Fase 1) → done, con done_at valorizzato",
+        "Entrambi conformi a §10.1: feature flag (default false), idempotenti, --dry-run, log strutturato, ticket_logs con is_system = true e User::system() come attore (pattern già stabilito in Fase 3, US-325)",
+        "Test: ogni comando in --dry-run non scrive nulla; esecuzione reale transita solo i ticket nello stato atteso, rispettando la macchina a stati; idempotenza su ri-esecuzione",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 10,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-611",
+      "title": "Comandi tickets:close-scrum e tickets:archive-scrum",
+      "description": "As a sistema, devo chiudere i ticket di tipo scrum creati/aggiornati in giornata e archiviare periodicamente quelli scrum più vecchi, per non lasciare che il tipo di ticket \"riunione\" si accumuli indefinitamente (§10.2).",
+      "acceptanceCriteria": [
+        "tickets:close-scrum (schedulato 16:00, flag ENABLE_TICKETS_CLOSE_SCRUM): ticket type = scrum creati/aggiornati oggi → done",
+        "tickets:archive-scrum (schedulato 05:00, flag ENABLE_TICKETS_ARCHIVE_SCRUM): verificare il comportamento v1 in dettaglio prima di riprodurlo (nota esplicita del PRD principale, §10.2, \"Q9\") — se il comportamento v1 non è recuperabile con certezza dal codice/dump, implementare la lettura più conservativa (non cancellare mai dati, solo un cambio di stato/flag di archiviazione) e segnalarlo come compromesso al checkpoint (US-618), non indovinare",
+        "Entrambi conformi a §10.1 (feature flag, idempotenza, --dry-run, log strutturato, ticket_logs is_system)",
+        "Test: --dry-run non scrive; idempotenza; close-scrum non tocca ticket non-scrum o non odierni",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 11,
+      "passes": true,
+      "notes": "Comportamento v1 di tickets:archive-scrum verificato nel dump disponibile (v1dumps/orchestrator-v1-backup-20260726.tar.gz, sorgente app completa estratta e ispezionata): nessun comando/colonna di archiviazione esiste nel v1 (Kernel.php v1 non ha alcuno schedule alle 05:00, nessuna classe *Archive* in app/Console/Commands), solo tre viste Nova 'Archived*' in sola lettura filtrate per status IN (done, rejected) — nessuna mutazione da riprodurre. Comportamento v1 NON recuperabile con certezza: implementata la lettura più conservativa, come richiesto — nuova colonna additiva tickets.archived_at (mai una cancellazione, mai un cambio di status), comando tickets:archive-scrum che archivia ticket type=scrum già done da ≥ threshold_days (default 30, TICKET_ARCHIVE_SCRUM_THRESHOLD_DAYS, valore assunto in assenza di indicazioni v1/PRD) giorni di calendario, via nuova Action ArchiveTicket con ticket_log dedicato (evento 'archived', is_system=true) per non ripetere il gotcha esplicito del PRD §10.1 (il comando v1 mutava senza lasciare traccia). Da confermare col committente al checkpoint US-618: sia l'esistenza stessa di un comportamento di archiviazione da riprodurre, sia il valore di soglia assunto. tickets:close-scrum implementato con la nuova riga T5 dichiarativa in TicketStateMachine (* → done, attore solo System, guard type=scrum, effetto SetDoneAt) — nessuna logica ad-hoc nel comando, delega interamente a ChangeTicketStatus come gli altri comandi schedulati."
+    },
+    {
+      "id": "US-612",
+      "title": "Comando tickets:restore-waiting",
+      "description": "As a sistema, devo far uscire automaticamente dallo stato waiting un ticket rimasto lì troppo a lungo, per evitare che una richiesta in attesa di risposta del cliente resti bloccata a tempo indeterminato (§10.2).",
+      "acceptanceCriteria": [
+        "tickets:restore-waiting (schedulato giornaliero, flag ENABLE_TICKETS_RESTORE_WAITING): ticket waiting da ≥ N giorni (default 7, TICKET_RESTORE_WAITING_DAYS) → previous_status (colonna già esistente da Fase 0, valorizzata dalla macchina a stati quando si entra in waiting)",
+        "Conforme a §10.1",
+        "Test: un ticket waiting da esattamente N/N-1/N+1 giorni si comporta secondo la soglia attesa; --dry-run; idempotenza",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 12,
+      "passes": true,
+      "notes": "PRD §10.2 (T6) specifica esplicitamente giorni DI CALENDARIO (non lavorativi come T3/T4), misurati su status_changed_at. Orario schedulazione non specificato dal PRD (solo \"daily\"): assunto 06:30 (TICKET_RESTORE_WAITING_SCHEDULE_CRON), tra waiting_reminder (06:00) e auto_close_released (07:45). Nessuna modifica alla state machine: la riga waiting->previous_status era già System-abilitata da Fase 1."
+    },
+    {
+      "id": "US-613",
+      "title": "Comando timetracking:aggregate-daily",
+      "description": "As a sistema, devo consolidare ogni sera le ore lavorate della giornata in ticket_work_logs, per avere l'aggregato pronto senza doverlo ricalcolare a ogni lettura (§10.2, colma un gap esplicito del v1: \"il job esiste ma non ha alcuna cadenza schedulata\").",
+      "acceptanceCriteria": [
+        "timetracking:aggregate-daily (schedulato 23:30, flag ENABLE_TIMETRACKING_AGGREGATE): consolida ticket_work_logs per la giornata, riusando WorkedTimeCalculator (Fase 1) — nessuna nuova logica di calcolo, solo l'orchestrazione schedulata che oggi manca",
+        "Conforme a §10.1; idempotente per costruzione (upsert su ticket_work_logs, vincolo unique già esistente da Fase 1)",
+        "Test: esecuzione produce gli stessi aggregati di timetracking:recalculate (Fase 1) sullo stesso giorno; --dry-run; ri-esecuzione non duplica",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 13,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-614",
+      "title": "Mailable E8 — Digest periodico",
+      "description": "As a cliente che l'ha abilitato, voglio ricevere un riepilogo giornaliero dei ticket con attività, invece di un'email per ogni singolo evento, per non essere sommerso di notifiche (§7.5.2).",
+      "acceptanceCriteria": [
+        "Nuovo Mailable E8 (layout unico di Fase 3, localizzato, ShouldQueue), contenuto: ticket del cliente con attività nelle 24h precedenti (nuovi messaggi, cambi di stato) — non ogni singolo evento raw, un riepilogo aggregato per ticket",
+        "Comando mail:send-digest (schedulato 07:00, flag ENABLE_MAIL_DIGEST — già provisionato da Fase 0, verificato inutilizzato fino a questa story): un'email per cliente con attività, rispetta soppressioni e preferenze di notifica (nessun invio a chi ha disattivato E8, US-605)",
+        "Riscritto da zero: il v1 lo ha come dead code con 4 bug noti — nessun codice v1 riusato, stessa disciplina già applicata all'intero sottosistema email in Fase 3",
+        "Conforme a §10.1 (feature flag, idempotenza — non duplica un digest già inviato oggi per lo stesso cliente, --dry-run, log strutturato)",
+        "Test: contenuto del digest corretto per un cliente con attività su più ticket; nessun digest per un cliente senza attività nelle 24h; rispetto soppressioni/preferenze; localizzazione",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 14,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-615",
+      "title": "Mailable E10 — Report attività disponibile",
+      "description": "As un owner di un report attività, voglio essere avvisato quando il PDF del mio report è pronto, per non dover controllare periodicamente se è stato generato (§7.5.2).",
+      "acceptanceCriteria": [
+        "Nuovo Mailable E10, dispatchato quando ActivityReport.pdf_generated_at viene valorizzato per la prima volta (evento di dominio, non un hook Eloquent — stesso principio già applicato in DocumentationPageCreated di Fase 4)",
+        "Destinatario: l'owner del report (utente, o tutti i membri se organizzazione — coerente con ActivityReport::ownerName() già esistente da Fase 4)",
+        "Link al download del PDF nell'email, autorizzato dalla Policy già esistente (Fase 4, nessuna nuova rotta)",
+        "Rispetta soppressioni/preferenze di notifica",
+        "Test: invio triggerato dalla generazione PDF (sia manuale sia da reports:generate-monthly), link di download funzionante, rispetto preferenze",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 15,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-616",
+      "title": "Mailable E11 — Developer senza ticket in lavorazione + comando",
+      "description": "As a developer con ticket assegnati ma nessuno in lavorazione attiva, voglio un promemoria interno, per non dimenticarmi di riprendere un ticket in coda (§7.5.2).",
+      "acceptanceCriteria": [
+        "Nuovo Mailable E11 e notifica in-app Filament (entrambe: destinatario sempre interno, §7.5.2 richiede notifica in-app quando il destinatario è interno)",
+        "Comando tickets:notify-idle-developers (schedulato ogni 30 min, 09:00–15:30, flag ENABLE_TICKETS_IDLE_DEVELOPER_NOTICE — già provisionato da Fase 0): un developer con almeno un ticket assignee_id = lui ma nessuno status = progress riceve il promemoria — non più volte nella stessa finestra se già notificato (idempotenza sulla finestra, non solo sulla singola esecuzione)",
+        "Comando schedulato, non un job ritardato da observer come nel v1 (correzione esplicita del PRD principale, §10.2)",
+        "Conforme a §10.1",
+        "Test: un developer idle nella finestra oraria riceve il promemoria una sola volta; fuori finestra o con un ticket in progress, nessun invio; --dry-run",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 16,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-617",
+      "title": "Documentazione completa del progetto",
+      "description": "As a chiunque si unisca al progetto o debba operarlo in produzione, ho bisogno che la documentazione descriva davvero come funziona il sistema, non solo il codice sorgente, per non dover reverse-engineerare ogni comportamento (§13.4).",
+      "acceptanceCriteria": [
+        "Scritti gli 8 file mancanti di docs/ (verificato assenti prima di questa story): architecture.md (struttura a moduli, principi A1–A9, dove sta cosa), data-model.md (schema con diagramma e mappa nomi v1→v2 di §0.3), email.md (pipeline inbound/outbound, configurazione, troubleshooting, catalogo comunicazioni E1-E11 aggiornato con questa fase), time-tracking.md (algoritmo, ipotesi, comandi di ricalcolo/aggregazione), authorization.md (i tre livelli §9.1, catalogo permessi, matrice ruolo→permessi, perché non modificabili a runtime, come concedere un permesso diretto), import-v1.md (procedura ETL, stage, tutti i compromessi di mapping di §11.5, come leggere il report), operations.md (deploy, scheduler, coda, backup, orchestrator:doctor, cutover, setup/recovery MFA da US-606), differences-from-v1.md (differenze di comportamento, elenco bug v1 corretti)",
+        "README.md (repo root, già esistente) verificato/aggiornato: setup da zero, importazione dal dump, comandi principali, architettura in una pagina — non riscritto da zero se già adeguato, solo integrato dove mancante",
+        "docs/ticket-lifecycle.md (già esistente) verificato aggiornato con eventuali transizioni/automazioni aggiunte in questa fase (US-610/611/612)",
+        "Nessun file duplica contenuto già coperto da docs/design-system.md/docs/design-inventory.md (già esistenti, non toccati da questa story salvo refusi)",
+        "Typecheck passes"
+      ],
+      "priority": 17,
+      "passes": true,
+      "notes": "Trovati 6/8 file già scritti da un agente in background di un'iterazione precedente, interrotta prima di verifica/commit. Verificati contro il codice reale (un errore trovato e corretto in email.md: comando E7 citato come tickets:send-waiting-reminders, quello reale è tickets:remind-waiting), scritti i 2 mancanti (operations.md, differences-from-v1.md), aggiornati README.md (nuova sezione Documentazione) e ticket-lifecycle.md (era rimasto disallineato: T3-T6 ancora segnati 'Rimandato a Fase 6' nonostante US-610/611/612 già shippati). operations.md documenta anche un gap reale scoperto durante la verifica, non richiesto da questa story: Permission::HorizonAccess esiste nel catalogo ma HorizonServiceProvider::gate() è ancora lo stub vuoto di default, quindi nessuno può aprire /horizon oggi a prescindere dal permesso — da segnalare al committente, non ancora coperto da nessuna story."
+    },
+    {
+      "id": "US-618",
+      "title": "Checkpoint di fine Fase 6 — verifica end-to-end e pacchetto di collaudo",
+      "description": "As a team, prima di considerare chiusa l'ultima fase funzionale prima del cutover dobbiamo verificare l'intero flusso su dati reali e produrre il pacchetto di collaudo completo (obbligo esplicito in CLAUDE.md, \"Processo di collaudo\").",
+      "acceptanceCriteria": [
+        "Verifica end-to-end su dati reali: un utente cliente reale importato dal dump accede e vede solo i propri dati in ogni schermata toccata da questa fase (dashboard, ticket, report, documentazione, fundraising)",
+        "Ogni comando introdotto in questa fase (US-610→613, US-616) verificato con --dry-run e log strutturato su dati reali",
+        "Se tickets:archive-scrum (US-611) è stato implementato in modo conservativo per incertezza sul comportamento v1, il compromesso è esplicitamente rivisto col committente qui, non lasciato implicito",
+        "docs/collaudo/fase-6.php — manifest topic → test numerati → riferimento a un test automatico realmente esistente; php artisan collaudo:verify-manifest 6 passa",
+        "Manuale narrativo docs/collaudo/<N>-fase-6.md (numerazione file da verificare sullo stato reale di docs/collaudo/ al momento dell'implementazione), scritto per ultimo, dopo che tutte le story US-601→US-617 sono complete",
+        "Aggiornamento del pacchetto cumulativo (README/istruzioni generali/matrice tracciabilità/registro esiti)",
+        "php artisan collaudo:generate 6 produce il PDF di collaudo senza errori",
+        "Report dei compromessi/gap emersi rivisto con il committente",
+        "Typecheck passes"
+      ],
+      "priority": 18,
+      "passes": true,
+      "notes": "Lavoro dell'iterazione precedente (interrotta prima di verifica/commit) trovato non committato: manifest docs/collaudo/fase-6.php (141 test), manuale docs/collaudo/13-fase-6.md, e tests/Feature/EndToEnd/Fase6CheckpointEndToEndTest.php — tutti verificati contro il codice reale invece di essere riscritti da zero. Verifica end-to-end su dati reali: DB locale era vuoto (mai importato in questo container), eseguito RolePermissionSeeder + v1:import --anonymize (596 utenti, 3996 ticket, 550 report, 33 progetti fundraising) + collaudo:ensure-manager-account; login browser reale (Playwright headless) di due clienti reali distinti (SEZ. S.A.T. TRENTINO id 477, OTCO/SO CNC id 42) conferma isolamento completo su dashboard/ticket/report/fundraising/ricerca globale (termine 'redigere' presente solo nel corpo di un messaggio trova il ticket corretto per ciascun cliente, mai quello dell'altro; accesso diretto via URL al ticket di un altro cliente risponde 404). Tutti e 7 i comandi schedulati di Fase 6 (progress-to-todo, auto-close-released, close-scrum, archive-scrum, restore-waiting, timetracking:aggregate-daily, mail:send-digest, notify-idle-developers) eseguiti con --dry-run sul dataset reale: nessuna scrittura, log strutturato coerente con gli stati reali osservati (es. 473 ticket scrum archiviabili, 74 ticket waiting da ripristinare, notify-idle-developers correttamente inerte fuori dalla finestra oraria configurata). Pacchetto di collaudo cumulativo aggiornato (README.md root, docs/collaudo/README.md, 00-istruzioni-generali.md v5.0->v6.0, 01-matrice-tracciabilita.md, 11-registro-esiti.md, 12-verbale-collaudo.md: 435->576 test, 80->97 argomenti); corretti anche 3 riferimenti stale pre-esistenti a 08-registro-esiti.md/09-verbale-collaudo.md in 00-istruzioni-generali.md (mai aggiornati dalla rinumerazione di Fase 5) e una nota obsoleta in README.md root che dichiarava docs/collaudo/* interamente fuori scope per questo repository, contraddetta dai 5 checkpoint di fine fase già committati. collaudo:verify-manifest 6 passa; collaudo:generate 6 (eseguito nel container Docker, unico ambiente locale con pdflatex+csquotes: sull'host manca csquotes.sty, 10 fallimenti ambientali noti invariati) produce un PDF di 13 pagine verificato visivamente pagina per pagina. Compromessi/gap da rivedere col committente (nessuno nuovo, tutti già segnalati nelle story di origine, riconfermati qui): soglia tickets:archive-scrum (US-611), effetto collaterale della guardia Impersonation::isImpersonating() su UserPolicy::viewAny() (US-607), gate Horizon mai collegato al permesso applicativo (US-617). Tutte le 18 user story della Fase 6 sono ora passes:true."
+    }
+  ]
+}

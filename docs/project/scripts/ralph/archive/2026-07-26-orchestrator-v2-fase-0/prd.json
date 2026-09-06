@@ -1,0 +1,407 @@
+{
+  "project": "Orchestrator v2 — Fase 0: Fondazioni",
+  "branchName": "ralph/orchestrator-v2-fase-0",
+  "description": "Fase 0 (Fondazioni) della riscrittura di Orchestrator per Montagna Servizi S.C.p.A.: nessuna funzionalità utente in questa fase. Costruisce repository Laravel 13 + Filament 4 dockerizzato, importa il design system, ispeziona il dump v1 prima di finalizzare lo schema, crea lo schema di database completo (§5 del PRD) con ruoli/permessi/policy (§9), un comando diagnostico e un seed di sviluppo. Fonte: PRD-ORCHESTRATOR-V2.md, §14 Fase 0, con riferimenti a §4 (stack/Docker), §5 (modello dati), §8.1-8.2 (design), §9 (autorizzazioni), §11.2-11.3 (ETL/inspect), §12 (diagnostica), §13.2 (CI), §16 (anti-pattern da non replicare). IMPORTANTE: al termine di questa fase c'è un punto di controllo obbligatorio — presentare docs/design-inventory.md e il report di v1:inspect al committente e attendere conferma prima di iniziare la Fase 1 (Ticketing core). Non implementare nessuna business logic di dominio (macchina a stati, action, email): quella è Fase 1+.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Scaffold repository Laravel 13 + Filament 4 con struttura a moduli",
+      "description": "As a developer, ho bisogno del progetto Laravel 13 + Filament 4 (stable, non la beta v5) scaffoldato con la struttura a moduli di dominio richiesta dal PRD (§4.3), così che le fasi successive abbiano dove collocare codice senza riorganizzare l'albero.",
+      "acceptanceCriteria": [
+        "Progetto Laravel 13 con PHP 8.4, Filament 4 (^4.0) installato",
+        "Struttura cartelle creata sotto app/: Domain/ (con sottocartelle vuote Ticketing, TimeTracking, Tags, Documentation, Reporting, Fundraising, Identity, Mail, ciascuna con Models/, Enums/ dove pertinente), Import/ (Stages/, Mappers/, Parsers/, Validation/), Filament/ (Resources/, Pages/, Widgets/, Providers/), Support/",
+        "Pest 3+ installato e configurato come test runner (non PHPUnit puro)",
+        "Laravel Pint installato con preset 'laravel' in pint.json",
+        "Larastan/PHPStan installato configurato a livello 6 minimo (phpstan.neon o larastan.neon)",
+        "spatie/laravel-medialibrary v11+ installato",
+        "'declare(strict_types=1)' presente nei file scaffoldati come convenzione di partenza",
+        "Nessun pacchetto vietato dal PRD installato: niente spatie/laravel-google-calendar, spatie/laravel-translatable, overtrue/laravel-favorite, filament-shield",
+        "vendor/bin/pint --test, vendor/bin/phpstan analyse e php artisan test eseguono senza errori sullo scaffold vuoto",
+        "Typecheck passes (Larastan livello 6)"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Repo creato in mstickets/orchestrator (fuori da scripts/ralph). Pest 4.x usato invece di Pest 3.x perché pest-plugin-laravel 3.x non supporta ancora Laravel 13 (richiede Laravel 11/12); Pest 4 soddisfa comunque il vincolo 'Pest 3+'. Rimosso laravel/pao (default installer) perché in conflitto di versione con Pest. phpstan analyse richiede --memory-limit=1G sull'ambiente locale (memory_limit PHP CLI di default 128M); aggiunto script composer 'analyse'."
+    },
+    {
+      "id": "US-002",
+      "title": "Stack Docker Compose completo",
+      "description": "As a developer, voglio un docker-compose.yml con tutti i servizi richiesti dal §4.2 del PRD, senza i problemi noti del v1 (root, chown manuale, mismatch UID/GID).",
+      "acceptanceCriteria": [
+        "docker-compose.yml definisce i servizi: app (build locale, PHP 8.4-FPM), web (nginx:alpine, reverse proxy su app, unico entrypoint HTTP), db (postgres:16-alpine, volume persistente), redis (redis:7-alpine, volume persistente), queue (come app, Horizon, restart always), scheduler (come app, esegue 'php artisan schedule:work', NON un cron di sistema), mailpit (axllent/mailpit, SMTP+IMAP locale)",
+        "Nessun servizio gira come 'user: root'; nessuna istruzione di chown manuale richiesta nel README",
+        "Il mismatch UID/GID host/container è risolto in build-time con ARG UID/GID nel Dockerfile, non a runtime",
+        "Ogni servizio con dipendenze usa 'condition: service_healthy' e ha un healthcheck definito (db, redis, app)",
+        "'docker compose up' porta su tutti i servizi in stato healthy senza intervento manuale",
+        "Typecheck passes (nessuna regressione su Larastan/Pint dello scaffold)"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "docker-compose.yml con name esplicito 'orchestrator-v2' (evita collisioni di project name Compose con altri stack sulla stessa macchina, vedi progress.txt). Verificato con 'docker compose up -d --build': tutti i servizi con healthcheck (db, redis, app) raggiungono Healthy, web risponde 200 su :8080, queue (Horizon) e scheduler partono senza errori. Nessun servizio 'root': Dockerfile fa build con ARG UID/GID e USER www-data."
+    },
+    {
+      "id": "US-003",
+      "title": "Pipeline CI di base",
+      "description": "As a development team, vogliamo una pipeline CI minima che verifichi ogni PR con gli strumenti di qualità del progetto, così da poter fidarsi del verde prima del merge di ogni fase.",
+      "acceptanceCriteria": [
+        "Pipeline CI (es. .github/workflows/ci.yml) eseguita su ogni PR con gli step: Pint (--test), Larastan (livello 6), Pest con coverage, build dei container Docker",
+        "La pipeline fallisce se uno qualunque degli step fallisce",
+        "Lo step ETL/v1:validate NON è incluso in questa fase (i comandi v1:import/v1:validate non esistono ancora, arrivano in Fase 2): documentare nel workflow con un commento dove andrà aggiunto",
+        "README aggiornato con badge o istruzioni su come la CI viene eseguita",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Nessun remote GitHub configurato ancora sul repo locale: badge di stato CI rimandato a quando esisterà un remote (documentato nel README). Coverage Pest via driver pcov installato dall'azione shivammathur/setup-php in CI (non presente in locale, dove xdebug/pcov non sono installati: i test locali girano comunque senza --coverage)."
+    },
+    {
+      "id": "US-004",
+      "title": "Importazione del design system via claude_design MCP",
+      "description": "As a developer, devo importare il design ufficiale PRIMA di scrivere qualunque componente UI (§8.1 del PRD è vincolante): i token estratti diventano la fonte di verità per palette, tipografia, spaziature, densità e componenti.",
+      "acceptanceCriteria": [
+        "Eseguito l'import via claude_design MCP del progetto https://claude.ai/design/p/b41c13f4-8321-4716-be35-295d0bdd9d1e?file=Piattaforma+Montagna+Servizi.dc.html (file 'Piattaforma Montagna Servizi.dc.html', includendo assets/montagna-servizi-mark.png e support.js)",
+        "Se l'MCP non è disponibile o l'autenticazione fallisce, la story si ferma e lo segnala esplicitamente: NON viene inventato un design sostitutivo",
+        "docs/design-system.md prodotto con: palette completa e nomi semantici, tipografia (famiglie/scale/pesi), spaziature, raggi, ombre, breakpoint, stati interattivi, iconografia",
+        "resources/css/theme.css prodotto: i token come custom properties CSS, da cui deriva (non riscritto a mano) il tema Filament Tailwind v4",
+        "assets/ contiene logo e mark nei formati necessari (SVG per il pannello, PNG per email/PDF)",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "MCP claude_design disponibile e autenticato (tool DesignSync). Il progetto b41c13f4-8321-4716-be35-295d0bdd9d1e contiene DUE design distinti: il mockup applicativo 'Piattaforma Montagna Servizi.dc.html' (teal #17a180, font Nunito Sans — usato come fonte vincolante per il pannello) e, bundlato in sola lettura sotto _ds/, un secondo design system del sito marketing (verde pino #1D574B, font Manrope) non coincidente. docs/design-system.md e resources/css/theme.css derivano dal mockup applicativo per coerenza con §8.1/§8.3 del PRD. Nessun SVG del logo/mark trovato nel progetto: solo PNG raster copiati in assets/ (montagna-servizi-mark.png, montagna-servizi-logo.png, montagna-servizi-logo-white.png). Discrepanza palette e assenza SVG segnalate esplicitamente in docs/design-system.md e da riportare al committente al checkpoint di fine Fase 0. Colori di stato ticket coperti solo parzialmente dal mockup (6 di 12 stati enum TicketStatus): gap documentato, nessun valore inventato."
+    },
+    {
+      "id": "US-005",
+      "title": "Applicazione del tema Filament dai token del design",
+      "description": "As a user, voglio che il pannello Filament rifletta visivamente il design Montagna Servizi (palette, tipografia, densità), non il tema di default di Filament.",
+      "acceptanceCriteria": [
+        "Il tema Filament (Tailwind v4) è derivato dalle custom properties di resources/css/theme.css prodotte in US-004, non da valori scritti a mano una seconda volta",
+        "Login page e dashboard vuota del pannello mostrano palette, font e logo del design Montagna Servizi (nessun riferimento residuo a Webmapp in branding/footer/logo)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "Tema derivato SOLO da resources/css/theme.css tramite la nuova classe App\\Support\\DesignTokens (parsa le custom properties --ms-* a runtime, nessun hex riscritto a mano in PHP). AdminPanelProvider: ->colors() con stringhe hex dirette (Color::generatePalette() è chiamato internamente da Filament, non serve Color::hex()), ->font(DesignTokens::primaryFontFamily()) → 'Nunito Sans', ->viteTheme('resources/css/filament/admin/theme.css') nuovo entrypoint Vite che importa il vendor theme.css di Filament + il nostro token file, ->brandName/->brandLogo/->darkModeBrandLogo/->favicon dai PNG di US-004 copiati in public/images/branding/ (assets/ a livello repo non è servibile via web). Verificato via Docker (docker compose up -d db redis app web, mailpit saltato per conflitto porta 1025 con uno stack Docker legacy non correlato sulla stessa macchina) + curl su /admin/login: palette (#17a180 nel CSS compilato), font-family 'Nunito Sans', logo/mark PNG e nome 'Montagna Servizi' presenti in HTML, nessuna stringa 'Webmapp'. Dashboard non verificata via login reale (form Livewire, non un semplice form CSRF via curl) ma usa lo stesso layout Panel-level (base.blade.php) già verificato sul login: verifica visiva completa in browser reale ancora da fare manualmente, nessun tool MCP browser disponibile in questo ambiente."
+    },
+    {
+      "id": "US-006",
+      "title": "Inventario del design — docs/design-inventory.md",
+      "description": "As a committente, voglio un inventario di ogni schermata/componente presente nel mockup, classificato come in-scope in questa release o nuova feature fuori scope, per poter dare una conferma esplicita prima della Fase 1 (§0.1 punto 4 del PRD).",
+      "acceptanceCriteria": [
+        "docs/design-inventory.md elenca ogni schermata e componente del mockup importato in US-004: nome, descrizione, classificazione 'in scope in questa release' / 'nuova feature (fuori scope)', resource/pagina Filament corrispondente (o nota se non ancora costruita)",
+        "La classificazione è coerente con §3.1/§3.2 del PRD (moduli M1-M11 in scope, CRM/Preventivi/Agile legacy/Geografico/Scadenze/Preferiti/Changelog/Google Calendar fuori scope)",
+        "Il file include una nota esplicita: 'Richiede conferma del committente prima di procedere con la Fase 1'",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "Rifetchato il progetto Claude Design (b41c13f4-...) via DesignSync per catalogare le 12 schermate condizionali (show.*) del mockup .dc.html. Scoperta rilevante: il progetto contiene anche uploads/TIcket_V2/BRIEF_prototipi_e_presentazione.md, un brief COMMERCIALE per vendere 6 servizi a pagamento alle sezioni CAI (Drive Standard, Riunioni/verbali, Ricerca RAG, Monitoraggio bandi, ETS Dashboard, Escursioni), con pricing incluso (250€/anno, 200€/anno Early Bird) — informazione da segnalare esplicitamente al committente, eccede lo scope tecnico. Classificazione: Dashboard (card base)/I miei ticket/Nuovo ticket in scope M1/M7; Bandi/Progetti in scope M6 SOLO per la parte read-only (§6.6.4), il filtro 'Tema' e la CTA 'Richiedi supporto' sono fuori scope (servizio commerciale); Drive Standard/Riunioni e verbali/Ricerca RAG/ETS Dashboard/Escursioni interamente fuori scope (coerente con il badge 'NUOVO' che il mockup stesso applica a queste 5 voci di nav). docs/future-features.md creato in aggiunta (§15.1) con entità/punti di estensione per ogni nuova feature, nessuna tabella/modello/resource creata per esse."
+    },
+    {
+      "id": "US-007",
+      "title": "Servizio db_legacy e caricamento del dump v1",
+      "description": "As a developer, ho bisogno di un database di appoggio in sola lettura per il dump di produzione v1, isolato dall'esercizio normale, per poter ispezionare i dati reali prima di finalizzare lo schema v2 (§0.1 punto 5, §4.2, §11.1 principio P2).",
+      "acceptanceCriteria": [
+        "docker-compose.yml include il servizio db_legacy (postgres:16-alpine) avviabile SOLO col profilo Compose dedicato '--profile etl' (non parte con un 'docker compose up' normale)",
+        "Script bin/load-v1-dump path/to/dump.sql ripristina un dump SQL nel servizio db_legacy",
+        "Makefile espone 'make etl-up' (avvia db_legacy) come alias documentato",
+        "L'ETL non scrive mai sul database v1: db_legacy è usato in sola lettura da tutto il codice successivo",
+        "README documenta la procedura: make etl-up, poi bin/load-v1-dump",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "Nessun dump reale della v1 di mstickets trovato sulla macchina locale (trovato solo un dump non correlato, 'mpt2_dump_20250930_202615.sql' in ~/Documents/docker/, verificato con grep che non contiene le tabelle 'stories'/'story_logs' del PRD: è un progetto diverso). Il servizio db_legacy e bin/load-v1-dump sono stati quindi verificati end-to-end con un dump SQL sintetico minimale (CREATE TABLE + INSERT), non con un dump v1 reale: il caricamento di un dump reale e l'esecuzione di v1:inspect restano da fare in US-008 quando il committente fornirà il dump di produzione."
+    },
+    {
+      "id": "US-008",
+      "title": "Comando v1:inspect",
+      "description": "As a developer, prima di finalizzare lo schema (§0.1 punto 5) devo scoprire cosa smentisce il dato reale rispetto a quanto dichiarato dal modello v1: il comando v1:inspect produce questo report, da leggere prima di continuare con le migrazioni v2.",
+      "acceptanceCriteria": [
+        "Comando 'php artisan v1:inspect' legge dal servizio db_legacy (US-007) e produce un report con: conteggio righe per tabella; valori distinti effettivi di stories.status/type/priority; valori distinti di users.roles (censendo formati JSON e non-JSON/ruoli sconosciuti); quante stories hanno customer_request non vuota e quante sono parsabili in messaggi distinti (con esempi campione); quante story_logs hanno un changes interpretabile e distribuzione delle chiavi; righe di story_story non riflesse in stories.parent_id e viceversa; ticket con done_at/released_at null pur in stato done/released; righe di story_participants; tags con taggable_type diverso da Documentation; conteggio/dimensione media e file effettivamente presenti su disco; email duplicate su users a meno del case; FK orfane per ogni relazione in scope",
+        "L'output è salvato in storage/app/import/inspect-<timestamp>.md",
+        "Il comando è stato eseguito su un dump v1 reale e il report generato è allegato/commesso per essere allegato alla PR di questa fase",
+        "Typecheck passes",
+        "Tests pass (test unitari sulle singole funzioni di analisi, con dataset di fixture ridotto)"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": "Eseguito su un dump v1 REALE trovato sulla macchina locale (non nel repository): ~/Documents/docker/orchestrator/storage/app/database/last-dump.sql (backup Docker del deploy legacy in produzione, 2152 stories/592 users/15873 story_logs). Il restore contro db_legacy (postgres:16-alpine vanilla) ha richiesto due aggiustamenti non applicativi: creare manualmente il ruolo 'orchestrator' (owner nel dump sorgente, assente in db_legacy) e tollerare gli errori innocui di PostGIS (schemi tiger/tiger_data/topology, estensioni postgis*) presenti nel cluster sorgente ma non nell'immagine postgres:16-alpine — nessuna tabella applicativa dipende da PostGIS, dettagliato in CLAUDE.md. Report generato in storage/app/import/inspect-20260725_225710.md (committato in questa story) con tutti i controlli richiesti dagli AC. Scoperta reale rilevante per lo schema v2: activity_reports.customer_id ha 206/206 righe orfane contro 'customers' (tabella vuota nel dump) — conferma indipendentemente la nota già presente in US-014 sul nome fuorviante v1 (customer_id puntava in realtà a users, non a un'entità customer dedicata). Bug corretto durante l'implementazione: Storage::disk('local') in Laravel 11+ scrive sotto storage/app/private, non storage/app — il comando usa un disco dedicato costruito con Storage::build(['root' => storage_path('app')]) per rispettare l'AC letterale; aggiunta anche l'eccezione a storage/app/.gitignore altrimenti il report non sarebbe stato tracciabile da git."
+    },
+    {
+      "id": "US-009",
+      "title": ".env.example completo e config/orchestrator.php con feature flag",
+      "description": "As a developer, ogni variabile usata dal codice deve essere presente e commentata in .env.example (nel v1 mancava ogni variabile IMAP_* e QUEUE_CONNECTION divergeva): parto da questa base fin dalla Fase 0 così le fasi successive la estendono invece di scoprirla mancante.",
+      "acceptanceCriteria": [
+        ".env.example contiene tutte le variabili già note in questa fase (DB, Redis, Filament, storage, mail/mailpit locale) completamente commentate, coerenti 1:1 con quanto legge il codice",
+        "config/orchestrator.php creato come punto unico per le feature flag delle automazioni schedulate (pattern del v1 da mantenere, §10.1), lette da env, anche se in questa fase non c'è ancora nessun comando schedulato da attivare",
+        "Nessun env() usato fuori dai file di config/ (§13.3)",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": "Verificato che le categorie richieste dall'AC (DB, Redis, Filament, storage, mail/mailpit) erano già complete in .env.example dalle story precedenti (US-002/US-007/US-008): nessuna variabile Filament-specifica esiste nel codice (nessun config/filament.php pubblicato, il panel è configurato interamente nel Provider). Aggiunta la sola parte mancante: 12 variabili ENABLE_* (una per ogni comando schedulato del catalogo §10.2, tutte default false) in .env.example E nel .env locale gitignored, e config/orchestrator.php come punto unico che le legge sotto la chiave 'features' (usato da US-022 per il comando doctor). Confermato con grep che nessun env() esiste fuori da config/ (§13.3). Non aggiunte le variabili IMAP_*/TICKET_*/TIMETRACKING_* dell'appendice §17.1 del PRD: quelle appartengono a moduli/comandi non ancora esistenti in Fase 0 (Email/Ticketing business logic arrivano in Fase 1+), coerente con la formulazione letterale dell'AC ('variabili già note in questa fase')."
+    },
+    {
+      "id": "US-010",
+      "title": "Schema — Identità e autenticazione",
+      "description": "As a developer, serve lo schema delle tabelle di identità (§5.2 Identità) con le tabelle standard di spatie/laravel-permission pubblicate (non scritte a mano), pronto per essere popolato dai ruoli/permessi di una story successiva.",
+      "acceptanceCriteria": [
+        "Migrazione 'users' con le colonne di §5.2: id (bigserial PK), name, email (unique, indice funzionale su lower(email) per confronto case-insensitive), email_verified_at, password (nullable), remember_token, locale (varchar(5) not null default 'it'), drive_url, drive_budget_url, deactivated_at, timestamps + deleted_at",
+        "Migrazione 'organizations' (id PK, name not null, locale varchar(5) default 'it', timestamps) e 'organization_user' (id PK, organization_id/user_id FK cascade, unique sulla coppia, timestamps)",
+        "spatie/laravel-permission v6+ installato, migrazioni pubblicate (non scritte a mano) per roles/permissions/model_has_roles/model_has_permissions/role_has_permissions",
+        "Configurazione spatie: guard_name unico 'web', funzionalità 'teams' disattivata",
+        "Modelli Eloquent User/Organization con $fillable/$casts/relazioni, NESSUNA business logic in boot()/booted() (A1)",
+        "Typecheck passes",
+        "Tests pass (migrazioni eseguono su db pulito, vincoli unique/case-insensitive verificati)"
+      ],
+      "priority": 10,
+      "passes": true,
+      "notes": "Spatie/laravel-permission ^6 installato e migrazioni pubblicate via vendor:publish (non scritte a mano); teams=false e guard 'web' erano già i default del pacchetto/progetto, nessuna configurazione aggiuntiva necessaria. Migrazione users modificata direttamente (nessun deploy esistente): aggiunte locale/drive_url/drive_budget_url/deactivated_at/soft delete, password reso nullable, indice funzionale `lower(email)` via DB::statement (portabile Postgres+sqlite, verificato anche su Postgres reale via docker compose). Nuove migrazioni organizations/organization_user (FK cascade, unique sulla coppia). Modello User spostato da app/Models a App\\Domain\\Identity\\Models per rispettare la struttura a moduli di US-001 (nessun altro modello esisteva ancora in quella cartella): ha richiesto un newFactory() esplicito sul modello + $model esplicito sulla UserFactory (le convenzioni di naming automatiche di Laravel per le factory si basano sul namespace) e un composer dump-autoload -o dopo il git mv (autoloader ottimizzato con classmap stale). Nuovo modello Organization con relazione many-to-many verso User via organization_user. Nessuna business logic in boot()/booted() su nessuno dei due modelli (A1)."
+    },
+    {
+      "id": "US-011",
+      "title": "Enum UserRole e Permission (catalogo)",
+      "description": "As a developer, i ruoli e i permessi sono un enum PHP che è la sorgente di verità (§9.2, §9.3): serve prima del seeder e delle policy.",
+      "acceptanceCriteria": [
+        "Enum backed UserRole con i 5 case: admin, developer, manager, customer, fundraising (nessun 'editor', eliminato per D14)",
+        "Enum backed Permission con l'intero catalogo di §9.3, naming '<dominio>.<azione>[.<ambito>]' (es. ticket.view.any, ticket.update.own, ticket.manage-internal-fields, horizon.access, logs.access, import.view, ecc. — elenco completo del catalogo)",
+        "Enum implementano label() localizzata IT dove pertinente, e le interfacce Filament HasLabel/HasColor/HasIcon dove sensato",
+        "Nessun confronto su stringhe grezze in codice che referenzia questi enum (A4)",
+        "Typecheck passes",
+        "Tests pass (enum contiene esattamente i case attesi)"
+      ],
+      "priority": 11,
+      "passes": true,
+      "notes": "Enum in App\\Domain\\Identity\\Enums: UserRole (5 case, HasLabel/HasColor/HasIcon Filament) e Permission (52 case, catalogo completo §9.3, solo HasLabel — colore/icona non avrebbero senso su 52 permessi granulari). Naming case in PascalCase che rispecchia il value dot/hyphen-separated (es. TicketManageInternalFields → 'ticket.manage-internal-fields'). Test unitari verificano l'elenco esatto dei 5 ruoli (nessun 'editor') e dei 52 permessi contro il catalogo del PRD, più le interfacce Filament implementate. Nessuna tabella/migrazione: sono cataloghi solo-PHP, pronti per essere iterati dal seeder di US-018."
+    },
+    {
+      "id": "US-012",
+      "title": "Schema — Ticketing",
+      "description": "As a developer, serve lo schema completo del modulo Ticketing (§5.2 Ticketing): tickets e le tabelle correlate, con gli enum castati richiesti — nessuna business logic (macchina a stati/action arrivano in Fase 1).",
+      "acceptanceCriteria": [
+        "Migrazione 'tickets' con tutte le colonne di §5.2 (id bigserial PK, parent_id FK→tickets on delete set null, title, description, status default 'new', previous_status, status_changed_at not null, type default 'helpdesk', priority default 'low', requester_id/assignee_id/tester_id FK→users set null, fundraising_project_id nullable FK, waiting_reason, problem_reason, estimated_hours, worked_minutes default 0, staging_url, production_url, released_at, done_at, timestamps+deleted_at) e gli indici elencati (status, (assignee_id,status), (requester_id,status), (tester_id,status), parent_id, (status,status_changed_at), done_at, full-text su title)",
+        "Migrazioni per ticket_messages (con ulid unique, channel, visibility default 'public', body_html/body_text, email_message_id nullable, is_legacy_import default false, posted_at, indici (ticket_id,posted_at)/author_id/email_message_id) — email_message_id è una FK nullable verso email_messages anche se quella tabella non esiste ancora in questa story: aggiungerla senza vincolo FK qui e completarla come FK quando la story Email schema introduce la tabella, oppure ordinare le migrazioni di conseguenza",
+        "Migrazioni per ticket_logs (event, from_status/to_status, changes jsonb, is_system, occurred_at + indici incluso GIN su changes), ticket_views (unique ticket_id/user_id/viewed_on), ticket_participants (unique coppia), ticket_tag (unique coppia), ticket_work_logs (unique work_date/user_id/ticket_id + indici)",
+        "Enum castati: TicketStatus (12 case con valori identici al v1: new, backlog, assigned, todo, progress, testing, tested, released, done, problem, waiting, rejected — case si chiama 'Testing', non 'Test'), TicketType (bug/feature/helpdesk/scrum), TicketPriority (low/medium/high), TicketMessageChannel (web/email/system), TicketMessageVisibility (public/internal), TicketLogEvent (created/status_changed/assigned/updated/message_posted/attachment_added/attachment_removed/system) — tutti backed enum con label()/color()/icon() dove pertinente",
+        "Nessuna colonna del v1 non portata viene ricreata: niente epic_id, project_id, history_log, pull_request_link, customer_request su tickets (A8)",
+        "Modelli Eloquent con $fillable/$casts (enum castati)/relazioni/collection medialibrary 'attachments' su TicketMessage, NESSUNA business logic in boot()/booted()/Observer (A1)",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 12,
+      "passes": true,
+      "notes": "Schema completo creato (7 migrazioni: tickets, ticket_messages, ticket_logs, ticket_views, ticket_participants, ticket_tag, ticket_work_logs, + pubblicata la migrazione 'media' di spatie/laravel-medialibrary mai pubblicata prima). Due FK verso tabelle non ancora esistenti (fundraising_projects in US-015, tags in US-013) create come colonna unsignedBigInteger senza vincolo FK, da completare in quelle story (stesso pattern già usato per ticket_messages.email_message_id → email_messages/US-016). Indici Postgres-only (full-text GIN su tickets.title, GIN su ticket_logs.changes) guardati con un check sul driver di connessione (sqlite non li supporta, è quello usato dai test) e verificati end-to-end contro Postgres reale via Docker (docker compose up -d db app + migrate:fresh nel container, poi down). ticket_messages.ulid generato con il trait HasUlids di Laravel ma con uniqueIds() sovrascritto per restituire ['ulid'] invece della PK (che resta 'id' bigint autoincrementale). TicketMessage è il primo uso reale di spatie/laravel-medialibrary nel repo (collection 'attachments'). Colori TicketStatus::getColor() risolvono il gap di design-system.md (6 stati coperti dal mockup, 6 mappati alla categoria Filament più vicina all'hex v1 di riferimento §5.3): documentato in docs/design-system.md."
+    },
+    {
+      "id": "US-013",
+      "title": "Schema — Tag/commesse e Documentazione",
+      "description": "As a developer, serve lo schema di §5.2 Tag/commesse e Documentazione: il morph polimorfico del v1 sparisce, resta solo il link esplicito a documentation_pages.",
+      "acceptanceCriteria": [
+        "Migrazione 'tags' (id PK conservato, name, slug unique, description, estimated_hours, documentation_id nullable FK→documentation_pages set null, timestamps+deleted_at)",
+        "Migrazione 'documentation_pages' (id PK conservato, title, slug unique, body text NOT NULL, category default 'customer', pdf_path, pdf_generated_at, timestamps+deleted_at) — enum DocumentationCategory (internal/customer) castato",
+        "Nessuna relazione verso una colonna inesistente: NON riprodurre 'creator()' su Documentation verso una colonna inesistente (anti-pattern §16.2 #13); se serve tracciare l'autore, aggiungere created_by FK→users nullable esplicita",
+        "Media collection 'documents' e 'images' configurate su DocumentationPage",
+        "Modelli con $fillable/$casts/relazioni, nessuna business logic negli hook (A1)",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 13,
+      "passes": true,
+      "notes": "Schema completo: migrazioni documentation_pages (creata prima di tags per la FK) e tags (§5.2), enum DocumentationCategory (internal/customer, solo HasLabel, stessa scelta di Permission in US-011), modelli DocumentationPage (media collections documents/images) e Tag. Completato anche il debito tecnico lasciato da US-012: nuova migrazione dedicata add_tag_foreign_key_to_ticket_tag_table aggiunge il vincolo FK vero (mai riscritta la migrazione originale di ticket_tag) e aggiunta la relazione tags() su Ticket. Nessuna relazione creator()/colonna created_by su DocumentationPage: anti-pattern esplicito §16.2 #13 del PRD, nessun AC la richiede in questa fase. Verificato anche contro Postgres reale (docker compose up -d db app + migrate:fresh + psql \\d): FK e default coerenti con §5.2."
+    },
+    {
+      "id": "US-014",
+      "title": "Schema — Rendicontazione (Activity Report)",
+      "description": "As a developer, serve lo schema di §5.2 Rendicontazione, con la correzione del nome fuorviante del v1 (customer_id puntava a users).",
+      "acceptanceCriteria": [
+        "Migrazione 'activity_reports' con le colonne di §5.2 (owner_kind, owner_user_id FK→users cascade, owner_organization_id FK→organizations cascade, period_type, year, month nullable, locale, pdf_path, pdf_generated_at, timestamps), unique su (owner_kind, owner_user_id, owner_organization_id, period_type, year, month), CHECK che esattamente uno tra owner_user_id/owner_organization_id sia valorizzato coerentemente con owner_kind",
+        "Migrazione 'activity_report_ticket' (unique coppia activity_report_id/ticket_id)",
+        "Enum castati ActivityReportOwnerKind (user/organization) e ActivityReportPeriodType (monthly/annual)",
+        "Modelli con $fillable/$casts/relazioni, nessuna business logic negli hook (A1)",
+        "Typecheck passes",
+        "Tests pass (constraint CHECK verificato con un test che tenta di violarlo)"
+      ],
+      "priority": 14,
+      "passes": true,
+      "notes": "Schema completo: migrazioni activity_reports e activity_report_ticket, enum backed ActivityReportOwnerKind (user/organization) e ActivityReportPeriodType (monthly/annual, entrambi solo HasLabel come DocumentationCategory/Permission), modello ActivityReport (relazioni ownerUser/ownerOrganization/tickets, nessuna business logic negli hook). Due gotcha di correttezza scoperti e risolti, non richiesti letteralmente dall'AC ma necessari perché il vincolo funzioni davvero: (1) Blueprint di Laravel non ha un metodo check() nativo per nessun driver — il CHECK 'esattamente uno tra owner_user_id/owner_organization_id' è implementato con ALTER TABLE ADD CONSTRAINT su Postgres ma, siccome sqlite (driver dei test) non supporta affatto ALTER TABLE ADD CONSTRAINT, è emulato con due trigger BEFORE INSERT/BEFORE UPDATE (RAISE ABORT) che sqlite permette di aggiungere liberamente dopo la creazione della tabella; verificato anche contro Postgres reale (docker compose, insert che viola il constraint → ERROR reale). (2) L'unique letterale su (owner_kind, owner_user_id, owner_organization_id, period_type, year, month) non avrebbe funzionato: sia Postgres sia sqlite trattano NULL come distinto da se stesso in un vincolo UNIQUE standard, e owner_organization_id è sempre NULL per i report utente (e viceversa) — sostituito con un indice unique su espressione con coalesce(colonna, 0), stesso pattern già in uso per l'indice case-insensitive lower(email) di US-010; verificato con psql \\d che l'indice risultante è quello coalesce-based. Entrambi i pattern documentati in CLAUDE.md (sezione 'Schema — Rendicontazione (US-014)') per essere riusati da qualunque futuro vincolo CHECK/UNIQUE multi-colonna con colonne nullable."
+    },
+    {
+      "id": "US-015",
+      "title": "Schema — Fundraising",
+      "description": "As a developer, serve lo schema di §5.2 Fundraising, con le 34 colonne evaluation_* del v1 normalizzate in righe (fundraising_evaluation_scores) invece che in colonne.",
+      "acceptanceCriteria": [
+        "Migrazione 'fundraising_opportunities' con tutte le colonne di §5.2 (name, official_url, endowment_fund, deadline not null, program_name, sponsor, cofinancing_quota, max_contribution, territorial_scope default 'national', beneficiary_requirements, lead_requirements, created_by/responsible_user_id FK→users not null, evaluated_by nullable FK→users set null, evaluated_at, evaluation_positive_total/negative_total/total, timestamps) + indici (deadline, territorial_scope, created_by, responsible_user_id)",
+        "Migrazione 'fundraising_evaluation_scores' (fundraising_opportunity_id FK cascade, criterion_key varchar(40), score, notes, unique su (fundraising_opportunity_id, criterion_key)) — il catalogo dei criteri vive in enum/config PHP, NON viene creato come tabella a parte",
+        "Migrazione 'fundraising_projects' (title, fundraising_opportunity_id FK cascade, lead_user_id nullable, created_by, responsible_user_id nullable, description, status default 'draft', requested_amount, approved_amount, submitted_at, decided_at, timestamps) e 'fundraising_project_partners' (unique coppia project_id/user_id)",
+        "Enum castati TerritorialScope (cooperation/european/national/regional/territorial/municipalities) e FundraisingProjectStatus (draft/submitted/approved/rejected/completed)",
+        "Modelli con $fillable/$casts/relazioni, evaluation_positive_total/negative_total/total documentati come colonne derivate ricostruibili (nessun comando di ricalcolo richiesto in questa fase, arriva con la feature in Fase 5)",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 15,
+      "passes": true,
+      "notes": "Schema completo: migrazioni fundraising_opportunities, fundraising_evaluation_scores (unique su fundraising_opportunity_id+criterion_key), fundraising_projects, fundraising_project_partners (unique coppia). Enum backed TerritorialScope (6 case) e FundraisingProjectStatus (5 case), entrambi solo HasLabel (stesso pattern di ActivityReportOwnerKind/DocumentationCategory). Catalogo dei 26 criteri di valutazione (§6.6.2, 5 blocchi: criteri principali/requisiti base/qualitativi/premiali/rischi) creato come enum backed FundraisingEvaluationCriterion con metodi group()/min()/max() oltre a getLabel(): nessuna tabella criteri, nessun calcolo dei totali implementato (esplicitamente rimandato a Fase 5 dall'AC). Completato il debito tecnico lasciato da US-012: nuova migrazione dedicata add_fundraising_project_foreign_key_to_tickets_table aggiunge il vincolo FK vero tickets.fundraising_project_id → fundraising_projects (ON DELETE SET NULL, coerente con §5.2), mai riscritta la migrazione originale di tickets (stesso pattern già usato per ticket_tag.tag_id in US-013); aggiunta anche la relazione fundraisingProject()/tickets() reciproca su Ticket/FundraisingProject. Verificato anche contro Postgres reale (docker compose up -d db app + migrate:fresh + psql \\d): il vincolo FK su tickets.fundraising_project_id risulta ON DELETE SET NULL come da AC."
+    },
+    {
+      "id": "US-016",
+      "title": "Schema — Sottosistema email (solo tabelle)",
+      "description": "As a developer, serve lo schema di §5.2 Email: solo le tabelle e i modelli in questa fase, la pipeline inbound/outbound arriva in Fase 3.",
+      "acceptanceCriteria": [
+        "Migrazione 'email_messages' con tutte le colonne di §5.2 (ulid unique, direction, message_id, in_reply_to, references, thread_id FK→email_threads set null, ticket_id FK→tickets set null, user_id FK→users set null, from_email/from_name, to/cc/bcc jsonb, reply_to, subject, body_text, body_html, raw_path, status, failure_reason, attempts default 0, mailable_class, provider_message_id, imap_uid, imap_folder, content_hash, received_at/sent_at, timestamps), unique (direction, message_id) dove message_id non null, unique (imap_folder, imap_uid), indici status/ticket_id/content_hash/thread_id",
+        "Se non già presente dalla story Ticketing (US-012), aggiungere qui la FK ticket_messages.email_message_id → email_messages",
+        "Migrazioni 'email_threads' (ticket_id nullable FK cascade, subject_normalized, participants jsonb, last_message_at, timestamps + indici), 'email_attachments' (email_message_id FK cascade, filename, mime_type, size_bytes, disk/path, media_id nullable, status, rejection_reason, timestamps), 'email_suppressions' (email unique, reason, bounce_count default 0, notes, expires_at, timestamps), 'notification_preferences' (user_id FK cascade, notification_type, channel, enabled default true, timestamps, unique terna)",
+        "Enum castati EmailDirection (inbound/outbound), EmailStatus, EmailAttachmentStatus (stored/rejected_mime/rejected_size/failed), SuppressionReason (hard_bounce/soft_bounce/complaint/manual/loop_protection)",
+        "Modelli con $fillable/$casts/relazioni, nessuna logica di invio/ricezione in questa story (solo schema)",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 16,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-017",
+      "title": "Schema — Infrastruttura di importazione",
+      "description": "As a developer, serve lo schema di audit dell'ETL (§5.2 Importazione e infrastruttura), usato dalle fasi successive per tracciare le esecuzioni di v1:import.",
+      "acceptanceCriteria": [
+        "Migrazione 'import_runs' (started_at, finished_at nullable, dump_label, stages jsonb, status con valori running/completed/failed, is_dry_run, notes, timestamps)",
+        "Migrazione 'import_mappings' (source_table, source_key, target_table, target_id, timestamps, unique su (source_table, source_key, target_table))",
+        "Modelli Eloquent corrispondenti con $fillable/$casts",
+        "Queste tabelle appartengono concettualmente ad app/Import/ (isolato, rimovibile a cutover concluso, §4.3) anche se in questa fase non c'è ancora nessun comando che le popola",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 17,
+      "passes": true,
+      "notes": "Schema completo: migrazioni import_runs (started_at/finished_at/dump_label/stages jsonb/status varchar default 'running'/is_dry_run/notes, indice su status) e import_mappings (source_table/source_key/target_table/target_id, unique composto sulla terna). Enum backed ImportRunStatus (running/completed/failed, HasLabel+HasColor come EmailStatus) in App\\Import\\Enums, modelli ImportRun/ImportMapping in App\\Import\\Models (nessun modello/enum preesisteva ancora sotto app/Import/, solo le sottocartelle Stages/Mappers/Parsers/Validation/Inspect di US-001/US-008): scelto di rispecchiare la stessa convenzione Models/Enums già usata da ogni modulo Domain/*, non essendo prescritta esplicitamente da §4.3 per Import/. Nessuna relazione Eloquent aggiunta su ImportMapping (target_table/target_id è un riferimento polimorfico 'a mano' verso tabelle eterogenee di tutto il DB, non un morphTo verso un singolo modello): l'AC richiede solo $fillable/$casts, nessuna relazione. Verificato anche contro Postgres reale (docker compose up -d db app + migrate:fresh + psql \\d): jsonb effettivo su stages, default 'running'/false su status/is_dry_run, vincolo UNIQUE composto su import_mappings confermati."
+    },
+    {
+      "id": "US-018",
+      "title": "Seeder idempotente ruoli e permessi",
+      "description": "As an admin, i ruoli e permessi Spatie devono essere materializzati da un seeder versionato che riflette esattamente la matrice di §9.4, eseguibile ad ogni deploy senza duplicare né lasciare orfani.",
+      "acceptanceCriteria": [
+        "Seeder che crea, per ogni case dell'enum Permission (US-011), la riga corrispondente in 'permissions' (guard 'web'), e per ogni case di UserRole la riga in 'roles'",
+        "Il seeder assegna ai ruoli esattamente i permessi della matrice di §9.4 (admin riceve TUTTI i permessi del catalogo; manager NON riceve ticket.delete né permessi di delete su altri domini; horizon.access/logs.access NON sono assegnati a nessun ruolo salvo admin, sono concedibili come permessi diretti)",
+        "Il seeder è idempotente: eseguito N volte produce sempre esattamente la stessa matrice, senza righe duplicate",
+        "Un permesso rimosso dal catalogo enum viene revocato dal seeder (non lasciato orfano in role_has_permissions/model_has_permissions)",
+        "Nessuna creazione di ruoli/permessi a runtime nel codice applicativo (solo dal seeder)",
+        "Typecheck passes",
+        "Tests pass (il seeder produce esattamente la matrice di §9.4; una seconda esecuzione non introduce differenze; un permesso rimosso dal catalogo viene revocato)"
+      ],
+      "priority": 18,
+      "passes": true,
+      "notes": "Seeder `Database\\Seeders\\RolePermissionSeeder` (richiamato da `DatabaseSeeder::run()`), matrice ruolo→permessi trascritta letteralmente da §9.4 del PRD (admin riceve sempre l'intero catalogo enum Permission via calcolo, non una lista duplicata a mano). Idempotenza affidata a `firstOrCreate`/`syncPermissions` (già idempotenti nativamente in Spatie); revoca degli orfani con `whereNotIn('name', $catalogoEnumAttuale)->delete()` su Permission e Role, che fa cascade reale su role_has_permissions/model_has_permissions grazie alla FK `onDelete('cascade')` già pubblicata in US-010 (nessun codice di pulizia manuale dei pivot necessario). 5 nuovi test in tests/Feature/Domain/Identity/RolePermissionSeederTest.php: matrice esatta per ruolo, horizon.access/logs.access/import.view esclusivi di admin, doppia esecuzione idempotente, permesso orfano revocato, ruolo orfano revocato. Verificato: vendor/bin/pint --test → passed, vendor/bin/phpstan analyse --memory-limit=1G → 0 errori, php artisan test → 184 passed (nessuna regressione)."
+    },
+    {
+      "id": "US-019",
+      "title": "Policy deny-by-default per ogni modello",
+      "description": "As a security-conscious team, ogni modello deve avere una policy: nel v1 Tag/Organization/StoryLog/ActivityReport erano accessibili a chiunque raggiungesse l'URL perché senza policy (§9.1, §9.6, §16.2 #14b). In questa fase le policy applicano il livello 1 (permesso) in deny-by-default; le regole legate al singolo record (assignee/tester del ticket, ecc.) che richiedono la macchina a stati arrivano in Fase 1.",
+      "acceptanceCriteria": [
+        "Esiste una Policy Laravel per OGNI modello Eloquent creato nelle story di schema (User, Organization, Ticket, TicketMessage, Tag, DocumentationPage, ActivityReport, FundraisingOpportunity, FundraisingProject, ecc.)",
+        "Ogni metodo di policy parte dal permesso (es. $user->can('ticket.view.any')) e NON usa mai hasRole() per esprimere una capacità (§9.1): il ruolo si usa solo per navigazione/landing, non per autorizzare azioni",
+        "Se una policy non risulta registrata per un modello, l'accesso è negato di default (nessun modello 'orfano' come nel v1)",
+        "NON installato filament-shield (§9.2): non c'è UI di gestione runtime di ruoli/permessi generata automaticamente",
+        "Typecheck passes",
+        "Tests pass (per ogni policy: un utente senza il permesso riceve 403, un utente con il permesso riceve autorizzazione)"
+      ],
+      "priority": 19,
+      "passes": true,
+      "notes": "Policy in App\\Domain\\<Modulo>\\Policies\\<Modello>Policy per tutti i 19 modelli Eloquent creati nelle story di schema (auto-discovery nativa di Laravel via convenzione namespace Models->Policies, verificato empiricamente: nessuna registrazione manuale in un Provider necessaria, e un modello senza Policy nega gia di default $user->can('view', $model)). Ogni metodo controlla $user->can(Permission::X)/$user->canAny([...]) passando il case enum direttamente (Laravel normalizza un BackedEnum via enum_value(), nessuna stringa grezza, A4); canAny() e gia nativo di Authorizable, nessun helper custom scritto. Solo livello 1 (permesso), coerente con la descrizione della story: nessuna regola di record-ownership (assignee/tester), rimandata alla macchina a stati di Fase 1. Fa eccezione il branching su un attributo del record che il catalogo §9.3 gia modella come permesso dedicato (TicketMessage::visibility, DocumentationPage::category), non e record-ownership. Diversi modelli/azioni senza permesso 1:1 nel catalogo (TicketParticipant/TicketView/TicketWorkLog/NotificationPreference/FundraisingEvaluationScore, modulo Mail oltre a email.view/email.manage) riusano il permesso del modello concettualmente piu vicino (es. partecipanti->ticket.assign, work log->ticket.update.*, preferenze notifica-> email.manage): documentato in CLAUDE.md come gap esplicito, nessun permesso inventato nel catalogo enum. UserPolicy::delete() mappato su user.deactivate (nessun user.delete nel catalogo, coerente con la sola soft-delete/deactivated_at gia in schema); forceDelete() sempre negato. filament-shield non installato (verificato). Bug scoperto e corretto durante l'implementazione: Larastan non inferiva il tipo backed-enum degli attributi castati via il metodo casts(): array (stile Laravel 11+ usato ovunque in questo repo, non la vecchia proprieta $casts), trattandoli come string e facendo fallire ogni match() sull'enum (es. TicketMessage::visibility, DocumentationPage::category) con arm sempre falso: risolto abilitando il flag parseModelCastsMethod: true di Larastan in phpstan.neon (gia documentato/disponibile nel pacchetto, non un ignore/baseline) - beneficio retroattivo anche per tutti i modelli esistenti. Test: 19 file Feature (uno per policy, ~2-3 test ciascuno: nega ogni abilita senza permesso, autorizza con il permesso giusto, oltre ai casi di branching su attributo per TicketMessage/DocumentationPage) via nuovo helper userWithPermissions() in tests/Pest.php. Gotcha: 3 nomi di funzione helper di test sono collisi con funzioni gia dichiarate globalmente in table test esistenti dello stesso dominio (makeFundraisingOpportunity/makeFundraisingProject/makeEmailMessage) - PHP non isola le funzioni per file, rinominate con suffisso ForPolicyTest."
+    },
+    {
+      "id": "US-020",
+      "title": "Gate di accesso al pannello per ruolo",
+      "description": "As an admin, solo gli utenti con un ruolo applicativo valido devono poter accedere al pannello Filament: l'accesso al pannello è governato da un gate esplicito (§9.1).",
+      "acceptanceCriteria": [
+        "Il modello User implementa Filament\\Models\\Contracts\\FilamentUser con canAccessPanel(Panel $panel): bool",
+        "Un utente autenticato senza nessuno dei 5 ruoli validi (o disattivato, deactivated_at valorizzato) non accede al pannello",
+        "Un utente disattivato non può accedere e non è selezionabile nei campi di assegnazione (verifica minima: query di selezione utenti esclude i disattivati)",
+        "Typecheck passes",
+        "Tests pass",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 20,
+      "passes": true,
+      "notes": "User implementa Filament\\Models\\Contracts\\FilamentUser: canAccessPanel() nega se deactivated_at è valorizzato, altrimenti richiede hasAnyRole() su uno dei 5 case di UserRole (i ruoli restano navigazione, non capacità: nessun controllo di permesso qui, coerente con §9.1/§9.2). Aggiunto User::scopeActive() (whereNull('deactivated_at')) come punto unico da riusare nelle future query di selezione utenti (campi di assegnazione ticket), non ancora esistenti in questa fase: nessuna resource Filament Utenti costruita finché non arriva in US-021. 4 nuovi test in tests/Feature/Domain/Identity/PanelAccessTest.php (ruolo valido→true, nessun ruolo→false, disattivato+ruolo valido→false, scope active esclude i disattivati); vendor/bin/pint --test, composer analyse (Larastan livello 6), php artisan test → 230 passed, nessuna regressione. Verifica in browser reale non eseguita: nessun tool MCP browser disponibile in questo ambiente (stesso gap già segnalato in US-005), da fare manualmente prima del checkpoint di fine Fase 0."
+    },
+    {
+      "id": "US-021",
+      "title": "UI minima gestione ruoli e permessi (§6.7.1)",
+      "description": "As an admin, voglio assegnare/revocare ruoli e permessi diretti a un utente e vedere i permessi effettivi con la loro provenienza, senza poter creare nuovi ruoli o permessi da interfaccia (§9.2, §6.7.1).",
+      "acceptanceCriteria": [
+        "Nella risorsa Filament Utenti (o una risorsa dedicata) un admin può assegnare e revocare i ruoli di un utente (multi-select tra i 5 ruoli dell'enum UserRole)",
+        "Un admin può concedere e revocare permessi diretti a un singolo utente, in aggiunta a quelli derivati dal ruolo",
+        "Per un utente selezionato, l'interfaccia mostra i permessi EFFETTIVI con l'indicazione della provenienza (da quale ruolo, oppure diretto)",
+        "Per un ruolo, l'interfaccia mostra l'elenco dei permessi che comporta in SOLA LETTURA (nessun modo di modificarlo da UI: si cambia nel seeder)",
+        "Non esiste alcuna funzione UI per creare un nuovo ruolo o un nuovo permesso",
+        "Solo un utente con user.assign-roles/user.grant-permissions accede a queste funzioni",
+        "Typecheck passes",
+        "Tests pass",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 21,
+      "passes": true,
+      "notes": "Primo Filament Resource del repo: UserResource (CRUD gated dalla UserPolicy di US-019) con due sezioni nel form (Ruoli/Permessi diretti) visibili SOLO se l'utente autenticato ha rispettivamente user.assign-roles/user.grant-permissions (Section::make(...)->visible(fn () => Auth::user()?->can(...))); un componente Filament nascosto da ->visible() non viene dehydratato, quindi non altera involontariamente ruoli/permessi non visibili. Pagina di dettaglio (Infolist) mostra i permessi effettivi (Spatie getAllPermissions()) con provenienza esplicita (nome del/i ruolo/i che lo concede, e/o 'diretto'), calcolata con una query diretta sulle tabelle pivot Spatie (non iterando modelli Eloquent non tipizzati). RoleResource separato, in SOLA LETTURA (nessuna pagina create/edit registrata, canCreate/canEdit/canDelete/canDeleteAny forzati a false): il modello Spatie\\Permission\\Models\\Role non ha una Policy propria, quindi l'autorizzazione è implementata sovrascrivendo direttamente i metodi can* della Resource (stessa condizione user.assign-roles/user.grant-permissions); mostra i permessi di ogni ruolo in sola lettura, nessun modo di modificarli da UI (si cambia solo nel seeder, US-018). Gap non richiesto esplicitamente dall'AC ma degno di nota: Larastan non conosce proprietà/metodi di relazione dei modelli Spatie (vivono fuori da app/), pattern di aggiramento documentato in CLAUDE.md. Verificato anche contro Postgres reale via Docker (docker compose up db redis app web + migrate:fresh + seeder + richieste HTTP simulate in-process con Auth::login): /admin/users e /admin/roles rispondono 200, la pagina di dettaglio utente mostra correttamente ruolo e sezione permessi effettivi. Verifica in browser reale con un vero login interattivo NON eseguita: nessun tool MCP browser disponibile in questo ambiente (stesso gap già segnalato in US-005/US-020), da fare manualmente prima del checkpoint di fine Fase 0."
+    },
+    {
+      "id": "US-022",
+      "title": "Comando orchestrator:doctor",
+      "description": "As an admin, voglio un comando diagnostico da lanciare quando qualcosa non va (§12): in questa fase copre solo i controlli già significativi (le fasi successive lo estenderanno con IMAP/SMTP, logo PDF, stato ultimo import).",
+      "acceptanceCriteria": [
+        "Comando 'php artisan orchestrator:doctor' verifica: presenza delle variabili env obbligatorie note in questa fase (da .env.example, US-009), permessi di scrittura sulle directory storage rilevanti, esistenza di un utente di sistema (creato da questa story se non esiste, usato come fallback per i log di sistema), feature flag attive lette da config/orchestrator.php",
+        "Il comando segnala chiaramente (exit code diverso da zero, output leggibile) quali controlli falliscono e quali passano",
+        "Il comando è documentato con --help",
+        "Il comando è strutturato per essere esteso nelle fasi successive (IMAP/SMTP, logo PDF, stato ultimo import) senza riscriverlo da zero: nuovi controlli si aggiungono come check indipendenti",
+        "Typecheck passes",
+        "Tests pass"
+      ],
+      "priority": 22,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-023",
+      "title": "Seed di sviluppo",
+      "description": "As a developer, l'app deve essere navigabile senza il dump v1: il seed di sviluppo popola un ambiente realistico su tutti i moduli in scope (§4.2).",
+      "acceptanceCriteria": [
+        "Seeder eseguibile SOLO in ambienti non-prod (guardia esplicita, lancia eccezione se app()->environment('production'))",
+        "Crea un utente per ciascuno dei 5 ruoli, con credenziali stampate a fine esecuzione del seeder",
+        "Crea l'utente di sistema (o riusa quello di US-022 se già creato)",
+        "Crea 2 organizzazioni",
+        "Crea ~40 ticket distribuiti su TUTTI i 12 stati e i 4 tipi, con conversazioni (ticket_messages) e allegati finti",
+        "Crea ~10 tag con stime ore",
+        "Crea 5 pagine di documentazione (mix di category internal e customer)",
+        "Crea 2 report di attività",
+        "Crea 3 opportunità fundraising (una valutata, con punteggi in fundraising_evaluation_scores) con 2 progetti collegati",
+        "'php artisan migrate:fresh --seed' produce un ambiente completo senza passi manuali aggiuntivi",
+        "Typecheck passes",
+        "Tests pass (il seeder gira senza errori e produce i conteggi attesi)"
+      ],
+      "priority": 23,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-024",
+      "title": "make setup end-to-end e verifica criteri di accettazione Fase 0",
+      "description": "As a developer, un solo comando deve portare l'ambiente da zero a navigabile (§4.2): questa story collega tutte le parti precedenti e verifica i criteri di accettazione della Fase 0 dichiarati in §14 del PRD.",
+      "acceptanceCriteria": [
+        "Makefile espone 'make setup' che esegue in sequenza: build, up dei container, composer install, key:generate, migrate, seed di sviluppo (US-023) — un solo comando, nessun passo manuale aggiuntivo",
+        "'make setup' funziona da zero su una macchina pulita (nessun volume/cache preesistente)",
+        "Dopo 'make setup': l'app è navigabile con gli utenti del seed, per ciascuno dei 5 ruoli",
+        "L'autenticazione funziona (login/logout) per gli utenti seed",
+        "Il tema del pannello riflette il design importato in US-004/US-005 (non il tema Filament di default)",
+        "Il report di v1:inspect (US-008) è disponibile in storage/app/import/ ed è referenziato nel README/PR di questa fase",
+        "docs/design-inventory.md (US-006) è presente e la PR include una nota esplicita che il punto di controllo obbligatorio (conferma del committente su design-inventory.md e sul report v1:inspect) precede l'avvio della Fase 1",
+        "Typecheck passes",
+        "Tests pass (suite completa verde)",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 24,
+      "passes": true,
+      "notes": "make setup (build, composer install con retry, key:generate, npm install/build, docker compose up, migrate, seed) verificato end-to-end da un clone git pulito (nessun vendor/node_modules/.env/volume preesistente), non nella working copy in uso: evita di alterare lo stato dev della macchina e testa davvero \"zero\" letterale. Due bug reali scoperti dal test da zero (mai visti nelle story precedenti perché composer install girava sempre sull host): (1) estensione PHP exif mancante nell immagine app, richiesta da spatie/laravel-medialibrary — aggiunta a docker/php/Dockerfile; (2) key:generate va eseguito con \"docker compose run --rm\" PRIMA di \"docker compose up -d\", non dopo: env_file inietta le variabili nei container alla creazione, un container gia 'su con APP_KEY vuoto (letto da .env.example) non vede il valore scritto dopo da key:generate nel file .env bind-mountato, MissingAppKeyException persistente. Riscontrata anche una race innocua e non deterministica di composer install in estrazione parallela su bind mount macOS (virtiofs): auto-risolta con un retry di 3 tentativi nel target make, nessun intervento manuale. Verificato via tinker (Auth::attempt + canAccessPanel) che tutti e 5 gli utenti seed (uno per ruolo) autenticano e superano il gate del pannello; verificato via curl che la pagina di login riflette il tema Montagna Servizi (#17a180, Nunito Sans, nessuna stringa Webmapp). Login/logout interattivo e navigazione della dashboard reale NON verificati in un browser vero: nessun tool MCP browser disponibile in questo ambiente (stesso limite gia documentato in US-005) — resta un TODO di verifica manuale prima del checkpoint. README aggiornato con make setup, riferimento al report v1:inspect (US-008) e nota esplicita sul punto di controllo obbligatorio (design-inventory.md + report v1:inspect) prima della Fase 1."
+    }
+  ]
+}

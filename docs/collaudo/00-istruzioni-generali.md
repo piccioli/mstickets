@@ -278,13 +278,13 @@ stesso schema di questo documento (test numerati collegati a un test automatico)
 
 ## 5. Riferimenti tecnici e funzionali
 
-- `../PRD-ORCHESTRATOR-V2.md` — specifica di prodotto completa (nella root del progetto, un
-  livello sopra questo repository).
-- `../../tasks/prd-fase-2-etl-import-v1.md`, `../../tasks/prd-fase-3-email-subsystem.md`,
-  `../../tasks/prd-fase-4-rendicontazione-documentazione-commesse.md`,
-  `../../tasks/prd-fase-5-fundraising.md`, `../../tasks/prd-fase-6-portale-cliente-rifinitura.md` e
-  `../../tasks/prd-fase-7-tipologia-clienti-cai.md` — PRD specifici di Fase 2, Fase 3, Fase 4, Fase 5,
-  Fase 6 e Fase 7 (due livelli sopra questo repository, cartella `tasks/` del monorepo), con lo
+- `../project/PRD-ORCHESTRATOR-V2.md` — specifica di prodotto completa (dentro questo repository,
+  `docs/project/`).
+- `../project/tasks/prd-fase-2-etl-import-v1.md`, `../project/tasks/prd-fase-3-email-subsystem.md`,
+  `../project/tasks/prd-fase-4-rendicontazione-documentazione-commesse.md`,
+  `../project/tasks/prd-fase-5-fundraising.md`, `../project/tasks/prd-fase-6-portale-cliente-rifinitura.md` e
+  `../project/tasks/prd-fase-7-tipologia-clienti-cai.md` — PRD specifici di Fase 2, Fase 3, Fase 4, Fase 5,
+  Fase 6 e Fase 7 (cartella `docs/project/tasks/` di questo repository), con lo
   user-story-by-user-story dettaglio da cui sono derivati i manifest
   `fase-2.php`/`fase-3.php`/`fase-4.php`/`fase-5.php`/`fase-6.php`/`fase-7.php` e i manuali
   `05-fase-2.md`/`06-fase-3.md`/`07-fase-4.md`/`10-fase-5.md`/`13-fase-6.md`/`14-fase-7.md`.

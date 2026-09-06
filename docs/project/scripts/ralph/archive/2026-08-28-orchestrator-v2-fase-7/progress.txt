@@ -1,0 +1,269 @@
+# Ralph Progress Log
+Started: 2026-08-28 (Fase 7 — Tipologia di cliente CAI)
+
+## Codebase Patterns
+- Enum backed semplici in `app/Domain/<Dominio>/Enums/`: `enum Foo: string { case Bar = 'bar'; ... }`,
+  cast sul model via `protected function casts(): array { return ['col' => Foo::class]; }` (stile
+  `TicketPriority`/`TicketStatus` su `Ticket`, ora anche `CustomerType`/`Region` su `User`). Implementano
+  `Filament\Support\Contracts\HasLabel`/`HasColor`/`HasIcon` solo quando servono davvero per un badge/Select
+  Filament nella story corrente — vedi `TerritorialScope` (solo `HasLabel`) vs `UserRole`/`TicketPriority`
+  (tutti e tre). Non aggiungere i contratti Filament "per uniformità" se l'AC della story non li richiede:
+  la story successiva che introduce la UI li aggiunge quando servono.
+- Quality gate su questo repo (host, non Docker): `composer analyse` (Larastan) e `composer lint` (Pint)
+  vanno bene così come sono. Per i test, **non usare `composer test`/`php artisan test`** sulla suite
+  intera: va in OOM a 128M perché il comando `artisan test` rilancia PHPUnit in un processo figlio senza
+  propagare `-d memory_limit`. Usare invece `php -d memory_limit=1G vendor/bin/pest` (stesso processo,
+  propaga l'ini setting). Con questo workaround restano 10 failure pre-esistenti, tutte in
+  `CollaudoGenerateCommandTest`/`CollaudoGenerateDetailedTest`/`LatexPdfCompilerTest` per `csquotes.sty`
+  mancante nell'installazione TeX locale (documentato anche in `orchestrator/CLAUDE.md` righe ~301,
+  ~499-505): non sono una regressione se il diff della propria story non tocca quei file/l'ambiente LaTeX.
+  Il comando `php artisan test --filter=...` su un sottoinsieme mirato di solito non serve il workaround.
+- I query object `App\Domain\*\Queries\*Query::for(User $user)` (§8.5 style) non presumono
+  `$user === Auth::user()`: `Ticket::scopeVisibleTo()` chiama `$user->can(...)` sul parametro ricevuto, quindi
+  `MyTicketsQuery::for($qualsiasiUtente)` funziona correttamente per calcolare metriche (es. conteggio ticket
+  aperti) su un utente DIVERSO da quello autenticato, senza duplicare la logica di dominio in una query nuova.
+- Checkpoint di fine fase (processo di collaudo, CLAUDE.md): quando si aggiunge `docs/collaudo/fase-N.php`,
+  **verificare subito** se `App\Console\Commands\CollaudoGenerateCommand::FASE_NARRATIVE_FILES`/`FASE_TITLES`
+  include già la chiave `N` — l'esistenza del manuale `NN-fase-N.md` da sola NON basta perché
+  `collaudo:generate N` produca il PDF dettagliato: se la chiave manca, il comando ripiega silenziosamente
+  (nessun errore) sul solo PDF sintetico dal manifest. Trovato mancante per Fase 6 durante US-706 (Fase 7):
+  corretto insieme a Fase 7 nello stesso commit. Un manuale `NN-fase-N.md` di decine di test ripetitivi
+  conviene generarlo con un piccolo script PHP monouso (mai committato) che legge il manifest e riproduce
+  esattamente il template già in uso in una fase precedente — MA occhio alle celle di
+  `01-matrice-tracciabilita.md`/`11-registro-esiti.md`: un carattere `|` letterale nella `descrizione` del
+  manifest deve essere escapato a `\|`, altrimenti rompe silenziosamente la tabella markdown (bug distinto
+  dal problema noto dell'apostrofo in `collaudo:verify-manifest`).
+---
+
+## 2026-08-28 08:04 - US-701
+- Implementata la migrazione additiva `users.customer_type`/`users.region` (string, nullable, nessun
+  vincolo DB), i due enum backed `App\Domain\Identity\Enums\CustomerType` (Sezione, GruppoRegionale,
+  OrganoTecnicoStrutturaOperativa, Generico) e `App\Domain\Identity\Enums\Region` (20 regioni italiane
+  ufficiali, Trentino-Alto Adige unificato, con metodo `label(): string` per la UI), e il cast di entrambi
+  sul model `User`.
+- Files changed:
+  - `database/migrations/2026_08_28_120000_add_customer_type_and_region_to_users_table.php` (nuovo)
+  - `app/Domain/Identity/Enums/CustomerType.php` (nuovo)
+  - `app/Domain/Identity/Enums/Region.php` (nuovo)
+  - `app/Domain/Identity/Models/User.php` (cast aggiunti)
+  - `tests/Unit/Domain/Identity/CustomerTypeTest.php` (nuovo)
+  - `tests/Unit/Domain/Identity/RegionTest.php` (nuovo)
+  - `tests/Feature/Domain/Identity/UsersTableTest.php` (test colonne + round-trip cast + null di default)
+- **Learnings for future iterations:**
+  - L'AC di US-701 chiede esplicitamente un metodo `label(): string` su `Region` (non `getLabel()`/
+    `HasLabel`): implementato come metodo plain, coerente col testo del PRD. `CustomerType` invece non ha
+    ancora né `label()` né i contratti Filament: li aggiungerà la story che introduce davvero un
+    Select/badge (US-703/US-704), per non anticipare comportamento non richiesto da questa story.
+  - Valori enum scelti in snake_case minuscolo (es. `gruppo_regionale`, `emilia_romagna`,
+    `trentino_alto_adige`, `valle_d_aosta`), coerente con lo stile degli altri enum backed del progetto
+    (`UserRole`, `TicketPriority`, ecc. usano valori lower-case). Lo stage ETL di US-702 dovrà normalizzare
+    le stringhe grezze del dump v1 (es. "TRENTINO-ALTO ADIGE", "VALLE D'AOSTA") verso questi case esatti.
+  - Nessuna tabella di lookup per `Region`/`CustomerType`: enum PHP backed fisso, come deciso nel design
+    doc (`orchestrator/docs/superpowers/specs/2026-08-28-tipologia-clienti-cai-design.md` §2).
+---
+
+## 2026-08-28 - US-702
+- Trovato all'avvio dell'iterazione: una precedente sessione (interrotta da errori di rete ENOTFOUND
+  ripetuti, vedi ralph-run.log iterazioni 2-15) aveva già scritto `CustomerClassificationStage`, il suo
+  test e il wiring in `config/import.php`, ma non aveva verificato né committato nulla. Questa iterazione
+  si è limitata a verificare il lavoro esistente (non riscriverlo) e a chiuderlo: `composer analyse`
+  (Larastan, 0 errori), `composer lint` (Pint, passed), test mirati (212 passed in
+  tests/Feature/Import + tests/Unit/Domain/Identity, di cui 11 in CustomerClassificationStageTest),
+  verifica su dati reali via `docker compose exec app php artisan v1:import` (import reale, non dry-run,
+  sul dump legacy già presente in db_legacy): 583 utenti customer classificati — 521 Sezione, 21
+  GruppoRegionale, 20 OrganoTecnicoStrutturaOperativa, 21 Generico (coerente con l'atteso del PRD: "la
+  maggioranza Sezione, gruppi più piccoli e simili tra loro per GruppoRegionale e OTCO/SO"). Rieseguito
+  `v1:import` una seconda volta: `customer_classification: letti 583, creati 0, aggiornati 0, saltati 583`
+  → idempotenza confermata anche su dati reali, non solo nei test.
+- Files changed (committati in `8ca8b47`):
+  - `app/Import/Stages/CustomerClassificationStage.php` (nuovo)
+  - `tests/Feature/Import/Stages/CustomerClassificationStageTest.php` (nuovo)
+  - `config/import.php` (wiring dello stage, dopo `RolesPermissionsStage` e prima di `OrganizationsStage`)
+- **Learnings for future iterations:**
+  - Su dati reali sono emersi 3 utenti Sezione/GruppoRegionale con `region = null` nonostante il pattern
+    matchi: `"SEZ. S.A.T. | TRENTINO"` (regione grezza "TRENTINO" da solo, non presente nella mappa alias —
+    solo "ALTO ADIGE" è mappato, non "TRENTINO" da solo), `"Orvieto |"` (nessun testo dopo il pipe, atteso
+    da AC), `"GR Lombardia/SOLROA"` (testo composto non normalizzabile). Tutti e tre loggano
+    `Log::warning` e non bloccano l'import, comportamento esplicitamente richiesto dall'AC — non sono bug
+    di questa story, ma se una story futura vuole azzerare anche questi casi residui, l'alias da aggiungere
+    è `'TRENTINO' => Region::TrentinoAltoAdige` in `CustomerClassificationStage::REGION_ALIASES`.
+  - Verificare uno stage ETL su dati reali richiede i container Docker (`orchestrator-v2-app-1` +
+    `orchestrator-v2-db_legacy-1`, entrambi già `healthy` in questo ambiente): `docker compose exec -T app
+    php artisan v1:import` per una corsa reale, `--dry-run` per una simulazione. `php artisan tinker
+    --execute="..."` è comodo per ispezionare rapidamente conteggi/distribuzioni post-import senza scrivere
+    un comando ad-hoc.
+  - Quando un'iterazione precedente lascia file non committati coerenti con la story in corso (stesso
+    pattern del ritrovamento di US-617 in iterazione 18), il lavoro corretto è verificarli a fondo (quality
+    gate + dati reali) prima di fidarsi e committare, non ripartire da zero.
+---
+
+## 2026-08-28 - US-703
+- Implementata la UI Admin per assegnazione tipo cliente/regione: due `Select` (`customer_type`, `region`)
+  nella sezione "Ruoli" di `UserForm` (stesso permesso `user.assign-roles` già esistente), visibili
+  reattivamente in base al ruolo `customer` selezionato nel `CheckboxList::make('roles')` e al valore di
+  `customer_type`. Aggiunti `getLabel()`/`getColor()` (contratti `HasLabel`/`HasColor`) a `CustomerType`
+  (mancavano da US-701, rimandati apposta a questa story). Colonna badge `customer_type` + `SelectFilter`
+  aggiunti a `UsersTable`.
+- Files changed (committati in `d254019`):
+  - `app/Domain/Identity/Enums/CustomerType.php` (aggiunti `HasColor`/`HasLabel`, `getLabel()`, `getColor()`)
+  - `app/Domain/Identity/Models/User.php` (aggiunte `customer_type`/`region` all'attributo `#[Fillable]`)
+  - `app/Filament/Resources/Users/Schemas/UserForm.php` (due `Select` reattivi + helper `customerRoleSelected()`/`regionRelevant()`)
+  - `app/Filament/Resources/Users/Tables/UsersTable.php` (colonna badge + filtro `customer_type`)
+  - `tests/Feature/Filament/Identity/RoleAndPermissionManagementTest.php` (7 nuovi test)
+  - `CLAUDE.md` (due pattern riusabili, vedi sotto)
+- **Learnings for future iterations:**
+  - **Gotcha serio, ripetibile in futuro**: `#[Fillable([...])]` sul model `User` (attributo PHP, non
+    `$fillable` Eloquent) è la lista REALE di colonne scrivibili da un `$record->update($data)` Filament.
+    Una colonna nuova (anche se castata a enum e presente nello schema del form) che manca da questa lista
+    viene scartata SILENZIOSAMENTE da `update()` — nessun errore, nessuna eccezione, il test fallisce solo
+    sul valore persistito dopo `fresh()`. Ho perso ~40 minuti di debug (log su `mutateFormDataBeforeSave`
+    per confermare che `$data` conteneva già il valore corretto) prima di trovare la vera causa. Se un
+    campo Filament "sembra salvarsi" (nessun errore di validazione, `assertHasNoFormErrors()` passa) ma il
+    valore persistito resta quello vecchio/null, controllare SEMPRE questo attributo per primo.
+  - **Gotcha Filament v4 non ovvio**: `->visible(fn (Get $get) => ...)` + `->dehydrated(fn (Get $get) =>
+    ...)` NON bastano per azzerare esplicitamente un campo quando diventa non pertinente (es. `region`
+    quando `customer_type` passa da Sezione a Generico) — di default un campo nascosto viene escluso dalla
+    dehydration A PRESCINDERE da `->dehydrated(true)` (quel metodo governa solo la dehydration di un campo
+    VISIBILE). Serve `->dehydratedWhenHidden()` (proprietà distinta, default `false`) insieme a
+    `->dehydrateStateUsing()` per forzare l'inclusione (e l'azzeramento) anche da nascosto. Pattern completo
+    documentato in `CLAUDE.md` (root del progetto Laravel, non questo `progress.txt`).
+  - `roles` è un `CheckboxList` legato a `->relationship('roles', 'name', ...)` (BelongsToMany Spatie): il
+    suo stato via `Get $get('roles')` è un array di ID di ruolo, non di nomi — per verificare "è selezionato
+    il ruolo customer" serve risolvere l'ID (`SpatieRole::query()->where('name', ...)->value('id')`) e fare
+    `in_array()`, non confrontare stringhe.
+  - Verifica in browser fatta con Playwright (`npx --yes playwright install chromium` già in cache da story
+    precedenti, ma versione npm disallineata: usato `chromium.launch({channel: 'chrome'})` per riusare
+    Google Chrome.app di sistema invece di scaricare un nuovo binario). Utente admin/target di verifica
+    creati via `docker compose exec -T app php artisan tinker`, rimossi con `forceDelete()` subito dopo gli
+    screenshot (mai lasciarli nel DB di sviluppo condiviso).
+---
+
+## 2026-08-28 - US-704
+- Implementato il badge tipo cliente in testa a `CustomerDashboard`: due nuovi metodi sulla page class
+  (`customerType()`, `customerTypeBadgeLabel()`) che leggono `Auth::user()->customer_type`/`->region` e
+  compongono la label italiana (es. "Sezione — Lombardia"), con la regione in coda solo quando
+  `customer_type` è Sezione/GruppoRegionale (stessa regola già esistente in
+  `UserForm::regionRelevant()`, US-703) e `region` è valorizzata. Nessun badge quando `customer_type` è
+  null (caso non atteso su dati reali post-ETL, ma il model resta nullable — nessun errore, sezione
+  semplicemente non renderizzata).
+- Files changed (committati in `7f88bbc`):
+  - `app/Filament/Pages/CustomerDashboard.php` (due nuovi metodi + import `CustomerType`)
+  - `resources/views/filament/pages/customer-dashboard.blade.php` (badge sopra la grid delle card,
+    stesso idioma `<x-filament::badge :color="...->getColor()">{{ ...->getLabel() }}</x-filament::badge>`
+    già in uso per lo status ticket nella card "Richiedono una tua risposta")
+  - `tests/Feature/Filament/Pages/CustomerDashboardTest.php` (6 nuovi test: i 4 tipi, Sezione senza
+    regione, customer_type null)
+- **Learnings for future iterations:**
+  - Nessun pattern nuovo: questa story ha solo applicato l'idioma badge-da-enum e la regola
+    region-relevant già stabiliti in US-701/US-703, senza introdurre nulla di riusabile in più — CLAUDE.md
+    del progetto non aggiornato di conseguenza.
+  - Verifica in browser: creati 3 utenti reali (Sezione/Lombardia, GruppoRegionale/Abruzzo, Generico) via
+    `docker compose exec -T app php artisan tinker` con `assignRole()` + `forceFill(['customer_type' =>
+    ..., 'region' => ...])`, screenshot con lo stesso pattern Playwright di US-703
+    (`chromium.launch({channel: 'chrome'})`, progetto npm temporaneo in `/tmp` perché il modulo
+    `playwright` non è installato a livello globale — `npm init -y && npm install playwright@<versione di
+    `npx playwright --version`>` in una dir temporanea, i binari Chromium restano cache-hit da
+    `~/Library/Caches/ms-playwright` quindi l'install è istantaneo). Dopo il login Filament reindirizza
+    direttamente a `/admin/customer-dashboard` (non `/admin`): usare `page.waitForURL(/\/admin/)` invece di
+    un URL esatto, altrimenti il timeout scatta anche a login riuscito. Utenti di verifica rimossi con
+    `forceDelete()` subito dopo gli screenshot.
+---
+
+## 2026-08-28 - US-705
+- Implementata la card "Sezioni del gruppo regionale" su `CustomerDashboard`, visibile solo quando
+  `customer_type === GruppoRegionale`: nuovo query object `App\Domain\Identity\Queries\SectionsInRegionQuery`
+  (stile §8.5, `for(Region $region): Builder<User>`, filtra `customer_type = Sezione` + stessa `region`,
+  MAI una query su `organizations`/`organization_user`) e tre nuovi metodi sulla page class
+  (`isGruppoRegionale()`, `regionalGroupSections()`, `sectionOpenTicketsCount()`, `sectionTicketsUrl()`).
+  Stato vuoto esplicito sia quando la regione non ha sezioni sia quando `region === null` (stesso testo,
+  `regionalGroupSections()` ritorna una collection vuota in entrambi i casi).
+- Files changed (committati in `f0f7504`):
+  - `app/Domain/Identity/Queries/SectionsInRegionQuery.php` (nuovo)
+  - `app/Filament/Pages/CustomerDashboard.php` (4 nuovi metodi)
+  - `resources/views/filament/pages/customer-dashboard.blade.php` (nuova card full-width sopra la grid)
+  - `tests/Feature/Filament/Pages/CustomerDashboardTest.php` (4 nuovi test)
+- **Learnings for future iterations:**
+  - **Riuso non ovvio**: il conteggio "ticket aperti" di UN'ALTRA Sezione (non l'utente autenticato) si
+    ottiene chiamando `MyTicketsQuery::for($section)` passando l'utente Sezione come parametro invece
+    dell'utente loggato — `Ticket::scopeVisibleTo()` chiama `$user->can(...)` sul parametro ricevuto, non su
+    `Auth::user()`, quindi funziona correttamente per QUALSIASI istanza `User`, non solo quella autenticata.
+    Ha evitato di duplicare la regola "aperti = non Done/Rejected" in una query nuova.
+  - **Il "link" per riga non può portare ai ticket della Sezione**: un cliente (qualunque `customer_type`,
+    incluso GruppoRegionale) ha solo il permesso `ticket.view.own` — mai `ticket.view.any`/
+    `ticket.manage-internal-fields` — quindi in `ListTickets::getTabs()` vede sempre e solo le tab
+    "I miei ticket"/"Archivio", che sovrascrivono la query con `MyTicketsQuery::for($user)` a prescindere dai
+    query param nell'URL. Ho collegato ogni riga a
+    `TicketResource::getUrl('index', ['tableFilters' => ['requester_id' => ['value' => $section->id]]])`
+    (stesso filtro `requester_id` già esistente in `TicketsTable`, non gated da
+    `TicketFieldAccess::canManageInternalFields()`): il click naviga senza errori ma il tab "I miei ticket"
+    ignora il filtro e mostra i PROPRI ticket (vuoto se non ne ha) — comportamento corretto e verificato in
+    browser (nessun leak, nessun crash), non un bug. Se una story futura volesse davvero mostrare i ticket
+    della Sezione cliccata, servirebbe un nuovo permesso esplicito, fuori scope per questa fase (confermato
+    "nessun comportamento differenziato" nel design doc).
+  - **Verifica in browser su dati reali (non utenti sintetici)**: per questa story l'AC chiede esplicitamente
+    "dati reali", non utenti creati ad-hoc come nelle story precedenti. Ho impersonato un Gruppo Regionale
+    REALE già importato (`GR Marche`, id 17, 15 Sezioni reali nella sua regione) sovrascrivendo
+    temporaneamente `password` con `bcrypt('...')` via tinker DOPO aver salvato l'hash originale, fatto
+    login/screenshot con Playwright, poi RIPRISTINATO l'hash originale con `forceFill(['password' =>
+    $oldHash])->save()` (verificato `fresh()->password === $oldHash` prima di considerare il ripristino
+    riuscito). Pattern riusabile per verificare in browser un flusso legato a dati reali già importati senza
+    lasciare credenziali modificate sull'utente reale.
+---
+
+## 2026-08-28 - US-706
+- Checkpoint di fine Fase 7: nuovo test end-to-end (`Fase7CheckpointEndToEndTest.php`, import via
+  `CustomerClassificationStage` diretto -> verifica dei 4 tipi -> correzione admin via `EditUser`
+  Livewire -> dashboard del cliente corretto riflette il nuovo tipo, mai quello dedotto
+  originariamente), manifest di collaudo `docs/collaudo/fase-7.php` (36 test F7-01..F7-36 su 6
+  argomenti, uno per user story della fase) e manuale narrativo dettagliato `14-fase-7.md` (stesso
+  formato per-test delle fasi precedenti: Obiettivo/Riferimenti/Modalità/Priorità/Prerequisiti/
+  Procedura/Criterio di superamento/Campi di consuntivazione). Pacchetto di collaudo cumulativo
+  aggiornato in coerenza (README, `00-istruzioni-generali.md` v6.0->v7.0, `01-matrice-tracciabilita.md`,
+  `11-registro-esiti.md`, `12-verbale-collaudo.md`): 576->612 test, 97->103 argomenti.
+  `docs/data-model.md`/`docs/architecture.md` aggiornati con le colonne/enum/query object di questa
+  fase. `php artisan collaudo:verify-manifest 7` passa; `php artisan collaudo:generate 7` (via
+  `docker compose exec app`, pdflatex non disponibile per la suite Pest sull'host, vedi sotto)
+  genera il PDF dettagliato, verificato visivamente con `pdftotext -layout` (nessun artefatto,
+  conteggi coerenti, tabella di tracciabilità con le celle "|" escapate renderizzata correttamente).
+- Bug preesistente trovato e corretto en passant: `CollaudoGenerateCommand::FASE_NARRATIVE_FILES`/
+  `FASE_TITLES` non includevano MAI la chiave `'6'`, nonostante `13-fase-6.md` esistesse già dalla
+  story US-618 (fase precedente) e il commit di quella story dichiarasse esplicitamente di aver
+  scritto il manuale narrativo — `collaudo:generate 6` produceva quindi silenziosamente solo il PDF
+  sintetico (da manifest), mai quello dettagliato, senza errore. Corretto aggiungendo sia `'6'` sia
+  `'7'` nello stesso commit (rischio/portata minimi: due sole entry aggiunte a due const array,
+  nessun comportamento esistente cambiato per le fasi già registrate) e riverificato che
+  `collaudo:generate 6` ora produce anch'esso il PDF dettagliato.
+- Corretto anche un riferimento di roadmap non più valido in `00-istruzioni-generali.md`: la
+  changelog v6.0 diceva "resta fuori scopo solo Fase 7 (cutover)", ma il PRD (`PRD-ORCHESTRATOR-V2.md`
+  §14) è stato rinumerato il 28 agosto 2026 — il vecchio contenuto "Cutover" è ora Fase 10, Fase 7 è
+  la tipologia di cliente CAI appena chiusa da questa story. `PRD-ORCHESTRATOR-V2.md` §14 stesso NON è
+  stato toccato (il titolo "Fase 7 — DA DEFINIRE" lì resta, fuori scope per questa story: è il
+  documento del committente, non un artefatto di collaudo).
+- Files changed:
+  - `tests/Feature/EndToEnd/Fase7CheckpointEndToEndTest.php` (nuovo)
+  - `docs/collaudo/fase-7.php` (nuovo, manifest)
+  - `docs/collaudo/14-fase-7.md` (nuovo, manuale dettagliato)
+  - `docs/collaudo/{README,00-istruzioni-generali,01-matrice-tracciabilita,11-registro-esiti,12-verbale-collaudo}.md`
+  - `app/Console/Commands/CollaudoGenerateCommand.php` (registrate le fasi 6 e 7)
+  - `docs/data-model.md`, `docs/architecture.md`
+- **Learnings for future iterations:**
+  - Per un manuale narrativo di collaudo con decine di test ripetitivi (qui 36), scrivere un piccolo
+    script PHP monouso (mai committato) che legge il manifest `fase-N.php` e genera il markdown
+    dal template esatto già in uso nelle fasi precedenti (`AUTOMATICO` con `pest --filter`,
+    `MANUALE UI` con login+azioni) è molto più affidabile e veloce di scriverlo a mano voce per voce,
+    a patto di leggere per intero almeno un file di fase precedente (`13-fase-6.md`) PRIMA di scrivere
+    il generatore, per riprodurne esattamente la struttura (compreso il calcolo dei "Test correlato"
+    come solo il vicino precedente/successivo nello stesso argomento, non tutti gli altri test).
+  - Gotcha markdown reale (non solo teorico): una `descrizione` di manifest che contiene un carattere
+    `|` letterale (qui capitava nei test del pattern "nome | regione" di `CustomerClassificationStage`)
+    rompe silenziosamente le tabelle markdown di `01-matrice-tracciabilita.md`/`11-registro-esiti.md`
+    se non escapato a `\|` — non c'entra nulla con l'apostrofo (già documentato per Fase 4/5/6), è un
+    problema distinto specifico delle tabelle. Verificato che l'escape non rompe il PDF LaTeX generato
+    (`mdtabella` va semplicemente a capo dentro la cella).
+  - `collaudo:verify-manifest` fa un controllo byte-per-byte via `str_contains()`: prima di usare un
+    riferimento "a percorso nudo" (senza `::descrizione`) per aggirare un apostrofo o una stringa non
+    trovata, controllare SEMPRE se la descrizione esatta del test esiste davvero nel file sorgente —
+    in questa story 3 riferimenti erano stati marcati "nudi" per prudenza ma in realtà il test con
+    quella identica descrizione esisteva, la versione con `::descrizione` è sempre preferibile quando
+    disponibile (più preciso: rileva anche la cancellazione del singolo test, non solo del file).
+---
