@@ -23,6 +23,7 @@ final class TicketReceivedByEmailMail extends TicketOutboundMailable
             with: [
                 'ticket' => $this->ticket,
                 'portalUrl' => TicketResource::getUrl('view', ['record' => $this->ticket]),
+                'firstMessage' => $this->ticket->messages()->orderBy('posted_at')->first(),
             ],
         );
     }

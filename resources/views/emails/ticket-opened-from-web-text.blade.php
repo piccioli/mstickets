@@ -6,6 +6,10 @@
 {{ __('Status:') }} {{ mb_strtoupper($ticket->status->getLabel()) }}
 
 {{ __('Your ticket #:id has been opened successfully. We will update you as soon as there is news.', ['id' => $ticket->id]) }}
+@if ($firstMessage !== null)
+
+{{ $firstMessage->body_text }}
+@endif
 
 {{ __('Go to ticket') }}: {{ $portalUrl }}
 @endsection
