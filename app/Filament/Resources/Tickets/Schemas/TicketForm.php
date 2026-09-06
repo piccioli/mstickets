@@ -85,7 +85,8 @@ class TicketForm
                             )
                             ->searchable()
                             ->preload()
-                            ->rules(fn (?Ticket $record): array => [new TicketParentDepthRule($record)]),
+                            ->rules(fn (?Ticket $record): array => [new TicketParentDepthRule($record)])
+                            ->hidden(fn (string $operation): bool => $operation === 'create'),
                         Textarea::make('description')
                             ->label('Descrizione interna')
                             ->rows(4)

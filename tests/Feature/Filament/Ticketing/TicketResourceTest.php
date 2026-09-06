@@ -71,6 +71,34 @@ test('creating a ticket as a customer forces the requester to themselves and ign
         ->and($created->assignee_id)->toBeNull();
 });
 
+test('the parent ticket field is absent from the create form but still present on edit', function (): void {
+    $admin = grantTicketPanelRole(userWithPermissions(PermissionEnum::TicketCreate, PermissionEnum::TicketViewAny, PermissionEnum::TicketUpdateAny), UserRole::Admin);
+    $existingTicket = ticket();
+
+    $this->actingAs($admin);
+
+    Livewire::test(CreateTicket::class)->assertDontSee('Ticket padre');
+    Livewire::test(EditTicket::class, ['record' => $existingTicket->getKey()])->assertSee('Ticket padre');
+});
+
+test('the hidden parent ticket field on create cannot be set via a manipulated fillForm', function (): void {
+    $admin = grantTicketPanelRole(userWithPermissions(PermissionEnum::TicketCreate, PermissionEnum::TicketViewAny), UserRole::Admin);
+    $parentCandidate = ticket();
+
+    $this->actingAs($admin);
+
+    Livewire::test(CreateTicket::class)
+        ->fillForm([
+            'title' => 'Ticket senza padre selezionabile',
+            'richiesta' => 'Corpo della richiesta.',
+            'parent_id' => $parentCandidate->id,
+        ])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    expect(Ticket::query()->where('title', 'Ticket senza padre selezionabile')->sole()->parent_id)->toBeNull();
+});
+
 test('creating a ticket requires a richiesta', function (): void {
     $customer = grantTicketPanelRole(userWithPermissions(PermissionEnum::TicketCreate, PermissionEnum::TicketViewOwn), UserRole::Customer);
 
