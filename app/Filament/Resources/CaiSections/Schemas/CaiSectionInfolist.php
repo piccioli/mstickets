@@ -7,6 +7,7 @@ namespace App\Filament\Resources\CaiSections\Schemas;
 use App\Domain\CaiDirectory\Models\CaiDocument;
 use App\Domain\CaiDirectory\Models\CaiRuntsRegistration;
 use App\Domain\CaiDirectory\Models\CaiSection;
+use App\Domain\CaiDirectory\Support\CaiRichTextSanitizer;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
@@ -66,8 +67,18 @@ class CaiSectionInfolist
                 TextEntry::make('postal_address')->label('Recapito postale')->placeholder('—'),
                 TextEntry::make('founded_year')->label('Anno di fondazione')->placeholder('—'),
                 TextEntry::make('members_count')->label('Numero soci')->placeholder('—'),
-                TextEntry::make('office_hours')->label('Orari di apertura')->columnSpanFull()->placeholder('—'),
-                TextEntry::make('notices')->label('Avvisi')->columnSpanFull()->placeholder('—'),
+                TextEntry::make('office_hours')
+                    ->label('Orari di apertura')
+                    ->columnSpanFull()
+                    ->placeholder('—')
+                    ->html()
+                    ->formatStateUsing(fn (?string $state): ?string => $state === null ? null : CaiRichTextSanitizer::sanitize(trim($state))),
+                TextEntry::make('notices')
+                    ->label('Avvisi')
+                    ->columnSpanFull()
+                    ->placeholder('—')
+                    ->html()
+                    ->formatStateUsing(fn (?string $state): ?string => $state === null ? null : CaiRichTextSanitizer::sanitize(trim($state))),
                 TextEntry::make('user.name')->label('Utente collegato')->placeholder('Nessuno'),
             ]);
     }

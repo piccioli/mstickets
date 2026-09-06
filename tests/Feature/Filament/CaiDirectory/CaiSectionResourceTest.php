@@ -374,3 +374,25 @@ test('a gruppo regionale customer cannot download a document belonging to a sect
 
     $response->assertForbidden();
 });
+
+test('office hours and notices are shown as formatted text, not raw HTML source', function (): void {
+    $user = grantCaiDirectoryPanelAccess(userWithPermissions(PermissionEnum::CaiDirectoryView));
+    $section = caiSection([
+        'name' => 'Sezione Orari',
+        'office_hours' => "\n                        Martedi dalle 18 alle 19&nbsp;<span style=\"background-color: rgb(254, 251, 243);\">(da ottobre a maggio, restanti mesi chiuso)</span><br>Venerdi dalle 21 alle 22:30\n                    ",
+        'notices' => '<script>alert(1)</script><p>Sede chiusa per lavori.</p>',
+    ]);
+
+    $this->actingAs($user);
+
+    $test = Livewire::test(ViewCaiSection::class, ['record' => $section->getKey()])
+        ->assertOk()
+        ->assertSee('Martedi dalle 18 alle 19', escape: false)
+        ->assertSee('(da ottobre a maggio, restanti mesi chiuso)', escape: false)
+        ->assertSee('Venerdi dalle 21 alle 22:30', escape: false)
+        ->assertSee('Sede chiusa per lavori.', escape: false)
+        ->assertDontSee('&lt;span', escape: false)
+        ->assertDontSee('<script>', escape: false);
+
+    expect($test->html())->not->toContain('background-color');
+});
