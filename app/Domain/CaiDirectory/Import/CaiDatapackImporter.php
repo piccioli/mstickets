@@ -46,9 +46,19 @@ final class CaiDatapackImporter
     private const DOCUMENTS_DISK = 'cai-documents';
 
     /**
+     * `$onlyCaiSectionCode` (Fase 9, "Sincronizza dati CAI" dalla dashboard cliente)
+     * restringe l'import alla sola sezione indicata (+ le sue sottosezioni): filtra
+     * SOLO le righe sorgente di `sezioni_cai`/`sottosezioni_cai` letta dal datapack —
+     * enti/bilanci/cariche sociali/allegati restano scoped automaticamente dal
+     * matching già esistente via `sectionCodeByLowerTaxCode`/`matchedIdRunts` (che,
+     * contenendo solo il codice fiscale della sezione filtrata, scartano già da soli
+     * ogni riga di un'altra sezione con lo stesso identico meccanismo di skip usato
+     * per un ente senza alcun match). `null` (default) preserva il comportamento
+     * invariato del comando `cai:import-datapack` (import nazionale completo).
+     *
      * @return array<string, CaiImportTableResult>
      */
-    public function import(string $absolutePath, bool $dryRun): array
+    public function import(string $absolutePath, bool $dryRun, ?string $onlyCaiSectionCode = null): array
     {
         $this->registerConnection($absolutePath);
 
@@ -56,8 +66,14 @@ final class CaiDatapackImporter
             $connection = DB::connection(self::CONNECTION_NAME);
             $datapackDir = dirname($absolutePath);
 
-            $sezioniRows = $connection->table('sezioni_cai')->orderBy('codice_cai')->get();
-            $sottosezioniRows = $connection->table('sottosezioni_cai')->orderBy('cai_codice')->get();
+            $sezioniRows = $connection->table('sezioni_cai')
+                ->when($onlyCaiSectionCode !== null, fn ($query) => $query->where('codice_cai', $onlyCaiSectionCode))
+                ->orderBy('codice_cai')
+                ->get();
+            $sottosezioniRows = $connection->table('sottosezioni_cai')
+                ->when($onlyCaiSectionCode !== null, fn ($query) => $query->where('cai_sezione_codice', $onlyCaiSectionCode))
+                ->orderBy('cai_codice')
+                ->get();
             $entiRows = $connection->table('enti')->orderBy('id_runts')->get();
             $bilanciRows = $connection->table('bilanci')->orderBy('id')->get();
             $carichiSocialiRows = $connection->table('cariche_sociali')->orderBy('id')->get();

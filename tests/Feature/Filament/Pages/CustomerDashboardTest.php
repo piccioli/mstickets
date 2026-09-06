@@ -21,6 +21,7 @@ use Database\Seeders\RolePermissionSeeder;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
@@ -469,4 +470,43 @@ test('the regional group sections card is absent for sezione, organo tecnico/str
             ->get(CustomerDashboard::getUrl())
             ->assertDontSee('Sezioni del gruppo regionale');
     }
+});
+
+test('the sync cai data action is visible only for a sezione customer with a linked cai section', function (): void {
+    $this->seed(RolePermissionSeeder::class);
+
+    $withSection = withRole(User::factory()->create(), UserRole::Customer);
+    $withSection->forceFill(['customer_type' => CustomerType::Sezione])->save();
+    CaiSection::create(['codice_cai' => 'CAI-001', 'name' => 'Sezione propria', 'region' => 'LOMBARDIA', 'user_id' => $withSection->id]);
+
+    $withoutSection = withRole(User::factory()->create(), UserRole::Customer);
+    $withoutSection->forceFill(['customer_type' => CustomerType::Sezione])->save();
+
+    $this->actingAs($withSection);
+    Livewire::test(CustomerDashboard::class)->assertActionVisible('sync_cai_data');
+
+    $this->actingAs($withoutSection);
+    Livewire::test(CustomerDashboard::class)->assertActionHidden('sync_cai_data');
+});
+
+test('the sync cai data action re-imports only the current customer\'s own section from the datapack', function (): void {
+    $this->seed(RolePermissionSeeder::class);
+    Storage::fake('cai-documents');
+
+    $fixture = makeCaiDatapackFixture();
+    config(['cai_directory.datapack_path' => $fixture['sqlitePath']]);
+
+    $customer = withRole(User::factory()->create(['email' => 'sezione@example.com']), UserRole::Customer);
+    $customer->forceFill(['customer_type' => CustomerType::Sezione])->save();
+    CaiSection::create(['codice_cai' => '9216049', 'name' => 'Nome vecchio', 'region' => 'LOMBARDIA', 'user_id' => $customer->id]);
+
+    $this->actingAs($customer);
+
+    Livewire::test(CustomerDashboard::class)
+        ->callAction('sync_cai_data')
+        ->assertHasNoActionErrors()
+        ->assertNotified();
+
+    expect(CaiSection::query()->findOrFail('9216049')->name)->toBe('Sez. Abbiategrasso')
+        ->and(CaiSection::query()->count())->toBe(1);
 });

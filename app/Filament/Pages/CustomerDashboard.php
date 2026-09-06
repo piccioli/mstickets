@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Pages;
 
+use App\Domain\CaiDirectory\Import\CaiDatapackImporter;
 use App\Domain\CaiDirectory\Models\CaiSection;
 use App\Domain\CaiDirectory\Models\CaiSubsection;
 use App\Domain\Documentation\Models\DocumentationPage;
@@ -23,6 +24,8 @@ use App\Filament\Resources\DocumentationPages\DocumentationPageResource;
 use App\Filament\Resources\Tickets\TicketResource;
 use App\Filament\Resources\Users\Schemas\UserForm;
 use BackedEnum;
+use Filament\Actions\Action;
+use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -71,6 +74,14 @@ class CustomerDashboard extends Page
         $user = Auth::user();
 
         return $user instanceof User && $user->hasRole(UserRole::Customer->value);
+    }
+
+    /**
+     * @return list<Action>
+     */
+    protected function getHeaderActions(): array
+    {
+        return [$this->syncCaiDataAction()];
     }
 
     public function customerType(): ?CustomerType
@@ -154,6 +165,62 @@ class CustomerDashboard extends Page
     public function caiSectionInfolist(Schema $schema): Schema
     {
         return CaiSectionInfolist::configure($schema)->record($this->caiSection());
+    }
+
+    /**
+     * Bottone "Sincronizza dati CAI" (Fase 9): rilancia l'import del datapack RUNTS-CAI
+     * (US-802) scoped alla sola sezione dell'utente corrente ({@see CaiDatapackImporter},
+     * parametro `onlyCaiSectionCode`) — mai l'intero datapack nazionale da un bottone
+     * cliente. Visibile solo se esiste già una `CaiSection` collegata (nessuna sezione
+     * da sincronizzare altrimenti). Registrata via {@see self::getHeaderActions()}
+     * (pattern collaudato nel repo, es. `ViewTicket::postMessageAction()`): un'action
+     * standalone risolta solo dinamicamente da una property blade (`$this->xxxAction`,
+     * mai chiamata da `getHeaderActions()`) non esegue il proprio closure quando invocata
+     * tramite `Livewire::test()->callAction()` in questa versione di Filament — verificato
+     * empiricamente, nessuna documentazione ufficiale del comportamento. Registrarla qui
+     * evita il problema.
+     */
+    public function syncCaiDataAction(): Action
+    {
+        return Action::make('sync_cai_data')
+            ->label('Sincronizza dati CAI')
+            ->icon(Heroicon::OutlinedArrowPath)
+            ->color('gray')
+            ->visible(fn (): bool => $this->isSezione() && $this->caiSection() !== null)
+            ->action(function (): void {
+                $section = $this->caiSection();
+
+                if ($section === null) {
+                    return;
+                }
+
+                $rawPath = (string) config('cai_directory.datapack_path');
+                $absolutePath = str_starts_with($rawPath, '/') ? $rawPath : base_path($rawPath);
+
+                if (! is_file($absolutePath)) {
+                    Notification::make()
+                        ->danger()
+                        ->title('Sincronizzazione non disponibile')
+                        ->body('Il datapack CAI non è al momento disponibile sul server.')
+                        ->send();
+
+                    return;
+                }
+
+                $results = app(CaiDatapackImporter::class)->import(
+                    $absolutePath,
+                    dryRun: false,
+                    onlyCaiSectionCode: $section->codice_cai,
+                );
+
+                $updated = $results['cai_sections']->updated > 0;
+
+                Notification::make()
+                    ->success()
+                    ->title('Sincronizzazione completata')
+                    ->body($updated ? 'I dati della tua sezione sono stati aggiornati.' : 'I dati della tua sezione erano già aggiornati.')
+                    ->send();
+            });
     }
 
     /**
