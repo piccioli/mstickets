@@ -7,6 +7,8 @@ use App\Domain\Fundraising\Models\FundraisingProject;
 use App\Domain\Identity\Enums\Permission as PermissionEnum;
 use App\Domain\Identity\Enums\UserRole;
 use App\Domain\Identity\Models\User;
+use App\Domain\Ticketing\Enums\TicketMessageChannel;
+use App\Domain\Ticketing\Enums\TicketMessageVisibility;
 use App\Domain\Ticketing\Enums\TicketStatus;
 use App\Domain\Ticketing\Models\Ticket;
 use App\Domain\Ticketing\Models\TicketLog;
@@ -19,6 +21,7 @@ use App\Filament\Resources\Tickets\Pages\ViewTicket;
 use App\Filament\Resources\Tickets\TicketResource;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
@@ -53,7 +56,10 @@ test('creating a ticket as a customer forces the requester to themselves and ign
     $this->actingAs($customer);
 
     Livewire::test(CreateTicket::class)
-        ->fillForm(['title' => 'Non riesco ad accedere'])
+        ->fillForm([
+            'title' => 'Non riesco ad accedere',
+            'richiesta' => 'Da ieri non riesco ad accedere al portale.',
+        ])
         ->call('create')
         ->assertHasNoFormErrors();
 
@@ -63,6 +69,63 @@ test('creating a ticket as a customer forces the requester to themselves and ign
         ->and($created->status)->toBe(TicketStatus::New)
         ->and($created->type->value)->toBe('helpdesk')
         ->and($created->assignee_id)->toBeNull();
+});
+
+test('creating a ticket requires a richiesta', function (): void {
+    $customer = grantTicketPanelRole(userWithPermissions(PermissionEnum::TicketCreate, PermissionEnum::TicketViewOwn), UserRole::Customer);
+
+    $this->actingAs($customer);
+
+    Livewire::test(CreateTicket::class)
+        ->fillForm(['title' => 'Titolo senza richiesta'])
+        ->call('create')
+        ->assertHasFormErrors(['richiesta']);
+});
+
+test('the richiesta becomes the first public message of the ticket, with its attachments', function (): void {
+    $customer = grantTicketPanelRole(userWithPermissions(PermissionEnum::TicketCreate, PermissionEnum::TicketViewOwn), UserRole::Customer);
+
+    $this->actingAs($customer);
+
+    Livewire::test(CreateTicket::class)
+        ->fillForm([
+            'title' => 'Non riesco ad accedere',
+            'richiesta' => '<p>Da ieri non riesco ad accedere al portale.</p>',
+            'allegati' => [UploadedFile::fake()->createWithContent('screenshot.txt', 'contenuto reale del file')],
+        ])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    $created = Ticket::query()->sole();
+    $message = $created->messages()->sole();
+
+    expect($message->author_id)->toBe($customer->id)
+        ->and($message->channel)->toBe(TicketMessageChannel::Web)
+        ->and($message->visibility)->toBe(TicketMessageVisibility::Public)
+        ->and($message->body_text)->toContain('Da ieri non riesco ad accedere al portale.')
+        ->and($message->getMedia('attachments'))->toHaveCount(1);
+});
+
+test('staff creating a ticket also provides the richiesta as the first public message', function (): void {
+    $staff = grantTicketPanelRole(userWithPermissions(PermissionEnum::TicketCreate, PermissionEnum::TicketViewAny));
+    $requester = User::factory()->create();
+
+    $this->actingAs($staff);
+
+    Livewire::test(CreateTicket::class)
+        ->fillForm([
+            'title' => 'Richiesta aperta per conto del cliente',
+            'richiesta' => 'Il cliente segnala un problema al telefono.',
+            'requester_id' => $requester->id,
+        ])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    $created = Ticket::query()->sole();
+    $message = $created->messages()->sole();
+
+    expect($message->author_id)->toBe($staff->id)
+        ->and($message->body_text)->toContain('Il cliente segnala un problema al telefono.');
 });
 
 test('a customer manipulating the edit form cannot alter any internal field', function (): void {

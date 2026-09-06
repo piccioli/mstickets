@@ -13,7 +13,9 @@ use App\Domain\Ticketing\Models\Ticket;
 use App\Domain\Ticketing\Rules\TicketParentDepthRule;
 use App\Filament\Resources\Tickets\Support\TicketFieldAccess;
 use App\Filament\Resources\Tickets\Support\TicketTransitionActions;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -61,6 +63,17 @@ class TicketForm
                             ->label('Stato')
                             ->content(fn (?Ticket $record) => self::statusBadge($record))
                             ->visible(fn (string $operation): bool => $operation !== 'create'),
+                        RichEditor::make('richiesta')
+                            ->label('Richiesta')
+                            ->required()
+                            ->columnSpanFull()
+                            ->visible(fn (string $operation): bool => $operation === 'create'),
+                        FileUpload::make('allegati')
+                            ->label('Allegati')
+                            ->multiple()
+                            ->storeFiles(false)
+                            ->columnSpanFull()
+                            ->visible(fn (string $operation): bool => $operation === 'create'),
                         Select::make('parent_id')
                             ->label('Ticket padre')
                             ->relationship(
