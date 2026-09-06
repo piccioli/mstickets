@@ -156,7 +156,7 @@ class CaiSectionInfolist
             ->schema([
                 RepeatableEntry::make('financial_statements')
                     ->hiddenLabel()
-                    ->state(fn (CaiSection $record) => $record->runtsRegistrations->flatMap->financialStatements)
+                    ->state(fn (CaiSection $record) => $record->runtsRegistrations->flatMap->financialStatements->sortByDesc('year')->values())
                     ->schema([
                         TextEntry::make('year')->label('Anno'),
                         TextEntry::make('total_revenues')->label('Totale ricavi')->money('EUR')->placeholder('—'),
@@ -176,7 +176,9 @@ class CaiSectionInfolist
             ->schema([
                 RepeatableEntry::make('documents')
                     ->hiddenLabel()
-                    ->state(fn (CaiSection $record) => $record->runtsRegistrations->flatMap->documents)
+                    ->state(fn (CaiSection $record) => $record->runtsRegistrations->flatMap->documents
+                        ->sortByDesc(fn (CaiDocument $document): int => $document->year ?? -1)
+                        ->values())
                     ->schema([
                         TextEntry::make('title')->label('Titolo')->placeholder(fn (CaiDocument $record): string => $record->file_name ?? '—'),
                         TextEntry::make('document_type')->label('Tipo')->badge()->placeholder('—'),

@@ -428,3 +428,57 @@ test('the differences tab shows an explicit empty state when no RUNTS registrati
         ->assertOk()
         ->assertSee('Nessuna registrazione RUNTS collegata: nessun confronto possibile');
 });
+
+test('the financial statements tab lists years from most recent to oldest', function (): void {
+    $user = grantCaiDirectoryPanelAccess(userWithPermissions(PermissionEnum::CaiDirectoryView));
+    $section = caiSection(['name' => 'Sezione Bilanci Ordinati']);
+    $registration = CaiRuntsRegistration::create([
+        'id_runts' => 'RUNTS-'.$section->codice_cai,
+        'cai_section_id' => $section->codice_cai,
+        'name' => 'Ente Bilanci',
+    ]);
+    foreach ([2022, 2024, 2023] as $year) {
+        CaiFinancialStatement::create([
+            'cai_runts_registration_id' => $registration->id_runts,
+            'year' => $year,
+        ]);
+    }
+
+    $this->actingAs($user);
+
+    $html = Livewire::test(ViewCaiSection::class, ['record' => $section->getKey()])->assertOk()->html();
+
+    expect(strpos($html, '2024'))->toBeLessThan(strpos($html, '2023'))
+        ->and(strpos($html, '2023'))->toBeLessThan(strpos($html, '2022'));
+});
+
+test('the documents tab lists attachments from most recent to oldest year', function (): void {
+    Storage::fake('cai-documents');
+
+    $user = grantCaiDirectoryPanelAccess(userWithPermissions(PermissionEnum::CaiDirectoryView));
+    $section = caiSection(['name' => 'Sezione Allegati Ordinati']);
+    $registration = CaiRuntsRegistration::create([
+        'id_runts' => 'RUNTS-'.$section->codice_cai,
+        'cai_section_id' => $section->codice_cai,
+        'name' => 'Ente Allegati',
+    ]);
+    foreach ([2022, 2024, 2023] as $year) {
+        Storage::disk('cai-documents')->put("bilanci/{$year}.pdf", '%PDF-1.4 fake content');
+        CaiDocument::create([
+            'cai_runts_registration_id' => $registration->id_runts,
+            'document_type' => 'bilancio',
+            'year' => $year,
+            'title' => "Bilancio {$year}",
+            'file_path' => "bilanci/{$year}.pdf",
+            'file_name' => "{$year}.pdf",
+            'mime_type' => 'application/pdf',
+        ]);
+    }
+
+    $this->actingAs($user);
+
+    $html = Livewire::test(ViewCaiSection::class, ['record' => $section->getKey()])->assertOk()->html();
+
+    expect(strpos($html, 'Bilancio 2024'))->toBeLessThan(strpos($html, 'Bilancio 2023'))
+        ->and(strpos($html, 'Bilancio 2023'))->toBeLessThan(strpos($html, 'Bilancio 2022'));
+});
