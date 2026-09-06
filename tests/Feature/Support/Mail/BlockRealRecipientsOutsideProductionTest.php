@@ -55,3 +55,23 @@ test('the guard is bypassed entirely in production, real recipients included', f
 
     expect(sentArrayMessagesCount())->toBe(1);
 });
+
+test('the guard is bypassed entirely in local, real recipients included (Mailpit is a safe sink)', function (): void {
+    app()->instance('env', 'local');
+
+    Mail::mailer('array')->raw('Corpo del messaggio', function ($message): void {
+        $message->to('cliente.vero@gmail.com')->subject('Notifica ticket');
+    });
+
+    expect(sentArrayMessagesCount())->toBe(1);
+});
+
+test('a real recipient is still blocked in staging', function (): void {
+    app()->instance('env', 'staging');
+
+    Mail::mailer('array')->raw('Corpo del messaggio', function ($message): void {
+        $message->to('cliente.vero@gmail.com')->subject('Notifica ticket');
+    });
+
+    expect(sentArrayMessagesCount())->toBe(0);
+});

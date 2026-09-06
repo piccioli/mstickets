@@ -15,12 +15,21 @@ use Symfony\Component\Mime\Address;
  * non un vincolo dell'ETL, vale per ogni mailer/mailable, indipendentemente da
  * dove/come l'invio viene innescato. Restituire `false` da un listener di
  * `MessageSending` annulla l'invio (`Mailer::shouldSendMessage()`).
+ *
+ * In ambiente `local` il guard è bypassato: la posta locale è sempre diretta a
+ * Mailpit (`MAIL_HOST=mailpit`, `.env.example`), un catcher che non recapita
+ * mai realmente all'esterno — bloccare i destinatari reali lì produce solo
+ * falsi negativi durante lo sviluppo (email visibili in `email_messages` ma
+ * mai in Mailpit) senza alcun beneficio di sicurezza. Lo staging (`APP_ENV=staging`,
+ * `.env.uat.example`) resta protetto: pur puntando anch'esso a Mailpit di
+ * default, è un ambiente condiviso dove un `.env` modificato a mano potrebbe
+ * puntare altrove senza che sia altrettanto ovvio quanto in locale.
  */
 final class BlockRealRecipientsOutsideProduction
 {
     public function handle(MessageSending $event): bool
     {
-        if (app()->environment('production')) {
+        if (app()->environment('production', 'local')) {
             return true;
         }
 
