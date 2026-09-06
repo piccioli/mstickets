@@ -81,7 +81,7 @@ class CustomerDashboard extends Page
      */
     protected function getHeaderActions(): array
     {
-        return [$this->syncCaiDataAction()];
+        return [$this->syncCaiDataAction(), $this->syncRuntsDataAction()];
     }
 
     public function customerType(): ?CustomerType
@@ -194,16 +194,9 @@ class CustomerDashboard extends Page
                     return;
                 }
 
-                $rawPath = (string) config('cai_directory.datapack_path');
-                $absolutePath = str_starts_with($rawPath, '/') ? $rawPath : base_path($rawPath);
+                $absolutePath = $this->resolveDatapackAbsolutePathOrNotify();
 
-                if (! is_file($absolutePath)) {
-                    Notification::make()
-                        ->danger()
-                        ->title('Sincronizzazione non disponibile')
-                        ->body('Il datapack CAI non è al momento disponibile sul server.')
-                        ->send();
-
+                if ($absolutePath === null) {
                     return;
                 }
 
@@ -221,6 +214,78 @@ class CustomerDashboard extends Page
                     ->body($updated ? 'I dati della tua sezione sono stati aggiornati.' : 'I dati della tua sezione erano già aggiornati.')
                     ->send();
             });
+    }
+
+    /**
+     * Bottone "Sincronizza dati RUNTS" (Fase 9, storia distinta da "Sincronizza dati
+     * CAI"): rilancia SOLO l'import delle tabelle di provenienza RUNTS (registrazione,
+     * bilanci, cariche sociali, allegati/documenti — {@see CaiDatapackImporter},
+     * `skipSectionFields: true`), senza mai toccare i campi propri di `CaiSection`
+     * (nome/contatti/orari, di provenienza sito CAI, gestiti dal bottone gemello).
+     * Stessa visibilità/pattern header-action di {@see self::syncCaiDataAction()}.
+     */
+    public function syncRuntsDataAction(): Action
+    {
+        return Action::make('sync_runts_data')
+            ->label('Sincronizza dati RUNTS')
+            ->icon(Heroicon::OutlinedArrowPath)
+            ->color('gray')
+            ->visible(fn (): bool => $this->isSezione() && $this->caiSection() !== null)
+            ->action(function (): void {
+                $section = $this->caiSection();
+
+                if ($section === null) {
+                    return;
+                }
+
+                $absolutePath = $this->resolveDatapackAbsolutePathOrNotify();
+
+                if ($absolutePath === null) {
+                    return;
+                }
+
+                $results = app(CaiDatapackImporter::class)->import(
+                    $absolutePath,
+                    dryRun: false,
+                    onlyCaiSectionCode: $section->codice_cai,
+                    skipSectionFields: true,
+                );
+
+                $updated = ($results['cai_runts_registrations']->updated ?? 0) > 0
+                    || ($results['cai_financial_statements']->updated ?? 0) > 0
+                    || ($results['cai_board_members']->updated ?? 0) > 0
+                    || ($results['cai_documents']->updated ?? 0) > 0;
+
+                Notification::make()
+                    ->success()
+                    ->title('Sincronizzazione completata')
+                    ->body($updated ? 'I dati RUNTS della tua sezione sono stati aggiornati.' : 'I dati RUNTS della tua sezione erano già aggiornati.')
+                    ->send();
+            });
+    }
+
+    /**
+     * Risolve il percorso assoluto del datapack ({@see self::syncCaiDataAction()}/
+     * {@see self::syncRuntsDataAction()}), inviando la stessa notifica d'errore se il
+     * file non è presente sul server — unico punto per non duplicare la logica fra i
+     * due bottoni.
+     */
+    private function resolveDatapackAbsolutePathOrNotify(): ?string
+    {
+        $rawPath = (string) config('cai_directory.datapack_path');
+        $absolutePath = str_starts_with($rawPath, '/') ? $rawPath : base_path($rawPath);
+
+        if (is_file($absolutePath)) {
+            return $absolutePath;
+        }
+
+        Notification::make()
+            ->danger()
+            ->title('Sincronizzazione non disponibile')
+            ->body('Il datapack CAI non è al momento disponibile sul server.')
+            ->send();
+
+        return null;
     }
 
     /**

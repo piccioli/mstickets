@@ -167,3 +167,36 @@ test('a scoped import (onlyCaiSectionCode) imports only the requested section, i
         ->and(CaiBoardMember::query()->count())->toBe(1)
         ->and(CaiDocument::query()->count())->toBe(1);
 });
+
+test('skipSectionFields imports only the RUNTS-sourced tables, leaving an already-imported CaiSection/CaiSubsection untouched', function (): void {
+    Storage::fake('cai-documents');
+    $fixture = makeCaiDatapackFixture();
+
+    User::factory()->create(['email' => 'sezione@example.com']);
+    User::factory()->create(['email' => 'sub@example.com']);
+
+    // Prima sincronizzazione completa (come farebbe "Sincronizza dati CAI"): crea la
+    // sezione di cui il bottone RUNTS-only presume già l'esistenza.
+    app(CaiDatapackImporter::class)->import($fixture['sqlitePath'], dryRun: false, onlyCaiSectionCode: '9216049');
+
+    $section = CaiSection::query()->findOrFail('9216049');
+    $section->update(['name' => 'Nome modificato manualmente']);
+    $sectionUpdatedAt = $section->fresh()->updated_at;
+
+    $registration = CaiRuntsRegistration::query()->findOrFail('166339');
+    $registration->update(['name' => 'Nome registrazione modificato manualmente']);
+
+    app(CaiDatapackImporter::class)->import(
+        $fixture['sqlitePath'],
+        dryRun: false,
+        onlyCaiSectionCode: '9216049',
+        skipSectionFields: true,
+    );
+
+    expect($section->fresh()->name)->toBe('Nome modificato manualmente')
+        ->and($section->fresh()->updated_at->equalTo($sectionUpdatedAt))->toBeTrue()
+        ->and($registration->fresh()->name)->toBe('Sez. Abbiategrasso')
+        ->and(CaiFinancialStatement::query()->count())->toBe(1)
+        ->and(CaiBoardMember::query()->count())->toBe(1)
+        ->and(CaiDocument::query()->count())->toBe(1);
+});

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\CaiDirectory\Models\CaiRuntsRegistration;
 use App\Domain\CaiDirectory\Models\CaiSection;
 use App\Domain\CaiDirectory\Models\CaiSubsection;
 use App\Domain\Documentation\Enums\DocumentationCategory;
@@ -509,4 +510,43 @@ test('the sync cai data action re-imports only the current customer\'s own secti
 
     expect(CaiSection::query()->findOrFail('9216049')->name)->toBe('Sez. Abbiategrasso')
         ->and(CaiSection::query()->count())->toBe(1);
+});
+
+test('the sync runts data action is visible only for a sezione customer with a linked cai section', function (): void {
+    $this->seed(RolePermissionSeeder::class);
+
+    $withSection = withRole(User::factory()->create(), UserRole::Customer);
+    $withSection->forceFill(['customer_type' => CustomerType::Sezione])->save();
+    CaiSection::create(['codice_cai' => 'CAI-001', 'name' => 'Sezione propria', 'region' => 'LOMBARDIA', 'user_id' => $withSection->id]);
+
+    $withoutSection = withRole(User::factory()->create(), UserRole::Customer);
+    $withoutSection->forceFill(['customer_type' => CustomerType::Sezione])->save();
+
+    $this->actingAs($withSection);
+    Livewire::test(CustomerDashboard::class)->assertActionVisible('sync_runts_data');
+
+    $this->actingAs($withoutSection);
+    Livewire::test(CustomerDashboard::class)->assertActionHidden('sync_runts_data');
+});
+
+test('the sync runts data action re-imports only the RUNTS tables, never touching CaiSection fields', function (): void {
+    $this->seed(RolePermissionSeeder::class);
+    Storage::fake('cai-documents');
+
+    $fixture = makeCaiDatapackFixture();
+    config(['cai_directory.datapack_path' => $fixture['sqlitePath']]);
+
+    $customer = withRole(User::factory()->create(['email' => 'sezione@example.com']), UserRole::Customer);
+    $customer->forceFill(['customer_type' => CustomerType::Sezione])->save();
+    CaiSection::create(['codice_cai' => '9216049', 'name' => 'Nome mantenuto dalla sezione', 'region' => 'LOMBARDIA', 'user_id' => $customer->id]);
+
+    $this->actingAs($customer);
+
+    Livewire::test(CustomerDashboard::class)
+        ->callAction('sync_runts_data')
+        ->assertHasNoActionErrors()
+        ->assertNotified();
+
+    expect(CaiSection::query()->findOrFail('9216049')->name)->toBe('Nome mantenuto dalla sezione')
+        ->and(CaiRuntsRegistration::query()->pluck('id_runts')->all())->toBe(['166339']);
 });

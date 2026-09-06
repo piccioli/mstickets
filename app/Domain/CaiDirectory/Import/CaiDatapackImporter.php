@@ -56,10 +56,21 @@ final class CaiDatapackImporter
      * per un ente senza alcun match). `null` (default) preserva il comportamento
      * invariato del comando `cai:import-datapack` (import nazionale completo).
      *
+     * `$skipSectionFields` (Fase 9, "Sincronizza dati RUNTS" dalla dashboard cliente,
+     * bottone distinto da "Sincronizza dati CAI"): quando `true`, non scrive MAI su
+     * `cai_sections`/`cai_subsections` — le righe sorgente `sezioni_cai`/`sottosezioni_cai`
+     * restano comunque lette (servono a costruire `sectionCodeByLowerTaxCode` per lo
+     * scoping di enti/bilanci/cariche sociali/allegati), solo il risultato delle due
+     * import non viene aggiunto a `$results` né alcuna riga viene creata/aggiornata.
+     *
      * @return array<string, CaiImportTableResult>
      */
-    public function import(string $absolutePath, bool $dryRun, ?string $onlyCaiSectionCode = null): array
-    {
+    public function import(
+        string $absolutePath,
+        bool $dryRun,
+        ?string $onlyCaiSectionCode = null,
+        bool $skipSectionFields = false,
+    ): array {
         $this->registerConnection($absolutePath);
 
         try {
@@ -83,8 +94,11 @@ final class CaiDatapackImporter
             $sectionCodeByLowerTaxCode = $this->buildSectionCodeByLowerTaxCode($sezioniRows);
 
             $results = [];
-            $results['cai_sections'] = $this->importSections($sezioniRows, $usersByLowerEmail, $dryRun);
-            $results['cai_subsections'] = $this->importSubsections($sottosezioniRows, $usersByLowerEmail, $dryRun);
+
+            if (! $skipSectionFields) {
+                $results['cai_sections'] = $this->importSections($sezioniRows, $usersByLowerEmail, $dryRun);
+                $results['cai_subsections'] = $this->importSubsections($sottosezioniRows, $usersByLowerEmail, $dryRun);
+            }
 
             [$registrationsResult, $matchedIdRunts] = $this->importRegistrations($entiRows, $sectionCodeByLowerTaxCode, $dryRun);
             $results['cai_runts_registrations'] = $registrationsResult;
