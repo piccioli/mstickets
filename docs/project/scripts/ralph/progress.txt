@@ -171,3 +171,34 @@ Started: Lun  7 Set 2026 15:44:39 CEST
   testo del piano. Prossima story (US-907) crea `ScrapeCaiSection` (sincronizzazione di una sola sezione,
   isolata dall'elenco nazionale, per il bottone dashboard) — vedere Task 7 del piano.
 ---
+
+## [2026-09-07] - US-907
+- Creata `App\Domain\CaiDirectory\Actions\ScrapeCaiSection` (`run(string $codiceCai): array{cai_sections:
+  CaiImportTableResult, cai_subsections: CaiImportTableResult}`), seguendo alla lettera il codice del Task 7
+  del piano: recupera l'elenco nazionale via `CaiApiClient::fetchNationalSections()` (US-905), isola la sola
+  sezione richiesta con `Collection::first()` su `code === $codiceCai`, normalizza con
+  `CaiApiSectionNormalizer::normalizeSection()` (US-904) e delega a
+  `SyncCaiSectionAndSubsections::run()` (US-906). Lancia `RuntimeException` esplicita se il codice non è
+  presente nell'elenco nazionale — mai chiama l'endpoint sottosezioni per un'altra sezione, perché isola
+  PRIMA di richiamare il syncer (che chiama sottosezioni solo per la sezione passata).
+- Nuovo test `tests/Feature/Domain/CaiDirectory/Actions/ScrapeCaiSectionTest.php` (3 test, copiato alla
+  lettera dal piano): sincronizzazione riuscita isolando la sezione corretta, nessuna chiamata sottosezioni
+  per l'altra sezione dell'elenco (`Http::assertNotSent`), eccezione se il codice richiesto non esiste.
+- File: `app/Domain/CaiDirectory/Actions/ScrapeCaiSection.php` (nuovo),
+  `tests/Feature/Domain/CaiDirectory/Actions/ScrapeCaiSectionTest.php` (nuovo).
+- **Divergenza dal piano, annotata in `notes` della story**: il docblock di classe (copiato alla lettera dal
+  piano) referenziava `{@see \App\Filament\Pages\CustomerDashboard::syncCaiDataAction()}` fully-qualified —
+  `pint --test` (regola `fully_qualified_strict_types`, preset Laravel) richiede invece un `use
+  App\Filament\Pages\CustomerDashboard;` esplicito con riferimento breve nel docblock. Fix non funzionale,
+  nessun'altra divergenza.
+- Verificato: TDD rispettato (test fallito su classe mancante prima di creare l'implementazione: 3/3 rossi
+  con `BindingResolutionException`), poi 3/3 verdi (6 assertion); l'intera suite `--filter=Cai` (108 test,
+  105 pre-esistenti + 3 nuovi) resta verde; `pint --test` (810 file, dopo il fix sopra) e `phpstan analyse
+  --memory-limit=1G` (461 file, intero progetto) puliti.
+- **Learnings**: un docblock `@see` con un riferimento fully-qualified copiato alla lettera da un piano può
+  comunque violare `fully_qualified_strict_types` di Pint se la classe referenziata non ha già un `use`
+  nel file — verificarlo sempre con `pint --test`, anche per codice "solo commento". Prossima story
+  (US-908) collega il bottone "Sincronizza dati CAI" della dashboard cliente a questa Action al posto di
+  `CaiDatapackImporter::import(...)` — vedere Task 8 del piano, che include il corpo esatto pre-esistente
+  del metodo `CustomerDashboard::syncCaiDataAction()` da preservare/modificare.
+---

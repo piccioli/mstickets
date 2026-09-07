@@ -115,8 +115,8 @@
         "Tests pass"
       ],
       "priority": 7,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Nessuna divergenza dal piano: codice/test dell'Action copiati alla lettera dal Task 7. Unico aggiustamento non funzionale: pint richiedeva `use App\\Filament\\Pages\\CustomerDashboard;` invece del riferimento fully-qualified nel docblock `@see`."
     },
     {
       "id": "US-908",
