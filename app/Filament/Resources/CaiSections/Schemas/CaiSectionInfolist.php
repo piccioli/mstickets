@@ -66,6 +66,11 @@ class CaiSectionInfolist
                 TextEntry::make('phone')->label('Telefono')->placeholder('—'),
                 TextEntry::make('fax')->label('Fax')->placeholder('—'),
                 TextEntry::make('website')->label('Sito web')->url(fn (?CaiSection $record): ?string => $record?->website)->openUrlInNewTab()->placeholder('—'),
+                TextEntry::make('cai_directory_url')
+                    ->label('Scheda sul sito CAI')
+                    ->state('Apri la scheda sul sito CAI')
+                    ->url(fn (CaiSection $record): string => self::officialCaiDirectoryUrl($record))
+                    ->openUrlInNewTab(),
                 TextEntry::make('address')->label('Indirizzo')->placeholder('—'),
                 TextEntry::make('postal_address')->label('Recapito postale')->placeholder('—'),
                 TextEntry::make('founded_year')->label('Anno di fondazione')->placeholder('—'),
@@ -84,6 +89,22 @@ class CaiSectionInfolist
                     ->formatStateUsing(fn (?string $state): ?string => $state === null ? null : CaiRichTextSanitizer::sanitize(trim($state))),
                 TextEntry::make('user.name')->label('Utente collegato')->placeholder('Nessuno'),
             ]);
+    }
+
+    /**
+     * URL pubblico della scheda ufficiale di QUESTA sezione sul sito CAI (Fase 9,
+     * storia 5): la vera fonte da cui `sezioni_cai`/`cai_sections` è stata costruita
+     * (§1 del design doc Fase 8, "Directory ufficiale CAI") — mai il campo `website`
+     * (il sito PROPRIO della sezione, un dato diverso e non sempre valorizzato,
+     * NULL per ~254 sezioni su 529 nel dataset reale). Costruito da `codice_cai`
+     * (sempre presente, è la PK naturale), quindi funziona per OGNI sezione a
+     * prescindere da `website`. Pattern URL fornito direttamente dal committente,
+     * mai indovinato: `?codice=<codice_cai>` su
+     * `cai.it/sezioni-territoriali/sezioni-e-sottosezioni/sezione/`.
+     */
+    private static function officialCaiDirectoryUrl(CaiSection $record): string
+    {
+        return 'https://www.cai.it/sezioni-territoriali/sezioni-e-sottosezioni/sezione/?codice='.$record->codice_cai;
     }
 
     private static function runtsSection(): Section

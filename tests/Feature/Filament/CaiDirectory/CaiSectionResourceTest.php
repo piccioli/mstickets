@@ -211,6 +211,17 @@ test('viewing a section without runts data, statements or attachments does not c
         ->assertSee('Nessuna sottosezione collegata');
 });
 
+test('the CAI directory tab links to the official cai.it section page, built from codice_cai, regardless of the website field', function (): void {
+    $user = grantCaiDirectoryPanelAccess(userWithPermissions(PermissionEnum::CaiDirectoryView));
+    $section = caiSection(['codice_cai' => '9216006', 'name' => 'Sezione Senza Sito Proprio', 'website' => null]);
+
+    $this->actingAs($user);
+
+    Livewire::test(ViewCaiSection::class, ['record' => $section->getKey()])
+        ->assertOk()
+        ->assertSee('https://www.cai.it/sezioni-territoriali/sezioni-e-sottosezioni/sezione/?codice=9216006', false);
+});
+
 test('an authorized user can download a cai document', function (): void {
     Storage::fake('cai-documents');
 
