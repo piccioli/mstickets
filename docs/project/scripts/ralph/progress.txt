@@ -81,3 +81,26 @@ Started: Lun  7 Set 2026 15:44:39 CEST
   crea `CaiApiSectionNormalizer` (JSON API CAI → forma `cai_*` già consumata da questo mapper) — vedere Task
   4 del piano, che include già la tabella di mapping campo-per-campo.
 ---
+
+## [2026-09-07] - US-904
+- Creata `App\Domain\CaiDirectory\Import\CaiApiSectionNormalizer` con `normalizeSection(array $raw): object`
+  e `normalizeSubsection(array $raw, string $sectionCode): object`, seguendo alla lettera il codice del
+  Task 4 del piano — converte il JSON grezzo dell'API pubblica CAI (camelCase, con fallback snake_case per
+  `officeAddress`/`postalAddress`) nella stessa forma `cai_*` già consumata da `CaiSectionFieldMapper`
+  (US-903). `officeAddress`/`postalAddress` (array PHP decodificati) vengono ri-serializzati con
+  `json_encode()` in una stringa, compatibile con `CaiRuntsAddressFormatter::format()` che si aspetta una
+  stringa JSON.
+- Nuovo test `tests/Unit/Domain/CaiDirectory/Import/CaiApiSectionNormalizerTest.php` (4 test, copiato alla
+  lettera dal piano): mapping sezione completo, fallback snake_case indirizzo, mapping sottosezione con
+  scope al codice sezione padre, fallback `lastyearMembershipsCount` quando `currentMemberships` manca.
+- File: `app/Domain/CaiDirectory/Import/CaiApiSectionNormalizer.php` (nuovo),
+  `tests/Unit/Domain/CaiDirectory/Import/CaiApiSectionNormalizerTest.php` (nuovo).
+- Verificato: TDD rispettato (test fallito su classe mancante prima di creare l'implementazione), poi
+  4/4 verdi (26 assertion); l'intera suite `--filter=Cai` (92 test, 88 pre-esistenti + 4 nuovi) resta verde;
+  `pint --test` (20 file del dominio) e `phpstan analyse --memory-limit=1G` (458 file, intero progetto)
+  puliti.
+- **Learnings**: nessuna sorpresa, il piano combacia esattamente con lo stato reale del codice per questo
+  Task — nessuna divergenza da annotare. Prossima story (US-905) crea `CaiApiClient` (chiamate HTTP con
+  retry alla facade `Http::` di Laravel, prima introduzione in questo repo) — vedere Task 5 del piano, che
+  include già le chiavi config da aggiungere e lo schema di retry con backoff esponenziale.
+---
