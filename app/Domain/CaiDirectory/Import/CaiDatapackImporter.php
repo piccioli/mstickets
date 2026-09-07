@@ -141,18 +141,6 @@ final class CaiDatapackImporter
     }
 
     /**
-     * @param  array<string, int>  $usersByLowerEmail
-     */
-    private function matchUserId(?string $email, array $usersByLowerEmail): ?int
-    {
-        if ($email === null || trim($email) === '') {
-            return null;
-        }
-
-        return $usersByLowerEmail[Str::lower(trim($email))] ?? null;
-    }
-
-    /**
      * @param  Collection<int, \stdClass>  $sezioniRows
      * @return array<string, string> codice_cai per codice fiscale in minuscolo/trim
      */
@@ -173,29 +161,6 @@ final class CaiDatapackImporter
         return $map;
     }
 
-    private function toInt(mixed $value): ?int
-    {
-        return $value === null || $value === '' ? null : (int) $value;
-    }
-
-    /**
-     * `cai_sections.latitude`/`longitude` (US-801) sono `decimal(10,7)`: al massimo 3 cifre
-     * intere, quindi qualunque valore |x| >= 1000 farebbe fallire l'insert con "numeric field
-     * overflow". Sul dataset reale una riga su 529 ha coordinate palesemente corrotte alla
-     * fonte (`cai_lat = 25614`, non una latitudine): scartarla a `null`, non far fallire
-     * l'intero import per un valore non plausibile di una singola sezione.
-     */
-    private function toCoordinate(mixed $value): ?float
-    {
-        if ($value === null || $value === '') {
-            return null;
-        }
-
-        $float = (float) $value;
-
-        return abs($float) < 1000.0 ? $float : null;
-    }
-
     /**
      * @param  Collection<int, \stdClass>  $rows
      * @param  array<string, int>  $usersByLowerEmail
@@ -214,27 +179,7 @@ final class CaiDatapackImporter
                 continue;
             }
 
-            $attributes = [
-                'name' => $row->cai_denominazione,
-                'tax_code' => $row->cai_codice_fiscale,
-                'vat_number' => $row->cai_partita_iva,
-                'email' => $row->cai_email,
-                'pec' => $row->cai_pec,
-                'phone_office' => $row->cai_telefono_sede,
-                'phone' => $row->cai_telefono,
-                'fax' => $row->cai_fax,
-                'address' => CaiRuntsAddressFormatter::format($row->cai_indirizzo_sede),
-                'postal_address' => CaiRuntsAddressFormatter::format($row->cai_indirizzo_postale),
-                'website' => $row->cai_sito_web,
-                'office_hours' => $row->cai_orari,
-                'notices' => $row->cai_avvisi,
-                'founded_year' => $this->toInt($row->cai_anno_fondazione),
-                'members_count' => $this->toInt($row->cai_soci_ultimo_anno),
-                'latitude' => $this->toCoordinate($row->cai_lat),
-                'longitude' => $this->toCoordinate($row->cai_lon),
-                'region' => $row->cai_regione,
-                'user_id' => $this->matchUserId($row->cai_email, $usersByLowerEmail),
-            ];
+            $attributes = CaiSectionFieldMapper::mapSection($row, $usersByLowerEmail);
 
             $existing = CaiSection::find((string) $row->codice_cai);
 
@@ -274,22 +219,7 @@ final class CaiDatapackImporter
                 continue;
             }
 
-            $attributes = [
-                'cai_section_id' => $row->cai_sezione_codice,
-                'name' => $row->cai_nome,
-                'email' => $row->cai_email,
-                'phone_office' => $row->cai_telefono_sede,
-                'phone' => $row->cai_telefono,
-                'address' => CaiRuntsAddressFormatter::format($row->cai_indirizzo_sede),
-                'website' => $row->cai_sito_web,
-                'office_hours' => $row->cai_orari,
-                'notices' => $row->cai_avvisi,
-                'founded_year' => $this->toInt($row->cai_anno_fondazione),
-                'members_count' => $this->toInt($row->cai_soci),
-                'latitude' => $this->toCoordinate($row->cai_lat),
-                'longitude' => $this->toCoordinate($row->cai_lon),
-                'user_id' => $this->matchUserId($row->cai_email, $usersByLowerEmail),
-            ];
+            $attributes = CaiSectionFieldMapper::mapSubsection($row, $usersByLowerEmail);
 
             $existing = CaiSubsection::find((string) $row->cai_codice);
 
@@ -411,7 +341,7 @@ final class CaiDatapackImporter
 
             $attributes = [
                 'cai_runts_registration_id' => $row->id_runts,
-                'year' => $this->toInt($row->anno),
+                'year' => CaiSectionFieldMapper::toInt($row->anno),
                 'general_interest_expenses' => $row->oneri_a_interesse_generale,
                 'other_activities_expenses' => $row->oneri_b_attivita_diverse,
                 'fundraising_expenses' => $row->oneri_c_raccolta_fondi,
@@ -579,11 +509,11 @@ final class CaiDatapackImporter
             $attributes = [
                 'cai_runts_registration_id' => $row->id_runts,
                 'document_type' => $row->tipo,
-                'year' => $this->toInt($row->anno),
+                'year' => CaiSectionFieldMapper::toInt($row->anno),
                 'title' => $row->documento,
                 'file_name' => $fileName,
                 'mime_type' => $row->mime,
-                'size' => $this->toInt($row->size),
+                'size' => CaiSectionFieldMapper::toInt($row->size),
                 'hash' => $row->hash_sha256,
                 'file_path' => $destinationPath,
             ];

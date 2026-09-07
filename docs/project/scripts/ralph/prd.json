@@ -48,8 +48,8 @@
         "Tests pass"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Divergenza dal piano: CaiDatapackImporter::toInt() era usato anche in importFinancialStatements()/importDocuments() (non solo in importSections()/importSubsections(), le uniche citate dal piano), quindi non poteva essere semplicemente cancellato senza rompere quei due call site. Adattamento: quei due call site ora chiamano CaiSectionFieldMapper::toInt() (spostato, non duplicato), coerente col principio del PRD di preferire lo stato reale del codice al piano."
     },
     {
       "id": "US-904",

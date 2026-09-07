@@ -50,3 +50,34 @@ Started: Lun  7 Set 2026 15:44:39 CEST
   Task. Prossima story (US-903) estrae `CaiSectionFieldMapper` da `CaiDatapackImporter` — vedere Task 3 del
   piano, che include già il codice esatto della classe e il refactor dell'importer.
 ---
+
+## [2026-09-07] - US-903
+- Estratta `App\Domain\CaiDirectory\Import\CaiSectionFieldMapper` (metodi statici puri
+  `mapSection()`/`mapSubsection()`/`toInt()`/`toCoordinate()`/`matchUserId()`), seguendo alla lettera il
+  codice del Task 3 del piano. `CaiDatapackImporter::importSections()`/`importSubsections()` ora costruiscono
+  `$attributes` chiamando il mapper condiviso invece dell'array inline.
+- **Divergenza dal piano, annotata in `notes` della story**: il piano indicava di cancellare i tre metodi
+  privati `toInt()`/`toCoordinate()`/`matchUserId()` da `CaiDatapackImporter` assumendo fossero usati solo in
+  `importSections()`/`importSubsections()`. Verificato con `grep` che `toInt()` era invece richiamato ANCHE
+  da `importFinancialStatements()` (`'year' => $this->toInt($row->anno)`) e `importDocuments()`
+  (`'year'`/`'size'`) — cancellarlo a mano avrebbe rotto quei due metodi. Adattamento: quei call site ora
+  usano `CaiSectionFieldMapper::toInt(...)` invece di `$this->toInt(...)`, cosicché il metodo resta
+  effettivamente SPOSTATO (mai duplicato) come richiesto dall'AC, coprendo anche gli usi che il piano non
+  aveva notato. `toCoordinate()`/`matchUserId()` erano invece usati solo in importSections/importSubsections,
+  cancellati senza bisogno di adattamento.
+- Nuovo test `tests/Unit/Domain/CaiDirectory/Import/CaiSectionFieldMapperTest.php` (4 test, copiato alla
+  lettera dal piano): mapSection, mapSubsection, toCoordinate scarta |x|>=1000, matchUserId case-insensitive.
+- File: `app/Domain/CaiDirectory/Import/CaiSectionFieldMapper.php` (nuovo),
+  `app/Domain/CaiDirectory/Import/CaiDatapackImporter.php`,
+  `tests/Unit/Domain/CaiDirectory/Import/CaiSectionFieldMapperTest.php` (nuovo).
+- Verificato: nuovo test passa (4/4), `tests/Feature/Console/CaiImportDatapackCommandTest.php` resta verde
+  con gli stessi 6 test/67 assertion di prima (nessuna regressione di conteggi created/updated/skipped),
+  l'intera suite `--filter=Cai` (88 test) resta verde, `pint --test` (802 file) e
+  `phpstan analyse --memory-limit=1G` (457 file) puliti.
+- **Learnings**: quando un piano elenca "questi N metodi sono usati solo qui", verificare comunque con
+  `grep` prima di cancellare — un metodo privato può essere richiamato da altri rami dello stesso file non
+  esplicitamente citati dal piano. Il fix corretto in questi casi è quasi sempre "sposta la chiamata al nuovo
+  posto condiviso", non "lascia il vecchio metodo duplicato per compatibilità". Prossima story (US-904)
+  crea `CaiApiSectionNormalizer` (JSON API CAI → forma `cai_*` già consumata da questo mapper) — vedere Task
+  4 del piano, che include già la tabella di mapping campo-per-campo.
+---
