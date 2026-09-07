@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable([
     'cai_codice', 'cai_section_id', 'name', 'email', 'phone_office', 'phone', 'address', 'website',
     'office_hours', 'notices', 'founded_year', 'members_count', 'latitude', 'longitude', 'user_id',
+    'cai_last_synced_at',
 ])]
 class CaiSubsection extends Model
 {
@@ -31,6 +32,7 @@ class CaiSubsection extends Model
             'members_count' => 'integer',
             'latitude' => 'decimal:7',
             'longitude' => 'decimal:7',
+            'cai_last_synced_at' => 'datetime',
         ];
     }
 

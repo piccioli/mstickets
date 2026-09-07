@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable([
     'codice_cai', 'name', 'tax_code', 'vat_number', 'email', 'pec', 'phone_office', 'phone', 'fax',
     'address', 'postal_address', 'website', 'office_hours', 'notices', 'founded_year', 'members_count',
-    'latitude', 'longitude', 'region', 'user_id',
+    'latitude', 'longitude', 'region', 'user_id', 'cai_last_synced_at',
 ])]
 class CaiSection extends Model
 {
@@ -33,6 +33,7 @@ class CaiSection extends Model
             'members_count' => 'integer',
             'latitude' => 'decimal:7',
             'longitude' => 'decimal:7',
+            'cai_last_synced_at' => 'datetime',
         ];
     }
 
