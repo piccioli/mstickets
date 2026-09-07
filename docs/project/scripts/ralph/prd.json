@@ -131,8 +131,8 @@
         "Tests pass"
       ],
       "priority": 8,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Nessuna divergenza applicativa dal piano. Adattamenti minori: il test aggiornato usa gli helper già stabiliti nel file (`withRole()` + `forceFill(['customer_type' => ...])`, non `grantCustomerRole()` come suggerito dal piano — helper inesistente in questo file) e la funzione condivisa `caiSection()` (tests/Pest.php, US-906) invece di `CaiSection::create()` diretto. Il catch usa `Throwable` importato (non `\\Throwable` fully-qualified come nel piano), stesso pattern già in uso altrove nel dominio (CaiRuntsDateParser)."
     },
     {
       "id": "US-909",

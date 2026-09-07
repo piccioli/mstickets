@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Pages;
 
+use App\Domain\CaiDirectory\Actions\ScrapeCaiSection;
 use App\Domain\CaiDirectory\Import\CaiDatapackImporter;
 use App\Domain\CaiDirectory\Models\CaiSection;
 use App\Domain\CaiDirectory\Models\CaiSubsection;
@@ -31,6 +32,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Facades\Auth;
+use Throwable;
 use UnitEnum;
 
 /**
@@ -168,17 +170,18 @@ class CustomerDashboard extends Page
     }
 
     /**
-     * Bottone "Sincronizza dati CAI" (Fase 9): rilancia l'import del datapack RUNTS-CAI
-     * (US-802) scoped alla sola sezione dell'utente corrente ({@see CaiDatapackImporter},
-     * parametro `onlyCaiSectionCode`) — mai l'intero datapack nazionale da un bottone
-     * cliente. Visibile solo se esiste già una `CaiSection` collegata (nessuna sezione
-     * da sincronizzare altrimenti). Registrata via {@see self::getHeaderActions()}
-     * (pattern collaudato nel repo, es. `ViewTicket::postMessageAction()`): un'action
-     * standalone risolta solo dinamicamente da una property blade (`$this->xxxAction`,
-     * mai chiamata da `getHeaderActions()`) non esegue il proprio closure quando invocata
-     * tramite `Livewire::test()->callAction()` in questa versione di Filament — verificato
-     * empiricamente, nessuna documentazione ufficiale del comportamento. Registrarla qui
-     * evita il problema.
+     * Bottone "Sincronizza dati CAI" (Fase 9, storia 1): chiama dal vivo l'API
+     * pubblica CAI ({@see ScrapeCaiSection}) scoped alla sola sezione dell'utente
+     * corrente — mai l'intero elenco nazionale da un bottone cliente. Sostituisce il
+     * precedente re-import dal datapack statico (design doc §3.4): il datapack resta
+     * comunque il meccanismo di bootstrap iniziale per un ambiente nuovo
+     * ({@see CaiDatapackImporter}, invariato). Visibile
+     * solo se esiste già una `CaiSection` collegata. Registrata via
+     * {@see self::getHeaderActions()} (pattern collaudato nel repo): un'action
+     * standalone risolta solo dinamicamente da una property blade non esegue il
+     * proprio closure quando invocata tramite `Livewire::test()->callAction()` in
+     * questa versione di Filament — verificato empiricamente. Registrarla qui evita
+     * il problema.
      */
     public function syncCaiDataAction(): Action
     {
@@ -194,24 +197,24 @@ class CustomerDashboard extends Page
                     return;
                 }
 
-                $absolutePath = $this->resolveDatapackAbsolutePathOrNotify();
+                try {
+                    $results = app(ScrapeCaiSection::class)->run($section->codice_cai);
+                } catch (Throwable $exception) {
+                    Notification::make()
+                        ->danger()
+                        ->title('Sincronizzazione non riuscita')
+                        ->body($exception->getMessage())
+                        ->send();
 
-                if ($absolutePath === null) {
                     return;
                 }
 
-                $results = app(CaiDatapackImporter::class)->import(
-                    $absolutePath,
-                    dryRun: false,
-                    onlyCaiSectionCode: $section->codice_cai,
-                );
-
-                $updated = $results['cai_sections']->updated > 0;
+                $updated = $results['cai_sections']->created > 0 || $results['cai_sections']->updated > 0;
 
                 Notification::make()
                     ->success()
                     ->title('Sincronizzazione completata')
-                    ->body($updated ? 'I dati della tua sezione sono stati aggiornati.' : 'I dati della tua sezione erano già aggiornati.')
+                    ->body($updated ? 'I dati della tua sezione sono stati aggiornati dal sito CAI.' : 'I dati della tua sezione erano già aggiornati.')
                     ->send();
             });
     }

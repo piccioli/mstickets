@@ -21,6 +21,7 @@ use App\Filament\Pages\CustomerDashboard;
 use Database\Seeders\RolePermissionSeeder;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
@@ -490,16 +491,19 @@ test('the sync cai data action is visible only for a sezione customer with a lin
     Livewire::test(CustomerDashboard::class)->assertActionHidden('sync_cai_data');
 });
 
-test('the sync cai data action re-imports only the current customer\'s own section from the datapack', function (): void {
+test('the sync cai data action live-scrapes only the current customer\'s own section from the CAI API', function (): void {
     $this->seed(RolePermissionSeeder::class);
-    Storage::fake('cai-documents');
 
-    $fixture = makeCaiDatapackFixture();
-    config(['cai_directory.datapack_path' => $fixture['sqlitePath']]);
+    Http::fake([
+        'https://www.cai.it/wp-json/cai-section/v2/sections-list-simple*' => Http::response([
+            ['code' => '9216049', 'name' => 'Sezione di Como (aggiornata)', 'region' => 'lombardia'],
+        ]),
+        'https://www.cai.it/wp-json/cai-section/v2/sections/9216049/sub-sections-list*' => Http::response([]),
+    ]);
 
     $customer = withRole(User::factory()->create(['email' => 'sezione@example.com']), UserRole::Customer);
     $customer->forceFill(['customer_type' => CustomerType::Sezione])->save();
-    CaiSection::create(['codice_cai' => '9216049', 'name' => 'Nome vecchio', 'region' => 'LOMBARDIA', 'user_id' => $customer->id]);
+    caiSection(['codice_cai' => '9216049', 'name' => 'Sezione di Como', 'user_id' => $customer->id]);
 
     $this->actingAs($customer);
 
@@ -508,8 +512,9 @@ test('the sync cai data action re-imports only the current customer\'s own secti
         ->assertHasNoActionErrors()
         ->assertNotified();
 
-    expect(CaiSection::query()->findOrFail('9216049')->name)->toBe('Sez. Abbiategrasso')
-        ->and(CaiSection::query()->count())->toBe(1);
+    $section = CaiSection::query()->findOrFail('9216049');
+    expect($section->name)->toBe('Sezione di Como (aggiornata)');
+    expect($section->cai_last_synced_at)->not->toBeNull();
 });
 
 test('the sync runts data action is visible only for a sezione customer with a linked cai section', function (): void {

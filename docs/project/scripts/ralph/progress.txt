@@ -202,3 +202,30 @@ Started: Lun  7 Set 2026 15:44:39 CEST
   `CaiDatapackImporter::import(...)` — vedere Task 8 del piano, che include il corpo esatto pre-esistente
   del metodo `CustomerDashboard::syncCaiDataAction()` da preservare/modificare.
 ---
+
+## [2026-09-07] - US-908
+- `CustomerDashboard::syncCaiDataAction()` ora chiama `ScrapeCaiSection::run($section->codice_cai)`
+  (US-907) invece di `CaiDatapackImporter::import(...)`, seguendo alla lettera il codice del Task 8 del
+  piano: label/icona/colore/`->visible()` invariati, cambia solo il closure `->action()`. Un errore
+  qualunque (sezione non trovata sull'API, chiamata HTTP fallita) è catturato con `try/catch (Throwable
+  $exception)` e produce una notifica `danger` col messaggio dell'eccezione, mai un'eccezione non gestita.
+  `syncRuntsDataAction()`/`resolveDatapackAbsolutePathOrNotify()` restano invariati (bottone RUNTS ancora
+  sul datapack statico, fuori scope). Docblock del metodo aggiornato per descrivere il comportamento live.
+- Sostituito il test esistente `tests/Feature/Filament/Pages/CustomerDashboardTest.php` (`the sync cai
+  data action re-imports only the current customer's own section from the datapack`) con la versione
+  live-scrape del piano (`Http::fake()` sugli endpoint sezioni/sottosezioni, verifica nome aggiornato +
+  `cai_last_synced_at` valorizzato). Il test RUNTS gemello resta invariato e verde.
+- File: `app/Filament/Pages/CustomerDashboard.php`,
+  `tests/Feature/Filament/Pages/CustomerDashboardTest.php`.
+- **Divergenza dal piano, annotata in `notes` della story**: il piano suggeriva l'helper `grantCustomerRole($user)` — non esiste in questo file, il pattern già in uso è `withRole(User::factory()->create(), UserRole::Customer)` + `->forceFill(['customer_type' => CustomerType::Sezione])->save()` (usato dai test vicini nello stesso file). Usato anche l'helper condiviso `caiSection()` (`tests/Pest.php`, US-906) invece di `CaiSection::create()` diretto per costruire la sezione fixture. Nel codice applicativo, `catch (\Throwable ...)` fully-qualified del piano è stato sostituito con `catch (Throwable ...)` + `use Throwable;` importato, coerente con l'unico altro precedente nel dominio (`CaiRuntsDateParser`) e per evitare lo stesso tipo di violazione Pint già visto in US-907.
+- Verificato: TDD rispettato (test fallito prima del fix: `'SEZ. ABBIATEGRASSO'` invece del nome
+  aggiornato dall'API, perché il bottone chiamava ancora il datapack), poi 30/30 verdi nel file (94
+  assertion, incluso il test RUNTS invariato); `tests/Feature/Console/CaiImportDatapackCommandTest.php`
+  resta verde con gli stessi 6 test/67 assertion di prima (nessuna regressione); `--filter=Cai` (105 test)
+  verde; `pint --test` (810 file) e `phpstan analyse --memory-limit=1G` (461 file) puliti.
+- **Learnings**: quando un piano suggerisce un helper di test che non esiste nel file target, controllare
+  sempre i test "vicini" nello stesso file per il pattern realmente già in uso (qui `withRole()` +
+  `forceFill()`), invece di introdurre un helper nuovo che duplicherebbe una funzionalità già coperta.
+  Prossima story (US-909) mostra `cai_last_synced_at` in `CaiSectionInfolist` (componente condiviso da
+  staff/dashboard cliente/dettaglio Gruppo Regionale) — vedere Task 9 del piano.
+---
