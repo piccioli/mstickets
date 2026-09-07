@@ -22,4 +22,13 @@ return [
         'subsections_list_url_template' => env('CAI_API_SUBSECTIONS_URL_TEMPLATE', 'https://www.cai.it/wp-json/cai-section/v2/sections/%s/sub-sections-list'),
         'timeout_seconds' => (int) env('CAI_API_TIMEOUT_SECONDS', 30),
     ],
+
+    /*
+     * Refresh mensile nazionale (Fase 9, storia 1, design doc §3.5): cadenza cron di
+     * `cai:sync-national`, dietro il feature flag
+     * `config('orchestrator.features.cai_sync_national')` (disattivo di default).
+     */
+    'sync_national' => [
+        'schedule_cron' => env('CAI_SYNC_NATIONAL_SCHEDULE_CRON', '0 6 1 * *'),
+    ],
 ];
