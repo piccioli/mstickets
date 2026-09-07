@@ -34,3 +34,19 @@ Started: Lun  7 Set 2026 15:44:39 CEST
   Task. Prossima story (US-902) deve aggiungere `cai_last_synced_at` a `#[Fillable]`/`casts()` di entrambi
   i modelli — vedere Task 2 del piano.
 ---
+
+## [2026-09-07] - US-902
+- `cai_last_synced_at` aggiunto a `#[Fillable]` e a `casts()` (come `'datetime'`) sia su `CaiSection` sia su
+  `CaiSubsection`, seguendo alla lettera Task 2 del piano.
+- Nuovo test `tests/Unit/Domain/CaiDirectory/Models/CaiLastSyncedAtFillableTest.php` (2 test): verifica che
+  `create([..., 'cai_last_synced_at' => $carbon])` persista davvero il valore e lo restituisca come istanza
+  `Carbon` su entrambi i modelli.
+- File: `app/Domain/CaiDirectory/Models/CaiSection.php`, `app/Domain/CaiDirectory/Models/CaiSubsection.php`,
+  `tests/Unit/Domain/CaiDirectory/Models/CaiLastSyncedAtFillableTest.php`.
+- Verificato: nuovo test passa (2/2), `tests/Feature/Console/CaiImportDatapackCommandTest.php` +
+  `tests/Feature/Filament/CaiDirectory/CaiSectionResourceTest.php` restano verdi e invariati (25/25),
+  `pint --test` e `phpstan analyse --memory-limit=1G` puliti.
+- **Learnings**: nessuna sorpresa, il piano combacia esattamente con lo stato reale del codice per questo
+  Task. Prossima story (US-903) estrae `CaiSectionFieldMapper` da `CaiDatapackImporter` — vedere Task 3 del
+  piano, che include già il codice esatto della classe e il refactor dell'importer.
+---
