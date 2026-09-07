@@ -290,3 +290,31 @@ Started: Lun  7 Set 2026 15:44:39 CEST
   nel Task 11 del piano, `composer run analyse`/`composer run lint` sull'intero repo (non solo i file
   toccati) e investigare root cause di qualunque regressione prima di correggerla.
 ---
+
+## [2026-09-07] - US-911
+- Checkpoint di fine storia (Fase 9, storia 1): eseguita l'intera batteria di test del Task 11 del piano
+  (11 file: le 9 nuove suite US-901..910 + tests/Feature/Filament/CaiDirectory/CaiSectionResourceTest.php +
+  la suite pre-esistente di Fase 8 tests/Feature/Console/CaiImportDatapackCommandTest.php), tutti insieme
+  nello stesso processo `vendor/bin/pest`, con l'isolamento env già stabilito (`docker compose exec -T app
+  env -u DB_CONNECTION -u DB_DATABASE -u DB_HOST -u DB_PORT -u DB_USERNAME -u DB_PASSWORD php -d
+  memory_limit=512M vendor/bin/pest ...`).
+- Esito: 83 passed / 1 skipped (316 assertion), lo skip è quello già documentato in US-910 (costo in
+  secondi reali del retry con `sleep()` di `CaiApiClient`, non una regressione). `CaiImportDatapackCommandTest.php`
+  (suite Fase 8, refactorata solo indirettamente da US-903) passa con gli stessi 6 test/67 assertion di
+  prima di questo PRD — nessuna regressione sul refactor di `CaiDatapackImporter`.
+- `composer run analyse` (Larastan livello 6, `--memory-limit=1G`, intero repo — 462 file): `[OK] No
+  errors`. `composer run lint -- --test` (Pint, intero repo — 812 file): `PASS`, nessuna modifica
+  richiesta.
+- Nessuna regressione trovata in nessuno dei tre step: nessun fix da applicare, quindi nessun commit
+  "fix: Fase 9 storia 1.11 - correzioni emerse dalla verifica di regressione end-to-end" (Step 5 del Task 11
+  è esplicitamente condizionato a "only if Step 4 produced changes").
+- File: nessuna modifica al codice applicativo/test in questa story (solo verifica), `prd.json` (US-911 →
+  `passes: true`), `progress.txt`.
+- **Learnings**: il checkpoint di fine storia di Fase 9/Storia 1 conferma che tutte le 10 story precedenti
+  (US-901..910) sono state implementate senza introdurre alcuna regressione misurabile sul percorso
+  CAI/RUNTS di Fase 8 (US-801..808), né sul lint/analyse dell'intero repo. Tutte le user stories di questo
+  PRD (`Fase 9, Storia 1: Scraper CAI nativo PHP`) risultano ora `passes: true` — il PRD è completo. Le
+  Storie 2-5 del design doc (servizio Python `cai-runts-scraper`, wiring RUNTS, refresh nazionale RUNTS,
+  deploy UAT) restano esplicitamente fuori scope di questo PRD, da pianificare in un ciclo ralph separato
+  in futuro (vedi campo `description` di `prd.json`).
+---

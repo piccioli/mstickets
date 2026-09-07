@@ -181,8 +181,8 @@
         "Tests pass"
       ],
       "priority": 11,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Nessuna regressione trovata: i 10 file di test elencati nel Task 11 (83 test, 1 skip atteso per il costo in secondi reali del retry di CaiApiClient) passano tutti insieme, incluso tests/Feature/Console/CaiImportDatapackCommandTest.php (suite Fase 8, invariata). composer run analyse (Larastan livello 6, 462 file) e composer run lint --test (Pint, 812 file) puliti senza modifiche. Nessun commit di fix necessario (Step 5 del Task 11 condizionale, non applicabile)."
     }
   ]
 }
