@@ -135,3 +135,39 @@ Started: Lun  7 Set 2026 15:44:39 CEST
   sottosezioni, con spostamento del test helper `caiSection()` in `tests/Pest.php`) — vedere Task 6 del
   piano, che include già il codice esatto dell'Action e dei test.
 ---
+
+## [2026-09-07] - US-906
+- Creata `App\Domain\CaiDirectory\Actions\SyncCaiSectionAndSubsections` (`run(object
+  $normalizedSectionRow, bool $dryRun = false): array{cai_sections: CaiImportTableResult, cai_subsections:
+  CaiImportTableResult}`), seguendo alla lettera il codice del Task 6 del piano: usa
+  `CaiSectionFieldMapper` (US-903) per il mapping, `DiffsAttributes::attributesDiffer()` per i contatori
+  created/updated/skipped sui soli campi di business (mai `cai_last_synced_at`), e valorizza sempre
+  `cai_last_synced_at = now()` fuori da dry-run indipendentemente dal fatto che qualcosa sia cambiato.
+  Sottosezioni recuperate via `CaiApiClient::fetchSubsections()` (US-905) e sincronizzate con lo stesso
+  schema create/update/skip.
+- Spostato il test helper `caiSection()` da `tests/Feature/Filament/CaiDirectory/CaiSectionResourceTest.php`
+  a `tests/Pest.php` (terzo call site: questa story + le future Task 7/10), rimossa la dichiarazione locale
+  duplicata e l'import ormai inutilizzato di `CaiSection` in quel file (non più referenziato una volta tolta
+  la funzione locale).
+- Nuovo test `tests/Feature/Domain/CaiDirectory/Actions/SyncCaiSectionAndSubsectionsTest.php` (6 test,
+  copiato alla lettera dal piano): create, update con bump timestamp, skip con comunque bump timestamp,
+  creazione sottosezioni, dry-run senza scritture, match utente per email case-insensitive.
+- File: `app/Domain/CaiDirectory/Actions/SyncCaiSectionAndSubsections.php` (nuovo), `tests/Pest.php`,
+  `tests/Feature/Filament/CaiDirectory/CaiSectionResourceTest.php`,
+  `tests/Feature/Domain/CaiDirectory/Actions/SyncCaiSectionAndSubsectionsTest.php` (nuovo).
+- **Divergenza dal piano, annotata in `notes` della story**: il piano indicava di inserire l'import `use
+  App\Domain\CaiDirectory\Models\CaiSection;` in `tests/Pest.php` subito dopo `use
+  App\Domain\Identity\Models\User;` (non alfabetico a livello di `Domain\`) — `pint --test` ha segnalato
+  `ordered_imports` con quella posizione letterale. Fix: spostato prima di `Identity\...` (ordine alfabetico
+  reale), come già rispettato dal resto del file.
+- Verificato: TDD rispettato (test fallito su classe mancante prima di creare l'implementazione: 6/6 rossi
+  con `BindingResolutionException`), poi 6/6 verdi (19 assertion); `CaiSectionResourceTest.php` resta verde
+  e invariato (19/19, 70 assertion, helper ora risolto da `tests/Pest.php`); l'intera suite `--filter=Cai`
+  (102 test, 96 pre-esistenti + 6 nuovi) resta verde; `pint --test` (808 file, dopo il fix sopra) e `phpstan
+  analyse --memory-limit=1G` (460 file, intero progetto) puliti.
+- **Learnings**: quando un piano indica una posizione di inserimento letterale per un `use` che non rispetta
+  l'ordine alfabetico reale del namespace, verificare comunque con `pint --test` prima di committare — la
+  regola `ordered_imports` del preset Laravel è più severa della semplice vicinanza logica suggerita dal
+  testo del piano. Prossima story (US-907) crea `ScrapeCaiSection` (sincronizzazione di una sola sezione,
+  isolata dall'elenco nazionale, per il bottone dashboard) — vedere Task 7 del piano.
+---

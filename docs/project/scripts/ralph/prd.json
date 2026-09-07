@@ -98,8 +98,8 @@
         "Tests pass"
       ],
       "priority": 6,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Nessuna divergenza applicativa dal piano (codice dell'Action copiato alla lettera). Unica divergenza minore: l'import `use App\\Domain\\CaiDirectory\\Models\\CaiSection;` in tests/Pest.php doveva rispettare la regola Pint `ordered_imports` (alfabetico, non nella posizione letterale suggerita dal piano subito dopo `Identity\\Models\\User`) — spostato prima di `Identity\\...`. Rimosso anche l'import ormai inutilizzato di `CaiSection` in CaiSectionResourceTest.php dopo aver tolto la funzione locale duplicata."
     },
     {
       "id": "US-907",

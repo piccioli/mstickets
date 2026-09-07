@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\CaiDirectory\Models\CaiSection;
 use App\Domain\Identity\Enums\Permission as PermissionEnum;
 use App\Domain\Identity\Enums\UserRole;
 use App\Domain\Identity\Models\User;
@@ -403,4 +404,23 @@ function makeCaiDatapackFixture(): array
     unset($pdo);
 
     return ['sqlitePath' => $sqlitePath, 'datapackDir' => $datapackDir];
+}
+
+/**
+ * Crea una `CaiSection` di test con un `codice_cai` univoco (sequenza incrementale),
+ * spostato qui da `CaiSectionResourceTest.php` (US-804) quando è servito anche ai test
+ * dello scraper live (Fase 9).
+ *
+ * @param  array<string, mixed>  $attributes
+ */
+function caiSection(array $attributes = []): CaiSection
+{
+    static $sequence = 0;
+    $sequence++;
+
+    return CaiSection::create(array_merge([
+        'codice_cai' => 'CAI-'.$sequence,
+        'name' => 'Sezione CAI '.$sequence,
+        'region' => 'LOMBARDIA',
+    ], $attributes))->fresh();
 }

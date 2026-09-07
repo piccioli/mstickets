@@ -5,7 +5,6 @@ declare(strict_types=1);
 use App\Domain\CaiDirectory\Models\CaiDocument;
 use App\Domain\CaiDirectory\Models\CaiFinancialStatement;
 use App\Domain\CaiDirectory\Models\CaiRuntsRegistration;
-use App\Domain\CaiDirectory\Models\CaiSection;
 use App\Domain\CaiDirectory\Models\CaiSubsection;
 use App\Domain\Identity\Enums\CustomerType;
 use App\Domain\Identity\Enums\Permission as PermissionEnum;
@@ -39,21 +38,6 @@ function grantCaiDirectoryPanelAccess(User $user): User
     $user->assignRole(UserRole::Developer->value);
 
     return $user->fresh();
-}
-
-/**
- * @param  array<string, mixed>  $attributes
- */
-function caiSection(array $attributes = []): CaiSection
-{
-    static $sequence = 0;
-    $sequence++;
-
-    return CaiSection::create(array_merge([
-        'codice_cai' => 'CAI-'.$sequence,
-        'name' => 'Sezione CAI '.$sequence,
-        'region' => 'LOMBARDIA',
-    ], $attributes))->fresh();
 }
 
 test('a user without cai-directory.view is denied access to the list and detail pages', function (): void {
