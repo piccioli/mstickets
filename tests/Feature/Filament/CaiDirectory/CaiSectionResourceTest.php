@@ -477,3 +477,20 @@ test('the documents tab lists attachments from most recent to oldest year', func
     expect(strpos($html, 'Bilancio 2024'))->toBeLessThan(strpos($html, 'Bilancio 2023'))
         ->and(strpos($html, 'Bilancio 2023'))->toBeLessThan(strpos($html, 'Bilancio 2022'));
 });
+
+test('the section detail page shows the last live-sync timestamp, or a "never synced" placeholder', function (): void {
+    $user = grantCaiDirectoryPanelAccess(userWithPermissions(PermissionEnum::CaiDirectoryView));
+
+    $syncedSection = caiSection(['cai_last_synced_at' => now()]);
+    $neverSyncedSection = caiSection(['cai_last_synced_at' => null]);
+
+    $this->actingAs($user);
+
+    Livewire::test(ViewCaiSection::class, ['record' => $syncedSection->getKey()])
+        ->assertOk()
+        ->assertSeeText(now()->format('d/m/Y'));
+
+    Livewire::test(ViewCaiSection::class, ['record' => $neverSyncedSection->getKey()])
+        ->assertOk()
+        ->assertSeeText('Mai sincronizzato dal vivo');
+});

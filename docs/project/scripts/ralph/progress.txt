@@ -229,3 +229,35 @@ Started: Lun  7 Set 2026 15:44:39 CEST
   Prossima story (US-909) mostra `cai_last_synced_at` in `CaiSectionInfolist` (componente condiviso da
   staff/dashboard cliente/dettaglio Gruppo Regionale) — vedere Task 9 del piano.
 ---
+
+## [2026-09-07] - US-909
+- `app/Filament/Resources/CaiSections/Schemas/CaiSectionInfolist.php` mostra ora `cai_last_synced_at` sia
+  nella sezione "Dati CAI" principale (`TextEntry` in `caiDataSection()`, prima di `user.name`) sia per
+  ciascuna sottosezione elencata in `subsectionsSection()` (nuova colonna, `->columns(4)` → `->columns(5)`),
+  con `->dateTime('d/m/Y H:i')->placeholder('Mai sincronizzato dal vivo')` su entrambe, seguendo alla
+  lettera il codice del Task 9 del piano. Nessuna modifica alla firma pubblica `configure(Schema $schema):
+  Schema` — componente condiviso, copre automaticamente staff/dashboard cliente Sezione/dettaglio Gruppo
+  Regionale.
+- Aggiunto un test a `tests/Feature/Filament/CaiDirectory/CaiSectionResourceTest.php` (copiato dal piano,
+  con un solo adattamento di pattern: `$this->actingAs($user)` + `Livewire::test(ViewCaiSection::class,
+  ['record' => $section->getKey()])` invece di `Livewire::actingAs($user)->test(...,
+  ['record' => $section->getRouteKey()])` suggerito dal piano — il file usa sistematicamente il primo
+  pattern per ogni test esistente, mai il secondo).
+- File: `app/Filament/Resources/CaiSections/Schemas/CaiSectionInfolist.php`,
+  `tests/Feature/Filament/CaiDirectory/CaiSectionResourceTest.php`.
+- **Divergenza dal piano, annotata in `notes` della story**: nessuna divergenza applicativa (il markup
+  copiato alla lettera). L'unico adattamento è di pattern di test (sopra), esplicitamente previsto dal
+  piano stesso ("if `Livewire::actingAs($user)` is not the pattern used... match whatever pattern the file
+  already uses").
+- Verificato: TDD rispettato (test fallito prima dell'implementazione: `assertSeeText` non trovava
+  "07/09/2026" da nessuna parte, 1 failed/2 assertion), poi 20/20 verdi nel file (74 assertion, incluso il
+  nuovo test); l'intera suite `--filter=Cai` (106 test, 105 pre-esistenti + 1 nuovo) resta verde; `pint
+  --test` (810 file) e `phpstan analyse --memory-limit=1G` (461 file, intero progetto) puliti.
+- **Learnings**: nessuna sorpresa, il piano combacia esattamente con lo stato reale del codice per questo
+  Task, incluso l'avvertimento esplicito su come gestire eventuali divergenze di pattern di test. Prossima
+  story (US-910) crea il comando schedulato `cai:sync-national` dietro feature flag
+  (`config('orchestrator.features.cai_sync_national')`), riusando `SyncCaiSectionAndSubsections` in loop
+  sull'intero elenco nazionale — vedere Task 10 del piano, che include già le chiavi config
+  (`cai_directory.sync_national.schedule_cron`, `ENABLE_CAI_SYNC_NATIONAL`), il codice del comando e i test
+  (uno dei tre marcato `->skip()` per costo tempo reale dei retry con `sleep()`, motivato nel piano stesso).
+---

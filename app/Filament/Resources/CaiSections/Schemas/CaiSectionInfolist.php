@@ -87,6 +87,11 @@ class CaiSectionInfolist
                     ->placeholder('—')
                     ->html()
                     ->formatStateUsing(fn (?string $state): ?string => $state === null ? null : CaiRichTextSanitizer::sanitize(trim($state))),
+                TextEntry::make('cai_last_synced_at')
+                    ->label('Ultimo aggiornamento dal sito CAI')
+                    ->columnSpanFull()
+                    ->dateTime('d/m/Y H:i')
+                    ->placeholder('Mai sincronizzato dal vivo'),
                 TextEntry::make('user.name')->label('Utente collegato')->placeholder('Nessuno'),
             ]);
     }
@@ -225,9 +230,13 @@ class CaiSectionInfolist
                         TextEntry::make('name')->label('Denominazione'),
                         TextEntry::make('email')->label('Email')->placeholder('—'),
                         TextEntry::make('phone')->label('Telefono')->placeholder('—'),
+                        TextEntry::make('cai_last_synced_at')
+                            ->label('Ultimo aggiornamento')
+                            ->dateTime('d/m/Y H:i')
+                            ->placeholder('Mai sincronizzato dal vivo'),
                         TextEntry::make('user.name')->label('Utente collegato')->placeholder('Nessuno'),
                     ])
-                    ->columns(4)
+                    ->columns(5)
                     ->placeholder('Nessuna sottosezione collegata'),
             ]);
     }
