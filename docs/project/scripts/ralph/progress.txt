@@ -104,3 +104,34 @@ Started: Lun  7 Set 2026 15:44:39 CEST
   retry alla facade `Http::` di Laravel, prima introduzione in questo repo) — vedere Task 5 del piano, che
   include già le chiavi config da aggiungere e lo schema di retry con backoff esponenziale.
 ---
+
+## [2026-09-07] - US-905
+- Creata `App\Domain\CaiDirectory\Support\CaiApiClient` (`fetchNationalSections()`/`fetchSubsections(string
+  $sectionCode)`, prima introduzione della facade `Http::` in questo repo) con retry a backoff esponenziale
+  (3 tentativi, `sleep(2**attempt)` fra un tentativo e l'altro) su `ConnectionException`/`RequestException`,
+  seguendo alla lettera il codice del Task 5 del piano. Aggiunta chiave `'api'` a `config/cai_directory.php`
+  (`sections_list_url`/`subsections_list_url_template`/`timeout_seconds`) e le tre `CAI_API_*` a `.env.example`.
+- Nuovo test `tests/Feature/Domain/CaiDirectory/Support/CaiApiClientTest.php` (4 test, copiato alla lettera
+  dal piano): successo elenco nazionale, successo sottosezioni, retry-poi-fallimento definitivo dopo 3
+  tentativi (`Http::assertSentCount(3)`), retry-poi-successo (`Http::fakeSequence()`).
+- File: `app/Domain/CaiDirectory/Support/CaiApiClient.php` (nuovo), `config/cai_directory.php`, `.env.example`,
+  `tests/Feature/Domain/CaiDirectory/Support/CaiApiClientTest.php` (nuovo).
+- **Divergenza dal piano, annotata in `notes` della story**: il codice suggerito costruiva `previous:
+  $lastException instanceof Throwable ? $lastException : null` prima di passarlo a `RuntimeException` —
+  Larastan livello 6 segnala `instanceof.alwaysTrue` (sia `ConnectionException` sia `RequestException`
+  implementano già `Throwable`, il check è sempre vero). Fix: passato `$lastException` direttamente
+  (`ConnectionException|RequestException|null`, già compatibile con `?Throwable`), rimosso l'import
+  inutilizzato di `Throwable`.
+- Verificato: TDD rispettato (test fallito su classe mancante prima di creare l'implementazione: 4/4 rossi
+  con `BindingResolutionException`), poi 4/4 verdi (7 assertion, il test di retry-poi-fallimento impiega
+  ~6s reali per via degli `sleep()`, atteso non un hang); l'intera suite `--filter=Cai` (96 test, 92
+  pre-esistenti + 4 nuovi) resta verde; `pint --test` (3 file toccati) e `phpstan analyse
+  --memory-limit=1G` (459 file, intero progetto) puliti dopo il fix sopra.
+- **Learnings**: un codice di piano copiato alla lettera può comunque introdurre un errore Larastan non
+  visibile finché non si esegue `composer run analyse` per davvero — verificarlo sempre anche quando il
+  piano sembra già "verificato contro il codice reale del repo" (qui l'errore non dipendeva dallo stato del
+  repo, ma da un pattern di codice ridondante rispetto ai tipi già garantiti dalla firma del catch). Prossima
+  story (US-906) crea `SyncCaiSectionAndSubsections` (sincronizzazione live condivisa di UNA sezione+sue
+  sottosezioni, con spostamento del test helper `caiSection()` in `tests/Pest.php`) — vedere Task 6 del
+  piano, che include già il codice esatto dell'Action e dei test.
+---

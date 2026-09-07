@@ -80,8 +80,8 @@
         "Tests pass"
       ],
       "priority": 5,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Divergenza dal piano: il codice suggerito faceva `$lastException instanceof Throwable ? $lastException : null` prima di passarlo come `previous` a RuntimeException — Larastan (livello 6) segnala `instanceof.alwaysTrue` perché sia ConnectionException sia RequestException implementano già Throwable, quindi il check è sempre vero. Adattamento: passato `$lastException` direttamente (già `ConnectionException|RequestException|null`, compatibile con `?Throwable`), rimosso l'import inutilizzato di Throwable. Nessun'altra divergenza."
     },
     {
       "id": "US-906",
