@@ -3,10 +3,14 @@
 declare(strict_types=1);
 
 use App\Domain\CaiDirectory\Actions\SyncCaiRuntsRegistration;
+use App\Domain\CaiDirectory\Jobs\AnalyzeCaiFinancialStatementDocument;
 use App\Domain\CaiDirectory\Models\CaiBoardMember;
+use App\Domain\CaiDirectory\Models\CaiDocument;
 use App\Domain\CaiDirectory\Models\CaiRuntsRegistration;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 
 uses(RefreshDatabase::class);
 
@@ -87,4 +91,72 @@ test('run updates an existing CaiRuntsRegistration and always bumps runts_last_s
     $registration = $existing->fresh();
     expect($registration->name)->toBe('Sezione di Como');
     expect($registration->runts_last_synced_at)->not->toBeNull();
+});
+
+test('run downloads and stores a new document, and dispatches analysis only for bilancio_esercizio', function (): void {
+    Storage::fake('cai-documents');
+    Queue::fake();
+
+    $section = caiSection(['tax_code' => '01234567890']);
+    fakeRuntsEntityFound('01234567890', [
+        'documents' => [
+            [
+                'documento' => 'Bilancio di esercizio 2024', 'codice_pratica' => 'B00',
+                'tipo' => 'bilancio_esercizio', 'anno' => 2024, 'filename' => 'B00_2024.pdf',
+                'mime' => 'application/pdf', 'size' => 33, 'hash_sha256' => 'abc123',
+                'skip_reason' => null, 'content_base64' => base64_encode('%PDF-1.4 fixture bilancio'),
+            ],
+            [
+                'documento' => 'Statuto', 'codice_pratica' => 'C02', 'tipo' => 'statuto',
+                'anno' => null, 'filename' => 'C02_statuto.pdf', 'mime' => 'application/pdf',
+                'size' => 10, 'hash_sha256' => 'def456', 'skip_reason' => null,
+                'content_base64' => base64_encode('%PDF-1.4 statuto'),
+            ],
+            [
+                'documento' => 'Non scaricato', 'codice_pratica' => 'D00', 'tipo' => 'altro',
+                'anno' => null, 'filename' => null, 'mime' => null, 'size' => null,
+                'hash_sha256' => null, 'skip_reason' => 'no_button', 'content_base64' => null,
+            ],
+        ],
+    ]);
+
+    $result = app(SyncCaiRuntsRegistration::class)->run($section);
+
+    expect(CaiDocument::query()->count())->toBe(2);
+    expect(Storage::disk('cai-documents')->get('12345/B00_2024.pdf'))->toBe('%PDF-1.4 fixture bilancio');
+
+    $bilancio = CaiDocument::query()->where('file_name', 'B00_2024.pdf')->sole();
+    expect($bilancio->title)->toBe('Bilancio di esercizio 2024');
+    expect($bilancio->year)->toBe(2024);
+
+    expect($result->queuedAnalysisCount)->toBe(1);
+    Queue::assertPushed(
+        AnalyzeCaiFinancialStatementDocument::class,
+        fn ($job): bool => $job->caiDocumentId === $bilancio->id,
+    );
+});
+
+test('run does not re-download or re-queue a document that already exists', function (): void {
+    Storage::fake('cai-documents');
+    Queue::fake();
+
+    $section = caiSection(['tax_code' => '01234567890']);
+    $registration = caiRuntsRegistration(['id_runts' => '12345', 'cai_section_id' => $section->codice_cai]);
+    caiDocument(['cai_runts_registration_id' => $registration->id_runts, 'file_name' => 'B00_2024.pdf', 'document_type' => 'bilancio_esercizio']);
+
+    fakeRuntsEntityFound('01234567890', [
+        'documents' => [
+            [
+                'documento' => 'Bilancio di esercizio 2024', 'codice_pratica' => 'B00',
+                'tipo' => 'bilancio_esercizio', 'anno' => 2024, 'filename' => 'B00_2024.pdf',
+                'mime' => 'application/pdf', 'size' => 33, 'hash_sha256' => 'abc123',
+                'skip_reason' => null, 'content_base64' => base64_encode('%PDF-1.4 fixture bilancio'),
+            ],
+        ],
+    ]);
+
+    app(SyncCaiRuntsRegistration::class)->run($section);
+
+    expect(CaiDocument::query()->count())->toBe(1);
+    Queue::assertNothingPushed();
 });
