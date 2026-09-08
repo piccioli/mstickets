@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\CaiDirectory\Models\CaiRuntsRegistration;
 use App\Domain\CaiDirectory\Models\CaiSection;
 use App\Domain\Identity\Enums\Permission as PermissionEnum;
 use App\Domain\Identity\Enums\UserRole;
@@ -422,5 +423,26 @@ function caiSection(array $attributes = []): CaiSection
         'codice_cai' => 'CAI-'.$sequence,
         'name' => 'Sezione CAI '.$sequence,
         'region' => 'LOMBARDIA',
+    ], $attributes))->fresh();
+}
+
+/**
+ * Crea una `CaiRuntsRegistration` di test con un `id_runts` univoco (sequenza incrementale), collegata a una
+ * `CaiSection` fresca se `cai_section_id` non è passato esplicitamente.
+ *
+ * @param  array<string, mixed>  $attributes
+ */
+function caiRuntsRegistration(array $attributes = []): CaiRuntsRegistration
+{
+    static $sequence = 0;
+    $sequence++;
+
+    if (! array_key_exists('cai_section_id', $attributes)) {
+        $attributes['cai_section_id'] = caiSection()->codice_cai;
+    }
+
+    return CaiRuntsRegistration::create(array_merge([
+        'id_runts' => 'RUNTS-'.$sequence,
+        'name' => 'Ente RUNTS '.$sequence,
     ], $attributes))->fresh();
 }
