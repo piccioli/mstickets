@@ -537,3 +537,24 @@ Started: Lun  7 Set 2026 15:44:39 CEST
   Prossima story (US-919, Storia 3 lato PHP) inizia la migrazione `runts_last_synced_at` — vedere Task 1 del
   piano `docs/superpowers/plans/2026-09-08-cai-runts-orchestrator-wiring.md`.
 ---
+
+## [2026-09-08] - US-919
+- Migrazione additiva `runts_last_synced_at` (timestamp nullable) su `cai_runts_registrations`, seguendo
+  alla lettera Task 1 del piano `docs/superpowers/plans/2026-09-08-cai-runts-orchestrator-wiring.md`.
+  Aggiunta a `#[Fillable([...])]` e a `casts()` (`'datetime'`) di `CaiRuntsRegistration` — senza questo la
+  colonna verrebbe scartata silenziosamente dal mass-assignment (gotcha già noto in questo repo, US-703).
+- Nuovo test `tests/Feature/Database/CaiRuntsRegistrationLastSyncedAtTest.php` (1 test, copiato alla lettera
+  dal piano): verifica esistenza colonna + mass-assignment + cast Carbon.
+- File: `database/migrations/2026_09_08_100000_add_runts_last_synced_at_to_cai_runts_registrations_table.php`
+  (nuovo), `app/Domain/CaiDirectory/Models/CaiRuntsRegistration.php`,
+  `tests/Feature/Database/CaiRuntsRegistrationLastSyncedAtTest.php` (nuovo).
+- Verificato: nuovo test 1/1 verde, `tests/Feature/Console/CaiImportDatapackCommandTest.php` resta verde
+  con gli stessi 6 test/67 assertion di prima (nessuna regressione), `pint --test` (3 file) e
+  `phpstan analyse --memory-limit=1G` (463 file, intero progetto) puliti.
+- **Learnings**: nessuna sorpresa, il piano combacia esattamente con lo stato reale del codice per questo
+  Task — nessuna divergenza da annotare. Prossima story (US-920) estrae
+  `CaiRuntsRegistrationFieldMapper` (mapRegistration/mapBoardMember) da `CaiDatapackImporter`, con `lat`/`lon`
+  letti con `?? null` (assenti sulla fonte live) — vedere Task 2 del piano, verificare con `grep` se i metodi
+  da spostare sono usati anche da altri call site non citati esplicitamente dal piano (stesso gotcha già
+  incontrato in US-903 con `toInt()`).
+---

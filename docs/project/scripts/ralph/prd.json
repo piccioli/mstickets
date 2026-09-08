@@ -116,8 +116,8 @@
         "Tests pass"
       ],
       "priority": 8,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Nessuna divergenza dal piano. Migrazione additiva + Fillable/casts aggiornati alla lettera dal Task 1. Test nuovo 1/1 verde, suite pre-esistente CaiImportDatapackCommandTest 6/6 invariata, pint/phpstan puliti."
     },
     {
       "id": "US-920",
