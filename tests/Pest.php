@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\CaiDirectory\Models\CaiDocument;
 use App\Domain\CaiDirectory\Models\CaiRuntsRegistration;
 use App\Domain\CaiDirectory\Models\CaiSection;
 use App\Domain\Identity\Enums\Permission as PermissionEnum;
@@ -444,5 +445,33 @@ function caiRuntsRegistration(array $attributes = []): CaiRuntsRegistration
     return CaiRuntsRegistration::create(array_merge([
         'id_runts' => 'RUNTS-'.$sequence,
         'name' => 'Ente RUNTS '.$sequence,
+    ], $attributes))->fresh();
+}
+
+/**
+ * Crea un `CaiDocument` di test collegato a una `CaiRuntsRegistration` fresca se `cai_runts_registration_id`
+ * non è passato esplicitamente. Il file su `Storage::disk('cai-documents')` NON viene scritto qui: i test
+ * che ne hanno bisogno lo fanno esplicitamente con `Storage::fake('cai-documents')` + `Storage::disk(...)->put(...)`.
+ *
+ * @param  array<string, mixed>  $attributes
+ */
+function caiDocument(array $attributes = []): CaiDocument
+{
+    static $sequence = 0;
+    $sequence++;
+
+    if (! array_key_exists('cai_runts_registration_id', $attributes)) {
+        $attributes['cai_runts_registration_id'] = caiRuntsRegistration()->id_runts;
+    }
+
+    return CaiDocument::create(array_merge([
+        'document_type' => 'bilancio_esercizio',
+        'year' => 2024,
+        'title' => 'Bilancio di esercizio 2024',
+        'file_path' => 'test/bilancio-'.$sequence.'.pdf',
+        'file_name' => 'bilancio-'.$sequence.'.pdf',
+        'mime_type' => 'application/pdf',
+        'size' => 100,
+        'hash' => 'hash-'.$sequence,
     ], $attributes))->fresh();
 }

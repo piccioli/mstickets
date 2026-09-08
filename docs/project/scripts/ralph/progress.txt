@@ -701,3 +701,45 @@ Started: Lun  7 Set 2026 15:44:39 CEST
   `(cai_runts_registration_id, year)`. Richiede anche `docker compose restart queue` + verifica log Horizon
   come AC esplicito, non solo test automatici.
 ---
+
+## [2026-09-08] - US-924
+- Creato `App\Domain\CaiDirectory\Jobs\AnalyzeCaiFinancialStatementDocument implements ShouldQueue`
+  (costruttore con SOLO `int $caiDocumentId`, mai il modello serializzato — stesso pattern di
+  `GenerateDocumentationPagePdfJob`), seguendo alla lettera Task 6 del piano
+  `docs/superpowers/plans/2026-09-08-cai-runts-orchestrator-wiring.md`. `handle(CaiRuntsScraperClient $client)`:
+  ri-legge il `CaiDocument` (no-op se `find()` restituisce `null`), scarica il PDF da
+  `Storage::disk('cai-documents')` (no-op se il file manca), chiama `analyzeBilancio()`, mappa la risposta
+  con `CaiFinancialStatementFieldMapper::mapFinancialStatement()` (US-921) e fa upsert (create/update) di
+  `CaiFinancialStatement` per `(cai_runts_registration_id, year)`.
+- Aggiunto l'helper `caiDocument()` a `tests/Pest.php` (dopo `caiRuntsRegistration()`, stesso stile:
+  sequenza incrementale, `cai_runts_registration_id` da una `caiRuntsRegistration()` fresca se non passato
+  esplicitamente; il file su `Storage::disk('cai-documents')` non viene scritto dall'helper stesso) +
+  `use App\Domain\CaiDirectory\Models\CaiDocument;` in cima al file.
+- Nuovo test `tests/Feature/Domain/CaiDirectory/Jobs/AnalyzeCaiFinancialStatementDocumentTest.php` (3 test,
+  copiato alla lettera dal piano): creazione di un `CaiFinancialStatement` nuovo, update di uno esistente per
+  la stessa `(registration, year)`, no-op quando il `CaiDocument` non esiste più (`Http::assertNothingSent()`).
+- Aggiunto un nuovo supervisor Horizon dedicato `cai-runts-analysis` in `config/horizon.php`
+  (`'defaults'`, `queue => ['cai-runts-analysis']`, `balance => 'simple'`, `maxProcesses => 2`,
+  `tries => 3`, `timeout => 120`) — prima coda dedicata (non `default`) di questo repo, per non far
+  competere l'estrazione PDF di bilancio con la posta/generazione PDF report attività. Nessuna modifica a
+  `'environments'`: Horizon fonde gli override per-ambiente sui supervisor già in `defaults`, non serve
+  elencare `cai-runts-analysis` anche lì per farlo girare in ogni ambiente.
+- File: `app/Domain/CaiDirectory/Jobs/AnalyzeCaiFinancialStatementDocument.php` (nuovo),
+  `config/horizon.php`, `tests/Pest.php`,
+  `tests/Feature/Domain/CaiDirectory/Jobs/AnalyzeCaiFinancialStatementDocumentTest.php` (nuovo).
+- Verificato: nuovo test 3/3 verde (5 assertion); l'intera suite `--filter=Cai` (124 test totali,
+  120→123 passed + 1 skipped, +3 come atteso, nessuna regressione sui conteggi esistenti); la suite
+  pre-esistente `tests/Feature/Console/CaiImportDatapackCommandTest.php` resta identica (6 test/67
+  assertion); `pint --test` (825 file, dopo aver lasciato applicare il fixer `fully_qualified_strict_types`/
+  `ordered_imports` sul nuovo file di test — stesso gotcha innocuo già noto da US-920/US-923) e
+  `phpstan analyse --memory-limit=1G` (469 file, intero progetto) puliti. `docker compose restart queue` +
+  `docker compose logs --tail=40 queue` mostra "Horizon started successfully."; `php artisan horizon:list`
+  conferma che il nuovo master gira entrambi i supervisor (`supervisor-1, cai-runts-analysis`) senza errori
+  (verificato che il vecchio master sparisce da solo dopo qualche secondo, sostituito dal nuovo).
+- **Learnings**: nessuna sorpresa, il piano combacia esattamente con lo stato reale del codice per questo
+  Task (nessuna divergenza da annotare). Prossima story (US-925) estende `SyncCaiRuntsRegistration` con
+  `syncDocuments()` — vedere Task 7 del piano: dedup per `(cai_runts_registration_id, filename)`, decodifica
+  base64 + salvataggio su disco `cai-documents` + creazione `CaiDocument` per ogni documento nuovo con
+  `skip_reason` nullo, dispatch di `AnalyzeCaiFinancialStatementDocument::dispatch($document->id)
+  ->onQueue('cai-runts-analysis')` SOLO per i documenti nuovi con `document_type === 'bilancio_esercizio'`.
+---

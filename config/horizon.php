@@ -210,6 +210,22 @@ return [
             'timeout' => 60,
             'nice' => 0,
         ],
+
+        // Fase 9, storia 3: prima coda dedicata del repo (mai 'default'), per non far competere
+        // l'estrazione PDF di bilancio con la posta/generazione PDF dei report attività. Timeout più ampio
+        // del default: l'estrazione testo/regex su un PDF multi-pagina è più lenta di un job tipico.
+        'cai-runts-analysis' => [
+            'connection' => 'redis',
+            'queue' => ['cai-runts-analysis'],
+            'balance' => 'simple',
+            'maxProcesses' => 2,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 128,
+            'tries' => 3,
+            'timeout' => 120,
+            'nice' => 0,
+        ],
     ],
 
     'environments' => [

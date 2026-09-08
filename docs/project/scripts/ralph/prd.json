@@ -193,8 +193,8 @@
         "Tests pass (Http::fake, Storage::fake('cai-documents'))"
       ],
       "priority": 13,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Nessuna divergenza dal piano. Job `AnalyzeCaiFinancialStatementDocument implements ShouldQueue` (costruttore con solo `int $caiDocumentId`, `handle(CaiRuntsScraperClient $client)` ri-legge il `CaiDocument`, scarica il PDF da `Storage::disk('cai-documents')`, chiama `analyzeBilancio()`, mappa con `CaiFinancialStatementFieldMapper` (US-921) e fa upsert su `CaiFinancialStatement` per `(cai_runts_registration_id, year)`), no-op silenzioso se il documento non esiste più o il file non è sul disco. Aggiunto helper `caiDocument()` a `tests/Pest.php`. Nuovo supervisor Horizon dedicato `cai-runts-analysis` in `config/horizon.php` (`defaults`, queue `['cai-runts-analysis']`, timeout 120, tries 3) — prima coda dedicata (non default) del repo. Verificato con `docker compose restart queue` + `docker compose logs queue` (\"Horizon started successfully\") + `php artisan horizon:list` che il nuovo master gira entrambi i supervisor (`supervisor-1, cai-runts-analysis`) senza errori."
     },
     {
       "id": "US-925",
