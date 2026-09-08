@@ -272,28 +272,7 @@ final class CaiDatapackImporter
                 continue;
             }
 
-            $attributes = [
-                'cai_section_id' => $sectionCode,
-                'tax_code' => $row->codice_fiscale,
-                'name' => $row->denominazione,
-                'legal_form' => $row->forma_giuridica,
-                'legal_nature' => $row->natura_giuridica,
-                'address' => $row->sede_indirizzo,
-                'street_number' => $row->sede_civico,
-                'municipality' => $row->sede_comune,
-                'province' => $row->sede_provincia,
-                'region' => $row->sede_regione,
-                'postal_code' => $row->sede_cap,
-                'latitude' => $row->lat,
-                'longitude' => $row->lon,
-                'registration_date' => CaiRuntsDateParser::parse($row->data_iscrizione),
-                'register_section' => $row->sezione_registro,
-                'activity_sectors' => $row->settori_attivita,
-                'legal_representative' => $row->rappresentante_legale,
-                'website' => $row->sito_web,
-                'pec' => $row->pec,
-                'official_page_url' => $row->url_dettaglio,
-            ];
+            $attributes = CaiRuntsRegistrationFieldMapper::mapRegistration($row, $sectionCode);
 
             $existing = CaiRuntsRegistration::find((string) $row->id_runts);
 
@@ -412,36 +391,20 @@ final class CaiDatapackImporter
                 continue;
             }
 
-            $fullName = trim(implode(' ', array_filter(
-                [$row->nome, $row->cognome],
-                fn (mixed $part): bool => $part !== null && trim((string) $part) !== '',
-            )));
-            $fullName = $fullName === '' ? null : $fullName;
-
-            $validFrom = CaiRuntsDateParser::parse($row->valid_from);
-            $validTo = CaiRuntsDateParser::parse($row->valid_to);
-
-            $attributes = [
-                'cai_runts_registration_id' => $row->id_runts,
-                'role' => $row->ruolo,
-                'full_name' => $fullName,
-                'tax_code' => $row->codice_fiscale,
-                'valid_from' => $validFrom,
-                'valid_to' => $validTo,
-            ];
+            $attributes = CaiRuntsRegistrationFieldMapper::mapBoardMember($row, (string) $row->id_runts);
 
             $existing = CaiBoardMember::query()
-                ->where('cai_runts_registration_id', $row->id_runts)
-                ->where('role', $row->ruolo)
+                ->where('cai_runts_registration_id', $attributes['cai_runts_registration_id'])
+                ->where('role', $attributes['role'])
                 ->when(
-                    $row->codice_fiscale === null,
+                    $attributes['tax_code'] === null,
                     fn ($query) => $query->whereNull('tax_code'),
-                    fn ($query) => $query->where('tax_code', $row->codice_fiscale),
+                    fn ($query) => $query->where('tax_code', $attributes['tax_code']),
                 )
                 ->when(
-                    $validFrom === null,
+                    $attributes['valid_from'] === null,
                     fn ($query) => $query->whereNull('valid_from'),
-                    fn ($query) => $query->where('valid_from', $validFrom),
+                    fn ($query) => $query->where('valid_from', $attributes['valid_from']),
                 )
                 ->first();
 
