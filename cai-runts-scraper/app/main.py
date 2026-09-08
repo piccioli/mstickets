@@ -5,16 +5,41 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, File, HTTPException, UploadFile
 
+from app.analyzer import extract_bilancio_pdf
 from app.scraper import run_scraper
 
 app = FastAPI(title="cai-runts-scraper")
+
+_BILANCIO_FIELDS = (
+    "oneri_a_interesse_generale", "oneri_b_attivita_diverse", "oneri_c_raccolta_fondi",
+    "oneri_d_finanziarie_patrimoniali", "oneri_e_supporto_generale", "totale_oneri",
+    "proventi_a_interesse_generale", "proventi_b_attivita_diverse", "proventi_c_raccolta_fondi",
+    "proventi_d_finanziarie_patrimoniali", "proventi_e_supporto_generale", "totale_proventi",
+    "risultato_ante_imposte", "imposte", "risultato_esercizio",
+)
 
 
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.post("/analyze/bilancio")
+async def analyze_bilancio(file: UploadFile = File(...)) -> dict[str, Any]:
+    content = await file.read()
+
+    with tempfile.NamedTemporaryFile(suffix=".pdf") as tmp_file:
+        tmp_file.write(content)
+        tmp_file.flush()
+        result = extract_bilancio_pdf(tmp_file.name, ocr_fallback=False)
+
+    response = {field: result.get(field) for field in _BILANCIO_FIELDS}
+    response["raw_text"] = (result.get("_raw_text") or "")[:2000]
+    response["ocr"] = bool(result.get("_ocr", False))
+
+    return response
 
 
 @app.post("/scrape/runts-entity")
