@@ -240,8 +240,8 @@
         "Tests pass"
       ],
       "priority": 16,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Nessuna divergenza dal piano. TDD rispettato: aggiunto il test 'the section detail page shows the last RUNTS live-sync timestamp, or a \"never synced\" placeholder' (fallito prima con 08/09/2026 non trovato nell'HTML), poi aggiunta la TextEntry('runts_last_synced_at') nel RepeatableEntry di runtsSection() (columns 3→4), verde. Riusati gli helper globali già esistenti in tests/Pest.php (caiSection()/caiRuntsRegistration()) e l'helper locale grantCaiDirectoryPanelAccess() del file, invece di Livewire::actingAs()/getRouteKey() del piano (il file usa $this->actingAs()+->getKey(), stesso schema di tutti gli altri test del file). Suite del file 21/21 verde (+1 rispetto a prima), suite --filter=Cai 126 passed/1 skipped (+1, nessuna regressione), pint --test e phpstan analyse --memory-limit=1G puliti."
     },
     {
       "id": "US-928",

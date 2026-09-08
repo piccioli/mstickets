@@ -763,3 +763,13 @@ Started: Lun  7 Set 2026 15:44:39 CEST
   - Pint rimuove da solo un `use` diventato orfano in un file di test dopo aver sostituito un blocco di test (qui `Illuminate\Support\Facades\Storage`, usato solo dal test rimosso) — lanciare `vendor/bin/pint <file>` (non solo `--test`) dopo un refactor di test che elimina l'ultimo uso di un import.
   - Prossima story (US-927): mostrare `runts_last_synced_at` nel tab "Dati RUNTS" di `CaiSectionInfolist` (componente condiviso staff/dashboard cliente/dettaglio regionale, firma pubblica `configure(Schema $schema): Schema` invariata) — vedere Task 9 del piano.
 ---
+
+## 2026-09-08 - US-927
+- Implementato Task 9 del piano `docs/superpowers/plans/2026-09-08-cai-runts-orchestrator-wiring.md`: `CaiSectionInfolist::runtsSection()` mostra ora `runts_last_synced_at` per ciascuna registrazione RUNTS nel tab "Dati RUNTS", con placeholder "Mai sincronizzato dal vivo" quando null.
+- Files: `app/Filament/Resources/CaiSections/Schemas/CaiSectionInfolist.php` (nuova `TextEntry::make('runts_last_synced_at')` dentro il `RepeatableEntry::make('runtsRegistrations')`, `->columns(3)` → `->columns(4)`), `tests/Feature/Filament/CaiDirectory/CaiSectionResourceTest.php` (nuovo test).
+- **Learnings for future iterations:**
+  - Nessuna divergenza dal piano: firma pubblica `configure(Schema $schema): Schema` invariata, componente condiviso staff/dashboard cliente/dettaglio regionale la eredita gratis.
+  - Riusati gli helper globali `caiSection()`/`caiRuntsRegistration()` già presenti in `tests/Pest.php` (aggiunti da US-923/US-924) invece di scriverne di nuovi, e l'helper locale `grantCaiDirectoryPanelAccess()`/idioma `$this->actingAs($user)` + `->getKey()` già in uso in tutti gli altri test del file (il piano suggeriva `Livewire::actingAs()`/`getRouteKey()` solo come possibile alternativa, con l'istruzione esplicita di seguire quanto già presente nel file).
+  - Suite mirata `--filter=Cai` 126 passed/1 skipped (125→126, +1 come atteso, nessuna regressione); `pint --test` e `phpstan analyse --memory-limit=1G` puliti.
+  - Prossima e ultima story della Storia 3 (US-928): checkpoint finale di regressione end-to-end + smoke test manuale col servizio `cai-runts-scraper` realmente in esecuzione — vedere Task 10 del piano.
+---

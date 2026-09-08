@@ -494,3 +494,18 @@ test('the section detail page shows the last live-sync timestamp, or a "never sy
         ->assertOk()
         ->assertSeeText('Mai sincronizzato dal vivo');
 });
+
+test('the section detail page shows the last RUNTS live-sync timestamp, or a "never synced" placeholder', function (): void {
+    $user = grantCaiDirectoryPanelAccess(userWithPermissions(PermissionEnum::CaiDirectoryView));
+
+    $section = caiSection();
+    caiRuntsRegistration(['cai_section_id' => $section->codice_cai, 'runts_last_synced_at' => now()]);
+    caiRuntsRegistration(['cai_section_id' => $section->codice_cai, 'runts_last_synced_at' => null]);
+
+    $this->actingAs($user);
+
+    Livewire::test(ViewCaiSection::class, ['record' => $section->getKey()])
+        ->assertOk()
+        ->assertSeeText(now()->format('d/m/Y'))
+        ->assertSeeText('Mai sincronizzato dal vivo');
+});

@@ -135,8 +135,12 @@ class CaiSectionInfolist
                             ->url(fn (CaiRuntsRegistration $record): ?string => $record->official_page_url)
                             ->openUrlInNewTab()
                             ->placeholder('—'),
+                        TextEntry::make('runts_last_synced_at')
+                            ->label('Ultimo aggiornamento dal vivo')
+                            ->dateTime('d/m/Y H:i')
+                            ->placeholder('Mai sincronizzato dal vivo'),
                     ])
-                    ->columns(3)
+                    ->columns(4)
                     ->placeholder('Nessuna registrazione RUNTS collegata'),
             ]);
     }
