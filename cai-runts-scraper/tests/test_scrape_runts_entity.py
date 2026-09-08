@@ -124,3 +124,11 @@ def test_scrape_runts_entity_returns_metadata_board_members_and_documents(tmp_pa
     skipped = body["documents"][1]
     assert skipped["skip_reason"] == "no_button"
     assert skipped["content_base64"] is None
+
+
+def test_scrape_runts_entity_returns_502_when_scraper_raises():
+    with patch("app.main.run_scraper", new=AsyncMock(side_effect=RuntimeError("Playwright timeout"))):
+        response = client.post("/scrape/runts-entity", params={"codice_fiscale": "01234567890"})
+
+    assert response.status_code == 502
+    assert "Playwright timeout" in response.json()["detail"]

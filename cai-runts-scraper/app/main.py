@@ -5,7 +5,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 
 from app.scraper import run_scraper
 
@@ -20,13 +20,16 @@ def health() -> dict[str, str]:
 @app.post("/scrape/runts-entity")
 async def scrape_runts_entity(codice_fiscale: str) -> dict[str, Any]:
     with tempfile.TemporaryDirectory() as tmp_dir:
-        entities, _retry_stats = await run_scraper(
-            denominazione=None,
-            headless=True,
-            delay_ms=500,
-            codice_fiscale=codice_fiscale,
-            attachments_dir=Path(tmp_dir),
-        )
+        try:
+            entities, _retry_stats = await run_scraper(
+                denominazione=None,
+                headless=True,
+                delay_ms=500,
+                codice_fiscale=codice_fiscale,
+                attachments_dir=Path(tmp_dir),
+            )
+        except Exception as exc:
+            raise HTTPException(status_code=502, detail=str(exc)) from exc
 
         if not entities:
             return {"found": False}
