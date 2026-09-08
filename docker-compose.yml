@@ -117,6 +117,14 @@ services:
     networks:
       - orchestrator
 
+  cai-runts-scraper:
+    build: ./cai-runts-scraper
+    ports:
+      - "8010:8000"
+    restart: unless-stopped
+    networks:
+      - orchestrator
+
 volumes:
   db_data:
   redis_data:
