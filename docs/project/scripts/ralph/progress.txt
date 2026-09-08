@@ -624,3 +624,35 @@ Started: Lun  7 Set 2026 15:44:39 CEST
   client (il servizio Python già ritenta internamente), timeout/URL letti da config, mai `env()` fuori da
   `config/`.
 ---
+
+## [2026-09-08] - US-922
+- Aggiunta la sezione `runts_scraper` a `config/cai_directory.php` (`base_url`/`scrape_timeout_seconds`/
+  `analyze_timeout_seconds`, letti da `CAI_RUNTS_SCRAPER_BASE_URL`/`_SCRAPE_TIMEOUT_SECONDS`/
+  `_ANALYZE_TIMEOUT_SECONDS`) + le stesse 3 chiavi in `.env.example`, seguendo alla lettera il Task 4 del
+  piano `2026-09-08-cai-runts-orchestrator-wiring.md`.
+- Nuova classe `App\Domain\CaiDirectory\Support\CaiRuntsScraperClient` con `scrapeEntity(string $codiceFiscale): array`
+  (invia `codice_fiscale` come query param via `Http::withOptions(['query' => ...])`, MAI nel body JSON) e
+  `analyzeBilancio(string $pdfContent): array` (upload multipart via `Http::attach('file', ...)`). Nessun
+  retry proprio (il servizio Python già ritenta internamente). `$response->throw()` propaga un errore HTTP
+  come eccezione (gestito lato chiamante nelle story successive, US-923/US-924/US-926).
+- File: `config/cai_directory.php`, `.env.example`, `app/Domain/CaiDirectory/Support/CaiRuntsScraperClient.php`
+  (nuovo), `tests/Feature/Domain/CaiDirectory/Support/CaiRuntsScraperClientTest.php` (nuovo).
+- Verificato: nuovo test 2/2 verde, l'intera suite `--filter=Cai` (116 test, 1 skipped) resta verde,
+  `pint --test` (820 file) e `phpstan analyse --memory-limit=1G` (466 file) puliti.
+- **Divergenza dal piano (ambientale, non un bug del client)**: il test `analyzeBilancio` del piano
+  asserisce `expect($result)->toBe(['totale_oneri' => 1200.0])`, ma su questo PHP (serialize_precision=-1
+  di default) `json_encode(['totale_oneri' => 1200.0])` produce `{"totale_oneri":1200}` (nessuna parte
+  frazionaria per un float dal valore intero) — verificato con
+  `php -r 'var_dump(json_decode(json_encode(["x"=>1200.0]),true));'` → `int(1200)`, non `float(1200.0)`.
+  `Http::response(...)` di Laravel fa esattamente questo json_encode/decode round-trip, quindi
+  `$response->json()` restituisce un int quando la fixture del test passa un float dal valore intero.
+  Corretta l'aspettativa del test a `['totale_oneri' => 1200]` (con commento esplicativo), nessuna modifica
+  al codice del client (che si limita a restituire `$response->json()` as-is, comportamento corretto).
+- **Learnings**: quando un test Http::fake()/->toBe() confronta un valore float "tondo" (es. `1200.0`)
+  dopo un giro `Http::response()`→`$response->json()`, aspettarsi che possa arrivare come int, non float
+  — è un comportamento di `json_encode`/`serialize_precision`, non specifico di questo repo. Prossima
+  story (US-923) crea `SyncCaiRuntsRegistrationResult` + `SyncCaiRuntsRegistration::run(CaiSection $section)`
+  (metadati + cariche sociali, documenti rimandati a US-925) — vedere Task 5 del piano: usa
+  `CaiRuntsScraperClient::scrapeEntity()` + `CaiRuntsRegistrationFieldMapper` (già pronto da US-920),
+  richiede l'helper `caiRuntsRegistration()` in `tests/Pest.php` (da aggiungere in questa story).
+---

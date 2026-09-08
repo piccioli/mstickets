@@ -31,4 +31,15 @@ return [
     'sync_national' => [
         'schedule_cron' => env('CAI_SYNC_NATIONAL_SCHEDULE_CRON', '0 6 1 * *'),
     ],
+
+    /*
+     * Servizio Python cai-runts-scraper (Fase 9, storia 2/3, design doc
+     * `2026-09-07-cai-runts-scraper-service-design.md`): raggiunto via la rete Docker Compose interna dal
+     * nome del servizio, mai una porta pubblicata verso l'host in produzione/UAT.
+     */
+    'runts_scraper' => [
+        'base_url' => env('CAI_RUNTS_SCRAPER_BASE_URL', 'http://cai-runts-scraper:8000'),
+        'scrape_timeout_seconds' => (int) env('CAI_RUNTS_SCRAPER_SCRAPE_TIMEOUT_SECONDS', 150),
+        'analyze_timeout_seconds' => (int) env('CAI_RUNTS_SCRAPER_ANALYZE_TIMEOUT_SECONDS', 60),
+    ],
 ];

@@ -162,8 +162,8 @@
         "Tests pass (Http::fake, mai una chiamata reale al servizio)"
       ],
       "priority": 11,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Divergenza dal piano annotata (comportamento ambientale, non un bug del client): il test `analyzeBilancio` del Task 4 asserisce `expect($result)->toBe(['totale_oneri' => 1200.0])`, ma `Http::response(['totale_oneri' => 1200.0])` viene serializzato da `json_encode()` su questo PHP (serialize_precision=-1 di default) come `1200` (nessuna parte frazionaria), quindi il round-trip `json_decode()` fatto da `Response::json()` restituisce un `int(1200)`, non un `float(1200.0)` — verificato empiricamente con `php -r 'var_dump(json_decode(json_encode([\"x\"=>1200.0]),true));'`. Corretta l'aspettativa del test a `['totale_oneri' => 1200]` con un commento esplicativo; nessuna modifica al codice del client (già corretto, si limita a passare `$response->json()`). Resto del Task 4 implementato alla lettera: config `runts_scraper.*` + env `CAI_RUNTS_SCRAPER_*`, `CaiRuntsScraperClient` con `scrapeEntity()`/`analyzeBilancio()`, nessun retry proprio. Suite `--filter=Cai` 116 passed/1 skipped, `pint --test` 820 file puliti, `phpstan analyse --memory-limit=1G` 466 file nessun errore."
     },
     {
       "id": "US-923",
