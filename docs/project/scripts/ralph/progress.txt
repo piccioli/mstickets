@@ -402,3 +402,28 @@ Started: Lun  7 Set 2026 15:44:39 CEST
   entity/cariche/documenti con content_base64) — vedere Task 4 del piano, che include lo schema JSON
   completo e le fixture di test realistiche.
 ---
+
+## [2026-09-08] - US-915
+- Implementato il ramo di successo di `POST /scrape/runts-entity` in `cai-runts-scraper/app/main.py`,
+  seguendo alla lettera Task 4 del piano `docs/superpowers/plans/2026-09-08-cai-runts-scraper-service.md`.
+  Ogni campo dell'entità è costruito esplicitamente con `.get(key)` (mai uno spread verbatim del dict
+  grezzo dello scraper), `raw_json`/`atti_documenti`/`cariche` rimossi dall'oggetto `entity` restituito.
+  Un documento è incluso in `documents` con `content_base64` valorizzato SOLO se `skip_reason` è `None` E
+  `path` è presente (letto da disco e codificato base64); un documento con `skip_reason` valorizzato non
+  ha mai `content_base64`. `import base64` spostato in cima al file (non inline, come indicato dal piano).
+- Nuovo test `test_scrape_runts_entity_returns_metadata_board_members_and_documents` aggiunto a
+  `cai-runts-scraper/tests/test_scrape_runts_entity.py` (copiato alla lettera dal piano): mocka
+  `run_scraper` con un'entità fixture completa di due documenti (uno scaricato con PDF reale su disco
+  temporaneo `tmp_path`, uno skippato con `skip_reason="no_button"`) e una carica sociale; verifica
+  metadati, assenza delle chiavi grezze, board_members, conteggio/contenuto documenti (base64 decodificato
+  combacia col contenuto scritto su disco) e che il documento skippato non abbia `content_base64`.
+- File: `cai-runts-scraper/app/main.py`, `cai-runts-scraper/tests/test_scrape_runts_entity.py`.
+- Verificato: TDD rispettato (test fallito con `NotImplementedError` prima dell'implementazione, come
+  atteso dal piano), poi `pytest tests/test_scrape_runts_entity.py -v` 2/2 verde; l'intera suite del
+  servizio (`pytest -q`, venv locale Python 3.14.4) resta verde: 6 passed (4 pre-esistenti + 2 nuovi in
+  questo file, il conteggio pre-esistente era 5 ma un test era già lì da US-914: 4 file * ~1-2 test =
+  totale corretto 6).
+- **Learnings**: nessuna divergenza dal piano, il codice suggerito ha combaciato esattamente. Prossima
+  story (US-916) trasforma un'eccezione sollevata da `run_scraper()` in `HTTPException(status_code=502,
+  detail=str(exc))` — vedere Task 5 del piano.
+---

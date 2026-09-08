@@ -59,8 +59,8 @@
         "Tests pass (pytest, mockando run_scraper con fixture realistiche — nessun Playwright/RUNTS reale)"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Nessuna divergenza dal piano. TDD rispettato: aggiunto il test del caso di successo (fallito con NotImplementedError prima dell'implementazione), poi implementato il ramo esplicitando ogni campo con .get() come richiesto (mai uno spread del dict grezzo). Suite completa del servizio 6/6 verde."
     },
     {
       "id": "US-916",
