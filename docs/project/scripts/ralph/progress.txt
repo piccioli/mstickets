@@ -345,3 +345,38 @@ Started: Lun  7 Set 2026 15:44:39 CEST
   prodotto. Prossima story (US-913) porta `scraper.py`/`analyzer.py` dal prototipo
   `/Users/alessiopiccioli/Documents/LAVORO/MS/SOFTWARE/RUNTS/scraper/` — vedere Task 2 del piano.
 ---
+
+## [2026-09-08] - US-913
+- Portati verbatim `scraper.py`/`analyzer.py` dal prototipo
+  `/Users/alessiopiccioli/Documents/LAVORO/MS/SOFTWARE/RUNTS/scraper/` (commit prototipo
+  `4d171ee756d2a68f5493d122ff82dbfac9065c64`, repo git verificato) in `cai-runts-scraper/app/`, seguendo
+  alla lettera Task 2 del piano.
+- **Divergenza dal piano, annotata in `notes` della story**: nessun `from scraper.X import`/`import
+  scraper.X` da adattare — verificato con grep sugli import di entrambi i file prima di copiarli: solo
+  librerie standard/terze parti (`asyncio`/`logging`/`re`/`pathlib`/`playwright.async_api` in `scraper.py`;
+  `argparse`/`logging`/`re`/`sqlite3`/`pathlib` in `analyzer.py`), nessun modulo sibling `db`/`geocoder`
+  importato da nessuno dei due file (il CLI `main.py` del prototipo, non portato, è l'unico a farne uso).
+  Nessun adattamento di import quindi necessario, solo un commento in testa a ciascun file col riferimento
+  al commit prototipo (richiesto dal piano anche in questo caso, "no git history" non applicabile perché il
+  prototipo È un repo git).
+- Nuovo test `cai-runts-scraper/tests/test_ported_modules.py` (3 test, copiato alla lettera dal piano):
+  verifica firma async di `run_scraper` (parametri `codice_fiscale`/`attachments_dir`/`headless`/
+  `delay_ms`), mapping noto/sconosciuto di `classify_codice_pratica`, firma sync di `extract_bilancio_pdf`
+  (parametri `path`/`ocr_fallback`).
+- File: `cai-runts-scraper/app/scraper.py` (nuovo), `cai-runts-scraper/app/analyzer.py` (nuovo),
+  `cai-runts-scraper/tests/test_ported_modules.py` (nuovo).
+- Verificato: `pip install -r requirements.txt` nel venv locale (mancavano `playwright`/`pdfplumber`,
+  installati ora), poi `pytest tests/test_ported_modules.py -v` 3/3 verde; l'intera suite del servizio
+  (`pytest -q`, incluso `test_main.py` di US-912) resta verde: 4 passed. `grep -rn "from scraper\.\|^import
+  scraper\." app/` vuoto (nessun riferimento residuo al vecchio nome di package). Verifica sintattica
+  aggiuntiva (`ast.parse`) su entrambi i file portati, nessun errore.
+- **Learnings**: prima di assumere che il porting richieda un adattamento di import (come il piano
+  ipotizzava in via cautelativa), verificare con `grep -n "^import\|^from"` sui file sorgente del prototipo
+  — in questo caso lo scraper/analyzer erano già "foglie" del package (nessuna dipendenza da moduli sibling
+  come `db.py`/`geocoder.py`, che restano usati solo dal CLI `main.py` non portato), quindi il porting è
+  stato un puro `cp` + commento di provenienza. Il venv locale creato in US-912 non aveva ancora
+  `playwright`/`pdfplumber` installati (solo `fastapi` dal primo giro): reinstallare da
+  `requirements.txt` prima di eseguire i test quando si riprende il lavoro su questo servizio in una nuova
+  sessione. Prossima story (US-914) crea `POST /scrape/runts-entity` — caso "non trovato" (mockando
+  `run_scraper`, mai Playwright/RUNTS reale) — vedere Task 3 del piano.
+---

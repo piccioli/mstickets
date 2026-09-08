@@ -30,8 +30,8 @@
         "Tests pass (pytest)"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Nessun `from scraper.X import` da adattare: entrambi i file del prototipo importavano solo librerie standard/terze parti (asyncio/logging/re/pathlib/playwright per scraper.py; argparse/logging/re/sqlite3/pathlib per analyzer.py), nessun modulo `db`/`geocoder`/sibling. Copiati verbatim, aggiunto solo un commento in testa con l'hash del commit prototipo (4d171ee756d2a68f5493d122ff82dbfac9065c64). Smoke test copiato alla lettera dal piano, 3/3 verde in venv locale (Python 3.14 host), grep di verifica nessun riferimento residuo a `scraper.*`."
     },
     {
       "id": "US-914",
