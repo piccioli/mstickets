@@ -132,8 +132,8 @@
         "Tests pass"
       ],
       "priority": 9,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Nessuna divergenza funzionale dal piano. Verificato con `grep` (gotcha già noto da US-903): nessun altro call site oltre importRegistrations()/importBoardMembers() usava i blocchi inline sostituiti, refactor sicuro. Gotcha nuovo scoperto: Pint (regola `fully_qualified_strict_types`) riscrive un `{@see \\Fully\\Qualified\\ClassName}` inline nel docblock in un `use` statement importato — anche per una classe che NON esiste ancora nel repo (qui `App\\Domain\\CaiDirectory\\Actions\\SyncCaiRuntsRegistration`, arriva solo in US-923). Verificato che è innocuo: un `use` mai referenziato nel corpo del codice (solo in un commento `@see`) non attiva mai l'autoloader, e sia `phpstan analyse --memory-limit=1G` sia l'intera suite Pint restano puliti con quell'import 'a vuoto' presente. Lasciato così com'è (non ha senso combattere il fixer del progetto); da tenere a mente per Task 5 (US-923), quando quella classe verrà finalmente creata nello stesso namespace."
     },
     {
       "id": "US-921",

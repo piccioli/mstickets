@@ -558,3 +558,42 @@ Started: Lun  7 Set 2026 15:44:39 CEST
   da spostare sono usati anche da altri call site non citati esplicitamente dal piano (stesso gotcha già
   incontrato in US-903 con `toInt()`).
 ---
+
+## [2026-09-08] - US-920
+- Estratta `App\Domain\CaiDirectory\Import\CaiRuntsRegistrationFieldMapper` (metodi statici puri
+  `mapRegistration(object $row, string $sectionCode): array`/`mapBoardMember(object $row, string $idRunts): array`),
+  seguendo alla lettera Task 2 del piano `docs/superpowers/plans/2026-09-08-cai-runts-orchestrator-wiring.md`.
+  `CaiDatapackImporter::importRegistrations()`/`importBoardMembers()` ora costruiscono `$attributes`
+  richiamando il mapper condiviso invece dell'array inline; la query di dedup di `importBoardMembers()`
+  legge da `$attributes` invece delle variabili locali `$fullName`/`$validFrom`/`$validTo` ormai rimosse.
+- `lat`/`lon` letti con `?? null` + `CaiSectionFieldMapper::toCoordinate(...)` (stessa protezione overflow
+  |x|>=1000 già nota da US-802/US-903), a differenza del vecchio codice inline che assegnava `$row->lat`/
+  `$row->lon` grezzi senza coercizione — nessuna regressione: nessuna fixture di test include quelle
+  colonne sulla tabella `enti` (verificato con grep), quindi il comportamento sulla suite esistente è
+  invariato, solo più robusto per la futura fonte live (Task 5/US-923).
+- Nuovo test `tests/Unit/Domain/CaiDirectory/Import/CaiRuntsRegistrationFieldMapperTest.php` (4 test,
+  copiato alla lettera dal piano): mapRegistration con tutti i campi, mapRegistration con lat/lon presenti,
+  mapBoardMember con nome+cognome concatenati, mapBoardMember con nome/cognome assenti.
+- File: `app/Domain/CaiDirectory/Import/CaiRuntsRegistrationFieldMapper.php` (nuovo),
+  `app/Domain/CaiDirectory/Import/CaiDatapackImporter.php`,
+  `tests/Unit/Domain/CaiDirectory/Import/CaiRuntsRegistrationFieldMapperTest.php` (nuovo).
+- Verificato: nuovo test 4/4 verde, `tests/Feature/Console/CaiImportDatapackCommandTest.php` resta verde
+  con gli stessi 6 test/67 assertion di prima (nessuna regressione di conteggi), l'intera suite
+  `--filter=Cai` (113 test, 1 skipped) resta verde, `pint --test` (816 file) e
+  `phpstan analyse --memory-limit=1G` (464 file, intero progetto) puliti.
+- **Gotcha nuovo scoperto**: Pint (regola `fully_qualified_strict_types`) riscrive un riferimento
+  `{@see \Fully\Qualified\ClassName}` inline in un docblock in un vero `use` statement importato — anche
+  quando quella classe NON esiste ancora nel repo (qui `App\Domain\CaiDirectory\Actions\SyncCaiRuntsRegistration`,
+  arriva solo con US-923/Task 5). Verificato che è innocuo: un `use` mai referenziato nel corpo del codice
+  (solo dentro un commento `@see`) non attiva mai l'autoloader — sia `phpstan analyse --memory-limit=1G`
+  sia l'intera suite Pint del progetto restano puliti con quell'import "a vuoto" presente. Non c'è motivo
+  di combattere il fixer del progetto (avrebbe richiesto disabilitare la regola o riscrivere il commento in
+  modo innaturale): lasciato il `use` generato automaticamente da Pint. Da tenere a mente per qualunque
+  futura classe che referenzi in un `@see` un'altra classe non ancora creata nella stessa feature — Pint
+  genererà comunque l'import, e va bene così.
+- **Learnings**: stesso gotcha "verificare con grep se un pezzo di codice da estrarre è usato anche altrove"
+  già incontrato in US-903, confermato di nuovo negativo qui (nessun altro call site). Prossima story
+  (US-921) estrae `CaiFinancialStatementFieldMapper::mapFinancialStatement(object $row): array` (SOLO i 15
+  campi finanziari, mai `cai_runts_registration_id`/`year`) da `CaiDatapackImporter::importFinancialStatements()`
+  — vedere Task 3 del piano.
+---
