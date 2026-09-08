@@ -743,3 +743,13 @@ Started: Lun  7 Set 2026 15:44:39 CEST
   `skip_reason` nullo, dispatch di `AnalyzeCaiFinancialStatementDocument::dispatch($document->id)
   ->onQueue('cai-runts-analysis')` SOLO per i documenti nuovi con `document_type === 'bilancio_esercizio'`.
 ---
+
+## 2026-09-08 - US-925
+- Implementato Task 7 del piano `docs/superpowers/plans/2026-09-08-cai-runts-orchestrator-wiring.md`: `SyncCaiRuntsRegistration::syncDocuments()` scarica e allega i documenti di bilancio non ancora presenti, dispatcha `AnalyzeCaiFinancialStatementDocument` sulla coda `cai-runts-analysis` solo per i nuovi documenti `tipo === 'bilancio_esercizio'`.
+- Files: `app/Domain/CaiDirectory/Actions/SyncCaiRuntsRegistration.php` (nuovo metodo privato `syncDocuments()`, wiring in `run()`, costanti `DOCUMENTS_DISK`/`BILANCIO_DOCUMENT_TYPES`), `tests/Feature/Domain/CaiDirectory/Actions/SyncCaiRuntsRegistrationTest.php` (2 nuovi test: download+dispatch selettivo, idempotenza no-redownload/no-requeue).
+- **Learnings for future iterations:**
+  - Implementazione presa alla lettera dal piano (Task 7): dedup per `(cai_runts_registration_id, file_name)`, `base64_decode($x, true)` con controllo `=== false`, path su disco `"{$idRunts}/{$fileName}"`, righe con `skip_reason` non nullo o senza `content_base64`/`filename` semplicemente saltate (mai un errore).
+  - Pint riformatta automaticamente da FQCN inline (come scritto nel piano) a `use` statement + `ordered_imports` — atteso, non un problema: lanciare `vendor/bin/pint <file>` dopo aver incollato codice di piano con nomi qualificati per esteso.
+  - Suite mirata `--filter=Cai` (125 test, dominio CaiDirectory) verde dopo la modifica: nessuna regressione sulle story precedenti della Storia 3.
+  - Prossima story: US-926 (bottone dashboard "Sincronizza dati RUNTS" → wiring reale, Task 8 del piano) — verificare se già in parte presente (il commento della classe `SyncCaiRuntsRegistration` referenzia già `CustomerDashboard::syncRuntsDataAction()`).
+---

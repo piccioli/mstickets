@@ -209,8 +209,8 @@
         "Tests pass (Http::fake, Storage::fake, Queue::fake)"
       ],
       "priority": 14,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Task 7 del piano implementato alla lettera: SyncCaiRuntsRegistration::syncDocuments() dedup per (cai_runts_registration_id, filename), decodifica base64, salva su disco cai-documents, crea CaiDocument; dispatch AnalyzeCaiFinancialStatementDocument solo per tipo=bilancio_esercizio nuovi. 6/6 test del file verdi, suite Cai completa (125 test) verde, Pint+Larastan puliti."
     },
     {
       "id": "US-926",
