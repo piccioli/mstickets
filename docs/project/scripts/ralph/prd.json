@@ -44,8 +44,8 @@
         "Tests pass (pytest, mockando run_scraper — nessun Playwright/RUNTS reale)"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Nessuna divergenza dal piano. TDD rispettato: test fallito con AttributeError su app.main.run_scraper prima di aggiungere la route, poi verde. Verificata firma reale di run_scraper (app/scraper.py:708, portata verbatim in US-913): denominazione/headless/delay_ms/filter_denominazione/codice_fiscale/attachments_dir, compatibile con la chiamata del piano."
     },
     {
       "id": "US-915",

@@ -380,3 +380,25 @@ Started: Lun  7 Set 2026 15:44:39 CEST
   sessione. Prossima story (US-914) crea `POST /scrape/runts-entity` — caso "non trovato" (mockando
   `run_scraper`, mai Playwright/RUNTS reale) — vedere Task 3 del piano.
 ---
+
+## [2026-09-08] - US-914
+- Aggiunto `POST /scrape/runts-entity?codice_fiscale=<CF>` a `cai-runts-scraper/app/main.py`: chiama
+  `run_scraper()` direttamente (mai il CLI `main()` del prototipo), e quando ritorna `([], {})` risponde
+  `{"found": false}` con HTTP 200, seguendo alla lettera Task 3 del piano
+  `docs/superpowers/plans/2026-09-08-cai-runts-scraper-service.md`. Il ramo di successo (`entities` non
+  vuoto) resta un `raise NotImplementedError` esplicito, da completare in US-915 (Task 4 del piano).
+- Nuovo test `cai-runts-scraper/tests/test_scrape_runts_entity.py` (1 test, copiato alla lettera dal
+  piano): mocka `app.main.run_scraper` con `AsyncMock(return_value=([], {}))`, verifica
+  `{"found": False}`/200 e che `codice_fiscale` sia passato come kwarg a `run_scraper`.
+- File: `cai-runts-scraper/app/main.py`, `cai-runts-scraper/tests/test_scrape_runts_entity.py` (nuovo).
+- Verificato: TDD rispettato (test fallito con `AttributeError: ... does not have the attribute
+  'run_scraper'` prima di aggiungere la route/l'import, poi verde); l'intera suite del servizio
+  (`pytest -q`, venv locale) resta verde: 5 passed (4 pre-esistenti + 1 nuovo).
+- **Learnings**: nessuna divergenza dal piano — la firma reale di `run_scraper` (portata verbatim in
+  US-913, `app/scraper.py:708`: `denominazione: str = "CLUB ALPINO ITALIANO"`, `headless`, `delay_ms`,
+  `filter_denominazione`, `codice_fiscale`, `attachments_dir`) combacia esattamente con la chiamata
+  suggerita dal piano (`denominazione=None` passato comunque, Python non impone i type hint a runtime).
+  Prossima story (US-915) implementa il ramo di successo dell'endpoint (schema JSON completo di
+  entity/cariche/documenti con content_base64) — vedere Task 4 del piano, che include lo schema JSON
+  completo e le fixture di test realistiche.
+---
