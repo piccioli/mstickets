@@ -15,8 +15,8 @@
         "Tests pass (pytest)"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Nessuna divergenza dal piano. Verificata versione Python dell'immagine base (3.10.12, mcr.microsoft.com/playwright/python:v1.47.0-jammy). Test locale in venv host (Python 3.14.4) + build/run Docker reale con curl su /health, entrambi verdi."
     },
     {
       "id": "US-913",

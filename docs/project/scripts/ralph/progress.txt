@@ -318,3 +318,30 @@ Started: Lun  7 Set 2026 15:44:39 CEST
   deploy UAT) restano esplicitamente fuori scope di questo PRD, da pianificare in un ciclo ralph separato
   in futuro (vedi campo `description` di `prd.json`).
 ---
+
+## [2026-09-08] - US-912
+- Scaffold del nuovo servizio Python `cai-runts-scraper/` (Fase 9, storia 2, Task 1 del piano
+  `docs/superpowers/plans/2026-09-08-cai-runts-scraper-service.md`): `requirements.txt` (fastapi, uvicorn,
+  playwright, pdfplumber, pytest, httpx), `app/main.py` (FastAPI minimale con `GET /health` →
+  `{"status": "ok"}`), `Dockerfile` basato su `mcr.microsoft.com/playwright/python:v1.47.0-jammy`
+  (verificato Python 3.10.12 nell'immagine con `docker run --rm ... python3 --version`, come richiesto dal
+  piano), healthcheck via `urllib.request` (nessuna dipendenza aggiuntiva).
+- TDD rispettato: test scritto per primo (`tests/test_main.py`), fallito con `ModuleNotFoundError` prima di
+  creare `app/main.py`, poi verde. Verificato anche con un vero build+run Docker (`docker build`, `docker
+  run -p 8010:8000`, `curl -sf http://localhost:8010/health` → `{"status":"ok"}`, exit 0), non solo il test
+  in-process.
+- Aggiunto `cai-runts-scraper/.gitignore` (`.venv/`, `__pycache__/`, `*.pyc`, `.pytest_cache/`), non previsto
+  esplicitamente dal piano ma necessario per non committare il venv locale usato per eseguire i test fuori
+  da Docker.
+- File: `cai-runts-scraper/{requirements.txt,Dockerfile,.gitignore,app/__init__.py,app/main.py,
+  tests/__init__.py,tests/test_main.py}` (tutti nuovi).
+- Verificato: `pytest tests/test_main.py -v` in un venv locale (Python 3.14.4 host, non l'immagine Docker)
+  passa 1/1; `docker build -t cai-runts-scraper:dev .` riuscito; container avviato e `curl` reale sull'health
+  endpoint pubblicato risponde correttamente.
+- **Learnings**: questo repo non ha ancora Python installato/gestito in modo standard — creato un venv
+  locale ad-hoc in `cai-runts-scraper/.venv/` (ignorato da git) solo per eseguire pytest fuori da Docker
+  durante lo sviluppo; l'immagine Docker resta comunque la fonte di verità per l'ambiente reale (Python
+  3.10.12, non 3.14 dell'host). Nessuna sorpresa nel resto: il piano combacia esattamente col codice
+  prodotto. Prossima story (US-913) porta `scraper.py`/`analyzer.py` dal prototipo
+  `/Users/alessiopiccioli/Documents/LAVORO/MS/SOFTWARE/RUNTS/scraper/` — vedere Task 2 del piano.
+---
