@@ -72,8 +72,8 @@
         "Tests pass (pytest)"
       ],
       "priority": 5,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Nessuna divergenza dal piano. TDD rispettato: test fallito con RuntimeError propagato (nessun 502 strutturato) prima di aggiungere il try/except attorno alla chiamata a run_scraper(), poi verde. Suite completa del servizio 7/7 verde."
     },
     {
       "id": "US-917",

@@ -427,3 +427,22 @@ Started: Lun  7 Set 2026 15:44:39 CEST
   story (US-916) trasforma un'eccezione sollevata da `run_scraper()` in `HTTPException(status_code=502,
   detail=str(exc))` — vedere Task 5 del piano.
 ---
+
+## [2026-09-08] - US-916
+- Implementato il try/except attorno alla chiamata `await run_scraper(...)` in
+  `cai-runts-scraper/app/main.py`: un'eccezione qualunque sollevata da `run_scraper()` (dopo i suoi retry
+  interni) viene ora catturata e trasformata in `HTTPException(status_code=502, detail=str(exc))`, seguendo
+  alla lettera Task 5 del piano `docs/superpowers/plans/2026-09-08-cai-runts-scraper-service.md`.
+- Nuovo test `test_scrape_runts_entity_returns_502_when_scraper_raises` aggiunto a
+  `cai-runts-scraper/tests/test_scrape_runts_entity.py` (copiato alla lettera dal piano): mocka
+  `app.main.run_scraper` con `AsyncMock(side_effect=RuntimeError("Playwright timeout"))`, verifica status
+  502 e che il messaggio dell'eccezione compaia nel campo `detail` della risposta JSON.
+- File: `cai-runts-scraper/app/main.py`, `cai-runts-scraper/tests/test_scrape_runts_entity.py`.
+- Verificato: TDD rispettato (test fallito con l'eccezione `RuntimeError` propagata non gestita, mai un 502
+  strutturato, prima della modifica), poi `pytest -v` (venv locale, Python 3.14.4) 7/7 verde (4 pre-esistenti
+  + 3 in `test_scrape_runts_entity.py`, incluso quello nuovo).
+- **Learnings**: nessuna divergenza dal piano, il codice suggerito ha combaciato esattamente. Prossima
+  story (US-917) implementa `POST /analyze/bilancio` (upload multipart, `extract_bilancio_pdf(path,
+  ocr_fallback=False)`, 15 campi italiani + raw_text + ocr, mai un errore anche su PDF non interpretabile)
+  — vedere Task 6 del piano.
+---
