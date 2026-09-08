@@ -479,3 +479,61 @@ Started: Lun  7 Set 2026 15:44:39 CEST
   wiring in `docker-compose.yml` + verifica manuale reale contro il sito RUNTS — vedere Task 7 del piano,
   e la nota generale del PRD su come registrare l'esito onestamente se il sito reale non è raggiungibile.
 ---
+
+## [2026-09-08] - US-918
+- Aggiunto il servizio `cai-runts-scraper` a `docker-compose.yml` (`build: ./cai-runts-scraper`, porta
+  host `8010:8000` solo per la verifica manuale, `restart: unless-stopped` come da Task 7 del piano), con
+  `networks: [orchestrator]` esplicito (non presente nello snippet YAML del piano, ma indispensabile: senza,
+  il servizio finirebbe sulla rete `default` di Compose e non sarebbe risolvibile per hostname da `app`,
+  stesso pattern già usato da tutti gli altri servizi in questo file).
+- `docker compose up -d --build cai-runts-scraper` poi `docker compose exec app curl -sf
+  http://cai-runts-scraper:8000/health` → `{"status":"ok"}`, confermando la raggiungibilità
+  container-to-container (stesso percorso che userà PHP nella Storia 3).
+- **BUG REALE trovato e corretto durante la verifica manuale (Task 7 Step 3)**: `requirements.txt` aveva
+  `playwright>=1.44.0` non pinnato, risolto da pip a `1.62.0` al momento del build (2026-09-08) — ma
+  l'immagine base `mcr.microsoft.com/playwright/python:v1.47.0-jammy` ha i binari Chromium installati SOLO
+  per la 1.47.0. Ogni scrape reale falliva immediatamente con `BrowserType.launch: Executable doesn't
+  exist at /ms-playwright/chromium_headless_shell-1234/...` (mai emerso nei test automatici, che mockano
+  sempre `run_scraper`). Fix: pinnato `playwright==1.47.0` in `requirements.txt` (allineato al commento
+  già presente in cima al Dockerfile, "Python 3.10.12 verified via ... v1.47.0-jammy" — quel commento
+  documentava già la versione attesa, solo `requirements.txt` non la rispecchiava), rebuild dell'immagine.
+- **Verifica manuale reale contro RUNTS (Task 7 Step 3), eseguita con successo dopo il fix**:
+  1. `codice_fiscale=00951210103` (Sezione CAI Liguria-Genova, con una registrazione RUNTS GIÀ importata
+     dal datapack storico in `cai_runts_registrations` — quindi nota per certo presente in RUNTS, scelta
+     deliberatamente al posto della prima sezione con `tax_code` qualunque, che non garantisce una
+     registrazione reale) → HTTP 200, `found: true`, entità/cariche/documenti reali estratti dal sito RUNTS
+     live: denominazione "CAI LIGURE GENOVA APS - ETS", PEC `GENOVALIGURE@PEC.CAI.IT`, documenti PDF con
+     `hash_sha256`/`content_base64` reali (risposta di ~9MB per via del base64 dei bilanci, coerente col
+     rischio dimensionale già noto in design doc §7).
+  2. `codice_fiscale=93002220031` (prima sezione con `tax_code`, nessuna garanzia di presenza RUNTS) e
+     `codice_fiscale=00000000000` (sintatticamente valido ma inventato) → entrambi HTTP 502, stesso identico
+     messaggio `Page.wait_for_selector: Timeout 30000ms exceeded ... waiting for locator
+     input[value="Dettaglio"]`. Verificato con `docker compose logs cai-runts-scraper` che non è un errore
+     di navigazione/markup rotto (nessun altro errore nei log, il processo Playwright si avvia e naviga
+     correttamente come dimostra il caso di successo sopra) — è esattamente l'ambiguità "timeout sulla
+     ricerca stessa" già documentata come rischio noto e accettato nel design doc §3.3/§7 ("altrimenti un
+     errore 502 esplicito"): un CF senza risultati non fa mai apparire il selettore `input[value="Dettaglio"]`
+     entro 30s, quindi degrada sempre a un timeout Playwright anziché a un `{"found": false}` pulito. Nessun
+     fix di codice necessario per questo comportamento specifico (già esplicitamente accettato dal design),
+     l'unico bug reale era la versione Playwright non pinnata.
+- File: `docker-compose.yml`, `cai-runts-scraper/requirements.txt`.
+- Verificato: suite pytest completa del servizio (venv locale) 9/9 verde; `docker compose config --quiet`
+  pulito; container fermato con `docker compose down cai-runts-scraper` a fine verifica (rimuove solo quel
+  container, non l'intero stack — confermato con `docker compose ps` che gli altri servizi restano `Up`
+  invariati).
+- **Learnings**: quando un piano fornisce uno snippet YAML per un nuovo servizio Docker Compose, verificare
+  sempre se serve `networks:` esplicito confrontando con lo stile degli altri servizi nello stesso file —
+  uno snippet minimale nel piano può omettere dettagli "impliciti" che in realtà sono necessari (qui: senza
+  `networks: [orchestrator]` il servizio non sarebbe stato raggiungibile per hostname, vanificando l'intero
+  scopo della story). Una dipendenza Python non pinnata (`>=`) in un servizio containerizzato con
+  un'immagine base che include asset binari version-locked (qui: i browser Chromium di Playwright,
+  scaricati SOLO per la versione del tag dell'immagine) è un rischio concreto di drift silenzioso: pip
+  installa sempre l'ultima versione compatibile al momento del build, che può disallinearsi dall'immagine
+  base in qualunque momento futuro senza che nessun file sia stato toccato — pinnare sempre la versione
+  esatta quando il resto dello stack (qui: il tag dell'immagine Docker) non è altrettanto flessibile.
+  Storia 2 (US-912..US-918) conclusa: tutte le acceptance criteria automatizzate verdi, verifica manuale
+  reale eseguita con successo (non solo tentata) — nessuna nota di "da ripetere da un umano" necessaria per
+  questa story specifica, a differenza di quanto la nota generale del PRD paventava come possibilità.
+  Prossima story (US-919, Storia 3 lato PHP) inizia la migrazione `runts_last_synced_at` — vedere Task 1 del
+  piano `docs/superpowers/plans/2026-09-08-cai-runts-orchestrator-wiring.md`.
+---
