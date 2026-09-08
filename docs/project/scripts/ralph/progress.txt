@@ -597,3 +597,30 @@ Started: Lun  7 Set 2026 15:44:39 CEST
   campi finanziari, mai `cai_runts_registration_id`/`year`) da `CaiDatapackImporter::importFinancialStatements()`
   — vedere Task 3 del piano.
 ---
+
+## [2026-09-08] - US-921
+- Estratta `App\Domain\CaiDirectory\Import\CaiFinancialStatementFieldMapper` (metodo statico puro
+  `mapFinancialStatement(object $row): array`, SOLO i 15 campi finanziari inglesi, mai
+  `cai_runts_registration_id`/`year`), seguendo alla lettera Task 3 del piano
+  `docs/superpowers/plans/2026-09-08-cai-runts-orchestrator-wiring.md`.
+  `CaiDatapackImporter::importFinancialStatements()` ora costruisce `$attributes` con
+  `'cai_runts_registration_id' => ..., 'year' => CaiSectionFieldMapper::toInt(...), ...CaiFinancialStatementFieldMapper::mapFinancialStatement($row)`
+  invece dell'array inline di 15 righe.
+- Nuovo test `tests/Unit/Domain/CaiDirectory/Import/CaiFinancialStatementFieldMapperTest.php` (1 test,
+  copiato alla lettera dal piano): tutti e 15 i campi mappati correttamente (compresi i valori null).
+- File: `app/Domain/CaiDirectory/Import/CaiFinancialStatementFieldMapper.php` (nuovo),
+  `app/Domain/CaiDirectory/Import/CaiDatapackImporter.php`,
+  `tests/Unit/Domain/CaiDirectory/Import/CaiFinancialStatementFieldMapperTest.php` (nuovo).
+- Verificato: nuovo test 1/1 verde, `tests/Feature/Console/CaiImportDatapackCommandTest.php` resta verde
+  con gli stessi 6 test/67 assertion di prima (nessuna regressione), l'intera suite `--filter=Cai`
+  (114 test, 1 skipped) resta verde, `pint --test` (3 file) e `phpstan analyse --memory-limit=1G`
+  (465 file, intero progetto) puliti.
+- **Learnings**: stesso gotcha "verificare con grep se il codice da estrarre è usato anche altrove" già
+  incontrato in US-903/US-920, confermato di nuovo negativo qui (nessun altro call site per i 15 campi
+  italiani `oneri_*`/`proventi_*`/ecc.). Prossima story (US-922) crea `CaiRuntsScraperClient` +
+  configurazione (`config/cai_directory.php`, `.env.example`) per chiamare i due endpoint HTTP del
+  servizio `cai-runts-scraper` da PHP — vedere Task 4 del piano: `scrapeEntity()` invia `codice_fiscale`
+  come query param (mai nel body JSON), `analyzeBilancio()` fa upload multipart, NESSUN retry proprio nel
+  client (il servizio Python già ritenta internamente), timeout/URL letti da config, mai `env()` fuori da
+  `config/`.
+---

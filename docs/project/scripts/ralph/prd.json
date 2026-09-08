@@ -147,8 +147,8 @@
         "Tests pass"
       ],
       "priority": 10,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Nessuna divergenza dal piano. Verificato con grep (stesso gotcha già noto da US-903/US-920): solo `importFinancialStatements()` usava i 15 campi italiani, nessun altro call site. Refactor sicuro."
     },
     {
       "id": "US-922",

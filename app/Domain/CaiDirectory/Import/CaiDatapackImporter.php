@@ -321,21 +321,7 @@ final class CaiDatapackImporter
             $attributes = [
                 'cai_runts_registration_id' => $row->id_runts,
                 'year' => CaiSectionFieldMapper::toInt($row->anno),
-                'general_interest_expenses' => $row->oneri_a_interesse_generale,
-                'other_activities_expenses' => $row->oneri_b_attivita_diverse,
-                'fundraising_expenses' => $row->oneri_c_raccolta_fondi,
-                'financial_expenses' => $row->oneri_d_finanziarie_patrimoniali,
-                'overhead_expenses' => $row->oneri_e_supporto_generale,
-                'total_expenses' => $row->totale_oneri,
-                'general_interest_revenues' => $row->proventi_a_interesse_generale,
-                'other_activities_revenues' => $row->proventi_b_attivita_diverse,
-                'fundraising_revenues' => $row->proventi_c_raccolta_fondi,
-                'financial_revenues' => $row->proventi_d_finanziarie_patrimoniali,
-                'overhead_revenues' => $row->proventi_e_supporto_generale,
-                'total_revenues' => $row->totale_proventi,
-                'pre_tax_result' => $row->risultato_ante_imposte,
-                'taxes' => $row->imposte,
-                'net_result' => $row->risultato_esercizio,
+                ...CaiFinancialStatementFieldMapper::mapFinancialStatement($row),
             ];
 
             $existing = CaiFinancialStatement::query()
