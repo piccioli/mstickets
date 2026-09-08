@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'id_runts', 'cai_section_id', 'tax_code', 'name', 'legal_form', 'legal_nature', 'address',
     'street_number', 'municipality', 'province', 'region', 'postal_code', 'latitude', 'longitude',
     'registration_date', 'register_section', 'activity_sectors', 'legal_representative', 'website',
-    'pec', 'official_page_url',
+    'pec', 'official_page_url', 'runts_last_synced_at',
 ])]
 class CaiRuntsRegistration extends Model
 {
@@ -32,6 +32,7 @@ class CaiRuntsRegistration extends Model
             'latitude' => 'decimal:7',
             'longitude' => 'decimal:7',
             'registration_date' => 'date',
+            'runts_last_synced_at' => 'datetime',
         ];
     }
 
