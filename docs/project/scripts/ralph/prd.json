@@ -86,8 +86,8 @@
         "Tests pass (pytest, mockando extract_bilancio_pdf)"
       ],
       "priority": 6,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Divergenza dal piano annotata: `python-multipart` non era elencato in requirements.txt ma è richiesto a runtime da FastAPI per `UploadFile`/`File(...)` (senza, la collection dei test falliva con `RuntimeError: Form data requires \"python-multipart\" to be installed`) — aggiunto `python-multipart>=0.0.9` a requirements.txt e installato nel venv locale. Nessun'altra divergenza: codice/test copiati alla lettera dal Task 6. TDD rispettato (test falliti prima su 404/route mancante, poi su python-multipart mancante, poi verdi). Suite completa del servizio 9/9 verde."
     },
     {
       "id": "US-918",
