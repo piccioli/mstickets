@@ -23,7 +23,6 @@ use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
-use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
@@ -534,16 +533,29 @@ test('the sync runts data action is visible only for a sezione customer with a l
     Livewire::test(CustomerDashboard::class)->assertActionHidden('sync_runts_data');
 });
 
-test('the sync runts data action re-imports only the RUNTS tables, never touching CaiSection fields', function (): void {
+test('the sync runts data action live-scrapes the current customer\'s section via the cai-runts-scraper service', function (): void {
     $this->seed(RolePermissionSeeder::class);
-    Storage::fake('cai-documents');
 
-    $fixture = makeCaiDatapackFixture();
-    config(['cai_directory.datapack_path' => $fixture['sqlitePath']]);
+    Http::fake([
+        'http://cai-runts-scraper:8000/scrape/runts-entity*' => Http::response([
+            'found' => true,
+            'entity' => [
+                'id_runts' => '12345', 'codice_fiscale' => '01234567890',
+                'denominazione' => 'Sezione di Como (RUNTS)', 'forma_giuridica' => null,
+                'natura_giuridica' => null, 'sede_indirizzo' => null, 'sede_civico' => null,
+                'sede_comune' => null, 'sede_provincia' => null, 'sede_regione' => null,
+                'sede_cap' => null, 'data_iscrizione' => null, 'sezione_registro' => null,
+                'settori_attivita' => null, 'rappresentante_legale' => null, 'sito_web' => null,
+                'pec' => null, 'url_dettaglio' => null,
+            ],
+            'board_members' => [],
+            'documents' => [],
+        ]),
+    ]);
 
     $customer = withRole(User::factory()->create(['email' => 'sezione@example.com']), UserRole::Customer);
     $customer->forceFill(['customer_type' => CustomerType::Sezione])->save();
-    CaiSection::create(['codice_cai' => '9216049', 'name' => 'Nome mantenuto dalla sezione', 'region' => 'LOMBARDIA', 'user_id' => $customer->id]);
+    caiSection(['codice_cai' => '9216049', 'tax_code' => '01234567890', 'user_id' => $customer->id]);
 
     $this->actingAs($customer);
 
@@ -552,6 +564,28 @@ test('the sync runts data action re-imports only the RUNTS tables, never touchin
         ->assertHasNoActionErrors()
         ->assertNotified();
 
-    expect(CaiSection::query()->findOrFail('9216049')->name)->toBe('Nome mantenuto dalla sezione')
-        ->and(CaiRuntsRegistration::query()->pluck('id_runts')->all())->toBe(['166339']);
+    $registration = CaiRuntsRegistration::query()->findOrFail('12345');
+    expect($registration->name)->toBe('Sezione di Como (RUNTS)');
+    expect($registration->runts_last_synced_at)->not->toBeNull();
+});
+
+test('the sync runts data action shows an informative notification when no RUNTS registration is found', function (): void {
+    $this->seed(RolePermissionSeeder::class);
+
+    Http::fake([
+        'http://cai-runts-scraper:8000/scrape/runts-entity*' => Http::response(['found' => false]),
+    ]);
+
+    $customer = withRole(User::factory()->create(['email' => 'sezione@example.com']), UserRole::Customer);
+    $customer->forceFill(['customer_type' => CustomerType::Sezione])->save();
+    caiSection(['codice_cai' => '9216049', 'tax_code' => '01234567890', 'user_id' => $customer->id]);
+
+    $this->actingAs($customer);
+
+    Livewire::test(CustomerDashboard::class)
+        ->callAction('sync_runts_data')
+        ->assertHasNoActionErrors()
+        ->assertNotified();
+
+    expect(CaiRuntsRegistration::query()->count())->toBe(0);
 });

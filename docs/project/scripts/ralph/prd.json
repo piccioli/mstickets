@@ -226,8 +226,8 @@
         "Tests pass"
       ],
       "priority": 15,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Nessuna divergenza dal piano. TDD rispettato: i due nuovi test (live-scrape + not-found) sostituiscono alla lettera il vecchio test 'the sync runts data action re-imports only the RUNTS tables...' del Task 8, falliti prima con ModelNotFoundException (il bottone chiamava ancora CaiDatapackImporter), poi verdi dopo il wiring a SyncCaiRuntsRegistration::run($section). Usato l'helper già in uso nel file (`withRole(User::factory()->create(), UserRole::Customer)`), non `grantCustomerRole` (inesistente in questo file, come previsto dalla nota del piano su 'se il file usa un nome diverso, usare quello esistente'). Rimossi resolveDatapackAbsolutePathOrNotify() e l'import di CaiDatapackImporter (nessun altro call site, verificato con grep) — restava solo in due riferimenti @see nel docblock di syncCaiDataAction()/syncRuntsDataAction(), aggiornati a testo semplice (nessun import fully-qualified da riattivare, gotcha Pint di US-920/923 evitato a monte). Pint ha rimosso un `use Storage` diventato orfano nel file di test dopo la sostituzione (nessuna azione manuale oltre a rilanciare `vendor/bin/pint`). Suite `--filter=Cai` 125 passed/1 skipped (stesso conteggio di prima, nessuna regressione), `pint --test` 825 file puliti, `phpstan analyse --memory-limit=1G` 469 file nessun errore (un primo tentativo ha incontrato il noto race condition virtiofs sulla cache nette.configurator, già documentato in CLAUDE.md — retry immediato risolto)."
     },
     {
       "id": "US-927",

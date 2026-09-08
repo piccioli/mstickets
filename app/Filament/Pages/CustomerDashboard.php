@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Pages;
 
 use App\Domain\CaiDirectory\Actions\ScrapeCaiSection;
-use App\Domain\CaiDirectory\Import\CaiDatapackImporter;
+use App\Domain\CaiDirectory\Actions\SyncCaiRuntsRegistration;
 use App\Domain\CaiDirectory\Models\CaiSection;
 use App\Domain\CaiDirectory\Models\CaiSubsection;
 use App\Domain\Documentation\Models\DocumentationPage;
@@ -174,9 +174,8 @@ class CustomerDashboard extends Page
      * pubblica CAI ({@see ScrapeCaiSection}) scoped alla sola sezione dell'utente
      * corrente — mai l'intero elenco nazionale da un bottone cliente. Sostituisce il
      * precedente re-import dal datapack statico (design doc §3.4): il datapack resta
-     * comunque il meccanismo di bootstrap iniziale per un ambiente nuovo
-     * ({@see CaiDatapackImporter}, invariato). Visibile
-     * solo se esiste già una `CaiSection` collegata. Registrata via
+     * comunque il meccanismo di bootstrap iniziale per un ambiente nuovo, invariato.
+     * Visibile solo se esiste già una `CaiSection` collegata. Registrata via
      * {@see self::getHeaderActions()} (pattern collaudato nel repo): un'action
      * standalone risolta solo dinamicamente da una property blade non esegue il
      * proprio closure quando invocata tramite `Livewire::test()->callAction()` in
@@ -220,12 +219,15 @@ class CustomerDashboard extends Page
     }
 
     /**
-     * Bottone "Sincronizza dati RUNTS" (Fase 9, storia distinta da "Sincronizza dati
-     * CAI"): rilancia SOLO l'import delle tabelle di provenienza RUNTS (registrazione,
-     * bilanci, cariche sociali, allegati/documenti — {@see CaiDatapackImporter},
-     * `skipSectionFields: true`), senza mai toccare i campi propri di `CaiSection`
-     * (nome/contatti/orari, di provenienza sito CAI, gestiti dal bottone gemello).
-     * Stessa visibilità/pattern header-action di {@see self::syncCaiDataAction()}.
+     * Bottone "Sincronizza dati RUNTS" (Fase 9, storia 3): chiama dal vivo il servizio
+     * `cai-runts-scraper` ({@see SyncCaiRuntsRegistration}) scoped alla sola sezione
+     * dell'utente corrente — registrazione RUNTS, cariche sociali e documenti di
+     * bilancio (con dispatch dell'analisi finanziaria asincrona), mai i campi propri
+     * di `CaiSection` (nome/contatti/orari, di provenienza sito CAI, gestiti dal
+     * bottone gemello {@see self::syncCaiDataAction()}). Sostituisce il precedente
+     * re-import dal datapack statico: il datapack resta comunque il meccanismo di
+     * bootstrap iniziale per un ambiente nuovo, invariato. Stessa
+     * visibilità/pattern header-action di {@see self::syncCaiDataAction()}.
      */
     public function syncRuntsDataAction(): Action
     {
@@ -241,54 +243,36 @@ class CustomerDashboard extends Page
                     return;
                 }
 
-                $absolutePath = $this->resolveDatapackAbsolutePathOrNotify();
+                try {
+                    $result = app(SyncCaiRuntsRegistration::class)->run($section);
+                } catch (Throwable $exception) {
+                    Notification::make()
+                        ->danger()
+                        ->title('Sincronizzazione RUNTS non riuscita')
+                        ->body($exception->getMessage())
+                        ->send();
 
-                if ($absolutePath === null) {
                     return;
                 }
 
-                $results = app(CaiDatapackImporter::class)->import(
-                    $absolutePath,
-                    dryRun: false,
-                    onlyCaiSectionCode: $section->codice_cai,
-                    skipSectionFields: true,
-                );
+                if (! $result->found) {
+                    Notification::make()
+                        ->warning()
+                        ->title('Nessuna registrazione RUNTS trovata')
+                        ->body('Non è stata trovata alcuna registrazione RUNTS per il codice fiscale della tua sezione.')
+                        ->send();
 
-                $updated = ($results['cai_runts_registrations']->updated ?? 0) > 0
-                    || ($results['cai_financial_statements']->updated ?? 0) > 0
-                    || ($results['cai_board_members']->updated ?? 0) > 0
-                    || ($results['cai_documents']->updated ?? 0) > 0;
+                    return;
+                }
 
                 Notification::make()
                     ->success()
-                    ->title('Sincronizzazione completata')
-                    ->body($updated ? 'I dati RUNTS della tua sezione sono stati aggiornati.' : 'I dati RUNTS della tua sezione erano già aggiornati.')
+                    ->title('Sincronizzazione RUNTS completata')
+                    ->body($result->queuedAnalysisCount > 0
+                        ? "Dati aggiornati. L'analisi di {$result->queuedAnalysisCount} bilancio/i è stata avviata in background."
+                        : 'Dati RUNTS aggiornati.')
                     ->send();
             });
-    }
-
-    /**
-     * Risolve il percorso assoluto del datapack ({@see self::syncCaiDataAction()}/
-     * {@see self::syncRuntsDataAction()}), inviando la stessa notifica d'errore se il
-     * file non è presente sul server — unico punto per non duplicare la logica fra i
-     * due bottoni.
-     */
-    private function resolveDatapackAbsolutePathOrNotify(): ?string
-    {
-        $rawPath = (string) config('cai_directory.datapack_path');
-        $absolutePath = str_starts_with($rawPath, '/') ? $rawPath : base_path($rawPath);
-
-        if (is_file($absolutePath)) {
-            return $absolutePath;
-        }
-
-        Notification::make()
-            ->danger()
-            ->title('Sincronizzazione non disponibile')
-            ->body('Il datapack CAI non è al momento disponibile sul server.')
-            ->send();
-
-        return null;
     }
 
     /**
