@@ -39,6 +39,13 @@ final class AnalyzeCaiFinancialStatementDocument implements ShouldQueue
             return;
         }
 
+        // cai_documents.year è nullable (un bilancio reale su RUNTS può non avere un anno estraibile dai
+        // metadati), ma cai_financial_statements.year è NOT NULL e parte della chiave composita: nessun
+        // valore sensato da scrivere in quel caso, no-op silenzioso invece di far fallire il job.
+        if ($document->year === null) {
+            return;
+        }
+
         $pdfContent = Storage::disk('cai-documents')->get((string) $document->file_path);
 
         if ($pdfContent === null) {

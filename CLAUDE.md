@@ -1597,3 +1597,37 @@ verificati esplicitamente, non assunti allineati.
   **non perdere silenziosamente quella funzionalità**: spostarla in un punto coerente della nuova pagina
   (qui: un header action "Vedi i ticket di questa sezione" su `CaiSectionRegionalDetail`, via
   `getHeaderActions()`) invece di lasciare un metodo ormai orfano sulla pagina di origine.
+
+## Checkpoint di fine Storia 3 — servizio `cai-runts-scraper` + wiring PHP (US-928, Fase 9)
+
+- **Bug reale trovato SOLO dallo smoke test manuale contro il servizio Python realmente in esecuzione, mai
+  dai test mockati delle story precedenti**: `cai_documents.year` è nullable (un bilancio reale su RUNTS
+  può non avere un anno estraibile dai metadati del documento, US-801), ma `cai_financial_statements.year`
+  è NOT NULL e parte della chiave composita `(cai_runts_registration_id, year)`. Tutti i fixture di test di
+  `AnalyzeCaiFinancialStatementDocumentTest` (US-924/925) valorizzavano sempre `year`, quindi nessuno aveva
+  mai esercitato il caso reale (verificato sul CF 00951210103: 2 documenti `bilancio_esercizio` su 5 avevano
+  `year=null`), che faceva fallire il job con `PDOException` (violazione NOT NULL) per tutti e 3 i tentativi
+  Horizon. Fix: guard esplicito `if ($document->year === null) { return; }` in cima a
+  `AnalyzeCaiFinancialStatementDocument::handle()`, PRIMA di scaricare il PDF/chiamare il servizio — no-op
+  silenzioso, stesso principio già in uso nello stesso metodo per "documento non più esistente"/"file
+  assente sul disco". **Pattern generale**: quando un job/Action legge una colonna nullable sulla sorgente
+  per scriverla su una colonna NOT NULL (specie se parte di una chiave composita) sulla destinazione,
+  verificare sempre esplicitamente il caso null PRIMA di scrivere — un fixture di test che valorizza sempre
+  quel campo "per comodità" non lo intercetta mai.
+- **Uno smoke test manuale end-to-end contro dati reali è l'unico modo per scoprire questo genere di bug**:
+  nessun mock realistico avrebbe prodotto un documento RUNTS reale con anno mancante senza sapere in anticipo
+  che il caso esiste. Quando un checkpoint di fine fase/storia prevede un passo di verifica manuale con dati
+  reali (già il caso per US-918/US-928 in questo repo), eseguirlo per davvero prima di dichiarare la story
+  chiusa, non limitarsi alla sola suite mockata anche se verde.
+- **Gotcha ambientale, non specifico a questo dominio**: un ambiente Docker "già in esecuzione da giorni"
+  (container `app`/`db` non ricreati) può avere migrazioni committate ma mai applicate al Postgres di
+  sviluppo persistente, se nessuna story precedente le ha eseguite per davvero (i test Pest girano su
+  sqlite in-memory via `RefreshDatabase` e non lo intercettano mai). Prima di uno smoke test manuale che
+  scrive sul DB reale, verificare sempre con `php artisan migrate --pretend` (poi `--force` se necessario) —
+  non assumere che "i test passano" implichi "lo schema Postgres di sviluppo è aggiornato".
+- `php artisan tinker` di default gira con `memory_limit=128M` (non eredita l'override di un comando esterno
+  a meno di passarlo esplicitamente): una risposta HTTP con più PDF in base64 (qui l'intero payload di
+  `/scrape/runts-entity` con ~19 documenti) può esaurirlo dentro `json_decode()` in
+  `Illuminate\Http\Client\Response`. Usare `docker compose exec -T app php -d memory_limit=512M artisan
+  tinker --execute="..."` per qualunque verifica manuale che invochi `CaiRuntsScraperClient::scrapeEntity()`
+  o un payload HTTP di dimensioni comparabili.

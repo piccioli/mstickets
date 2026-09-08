@@ -773,3 +773,65 @@ Started: Lun  7 Set 2026 15:44:39 CEST
   - Suite mirata `--filter=Cai` 126 passed/1 skipped (125→126, +1 come atteso, nessuna regressione); `pint --test` e `phpstan analyse --memory-limit=1G` puliti.
   - Prossima e ultima story della Storia 3 (US-928): checkpoint finale di regressione end-to-end + smoke test manuale col servizio `cai-runts-scraper` realmente in esecuzione — vedere Task 10 del piano.
 ---
+
+## [2026-09-08] - US-928
+- Task 10 del piano wiring (Step 1-5) eseguito per intero: regressione end-to-end di tutta la Storia 3
+  (US-919..US-927) + smoke test manuale reale contro il servizio cai-runts-scraper realmente in esecuzione.
+- Step 1: i 9 file di test elencati dal piano eseguiti insieme (`vendor/bin/pest <9 file>`), 76/76 verdi
+  (75 pre-esistenti + 1 nuovo test di regressione aggiunto in questa story). `CaiImportDatapackCommandTest`
+  invariato: stessi 6 test, stessi conteggi.
+- Step 2: `composer run analyse` (469 file, 0 errori) e `composer run lint` (825 file puliti), nessun nuovo
+  errore introdotto da nessuna delle story Storia 3.
+- Step 3 (smoke test reale, nessun tool MCP browser disponibile in questa sessione): `docker compose up -d
+  cai-runts-scraper`, poi invocata `SyncCaiRuntsRegistration::run($section)` da `php artisan tinker` (stesso
+  identico codepath del bottone "Sincronizza dati RUNTS" della dashboard cliente) sulla `CaiSection` reale
+  con tax_code `00951210103` (SEZ. LIGURE-GENOVA, stesso CF già verificato dal vivo in US-918).
+  - Gap ambientale scoperto e risolto: la migrazione `runts_last_synced_at` di US-919 non era mai stata
+    applicata al Postgres di sviluppo persistente (`db`) — nessuno l'aveva rilanciata dopo il commit.
+    `php artisan migrate --force` (unica migrazione pendente, additiva) l'ha applicata senza toccare altro.
+  - Esito sync: `found=true`, completato in circa 1 minuto (in linea con l'AC "~1 minuto"), 19 nuovi
+    `CaiDocument` creati, 0 `CaiBoardMember` (dato reale plausibile — RUNTS non sempre espone cariche
+    sociali per un ente, comportamento già coperto da test mockati in `SyncCaiRuntsRegistrationTest`), 5
+    documenti `bilancio_esercizio` nuovi accodati su `cai-runts-analysis` (confermato in `docker compose
+    logs queue`: RUNNING/DONE su quella coda specifica), 2 `CaiFinancialStatement` creati (uno con cifre
+    reali estratte — totale oneri 295218, totale proventi 316724, risultato 20527 — uno con tutti i 15
+    campi null perché quel PDF 2025 non è risultato interpretabile da pdfplumber, comportamento atteso da
+    US-917, non un difetto).
+  - **BUG REALE trovato dal solo smoke test con dati reali** (mai riprodotto dai fixture mockati delle
+    story precedenti, perché tutti i test esistenti usavano sempre un `year` valorizzato): 2 dei 5
+    documenti `bilancio_esercizio` avevano `year=null` — RUNTS non sempre espone un anno estraibile per un
+    bilancio nei metadati del documento (`cai_documents.year` è nullable proprio per questo, US-801), ma
+    `AnalyzeCaiFinancialStatementDocument::handle()` passava quel `null` direttamente a
+    `cai_financial_statements.year`, colonna NOT NULL e parte della chiave composita `(cai_runts_
+    registration_id, year)` → `PDOException` (violazione NOT NULL), job fallito per tutti e 3 i tentativi
+    Horizon, finito in `failed_jobs`.
+  - **Fix (Step 4 del Task 10)**: aggiunto un guard esplicito in cima a `handle()` — `if ($document->year
+    === null) { return; }`, PRIMA di scaricare il PDF/chiamare il servizio Python — no-op silenzioso,
+    stesso identico principio già in uso nello stesso metodo per "documento non più esistente"/"file
+    assente sul disco" (mai un errore per un caso di dato reale incompleto ma legittimo).
+  - Nuovo test di regressione `handle does nothing when the document has no extractable year` in
+    `AnalyzeCaiFinancialStatementDocumentTest.php`. Verificato anche manualmente rilanciando `handle()` sui
+    due documenti reali (id 217, 219) che avevano fatto fallire il job: nessuna eccezione dopo il fix.
+  - Suite Cai (9 file, ora 76 test) + `composer run analyse`/`lint` ri-verificati verdi dopo il fix.
+    `failed_jobs` per la coda `cai-runts-analysis` ripulita a fine verifica.
+- File: `app/Domain/CaiDirectory/Jobs/AnalyzeCaiFinancialStatementDocument.php`,
+  `tests/Feature/Domain/CaiDirectory/Jobs/AnalyzeCaiFinancialStatementDocumentTest.php`.
+- **Learnings for future iterations:**
+  - Un checkpoint di fine fase/storia che include uno smoke test con dati reali (non solo Http::fake) è
+    l'unico modo realistico di scoprire un edge case come "una colonna nullable sulla sorgente diventa
+    NOT NULL sulla destinazione, e nessun fixture di test lo ha mai esercitato perché tutti valorizzano
+    quel campo per comodità": prima di fixare un bug così, verificare sempre se altre colonne
+    "derivate/opzionali" nello stesso dominio hanno lo stesso rischio (qui non ce n'erano altre: gli altri
+    14 campi finanziari sono tutti nullable anche sulla destinazione).
+  - Gotcha ambientale riconfermato: un ambiente Docker "già in esecuzione da giorni" (container `app`/`db`
+    non ricreati dall'ultimo `docker compose up`) può avere migrazioni pendenti mai applicate se nessuna
+    story precedente ha eseguito `php artisan migrate` per davvero sul DB persistente di sviluppo (i test
+    Pest girano su sqlite in-memory via RefreshDatabase, quindi non lo intercettano mai) — verificare
+    sempre con `php artisan migrate --pretend`/`migrate --force` prima di uno smoke test manuale che scrive
+    sul DB reale, non assumere che "i test passano" implichi "lo schema Postgres di sviluppo è aggiornato".
+  - `php artisan tinker` di default ha `memory_limit=128M` (non eredita l'override del comando esterno se
+    non passato con `-d`): una risposta HTTP con più PDF in base64 (qui l'intero payload di scrape con 19
+    documenti) può esaurirlo in `json_decode()` dentro `Illuminate\Http\Client\Response`. Usare `docker
+    compose exec -T app php -d memory_limit=512M artisan tinker --execute="..."` per qualunque verifica
+    manuale che invochi `CaiRuntsScraperClient::scrapeEntity()`/uno smoke test simile con payload grandi.
+---

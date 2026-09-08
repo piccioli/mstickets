@@ -78,3 +78,17 @@ test('handle does nothing when the CaiDocument no longer exists', function (): v
 
     Http::assertNothingSent();
 });
+
+test('handle does nothing when the document has no extractable year', function (): void {
+    Storage::fake('cai-documents');
+    Storage::disk('cai-documents')->put('12345/bilancio-senza-anno.pdf', '%PDF-1.4 fixture');
+
+    $document = caiDocument(['file_path' => '12345/bilancio-senza-anno.pdf', 'year' => null]);
+
+    Http::fake();
+
+    (new AnalyzeCaiFinancialStatementDocument($document->id))->handle(app(CaiRuntsScraperClient::class));
+
+    Http::assertNothingSent();
+    expect(CaiFinancialStatement::query()->where('cai_runts_registration_id', $document->cai_runts_registration_id)->count())->toBe(0);
+});
