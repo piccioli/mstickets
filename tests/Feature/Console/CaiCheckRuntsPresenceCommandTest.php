@@ -3,9 +3,29 @@
 declare(strict_types=1);
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
 
 uses(RefreshDatabase::class);
+
+test('the --timeout option defaults to 10 seconds', function (): void {
+    $definition = Artisan::all()['cai:check-runts-presence']->getDefinition();
+
+    expect($definition->hasOption('timeout'))->toBeTrue();
+    expect($definition->getOption('timeout')->getDefault())->toBe('10');
+});
+
+test('a custom --timeout is accepted without breaking a normal run', function (): void {
+    $section = caiSection(['tax_code' => '01234567890', 'runts_registered' => null]);
+
+    Http::fake([
+        'http://cai-runts-scraper:8000/search/runts-entity*' => Http::response(['found' => true]),
+    ]);
+
+    $this->artisan('cai:check-runts-presence', ['--timeout' => 5])->assertExitCode(0);
+
+    expect($section->fresh()->runts_registered)->toBeTrue();
+});
 
 test('cai:check-runts-presence writes runts_registered and runts_presence_checked_at for every section with a tax_code', function (): void {
     $registered = caiSection(['tax_code' => '01234567890', 'runts_registered' => null]);

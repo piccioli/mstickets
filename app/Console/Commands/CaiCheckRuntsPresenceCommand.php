@@ -22,7 +22,9 @@ use Throwable;
  */
 class CaiCheckRuntsPresenceCommand extends Command
 {
-    protected $signature = 'cai:check-runts-presence {--dry-run : Calcola gli esiti senza scriverli}';
+    protected $signature = 'cai:check-runts-presence
+        {--dry-run : Calcola gli esiti senza scriverli}
+        {--timeout=10 : Timeout in secondi per ogni verifica (una sezione trovata risponde in pochi secondi; una non trovata/ambigua può richiedere fino al timeout stesso — un valore basso scambia completezza per velocità)}';
 
     protected $description = 'Verifica se ogni sezione CAI con codice fiscale risulta registrata su RUNTS (solo ricerca, nessuno scrape completo)';
 
@@ -34,9 +36,10 @@ class CaiCheckRuntsPresenceCommand extends Command
     public function handle(): int
     {
         $dryRun = (bool) $this->option('dry-run');
+        $timeoutSeconds = (int) $this->option('timeout');
         $startedAt = now();
 
-        Log::info('cai.check_runts_presence.started', ['dry_run' => $dryRun]);
+        Log::info('cai.check_runts_presence.started', ['dry_run' => $dryRun, 'timeout_seconds' => $timeoutSeconds]);
 
         $sections = CaiSection::query()->whereNotNull('tax_code')->get();
 
@@ -49,7 +52,7 @@ class CaiCheckRuntsPresenceCommand extends Command
             $examined++;
 
             try {
-                $found = $this->client->checkEntityExists((string) $section->tax_code);
+                $found = $this->client->checkEntityExists((string) $section->tax_code, $timeoutSeconds);
                 $found ? $registered++ : $notRegistered++;
 
                 $this->line("- {$section->codice_cai}: ".($found ? 'presente su RUNTS' : 'non presente su RUNTS'));

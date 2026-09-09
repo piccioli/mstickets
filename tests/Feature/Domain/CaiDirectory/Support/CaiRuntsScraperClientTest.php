@@ -48,3 +48,15 @@ test('checkEntityExists returns false when the service reports found: false', fu
 
     expect(app(CaiRuntsScraperClient::class)->checkEntityExists('00000000000'))->toBeFalse();
 });
+
+test('checkEntityExists accepts an explicit timeout override, falling back to config when omitted', function (): void {
+    Http::fake([
+        'http://cai-runts-scraper:8000/search/runts-entity*' => Http::response(['found' => true]),
+    ]);
+
+    // Nota: Http::fake() non espone il timeout Guzzle sottostante alle asserzioni su Request,
+    // quindi qui si verifica solo che il parametro venga accettato e non alteri l'esito atteso —
+    // il valore realmente passato a Http::timeout() è verificato per lettura del codice.
+    expect(app(CaiRuntsScraperClient::class)->checkEntityExists('01234567890', timeoutSeconds: 10))->toBeTrue();
+    expect(app(CaiRuntsScraperClient::class)->checkEntityExists('01234567890'))->toBeTrue();
+});

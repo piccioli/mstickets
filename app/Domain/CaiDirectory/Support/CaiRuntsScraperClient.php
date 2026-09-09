@@ -31,10 +31,15 @@ final class CaiRuntsScraperClient
     /**
      * Verifica leggera di presenza (Fase 9): solo ricerca via codice fiscale, mai lo scrape
      * completo di {@see self::scrapeEntity()} — usata dal comando `cai:check-runts-presence`.
+     * `$timeoutSeconds` (opzionale) sovrascrive `config('cai_directory.runts_scraper.search_timeout_seconds')`
+     * per questa singola chiamata: il comando lo espone come opzione `--timeout` regolabile a piacere
+     * (una sezione "trovata" risponde in pochi secondi, una non trovata/ambigua può richiedere fino al
+     * timeout stesso — un valore più basso scambia completezza per velocità, esplicitamente scelto
+     * dall'operatore per ogni esecuzione).
      */
-    public function checkEntityExists(string $codiceFiscale): bool
+    public function checkEntityExists(string $codiceFiscale, ?int $timeoutSeconds = null): bool
     {
-        $response = Http::timeout((int) config('cai_directory.runts_scraper.search_timeout_seconds'))
+        $response = Http::timeout($timeoutSeconds ?? (int) config('cai_directory.runts_scraper.search_timeout_seconds'))
             ->withOptions(['query' => ['codice_fiscale' => $codiceFiscale]])
             ->post($this->baseUrl().'/search/runts-entity');
 
