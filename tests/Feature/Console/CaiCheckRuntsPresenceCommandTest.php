@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Domain\CaiDirectory\Models\CaiSection;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 

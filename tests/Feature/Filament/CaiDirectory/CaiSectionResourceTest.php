@@ -104,6 +104,25 @@ test('the table is filterable by region', function (): void {
         ->assertCanNotSeeTableRecords([$piemonte]);
 });
 
+test('the table is filterable by RUNTS presence', function (): void {
+    $user = grantCaiDirectoryPanelAccess(userWithPermissions(PermissionEnum::CaiDirectoryView));
+    $registered = caiSection(['runts_registered' => true]);
+    $notRegistered = caiSection(['runts_registered' => false]);
+    $neverChecked = caiSection(['runts_registered' => null]);
+
+    $this->actingAs($user);
+
+    Livewire::test(ListCaiSections::class)
+        ->filterTable('runts_registered', true)
+        ->assertCanSeeTableRecords([$registered])
+        ->assertCanNotSeeTableRecords([$notRegistered, $neverChecked]);
+
+    Livewire::test(ListCaiSections::class)
+        ->filterTable('runts_registered', false)
+        ->assertCanSeeTableRecords([$notRegistered])
+        ->assertCanNotSeeTableRecords([$registered, $neverChecked]);
+});
+
 test('the table is filterable by presence of a linked user', function (): void {
     $user = grantCaiDirectoryPanelAccess(userWithPermissions(PermissionEnum::CaiDirectoryView));
     $linkedUser = User::factory()->create();
