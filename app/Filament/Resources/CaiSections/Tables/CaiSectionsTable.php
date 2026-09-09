@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\CaiSections\Tables;
 
+use App\Domain\CaiDirectory\Enums\CaiRuntsPresenceStatus;
 use App\Domain\CaiDirectory\Models\CaiSection;
 use App\Filament\Resources\CaiSections\Support\CaiSectionsExporter;
 use Filament\Actions\Action;
 use Filament\Actions\ViewAction;
 use Filament\Support\Icons\Heroicon;
-use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\SelectFilter;
@@ -49,23 +49,10 @@ class CaiSectionsTable
                 TextColumn::make('user.name')
                     ->label('Utente collegato')
                     ->placeholder('—'),
-                IconColumn::make('runts_registered')
-                    ->label('Su RUNTS')
-                    ->icon(fn (?bool $state): Heroicon => match ($state) {
-                        true => Heroicon::OutlinedCheckCircle,
-                        false => Heroicon::OutlinedXCircle,
-                        null => Heroicon::OutlinedQuestionMarkCircle,
-                    })
-                    ->color(fn (?bool $state): string => match ($state) {
-                        true => 'success',
-                        false => 'danger',
-                        null => 'gray',
-                    })
-                    ->tooltip(fn (?bool $state): string => match ($state) {
-                        true => 'Presente su RUNTS',
-                        false => 'Non presente su RUNTS',
-                        null => 'Mai verificato',
-                    }),
+                TextColumn::make('runts_presence_status')
+                    ->label('Presenza su RUNTS')
+                    ->badge()
+                    ->placeholder('Mai verificato'),
             ])
             ->filters([
                 SelectFilter::make('region')
@@ -86,11 +73,11 @@ class CaiSectionsTable
                         false: self::withoutLinkedUserQuery(...),
                         blank: fn (Builder $query): Builder => $query,
                     ),
-                TernaryFilter::make('runts_registered')
+                SelectFilter::make('runts_presence_status')
                     ->label('Presenza su RUNTS')
-                    ->placeholder('Tutte')
-                    ->trueLabel('Presente su RUNTS')
-                    ->falseLabel('Non presente su RUNTS'),
+                    ->options(collect(CaiRuntsPresenceStatus::cases())->mapWithKeys(
+                        fn (CaiRuntsPresenceStatus $status): array => [$status->value => $status->getLabel()],
+                    )),
             ])
             ->headerActions([
                 Action::make('exportCsv')

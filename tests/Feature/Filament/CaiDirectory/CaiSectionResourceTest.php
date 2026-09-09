@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\CaiDirectory\Enums\CaiRuntsPresenceStatus;
 use App\Domain\CaiDirectory\Models\CaiDocument;
 use App\Domain\CaiDirectory\Models\CaiFinancialStatement;
 use App\Domain\CaiDirectory\Models\CaiRuntsRegistration;
@@ -104,23 +105,24 @@ test('the table is filterable by region', function (): void {
         ->assertCanNotSeeTableRecords([$piemonte]);
 });
 
-test('the table is filterable by RUNTS presence', function (): void {
+test('the table is filterable by RUNTS presence status', function (): void {
     $user = grantCaiDirectoryPanelAccess(userWithPermissions(PermissionEnum::CaiDirectoryView));
-    $registered = caiSection(['runts_registered' => true]);
-    $notRegistered = caiSection(['runts_registered' => false]);
-    $neverChecked = caiSection(['runts_registered' => null]);
+    $registered = caiSection(['runts_presence_status' => CaiRuntsPresenceStatus::Registered]);
+    $notRegistered = caiSection(['runts_presence_status' => CaiRuntsPresenceStatus::NotRegistered]);
+    $timedOut = caiSection(['runts_presence_status' => CaiRuntsPresenceStatus::Timeout]);
+    $neverChecked = caiSection(['runts_presence_status' => null]);
 
     $this->actingAs($user);
 
     Livewire::test(ListCaiSections::class)
-        ->filterTable('runts_registered', true)
+        ->filterTable('runts_presence_status', CaiRuntsPresenceStatus::Registered->value)
         ->assertCanSeeTableRecords([$registered])
-        ->assertCanNotSeeTableRecords([$notRegistered, $neverChecked]);
+        ->assertCanNotSeeTableRecords([$notRegistered, $timedOut, $neverChecked]);
 
     Livewire::test(ListCaiSections::class)
-        ->filterTable('runts_registered', false)
-        ->assertCanSeeTableRecords([$notRegistered])
-        ->assertCanNotSeeTableRecords([$registered, $neverChecked]);
+        ->filterTable('runts_presence_status', CaiRuntsPresenceStatus::Timeout->value)
+        ->assertCanSeeTableRecords([$timedOut])
+        ->assertCanNotSeeTableRecords([$registered, $notRegistered, $neverChecked]);
 });
 
 test('the table is filterable by presence of a linked user', function (): void {

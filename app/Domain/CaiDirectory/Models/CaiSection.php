@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\CaiDirectory\Models;
 
+use App\Domain\CaiDirectory\Enums\CaiRuntsPresenceStatus;
 use App\Domain\Identity\Models\User;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
@@ -14,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'codice_cai', 'name', 'tax_code', 'vat_number', 'email', 'pec', 'phone_office', 'phone', 'fax',
     'address', 'postal_address', 'website', 'office_hours', 'notices', 'founded_year', 'members_count',
     'latitude', 'longitude', 'region', 'user_id', 'cai_last_synced_at',
-    'runts_registered', 'runts_presence_checked_at',
+    'runts_presence_status', 'runts_presence_checked_at',
 ])]
 class CaiSection extends Model
 {
@@ -35,7 +36,7 @@ class CaiSection extends Model
             'latitude' => 'decimal:7',
             'longitude' => 'decimal:7',
             'cai_last_synced_at' => 'datetime',
-            'runts_registered' => 'boolean',
+            'runts_presence_status' => CaiRuntsPresenceStatus::class,
             'runts_presence_checked_at' => 'datetime',
         ];
     }
