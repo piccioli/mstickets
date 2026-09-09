@@ -705,6 +705,44 @@ def _normalize_label(label: str) -> str:
     return re.sub(r"\s+", "_", re.sub(r"[^\w\s]", "", key)).strip("_")
 
 
+async def check_entity_exists(codice_fiscale: str, headless: bool = True, delay_ms: int = 500) -> bool:
+    """
+    Verifica leggera di presenza su RUNTS (Fase 9, storia "presenza RUNTS"): esegue SOLO la
+    ricerca per codice fiscale, mai la navigazione alla pagina di dettaglio né il download di
+    allegati — a differenza di `run_scraper()`, che fa lo scrape completo. Stesso schema di
+    retry (3 tentativi, backoff esponenziale) già usato altrove in questo modulo.
+    """
+    last_exception: Exception | None = None
+
+    for attempt in range(3):
+        try:
+            async with async_playwright() as pw:
+                browser = await pw.chromium.launch(headless=headless)
+                context = await browser.new_context(
+                    user_agent=(
+                        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                        "AppleWebKit/537.36 (KHTML, like Gecko) "
+                        "Chrome/124.0.0.0 Safari/537.36"
+                    )
+                )
+                page = await context.new_page()
+
+                await search_enti(page, denominazione="", codice_fiscale=codice_fiscale)
+                total_items = await _get_total_items(page)
+
+                await context.close()
+                await browser.close()
+
+                return total_items > 0
+        except Exception as exc:  # noqa: BLE001 - qualunque fallimento di rete/Playwright va ritentato
+            last_exception = exc
+            if attempt < 2:
+                await asyncio.sleep(2 ** attempt)
+
+    assert last_exception is not None
+    raise last_exception
+
+
 async def run_scraper(
     denominazione: str = "CLUB ALPINO ITALIANO",
     headless: bool = True,

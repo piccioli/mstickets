@@ -8,7 +8,7 @@ from typing import Any
 from fastapi import FastAPI, File, HTTPException, UploadFile
 
 from app.analyzer import extract_bilancio_pdf
-from app.scraper import run_scraper
+from app.scraper import check_entity_exists, run_scraper
 
 app = FastAPI(title="cai-runts-scraper")
 
@@ -40,6 +40,16 @@ async def analyze_bilancio(file: UploadFile = File(...)) -> dict[str, Any]:
     response["ocr"] = bool(result.get("_ocr", False))
 
     return response
+
+
+@app.post("/search/runts-entity")
+async def search_runts_entity(codice_fiscale: str) -> dict[str, Any]:
+    try:
+        found = await check_entity_exists(codice_fiscale=codice_fiscale)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    return {"found": found}
 
 
 @app.post("/scrape/runts-entity")
