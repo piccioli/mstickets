@@ -41,7 +41,11 @@ return [
         'base_url' => env('CAI_RUNTS_SCRAPER_BASE_URL', 'http://cai-runts-scraper:8000'),
         'scrape_timeout_seconds' => (int) env('CAI_RUNTS_SCRAPER_SCRAPE_TIMEOUT_SECONDS', 150),
         'analyze_timeout_seconds' => (int) env('CAI_RUNTS_SCRAPER_ANALYZE_TIMEOUT_SECONDS', 60),
-        'search_timeout_seconds' => (int) env('CAI_RUNTS_SCRAPER_SEARCH_TIMEOUT_SECONDS', 60),
+        // 120s, non 60: verificato con una run reale contro RUNTS (cai:check-runts-presence)
+        // che 60s è troppo stretto — i 3 tentativi interni del servizio Python (fino a ~30s di
+        // attesa selettore ciascuno + backoff 1s/2s) possono superare abbondantemente i 60s nel
+        // caso peggiore, causando un timeout lato client PHP prima che il servizio risponda.
+        'search_timeout_seconds' => (int) env('CAI_RUNTS_SCRAPER_SEARCH_TIMEOUT_SECONDS', 120),
     ],
 
     /*
