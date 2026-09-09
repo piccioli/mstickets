@@ -41,5 +41,15 @@ return [
         'base_url' => env('CAI_RUNTS_SCRAPER_BASE_URL', 'http://cai-runts-scraper:8000'),
         'scrape_timeout_seconds' => (int) env('CAI_RUNTS_SCRAPER_SCRAPE_TIMEOUT_SECONDS', 150),
         'analyze_timeout_seconds' => (int) env('CAI_RUNTS_SCRAPER_ANALYZE_TIMEOUT_SECONDS', 60),
+        'search_timeout_seconds' => (int) env('CAI_RUNTS_SCRAPER_SEARCH_TIMEOUT_SECONDS', 60),
+    ],
+
+    /*
+     * Verifica leggera di presenza RUNTS (Fase 9): cadenza cron di
+     * `cai:check-runts-presence`, dietro il feature flag
+     * `config('orchestrator.features.cai_check_runts_presence')` (disattivo di default).
+     */
+    'runts_presence_check' => [
+        'schedule_cron' => env('CAI_CHECK_RUNTS_PRESENCE_SCHEDULE_CRON', '0 5 1 * *'),
     ],
 ];

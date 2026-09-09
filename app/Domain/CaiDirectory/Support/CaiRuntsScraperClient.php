@@ -29,6 +29,21 @@ final class CaiRuntsScraperClient
     }
 
     /**
+     * Verifica leggera di presenza (Fase 9): solo ricerca via codice fiscale, mai lo scrape
+     * completo di {@see self::scrapeEntity()} — usata dal comando `cai:check-runts-presence`.
+     */
+    public function checkEntityExists(string $codiceFiscale): bool
+    {
+        $response = Http::timeout((int) config('cai_directory.runts_scraper.search_timeout_seconds'))
+            ->withOptions(['query' => ['codice_fiscale' => $codiceFiscale]])
+            ->post($this->baseUrl().'/search/runts-entity');
+
+        $response->throw();
+
+        return (bool) ($response->json('found') ?? false);
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function analyzeBilancio(string $pdfContent): array

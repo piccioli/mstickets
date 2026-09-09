@@ -29,3 +29,22 @@ test('analyzeBilancio sends the PDF as a multipart file upload and returns the d
     expect($result)->toBe(['totale_oneri' => 1200]);
     Http::assertSent(fn ($request): bool => $request->hasFile('file'));
 });
+
+test('checkEntityExists sends codice_fiscale as a query parameter and returns the found flag', function (): void {
+    Http::fake([
+        'http://cai-runts-scraper:8000/search/runts-entity*' => Http::response(['found' => true]),
+    ]);
+
+    $result = app(CaiRuntsScraperClient::class)->checkEntityExists('01234567890');
+
+    expect($result)->toBeTrue();
+    Http::assertSent(fn ($request): bool => str_contains($request->url(), 'codice_fiscale=01234567890'));
+});
+
+test('checkEntityExists returns false when the service reports found: false', function (): void {
+    Http::fake([
+        'http://cai-runts-scraper:8000/search/runts-entity*' => Http::response(['found' => false]),
+    ]);
+
+    expect(app(CaiRuntsScraperClient::class)->checkEntityExists('00000000000'))->toBeFalse();
+});

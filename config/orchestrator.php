@@ -33,6 +33,7 @@ return [
         'mail_digest' => (bool) env('ENABLE_MAIL_DIGEST', false),
         'tickets_idle_developer_notice' => (bool) env('ENABLE_TICKETS_IDLE_DEVELOPER_NOTICE', false),
         'cai_sync_national' => (bool) env('ENABLE_CAI_SYNC_NATIONAL', false),
+        'cai_check_runts_presence' => (bool) env('ENABLE_CAI_CHECK_RUNTS_PRESENCE', false),
     ],
 
     /*
