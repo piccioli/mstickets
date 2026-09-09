@@ -15,8 +15,10 @@ use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
- * Verifica leggera di presenza RUNTS (Fase 9): per ogni `CaiSection` con `tax_code`
- * valorizzato, chiama {@see CaiRuntsScraperClient::checkEntityExists()} (SOLO ricerca, mai lo
+ * Verifica leggera di presenza RUNTS (Fase 9): per ogni `CaiSection` con `tax_code` O `vat_number`
+ * valorizzato (in Italia i due numeri coincidono spesso per gli enti, `tax_code` preferito quando
+ * entrambi sono presenti — nessuna sezione con entrambi nulli viene interrogata, non c'è nulla da
+ * cercare su RUNTS), chiama {@see CaiRuntsScraperClient::checkEntityExists()} (SOLO ricerca, mai lo
  * scrape completo di {@see ScrapeCaiSection}/`cai:sync-national`)
  * e scrive `runts_presence_status`/`runts_presence_checked_at`. Un timeout della verifica
  * ({@see ConnectionException}, l'esito più comune con `--timeout` basso — una sezione "trovata"
@@ -33,7 +35,7 @@ class CaiCheckRuntsPresenceCommand extends Command
         {--dry-run : Calcola gli esiti senza scriverli}
         {--timeout=10 : Timeout in secondi per ogni verifica (una sezione trovata risponde in pochi secondi; una non trovata/ambigua può richiedere fino al timeout stesso — un valore basso scambia completezza per velocità)}';
 
-    protected $description = 'Verifica se ogni sezione CAI con codice fiscale risulta registrata su RUNTS (solo ricerca, nessuno scrape completo)';
+    protected $description = 'Verifica se ogni sezione CAI con codice fiscale o partita IVA risulta registrata su RUNTS (solo ricerca, nessuno scrape completo)';
 
     public function __construct(private readonly CaiRuntsScraperClient $client)
     {
@@ -48,7 +50,9 @@ class CaiCheckRuntsPresenceCommand extends Command
 
         Log::info('cai.check_runts_presence.started', ['dry_run' => $dryRun, 'timeout_seconds' => $timeoutSeconds]);
 
-        $sections = CaiSection::query()->whereNotNull('tax_code')->get();
+        $sections = CaiSection::query()
+            ->where(fn ($query) => $query->whereNotNull('tax_code')->orWhereNotNull('vat_number'))
+            ->get();
 
         $examined = 0;
         $registered = 0;
@@ -58,9 +62,10 @@ class CaiCheckRuntsPresenceCommand extends Command
 
         foreach ($sections as $section) {
             $examined++;
+            $codiceFiscale = (string) ($section->tax_code ?? $section->vat_number);
 
             try {
-                $found = $this->client->checkEntityExists((string) $section->tax_code, $timeoutSeconds);
+                $found = $this->client->checkEntityExists($codiceFiscale, $timeoutSeconds);
                 $status = $found ? CaiRuntsPresenceStatus::Registered : CaiRuntsPresenceStatus::NotRegistered;
                 $found ? $registered++ : $notRegistered++;
 

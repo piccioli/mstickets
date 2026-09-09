@@ -101,12 +101,41 @@ test('cai:check-runts-presence continues past a section whose check fails with a
     expect($ok->fresh()->runts_presence_status)->toBe(CaiRuntsPresenceStatus::Registered);
 });
 
-test('cai:check-runts-presence skips sections without a tax_code, never calling the service for them', function (): void {
-    caiSection(['tax_code' => null]);
+test('cai:check-runts-presence skips sections with neither tax_code nor vat_number, never calling the service for them', function (): void {
+    caiSection(['tax_code' => null, 'vat_number' => null]);
 
     Http::fake();
 
     $this->artisan('cai:check-runts-presence')->assertExitCode(0);
 
     Http::assertNothingSent();
+});
+
+test('cai:check-runts-presence falls back to vat_number when tax_code is missing', function (): void {
+    $section = caiSection(['tax_code' => null, 'vat_number' => '09876543210', 'runts_presence_status' => null]);
+
+    Http::fake([
+        'http://cai-runts-scraper:8000/search/runts-entity*' => function ($request) {
+            $query = [];
+            parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
+
+            return Http::response(['found' => $query['codice_fiscale'] === '09876543210']);
+        },
+    ]);
+
+    $this->artisan('cai:check-runts-presence')->assertExitCode(0);
+
+    expect($section->fresh()->runts_presence_status)->toBe(CaiRuntsPresenceStatus::Registered);
+});
+
+test('cai:check-runts-presence prefers tax_code over vat_number when both are present', function (): void {
+    $section = caiSection(['tax_code' => '01234567890', 'vat_number' => '09876543210', 'runts_presence_status' => null]);
+
+    Http::fake([
+        'http://cai-runts-scraper:8000/search/runts-entity*' => Http::response(['found' => true]),
+    ]);
+
+    $this->artisan('cai:check-runts-presence')->assertExitCode(0);
+
+    Http::assertSent(fn ($request): bool => str_contains($request->url(), 'codice_fiscale=01234567890'));
 });
