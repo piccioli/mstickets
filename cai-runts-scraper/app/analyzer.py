@@ -45,6 +45,14 @@ _PATTERNS: dict[str, list[str]] = {
         r"[Tt]otale\s+[Uu]scite\b[^\d\n]{0,30}([\d\.,' ]+[,\.]\d{2})",
         # Bologna GR Mod.B image: grand total label
         r"TOTALE\s+ONERI\s+E\s+COSTI[^\d\n]{0,30}([\d\.,' ]+[,\.]\d{2})",
+        # Layout a due colonne (oneri a sinistra, proventi a destra sulla stessa riga
+        # logica, es. RUNTS CAI Como): pdfplumber mette l'etichetta "Totale oneri e
+        # costi"/"Totale proventi e ricavi" su una riga e i 4 importi (oneri
+        # corrente/precedente, proventi corrente/precedente) sulla riga successiva,
+        # SENZA virgola decimale (importi interi) — nessun pattern sopra copre
+        # l'attraversamento di riga né l'assenza di ",XX". Il primo numero sulla riga
+        # successiva è sempre il totale oneri dell'anno corrente in questo layout.
+        r"[Tt]otale\s+oneri\s+e\s+costi[^\n]*\n\s*€?\s*([\d\.]+)",
     ],
     "proventi_a_interesse_generale": [
         r"[Tt]otale entrate da attivit[^\n]{1,20}interesse generale\s+([\d\.,']+)",
@@ -75,6 +83,10 @@ _PATTERNS: dict[str, list[str]] = {
         r"[Tt]otale\s+[Ee]ntrate\b[^\d\n]{0,30}([\d\.,' ]+[,\.]\d{2})",
         # Bologna GR Mod.B image
         r"TOTALE\s+PROVENTI\s+E\s+RICAVI[^\d\n]{0,30}([\d\.,' ]+[,\.]\d{2})",
+        # Stesso layout a due colonne di "totale_oneri" sopra: sulla riga successiva
+        # all'etichetta i primi 2 numeri sono il totale oneri (corrente/precedente),
+        # il 3° è il totale proventi dell'anno corrente — quello cercato qui.
+        r"[Tt]otale\s+proventi\s+e\s+ricavi[^\n]*\n\s*€?\s*[\d\.]+\s+€?\s*[\d\.]+\s+€?\s*([\d\.]+)",
     ],
     "risultato_ante_imposte": [
         r"[Aa]vanzo/disavanzo d.esercizio prima delle imposte[^0-9]+([\d\.,']+)",
@@ -84,6 +96,9 @@ _PATTERNS: dict[str, list[str]] = {
     ],
     "imposte": [
         r"\bImposte\s+([\d\.,']+)",
+        # Alcuni layout (es. RUNTS CAI Como) mettono un simbolo "€" fra l'etichetta e
+        # il numero ("Imposte € 3.842"), non solo uno spazio come sopra.
+        r"\bImposte\s*€\s*([\d\.,']+)",
     ],
     "risultato_esercizio": [
         r"[Aa]vanzo/disavanzo complessivo[^0-9]+([\d\.,']+)",
