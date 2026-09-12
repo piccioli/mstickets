@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\CaiDirectory\Enums\CaiDocumentAnalysisStatus;
 use App\Domain\CaiDirectory\Jobs\AnalyzeCaiFinancialStatementDocument;
 use App\Domain\CaiDirectory\Models\CaiFinancialStatement;
 use App\Domain\CaiDirectory\Support\CaiRuntsScraperClient;
@@ -132,4 +133,58 @@ test('handle does nothing when the document has no extractable year', function (
 
     Http::assertNothingSent();
     expect(CaiFinancialStatement::query()->where('cai_runts_registration_id', $document->cai_runts_registration_id)->count())->toBe(0);
+});
+
+test('handle marks the document itself as Extracted with the raw text excerpt and OCR flag when at least one field is found', function (): void {
+    Storage::fake('cai-documents');
+    Storage::disk('cai-documents')->put('12345/bilancio-2024.pdf', '%PDF-1.4 fixture');
+
+    $document = caiDocument(['file_path' => '12345/bilancio-2024.pdf', 'year' => 2024, 'document_type' => 'bilancio_esercizio']);
+
+    Http::fake([
+        'http://cai-runts-scraper:8000/analyze/bilancio' => Http::response([
+            'oneri_a_interesse_generale' => null, 'oneri_b_attivita_diverse' => null,
+            'oneri_c_raccolta_fondi' => null, 'oneri_d_finanziarie_patrimoniali' => null,
+            'oneri_e_supporto_generale' => null, 'totale_oneri' => 1200.0,
+            'proventi_a_interesse_generale' => null, 'proventi_b_attivita_diverse' => null,
+            'proventi_c_raccolta_fondi' => null, 'proventi_d_finanziarie_patrimoniali' => null,
+            'proventi_e_supporto_generale' => null, 'totale_proventi' => null,
+            'risultato_ante_imposte' => null, 'imposte' => null, 'risultato_esercizio' => null,
+            'raw_text' => 'Totale oneri e costi € 1.200', 'ocr' => false,
+        ]),
+    ]);
+
+    (new AnalyzeCaiFinancialStatementDocument($document->id))->handle(app(CaiRuntsScraperClient::class));
+
+    $document = $document->fresh();
+    expect($document->financial_analysis_status)->toBe(CaiDocumentAnalysisStatus::Extracted);
+    expect($document->raw_text_excerpt)->toBe('Totale oneri e costi € 1.200');
+    expect($document->extracted_via_ocr)->toBeFalse();
+});
+
+test('handle marks the document as NoDataExtracted when every financial field comes back null', function (): void {
+    Storage::fake('cai-documents');
+    Storage::disk('cai-documents')->put('12345/stato-patrimoniale.pdf', '%PDF-1.4 fixture');
+
+    $document = caiDocument(['file_path' => '12345/stato-patrimoniale.pdf', 'year' => 2024, 'document_type' => 'bilancio_esercizio']);
+
+    Http::fake([
+        'http://cai-runts-scraper:8000/analyze/bilancio' => Http::response([
+            'oneri_a_interesse_generale' => null, 'oneri_b_attivita_diverse' => null,
+            'oneri_c_raccolta_fondi' => null, 'oneri_d_finanziarie_patrimoniali' => null,
+            'oneri_e_supporto_generale' => null, 'totale_oneri' => null,
+            'proventi_a_interesse_generale' => null, 'proventi_b_attivita_diverse' => null,
+            'proventi_c_raccolta_fondi' => null, 'proventi_d_finanziarie_patrimoniali' => null,
+            'proventi_e_supporto_generale' => null, 'totale_proventi' => null,
+            'risultato_ante_imposte' => null, 'imposte' => null, 'risultato_esercizio' => null,
+            'raw_text' => 'STATO PATRIMONIALE (layout non riconosciuto dai pattern attuali)', 'ocr' => true,
+        ]),
+    ]);
+
+    (new AnalyzeCaiFinancialStatementDocument($document->id))->handle(app(CaiRuntsScraperClient::class));
+
+    $document = $document->fresh();
+    expect($document->financial_analysis_status)->toBe(CaiDocumentAnalysisStatus::NoDataExtracted);
+    expect($document->raw_text_excerpt)->toBe('STATO PATRIMONIALE (layout non riconosciuto dai pattern attuali)');
+    expect($document->extracted_via_ocr)->toBeTrue();
 });

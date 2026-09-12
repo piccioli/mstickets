@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\CaiDirectory\Jobs;
 
+use App\Domain\CaiDirectory\Enums\CaiDocumentAnalysisStatus;
 use App\Domain\CaiDirectory\Import\CaiFinancialStatementFieldMapper;
 use App\Domain\CaiDirectory\Models\CaiDocument;
 use App\Domain\CaiDirectory\Models\CaiFinancialStatement;
@@ -57,7 +58,29 @@ final class AnalyzeCaiFinancialStatementDocument implements ShouldQueue
         $result = $client->analyzeBilancio($pdfContent);
         $attributes = CaiFinancialStatementFieldMapper::mapFinancialStatement((object) $result);
 
+        $this->recordDocumentAnalysisOutcome($document, $attributes, $result);
         $this->upsertMerging($document, $attributes);
+    }
+
+    /**
+     * Traccia l'esito dell'estrazione per QUESTO documento specifico, indipendentemente dal merge che
+     * segue: un documento il cui parsing fallisce del tutto resta rilevabile anche se un altro documento
+     * per lo stesso (registrazione, anno) ha prodotto dati buoni e "vince" nel record aggregato.
+     *
+     * @param  array<string, mixed>  $attributes
+     * @param  array<string, mixed>  $result
+     */
+    private function recordDocumentAnalysisOutcome(CaiDocument $document, array $attributes, array $result): void
+    {
+        $hasAnyData = collect($attributes)->contains(fn (mixed $value): bool => $value !== null);
+
+        $document->update([
+            'financial_analysis_status' => $hasAnyData
+                ? CaiDocumentAnalysisStatus::Extracted
+                : CaiDocumentAnalysisStatus::NoDataExtracted,
+            'raw_text_excerpt' => $result['raw_text'] ?? null,
+            'extracted_via_ocr' => $result['ocr'] ?? null,
+        ]);
     }
 
     /**

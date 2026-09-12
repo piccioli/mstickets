@@ -35,6 +35,7 @@ function expectedRolePermissionMatrix(): array
             'ticket-message.view.internal', 'ticket-message.create.internal', 'ticket-log.view',
             'tag.view', 'documentation.view.customer', 'documentation.view.internal',
             'documentation.create', 'documentation.update', 'cai-directory.view',
+            'cai-directory.review-unparsed-documents',
         ],
         UserRole::Customer->value => [
             'ticket.view.own', 'ticket.create', 'ticket.update.own', 'ticket-message.create',
