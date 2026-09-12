@@ -70,6 +70,20 @@ final class AnalyzeCaiFinancialStatementDocument implements ShouldQueue
             return;
         }
 
-        $existing->update($attributes);
+        // Merge campo-per-campo, mai un update() cieco: per lo stesso (registrazione, anno) possono
+        // esistere più documenti "bilancio_esercizio" con struttura diversa (es. RUNTS CAI Como: sia
+        // "Mod. B - Rendiconto Gestionale" sia "Mod. A - Stato Patrimoniale", quest'ultimo non
+        // interpretabile dalle stesse regex e che quindi torna quasi sempre null) — un valore null
+        // della nuova analisi non deve MAI cancellare un valore reale già presente da un'analisi
+        // precedente. Stesso principio già documentato per `upsert_bilancio()` nel prototipo Python
+        // ("il migliore-di-tutti-i-file vince per campo"), non portato qui quando questo job è stato
+        // scritto la prima volta — bug reale trovato verificando l'estrazione su dati veri.
+        $merged = [];
+
+        foreach ($attributes as $field => $newValue) {
+            $merged[$field] = $newValue ?? $existing->getAttribute($field);
+        }
+
+        $existing->update($merged);
     }
 }
