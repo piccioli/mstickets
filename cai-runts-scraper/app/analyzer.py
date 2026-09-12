@@ -103,7 +103,13 @@ _PATTERNS: dict[str, list[str]] = {
     "risultato_esercizio": [
         r"[Aa]vanzo/disavanzo complessivo[^0-9]+([\d\.,']+)",
         # Mod.B ordinaria: "Avanzo/disavanzo d'esercizio (+/-) 31.275"
-        r"[Aa]vanzo/disavanzo d.esercizio\s+\(\+/-\)[^\d\n]{0,10}([\d\.,']+)",
+        # La classe di "salto" esclude esplicitamente "-": un trattino da solo è la
+        # convenzione italiana per "zero/assente" in questi bilanci, non un carattere
+        # da attraversare per raggiungere il numero dell'ANNO PRECEDENTE sulla stessa
+        # riga (bug reale: "(+/-) € - € 27.265" catturava erroneamente "27.265" come
+        # valore dell'anno corrente). Il gruppo di cattura accetta quindi anche un
+        # trattino solitario come esito valido.
+        r"[Aa]vanzo/disavanzo d.esercizio\s+\(\+/-\)[^\d\n\-]{0,10}(-|[\d\.,']+)",
         r"(?:[Dd]isavanzo|[Aa]vanzo)\s+(?:dopo|netto)\s+(?:le\s+)?imposte[\s\S]{0,200}?([\d\.\s]+,\d{2})",
     ],
 }
@@ -129,6 +135,11 @@ def parse_italian_number(s: str) -> float | None:
     if not s:
         return None
     s = s.strip()
+    # Un trattino solitario è la convenzione italiana per "zero/assente" in questi
+    # bilanci (es. "Avanzo/Disavanzo d'esercizio (+/-) € - € 27.265"): va riconosciuto
+    # come zero esplicito, non come "non estraibile" (None).
+    if s == "-":
+        return 0.0
     # Remove spaces, apostrophes (thousands separator)
     s = re.sub(r"[\s ’']", "", s)
     # Italian: dot = thousands, comma = decimal
