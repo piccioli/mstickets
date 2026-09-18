@@ -139,6 +139,22 @@ test('cai:sync-runts-all fills a missing tax_code from the fallback before selec
     expect($section->fresh()->tax_code)->toBe('01234567890');
 });
 
+test('cai:sync-runts-all --codes restricts the sync to the given comma-separated codice_cai', function (): void {
+    caiSection(['codice_cai' => '9226020', 'tax_code' => '01234567890']);
+    caiSection(['codice_cai' => '9226021', 'tax_code' => '09876543210']);
+    caiSection(['codice_cai' => '9226022', 'tax_code' => '01111111111']);
+
+    Http::fake([
+        'http://cai-runts-scraper:8000/scrape/runts-entity*' => Http::response(['found' => false]),
+    ]);
+
+    $this->artisan('cai:sync-runts-all', ['--codes' => '9226020, 9226022', '--delay-ms' => 0])
+        ->expectsOutputToContain('2 sezioni esaminate, 0 sincronizzate, 2 non trovate, 0 errori')
+        ->assertExitCode(0);
+
+    Http::assertSentCount(2);
+});
+
 test('cai:sync-runts-all --limit processes only the first N sections', function (): void {
     caiSection(['codice_cai' => '9226009', 'tax_code' => '01234567890']);
     caiSection(['codice_cai' => '9226010', 'tax_code' => '09876543210']);

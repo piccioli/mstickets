@@ -44,7 +44,8 @@ class CaiSyncRuntsAllCommand extends Command
 
     protected $signature = 'cai:sync-runts-all
         {--limit= : Numero massimo di sezioni da processare}
-        {--delay-ms=1500 : Millisecondi di pausa fra una sezione e la successiva (e fra i retry)}';
+        {--delay-ms=1500 : Millisecondi di pausa fra una sezione e la successiva (e fra i retry)}
+        {--codes= : Elenco di codice_cai separati da virgola, per limitare la sync a sezioni specifiche (es. dopo un fallback CF/PIVA mirato)}';
 
     protected $description = 'Sincronizza dal vivo i dati RUNTS e i bilanci per tutte le sezioni CAI con codice fiscale';
 
@@ -66,8 +67,13 @@ class CaiSyncRuntsAllCommand extends Command
             $this->line("Fallback CF/PIVA: {$fallbackResult->updated} sezione/i completata/e dal foglio manuale.");
         }
 
+        $codes = $this->option('codes') !== null
+            ? array_values(array_filter(array_map('trim', explode(',', (string) $this->option('codes')))))
+            : null;
+
         $sections = CaiSection::query()
             ->whereNotNull('tax_code')
+            ->when($codes !== null, fn ($query) => $query->whereIn('codice_cai', $codes))
             ->orderBy('codice_cai')
             ->when($limit !== null, fn ($query) => $query->limit($limit))
             ->get();
