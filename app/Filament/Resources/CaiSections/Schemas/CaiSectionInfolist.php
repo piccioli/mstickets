@@ -38,6 +38,7 @@ class CaiSectionInfolist
         return $schema
             ->components([
                 Tabs::make('cai_section')
+                    ->columnSpanFull()
                     ->tabs([
                         Tab::make('Dati CAI')
                             ->schema([self::caiDataSection()]),
