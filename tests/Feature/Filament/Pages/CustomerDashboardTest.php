@@ -306,55 +306,6 @@ test('no reference to a support chat link is ever shown on the customer dashboar
         ->assertDontSeeText('chat di supporto');
 });
 
-test('the regional group sections card lists only sections in the same region, with their open ticket count', function (): void {
-    $this->seed(RolePermissionSeeder::class);
-    $groupLeader = withRole(User::factory()->create(), UserRole::Customer);
-    $groupLeader->forceFill(['customer_type' => CustomerType::GruppoRegionale, 'region' => Region::Lombardia])->save();
-
-    $sameRegionSection = withRole(User::factory()->create(['name' => 'Sezione di Milano']), UserRole::Customer);
-    $sameRegionSection->forceFill(['customer_type' => CustomerType::Sezione, 'region' => Region::Lombardia])->save();
-    ticket(['requester_id' => $sameRegionSection->id, 'status' => TicketStatus::Todo]);
-    ticket(['requester_id' => $sameRegionSection->id, 'status' => TicketStatus::Done]);
-
-    $otherRegionSection = withRole(User::factory()->create(['name' => 'Sezione di Roma']), UserRole::Customer);
-    $otherRegionSection->forceFill(['customer_type' => CustomerType::Sezione, 'region' => Region::Lazio])->save();
-
-    $this->actingAs($groupLeader);
-
-    $sections = Livewire::test(CustomerDashboard::class)->instance()->regionalGroupSections();
-
-    expect($sections->pluck('id'))->toContain($sameRegionSection->id)
-        ->not->toContain($otherRegionSection->id);
-
-    $this->get(CustomerDashboard::getUrl())
-        ->assertSee('Sezioni del gruppo regionale')
-        ->assertSee('Sezione di Milano')
-        ->assertSee('1 ticket aperti')
-        ->assertDontSee('Sezione di Roma');
-});
-
-test('the regional group sections card shows an explicit empty state when the region has no sections yet', function (): void {
-    $this->seed(RolePermissionSeeder::class);
-    $groupLeader = withRole(User::factory()->create(), UserRole::Customer);
-    $groupLeader->forceFill(['customer_type' => CustomerType::GruppoRegionale, 'region' => Region::Molise])->save();
-
-    $this->actingAs($groupLeader)
-        ->get(CustomerDashboard::getUrl())
-        ->assertSee('Sezioni del gruppo regionale')
-        ->assertSee('Nessuna sezione classificata in questa regione');
-});
-
-test('the regional group sections card shows an explicit empty state when the group has no region', function (): void {
-    $this->seed(RolePermissionSeeder::class);
-    $groupLeader = withRole(User::factory()->create(), UserRole::Customer);
-    $groupLeader->forceFill(['customer_type' => CustomerType::GruppoRegionale, 'region' => null])->save();
-
-    $this->actingAs($groupLeader)
-        ->get(CustomerDashboard::getUrl())
-        ->assertSee('Sezioni del gruppo regionale')
-        ->assertSee('Nessuna sezione classificata in questa regione');
-});
-
 test('the cai directory card shows the linked cai section data for a sezione customer', function (): void {
     $this->seed(RolePermissionSeeder::class);
     $customer = withRole(User::factory()->create(), UserRole::Customer);
@@ -454,23 +405,34 @@ test('the cai directory card is absent for non-sezione customers', function (): 
     }
 });
 
-test('the regional group sections card is absent for sezione, organo tecnico/struttura operativa, and generico customers', function (): void {
+test('the regional group sections card is never shown on this page, not even for a gruppo regionale customer (it moved to its own navigation entry)', function (): void {
     $this->seed(RolePermissionSeeder::class);
+
+    $groupLeader = withRole(User::factory()->create(), UserRole::Customer);
+    $groupLeader->forceFill(['customer_type' => CustomerType::GruppoRegionale, 'region' => Region::Lombardia])->save();
 
     $sezione = withRole(User::factory()->create(), UserRole::Customer);
     $sezione->forceFill(['customer_type' => CustomerType::Sezione, 'region' => Region::Lombardia])->save();
 
-    $otcoSo = withRole(User::factory()->create(), UserRole::Customer);
-    $otcoSo->forceFill(['customer_type' => CustomerType::OrganoTecnicoStrutturaOperativa, 'region' => null])->save();
-
-    $generico = withRole(User::factory()->create(), UserRole::Customer);
-    $generico->forceFill(['customer_type' => CustomerType::Generico, 'region' => null])->save();
-
-    foreach ([$sezione, $otcoSo, $generico] as $customer) {
+    foreach ([$groupLeader, $sezione] as $customer) {
         $this->actingAs($customer)
             ->get(CustomerDashboard::getUrl())
             ->assertDontSee('Sezioni del gruppo regionale');
     }
+});
+
+test('the navigation group is "GR" for a gruppo regionale customer and "Area cliente" for any other customer type', function (): void {
+    $this->seed(RolePermissionSeeder::class);
+
+    $groupLeader = withRole(User::factory()->create(), UserRole::Customer);
+    $groupLeader->forceFill(['customer_type' => CustomerType::GruppoRegionale])->save();
+    $this->actingAs($groupLeader);
+    expect(CustomerDashboard::getNavigationGroup())->toBe('GR');
+
+    $sezione = withRole(User::factory()->create(), UserRole::Customer);
+    $sezione->forceFill(['customer_type' => CustomerType::Sezione])->save();
+    $this->actingAs($sezione);
+    expect(CustomerDashboard::getNavigationGroup())->toBe('Area cliente');
 });
 
 test('the sync cai data action is visible only for a sezione customer with a linked cai section', function (): void {

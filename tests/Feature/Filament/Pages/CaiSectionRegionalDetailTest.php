@@ -8,7 +8,7 @@ use App\Domain\Identity\Enums\Region;
 use App\Domain\Identity\Enums\UserRole;
 use App\Domain\Identity\Models\User;
 use App\Filament\Pages\CaiSectionRegionalDetail;
-use App\Filament\Pages\CustomerDashboard;
+use App\Filament\Pages\CustomerRegionalSectionsDashboard;
 use Database\Seeders\RolePermissionSeeder;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -129,12 +129,12 @@ test('the detail page shows an explicit empty state for a section without linked
         ->assertSee('Nessun dato CAI/RUNTS disponibile per questa sezione');
 });
 
-test('the regional group sections card on the customer dashboard links to the section detail page', function (): void {
+test('the regional group sections page links to the section detail page', function (): void {
     $this->seed(RolePermissionSeeder::class);
     $groupLeader = gruppoRegionale(Region::Lombardia);
     $section = sezione(Region::Lombardia, 'Sezione di Como');
 
     $this->actingAs($groupLeader)
-        ->get(CustomerDashboard::getUrl())
+        ->get(CustomerRegionalSectionsDashboard::getUrl())
         ->assertSee(CaiSectionRegionalDetail::getUrl(['record' => $section->id]), false);
 });

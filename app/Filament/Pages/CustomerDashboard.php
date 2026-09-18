@@ -13,7 +13,6 @@ use App\Domain\Fundraising\Models\FundraisingProject;
 use App\Domain\Identity\Enums\CustomerType;
 use App\Domain\Identity\Enums\UserRole;
 use App\Domain\Identity\Models\User;
-use App\Domain\Identity\Queries\SectionsInRegionQuery;
 use App\Domain\Reporting\Models\ActivityReport;
 use App\Domain\Ticketing\Models\Ticket;
 use App\Domain\Ticketing\Queries\MyTicketsAwaitingResponseQuery;
@@ -45,8 +44,11 @@ use UnitEnum;
  * fuori scope, §PRD Fase 6).
  *
  * Il redirect di ruolo su {@see Dashboard::mount()} è US-602, che raggruppa
- * anche questa pagina sotto "Area cliente" in navigazione —
- * {@see self::canAccess()} resta comunque il gate reale per l'accesso
+ * anche questa pagina sotto "Area cliente" in navigazione (per qualunque
+ * `customer_type` tranne Gruppo Regionale — {@see self::getNavigationGroup()}
+ * la sposta sotto "GR", separata dalla card "Sezioni del gruppo regionale"
+ * che ha una voce di navigazione propria in {@see CustomerRegionalSectionsDashboard})
+ * — {@see self::canAccess()} resta comunque il gate reale per l'accesso
  * diretto via URL.
  *
  * `canAccess()` riusa lo stesso idioma già in uso altrove nel dominio Mail
@@ -65,8 +67,6 @@ class CustomerDashboard extends Page
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedHome;
 
-    protected static string|UnitEnum|null $navigationGroup = 'Area cliente';
-
     protected static ?string $navigationLabel = 'Dashboard';
 
     protected static ?int $navigationSort = -2;
@@ -76,6 +76,22 @@ class CustomerDashboard extends Page
         $user = Auth::user();
 
         return $user instanceof User && $user->hasRole(UserRole::Customer->value);
+    }
+
+    /**
+     * Un cliente Gruppo Regionale vede questa pagina sotto il gruppo "GR" (senza la card
+     * "Sezioni del gruppo regionale", che ha la sua voce sotto "Sezioni" —
+     * {@see CustomerRegionalSectionsDashboard}), qualunque altro cliente la vede sotto
+     * "Area cliente" come sempre — stesso idioma di {@see TicketResource::getNavigationGroup()}
+     * (§US-602 di `app/Filament/CLAUDE.md`).
+     */
+    public static function getNavigationGroup(): string|UnitEnum|null
+    {
+        $user = Auth::user();
+
+        return ($user instanceof User && $user->customer_type === CustomerType::GruppoRegionale)
+            ? 'GR'
+            : 'Area cliente';
     }
 
     /**
@@ -115,11 +131,6 @@ class CustomerDashboard extends Page
         }
 
         return $label;
-    }
-
-    public function isGruppoRegionale(): bool
-    {
-        return $this->customerType() === CustomerType::GruppoRegionale;
     }
 
     public function isSezione(): bool
@@ -273,46 +284,6 @@ class CustomerDashboard extends Page
                         : 'Dati RUNTS aggiornati.')
                     ->send();
             });
-    }
-
-    /**
-     * Sezioni della stessa regione del Gruppo Regionale corrente (US-705). Stato vuoto esplicito
-     * (mai un errore) sia quando la regione non ha ancora nessuna sezione classificata, sia quando
-     * il Gruppo Regionale ha `region = null`.
-     *
-     * @return EloquentCollection<int, User>
-     */
-    public function regionalGroupSections(): EloquentCollection
-    {
-        $user = Auth::user();
-
-        if (! $user instanceof User || $user->customer_type !== CustomerType::GruppoRegionale || $user->region === null) {
-            return new EloquentCollection;
-        }
-
-        return SectionsInRegionQuery::for($user->region)->get();
-    }
-
-    /**
-     * Conteggio ticket aperti di una Sezione elencata nella card "Sezioni del gruppo regionale":
-     * riusa {@see MyTicketsQuery} passando la Sezione stessa (non l'utente autenticato) — il suo
-     * unico permesso `ticket.view.own` scopa comunque il risultato ai propri ticket, quindi il
-     * conteggio resta corretto senza duplicare la regola "aperti = non Done/Rejected".
-     */
-    public function sectionOpenTicketsCount(User $section): int
-    {
-        return MyTicketsQuery::for($section)->count();
-    }
-
-    /**
-     * URL della pagina di dettaglio CAI/RUNTS di una Sezione elencata nella card "Sezioni del
-     * gruppo regionale" (US-807, {@see CaiSectionRegionalDetail}) — l'autorizzazione sulla
-     * singola sezione (deve appartenere alla propria regione) è verificata lato server in
-     * {@see CaiSectionRegionalDetail::mount()}, non solo dall'assenza del link in UI.
-     */
-    public function sectionDetailUrl(User $section): string
-    {
-        return CaiSectionRegionalDetail::getUrl(['record' => $section->id]);
     }
 
     public function openTicketsCount(): int
