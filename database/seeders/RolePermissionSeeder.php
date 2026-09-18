@@ -66,6 +66,7 @@ class RolePermissionSeeder extends Seeder
             PermissionEnum::DocumentationUpdate,
             PermissionEnum::CaiDirectoryView,
             PermissionEnum::CaiDirectoryReviewUnparsedDocuments,
+            PermissionEnum::CaiDirectoryUploadDocument,
         ],
         'customer' => [
             PermissionEnum::TicketViewOwn,

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\CaiDirectory\Enums\CaiDocumentSource;
 use App\Domain\CaiDirectory\Enums\CaiRuntsPresenceStatus;
 use App\Domain\CaiDirectory\Models\CaiDocument;
 use App\Domain\CaiDirectory\Models\CaiFinancialStatement;
@@ -17,6 +18,7 @@ use App\Filament\Resources\CaiSections\Pages\ListCaiSections;
 use App\Filament\Resources\CaiSections\Pages\ViewCaiSection;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
@@ -332,6 +334,44 @@ test('a customer can download a document belonging to their own cai section', fu
     $response->assertOk();
 });
 
+test('a customer can download a document attached directly to their own section, without any runts registration', function (): void {
+    Storage::fake('cai-documents');
+
+    $customer = withRole(User::factory()->create(), UserRole::Customer);
+    $section = caiSection(['user_id' => $customer->id]);
+    Storage::disk('cai-documents')->put('manual/nota.pdf', '%PDF-1.4 fake content');
+    $document = CaiDocument::create([
+        'cai_section_id' => $section->codice_cai,
+        'document_type' => 'altro',
+        'file_path' => 'manual/nota.pdf',
+        'file_name' => 'nota.pdf',
+        'source' => 'manual',
+    ]);
+
+    $response = $this->actingAs($customer)->get(route('cai-documents.download', $document));
+
+    $response->assertOk();
+});
+
+test('a customer cannot download a document attached directly to another cai section', function (): void {
+    Storage::fake('cai-documents');
+
+    $customer = withRole(User::factory()->create(), UserRole::Customer);
+    $otherSection = caiSection();
+    Storage::disk('cai-documents')->put('manual/nota.pdf', '%PDF-1.4 fake content');
+    $document = CaiDocument::create([
+        'cai_section_id' => $otherSection->codice_cai,
+        'document_type' => 'altro',
+        'file_path' => 'manual/nota.pdf',
+        'file_name' => 'nota.pdf',
+        'source' => 'manual',
+    ]);
+
+    $response = $this->actingAs($customer)->get(route('cai-documents.download', $document));
+
+    $response->assertForbidden();
+});
+
 test('a customer cannot download a document belonging to another cai section', function (): void {
     Storage::fake('cai-documents');
 
@@ -524,6 +564,109 @@ test('the documents tab lists attachments from most recent to oldest year', func
 
     expect(strpos($html, 'Bilancio 2024'))->toBeLessThan(strpos($html, 'Bilancio 2023'))
         ->and(strpos($html, 'Bilancio 2023'))->toBeLessThan(strpos($html, 'Bilancio 2022'));
+});
+
+test('the documents and financial statements tabs merge documents/bilanci attached directly to the section with those attached via a runts registration', function (): void {
+    Storage::fake('cai-documents');
+
+    $user = grantCaiDirectoryPanelAccess(userWithPermissions(PermissionEnum::CaiDirectoryView));
+    $section = caiSection(['name' => 'Sezione Mista']);
+    $registration = CaiRuntsRegistration::create([
+        'id_runts' => 'RUNTS-'.$section->codice_cai,
+        'cai_section_id' => $section->codice_cai,
+    ]);
+
+    Storage::disk('cai-documents')->put('runts/doc.pdf', '%PDF-1.4 fake content');
+    CaiDocument::create([
+        'cai_runts_registration_id' => $registration->id_runts,
+        'document_type' => 'bilancio',
+        'title' => 'Documento da RUNTS',
+        'file_path' => 'runts/doc.pdf',
+        'file_name' => 'doc.pdf',
+        'source' => 'runts',
+    ]);
+    Storage::disk('cai-documents')->put('manual/doc.pdf', '%PDF-1.4 fake content');
+    CaiDocument::create([
+        'cai_section_id' => $section->codice_cai,
+        'document_type' => 'altro',
+        'title' => 'Documento caricato a mano',
+        'file_path' => 'manual/doc.pdf',
+        'file_name' => 'doc-manuale.pdf',
+        'source' => 'manual',
+    ]);
+
+    CaiFinancialStatement::create(['cai_runts_registration_id' => $registration->id_runts, 'year' => 2024, 'net_result' => 1.0]);
+    CaiFinancialStatement::create(['cai_section_id' => $section->codice_cai, 'year' => 2023, 'net_result' => 2.0]);
+
+    $this->actingAs($user);
+
+    Livewire::test(ViewCaiSection::class, ['record' => $section->getKey()])
+        ->assertOk()
+        ->assertSee('Documento da RUNTS')
+        ->assertSee('Documento caricato a mano')
+        ->assertSee('RUNTS')
+        ->assertSee('Caricamento manuale')
+        ->assertSeeText('2024')
+        ->assertSeeText('2023');
+});
+
+test('the upload document action is only visible with cai-directory.upload-document', function (): void {
+    $withoutUploadPermission = grantCaiDirectoryPanelAccess(userWithPermissions(PermissionEnum::CaiDirectoryView));
+    $withUploadPermission = grantCaiDirectoryPanelAccess(userWithPermissions(PermissionEnum::CaiDirectoryView, PermissionEnum::CaiDirectoryUploadDocument));
+    $section = caiSection();
+
+    $this->actingAs($withoutUploadPermission);
+    Livewire::test(ViewCaiSection::class, ['record' => $section->getKey()])
+        ->assertActionHidden('upload_document');
+
+    $this->actingAs($withUploadPermission);
+    Livewire::test(ViewCaiSection::class, ['record' => $section->getKey()])
+        ->assertActionVisible('upload_document');
+});
+
+test('uploading a document without selecting a registration attaches it directly to the section', function (): void {
+    Storage::fake('cai-documents');
+
+    $user = grantCaiDirectoryPanelAccess(userWithPermissions(PermissionEnum::CaiDirectoryView, PermissionEnum::CaiDirectoryUploadDocument));
+    $section = caiSection();
+
+    $this->actingAs($user);
+
+    Livewire::test(ViewCaiSection::class, ['record' => $section->getKey()])
+        ->callAction('upload_document', data: [
+            'document_type' => 'altro',
+            'title' => 'Nota caricata a mano',
+            'file' => UploadedFile::fake()->create('nota.pdf', 5, 'application/pdf'),
+        ])
+        ->assertHasNoActionErrors();
+
+    $document = CaiDocument::query()->where('cai_section_id', $section->codice_cai)->sole();
+    expect($document->title)->toBe('Nota caricata a mano')
+        ->and($document->source)->toBe(CaiDocumentSource::Manual);
+});
+
+test('uploading a document while selecting a registration attaches it to that registration instead of the section', function (): void {
+    Storage::fake('cai-documents');
+
+    $user = grantCaiDirectoryPanelAccess(userWithPermissions(PermissionEnum::CaiDirectoryView, PermissionEnum::CaiDirectoryUploadDocument));
+    $section = caiSection();
+    $registration = CaiRuntsRegistration::create([
+        'id_runts' => 'RUNTS-'.$section->codice_cai,
+        'cai_section_id' => $section->codice_cai,
+    ]);
+
+    $this->actingAs($user);
+
+    Livewire::test(ViewCaiSection::class, ['record' => $section->getKey()])
+        ->callAction('upload_document', data: [
+            'registration_id' => $registration->id_runts,
+            'document_type' => 'statuto',
+            'file' => UploadedFile::fake()->create('statuto.pdf', 5, 'application/pdf'),
+        ])
+        ->assertHasNoActionErrors();
+
+    $document = CaiDocument::query()->where('cai_runts_registration_id', $registration->id_runts)->sole();
+    expect($document->cai_section_id)->toBeNull();
 });
 
 test('the section detail page shows the last live-sync timestamp, or a "never synced" placeholder', function (): void {

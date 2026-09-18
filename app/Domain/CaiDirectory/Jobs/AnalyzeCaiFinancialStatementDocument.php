@@ -100,8 +100,10 @@ final class AnalyzeCaiFinancialStatementDocument implements ShouldQueue
         // parallelo, il secondo sovrascriveva con null i valori appena scritti dal primo). Stesso
         // principio già in uso da `RecordTicketView` (Fase 1, US-108) per lo stesso tipo di race.
         DB::transaction(function () use ($document, $attributes): void {
+            [$parentColumn, $parentValue] = $this->parent($document);
+
             $existing = CaiFinancialStatement::query()
-                ->where('cai_runts_registration_id', $document->cai_runts_registration_id)
+                ->where($parentColumn, $parentValue)
                 ->where('year', $document->year)
                 ->lockForUpdate()
                 ->first();
@@ -134,15 +136,17 @@ final class AnalyzeCaiFinancialStatementDocument implements ShouldQueue
      */
     private function createOrFallBackToMerge(CaiDocument $document, array $attributes): void
     {
+        [$parentColumn, $parentValue] = $this->parent($document);
+
         try {
             CaiFinancialStatement::create([
-                'cai_runts_registration_id' => $document->cai_runts_registration_id,
+                $parentColumn => $parentValue,
                 'year' => $document->year,
                 ...$attributes,
             ]);
         } catch (QueryException) {
             $existing = CaiFinancialStatement::query()
-                ->where('cai_runts_registration_id', $document->cai_runts_registration_id)
+                ->where($parentColumn, $parentValue)
                 ->where('year', $document->year)
                 ->lockForUpdate()
                 ->firstOrFail();
@@ -155,5 +159,22 @@ final class AnalyzeCaiFinancialStatementDocument implements ShouldQueue
 
             $existing->update($merged);
         }
+    }
+
+    /**
+     * Un `CaiDocument` è collegato a una `CaiRuntsRegistration` (sync live, sempre il caso finora) OPPURE
+     * direttamente a una `CaiSection` (upload manuale/Veryfico senza presenza RUNTS, mai entrambi) — il
+     * bilancio aggregato va cercato/scritto sullo stesso genitore del documento che lo alimenta, qualunque
+     * esso sia. Vedi {@see CaiDocument::section()} per lo stesso invariante.
+     *
+     * @return array{0: 'cai_runts_registration_id'|'cai_section_id', 1: string}
+     */
+    private function parent(CaiDocument $document): array
+    {
+        if ($document->cai_runts_registration_id !== null) {
+            return ['cai_runts_registration_id', $document->cai_runts_registration_id];
+        }
+
+        return ['cai_section_id', (string) $document->cai_section_id];
     }
 }

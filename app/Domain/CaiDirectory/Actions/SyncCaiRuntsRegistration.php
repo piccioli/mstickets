@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\CaiDirectory\Actions;
 
+use App\Domain\CaiDirectory\Enums\CaiDocumentSource;
 use App\Domain\CaiDirectory\Import\CaiRuntsRegistrationFieldMapper;
 use App\Domain\CaiDirectory\Import\Concerns\DiffsAttributes;
 use App\Domain\CaiDirectory\Jobs\AnalyzeCaiFinancialStatementDocument;
@@ -27,8 +28,6 @@ final class SyncCaiRuntsRegistration
     use DiffsAttributes;
 
     private const DOCUMENTS_DISK = 'cai-documents';
-
-    private const BILANCIO_DOCUMENT_TYPES = ['bilancio_esercizio'];
 
     public function __construct(private readonly CaiRuntsScraperClient $client) {}
 
@@ -152,9 +151,10 @@ final class SyncCaiRuntsRegistration
                 'mime_type' => $raw['mime'] ?? null,
                 'size' => $raw['size'] ?? null,
                 'hash' => $raw['hash_sha256'] ?? null,
+                'source' => CaiDocumentSource::Runts,
             ]);
 
-            if (in_array($raw['tipo'] ?? null, self::BILANCIO_DOCUMENT_TYPES, true)) {
+            if (in_array($raw['tipo'] ?? null, CaiDocument::BILANCIO_DOCUMENT_TYPES, true)) {
                 $newBilancioDocuments[] = $document;
             }
         }

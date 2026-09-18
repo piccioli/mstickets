@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
-    'cai_runts_registration_id', 'year', 'general_interest_expenses', 'other_activities_expenses',
+    'cai_runts_registration_id', 'cai_section_id', 'year', 'general_interest_expenses', 'other_activities_expenses',
     'fundraising_expenses', 'financial_expenses', 'overhead_expenses', 'total_expenses',
     'general_interest_revenues', 'other_activities_revenues', 'fundraising_revenues',
     'financial_revenues', 'overhead_revenues', 'total_revenues', 'pre_tax_result', 'taxes', 'net_result',
@@ -47,5 +47,16 @@ class CaiFinancialStatement extends Model
     public function runtsRegistration(): BelongsTo
     {
         return $this->belongsTo(CaiRuntsRegistration::class, 'cai_runts_registration_id', 'id_runts');
+    }
+
+    /**
+     * Popolato SOLO quando il bilancio non è collegato ad alcuna `CaiRuntsRegistration` — vedi
+     * {@see CaiDocument::section()} per lo stesso invariante "genitori mutuamente esclusivi".
+     *
+     * @return BelongsTo<CaiSection, $this>
+     */
+    public function section(): BelongsTo
+    {
+        return $this->belongsTo(CaiSection::class, 'cai_section_id', 'codice_cai');
     }
 }

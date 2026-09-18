@@ -64,4 +64,25 @@ class CaiSection extends Model
     {
         return $this->hasMany(CaiRuntsRegistration::class, 'cai_section_id', 'codice_cai');
     }
+
+    /**
+     * Documenti collegati DIRETTAMENTE alla sezione (mai passando da una `CaiRuntsRegistration`):
+     * upload manuale/Veryfico per una sezione senza (ancora) presenza RUNTS — vedi
+     * {@see CaiDocument::section()}. La maggior parte dei documenti
+     * resta raggiungibile solo via `runtsRegistrations->flatMap->documents` (sync live, US-804).
+     *
+     * @return HasMany<CaiDocument, $this>
+     */
+    public function documents(): HasMany
+    {
+        return $this->hasMany(CaiDocument::class, 'cai_section_id', 'codice_cai');
+    }
+
+    /**
+     * @return HasMany<CaiFinancialStatement, $this>
+     */
+    public function financialStatements(): HasMany
+    {
+        return $this->hasMany(CaiFinancialStatement::class, 'cai_section_id', 'codice_cai');
+    }
 }

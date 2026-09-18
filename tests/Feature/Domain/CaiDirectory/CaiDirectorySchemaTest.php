@@ -41,7 +41,7 @@ test('cai_runts_registrations table has the columns required by US-801', functio
 
 test('cai_financial_statements table has the columns required by US-801', function (): void {
     expect(Schema::hasColumns('cai_financial_statements', [
-        'id', 'cai_runts_registration_id', 'year', 'general_interest_expenses',
+        'id', 'cai_runts_registration_id', 'cai_section_id', 'year', 'general_interest_expenses',
         'other_activities_expenses', 'fundraising_expenses', 'financial_expenses', 'overhead_expenses',
         'total_expenses', 'general_interest_revenues', 'other_activities_revenues',
         'fundraising_revenues', 'financial_revenues', 'overhead_revenues', 'total_revenues',
@@ -58,8 +58,8 @@ test('cai_board_members table has the columns required by US-801', function (): 
 
 test('cai_documents table has the columns required by US-801', function (): void {
     expect(Schema::hasColumns('cai_documents', [
-        'id', 'cai_runts_registration_id', 'document_type', 'year', 'title', 'file_path', 'file_name',
-        'mime_type', 'size', 'hash', 'created_at', 'updated_at',
+        'id', 'cai_runts_registration_id', 'cai_section_id', 'document_type', 'year', 'title',
+        'file_path', 'file_name', 'mime_type', 'size', 'hash', 'source', 'created_at', 'updated_at',
     ]))->toBeTrue();
 });
 
@@ -149,4 +149,32 @@ test('a runts registration belongs to a section and has many statements, board m
         ->and($statement->runtsRegistration->is($registration))->toBeTrue()
         ->and($boardMember->runtsRegistration->is($registration))->toBeTrue()
         ->and($document->runtsRegistration->is($registration))->toBeTrue();
+});
+
+test('a section has many documents and financial statements attached directly, without any runts registration', function (): void {
+    $section = CaiSection::create([
+        'codice_cai' => '9216049',
+        'name' => 'Sez. Abbiategrasso',
+        'region' => 'LOMBARDIA',
+    ]);
+
+    $document = CaiDocument::create([
+        'cai_section_id' => $section->codice_cai,
+        'document_type' => 'bilancio',
+        'file_path' => 'cai-documents/9216049/bilancio-2025.pdf',
+        'source' => 'manual',
+    ]);
+
+    $statement = CaiFinancialStatement::create([
+        'cai_section_id' => $section->codice_cai,
+        'year' => 2025,
+        'net_result' => 42.0,
+    ]);
+
+    expect($section->documents->first()->is($document))->toBeTrue()
+        ->and($section->financialStatements->first()->is($statement))->toBeTrue()
+        ->and($document->section->is($section))->toBeTrue()
+        ->and($document->cai_runts_registration_id)->toBeNull()
+        ->and($statement->section->is($section))->toBeTrue()
+        ->and($statement->cai_runts_registration_id)->toBeNull();
 });

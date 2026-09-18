@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domain\CaiDirectory\Actions\SyncCaiRuntsRegistration;
+use App\Domain\CaiDirectory\Enums\CaiDocumentSource;
 use App\Domain\CaiDirectory\Jobs\AnalyzeCaiFinancialStatementDocument;
 use App\Domain\CaiDirectory\Models\CaiBoardMember;
 use App\Domain\CaiDirectory\Models\CaiDocument;
@@ -128,6 +129,7 @@ test('run downloads and stores a new document, and dispatches analysis only for 
     $bilancio = CaiDocument::query()->where('file_name', 'B00_2024.pdf')->sole();
     expect($bilancio->title)->toBe('Bilancio di esercizio 2024');
     expect($bilancio->year)->toBe(2024);
+    expect($bilancio->source)->toBe(CaiDocumentSource::Runts);
 
     expect($result->queuedAnalysisCount)->toBe(1);
     Queue::assertPushed(

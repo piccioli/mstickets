@@ -25,6 +25,11 @@ use Filament\Schemas\Schema;
  * quando la sezione non ha alcuna registrazione RUNTS (nessun crash, solo liste vuote con
  * il loro `->placeholder()`), stesso idioma di `TicketInfolist::configure()` per le
  * relazioni filtrate/derivate.
+ *
+ * I tab "Bilanci"/"Allegati" uniscono SEMPRE due fonti: quelli collegati a una registrazione
+ * RUNTS (`runtsRegistrations->flatMap->...`, la maggioranza) e quelli collegati direttamente
+ * alla sezione (`CaiSection::documents()`/`financialStatements()`, upload manuale/Veryfico per
+ * una sezione senza presenza RUNTS) — un unico elenco, mai due tab separati.
  */
 class CaiSectionInfolist
 {
@@ -186,7 +191,10 @@ class CaiSectionInfolist
             ->schema([
                 RepeatableEntry::make('financial_statements')
                     ->hiddenLabel()
-                    ->state(fn (CaiSection $record) => $record->runtsRegistrations->flatMap->financialStatements->sortByDesc('year')->values())
+                    ->state(fn (CaiSection $record) => $record->financialStatements
+                        ->merge($record->runtsRegistrations->flatMap->financialStatements)
+                        ->sortByDesc('year')
+                        ->values())
                     ->schema([
                         TextEntry::make('year')->label('Anno'),
                         TextEntry::make('total_revenues')->label('Totale ricavi')->money('EUR')->placeholder('—'),
@@ -206,20 +214,22 @@ class CaiSectionInfolist
             ->schema([
                 RepeatableEntry::make('documents')
                     ->hiddenLabel()
-                    ->state(fn (CaiSection $record) => $record->runtsRegistrations->flatMap->documents
+                    ->state(fn (CaiSection $record) => $record->documents
+                        ->merge($record->runtsRegistrations->flatMap->documents)
                         ->sortByDesc(fn (CaiDocument $document): int => $document->year ?? -1)
                         ->values())
                     ->schema([
                         TextEntry::make('title')->label('Titolo')->placeholder(fn (CaiDocument $record): string => $record->file_name ?? '—'),
                         TextEntry::make('document_type')->label('Tipo')->badge()->placeholder('—'),
                         TextEntry::make('year')->label('Anno')->placeholder('—'),
+                        TextEntry::make('source')->label('Fonte')->badge()->placeholder('—'),
                         TextEntry::make('download')
                             ->label('Scarica')
                             ->state('Scarica il file')
                             ->url(fn (CaiDocument $record): string => route('cai-documents.download', $record))
                             ->openUrlInNewTab(),
                     ])
-                    ->columns(4)
+                    ->columns(5)
                     ->placeholder('Nessun allegato disponibile'),
             ]);
     }
