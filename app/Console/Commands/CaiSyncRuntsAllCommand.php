@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Domain\CaiDirectory\Actions\FillCaiSectionFiscalCodesFromFallback;
 use App\Domain\CaiDirectory\Actions\SyncCaiRuntsRegistration;
 use App\Domain\CaiDirectory\Models\CaiSection;
+use App\Domain\Identity\Models\User;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -24,6 +26,11 @@ use Throwable;
  * giro di retry automatico, a fine batch, solo sulle sezioni fallite con un errore (mai su quelle
  * "non trovate", che sono un esito legittimo) — una sezione che fallisce nel giro principale ma va a
  * buon fine nel retry conta come sincronizzata, non come errore.
+ *
+ * Prima di selezionare le sezioni da sincronizzare, esegue {@see FillCaiSectionFiscalCodesFromFallback}:
+ * completa CF/PIVA mancanti dal fallback manuale (foglio Excel del committente), così una sezione priva
+ * di CF in anagrafica ma presente nel fallback entra comunque nel giro di sync di questa stessa run,
+ * invece di restare esclusa da `whereNotNull('tax_code')` a tempo indefinito.
  */
 class CaiSyncRuntsAllCommand extends Command
 {
@@ -41,8 +48,10 @@ class CaiSyncRuntsAllCommand extends Command
 
     protected $description = 'Sincronizza dal vivo i dati RUNTS e i bilanci per tutte le sezioni CAI con codice fiscale';
 
-    public function __construct(private readonly SyncCaiRuntsRegistration $syncer)
-    {
+    public function __construct(
+        private readonly SyncCaiRuntsRegistration $syncer,
+        private readonly FillCaiSectionFiscalCodesFromFallback $fillFiscalCodes,
+    ) {
         parent::__construct();
     }
 
@@ -51,6 +60,11 @@ class CaiSyncRuntsAllCommand extends Command
         $limit = $this->option('limit') !== null ? (int) $this->option('limit') : null;
         $delayMicroseconds = ((int) $this->option('delay-ms')) * 1000;
         $startedAt = now();
+
+        $fallbackResult = $this->fillFiscalCodes->run(User::system());
+        if ($fallbackResult->updated > 0) {
+            $this->line("Fallback CF/PIVA: {$fallbackResult->updated} sezione/i completata/e dal foglio manuale.");
+        }
 
         $sections = CaiSection::query()
             ->whereNotNull('tax_code')

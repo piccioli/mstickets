@@ -12,6 +12,21 @@ return [
     'datapack_path' => env('CAI_DATAPACK_PATH', 'cai-datapack/runts-cai.sqlite'),
 
     /*
+     * JSON di fallback CF/PIVA (percorso assoluto), generato da
+     * `cai:generate-tax-code-fallback` a partire dal foglio Excel manuale del
+     * committente e committato nel repo — letto da
+     * `App\Domain\CaiDirectory\Support\CaiTaxCodeFallbackRepository`. Esposto via
+     * config (non un default hardcoded nella classe) per poterlo puntare altrove nei
+     * test: i fixture di `CaiSyncRuntsAllCommandTest`/simili riusano `codice_cai`
+     * REALI del dataset RUNTS-CAI (es. "9226005" = SEZ. CARRARA) — se quella classe
+     * leggesse di default il file reale committato, il fallback riempirebbe a sorpresa
+     * il `tax_code` di sezioni di test pensate per restarne prive, cambiando il
+     * comportamento atteso di `cai:sync-runts-all` in test che non parlano affatto di
+     * fallback. `phpunit.xml` punta questa env a un percorso inesistente.
+     */
+    'tax_code_fallback_path' => env('CAI_TAX_CODE_FALLBACK_PATH', resource_path('data/cai/tax-code-fallback.json')),
+
+    /*
      * API pubblica CAI (Fase 9, storia 1, design doc §3.1): stessi endpoint già
      * usati dal prototipo Python `RUNTS/scraper/cai_scraper.py`. Il template della
      * URL delle sottosezioni contiene un solo `%s` (il codice sezione), risolto con

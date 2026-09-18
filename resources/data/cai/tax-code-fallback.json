@@ -1,0 +1,2422 @@
+{
+    "9210001": {
+        "name": "C.A.I. SEZIONE DI LIGURE-GENOVA",
+        "tax_code": "00951210103",
+        "vat_number": "02806510109"
+    },
+    "9210002": {
+        "name": "C.A.I. SEZIONE DI IMPERIA",
+        "tax_code": "91009520080",
+        "vat_number": null
+    },
+    "9210003": {
+        "name": "C.A.I. SEZIONE DI SAVONA",
+        "tax_code": "80011730092",
+        "vat_number": "00508120094"
+    },
+    "9210004": {
+        "name": "C.A.I. SEZIONE DI LA SPEZIA",
+        "tax_code": "80010290114",
+        "vat_number": null
+    },
+    "9210005": {
+        "name": "C.A.I. SEZIONE U.L.E. GENOVA",
+        "tax_code": "80043530106",
+        "vat_number": null
+    },
+    "9210006": {
+        "name": "C.A.I. SEZIONE DI SANREMO",
+        "tax_code": "81012680088",
+        "vat_number": null
+    },
+    "9210007": {
+        "name": "C.A.I. SEZIONE DI VARAZZE",
+        "tax_code": "92012390099",
+        "vat_number": null
+    },
+    "9210008": {
+        "name": "C.A.I. SEZIONE DI VENTIMIGLIA",
+        "tax_code": "81005320080",
+        "vat_number": null
+    },
+    "9210009": {
+        "name": "C.A.I. SEZIONE DI SARZANA",
+        "tax_code": "81003060118",
+        "vat_number": "01250380118"
+    },
+    "9210011": {
+        "name": "C.A.I. SEZIONE DI BORDIGHERA",
+        "tax_code": "81005730080",
+        "vat_number": "01041060086"
+    },
+    "9210012": {
+        "name": "C.A.I. SEZIONE DI CHIAVARI",
+        "tax_code": "82002650107",
+        "vat_number": "00209480995"
+    },
+    "9210013": {
+        "name": "C.A.I. SEZIONE DI ALBENGA",
+        "tax_code": "00407580091",
+        "vat_number": null
+    },
+    "9210014": {
+        "name": "C.A.I. SEZIONE DI ALTARE",
+        "tax_code": "00643940091",
+        "vat_number": null
+    },
+    "9210015": {
+        "name": "C.A.I. SEZIONE DI LOANO",
+        "tax_code": null,
+        "vat_number": "00420660094"
+    },
+    "9210016": {
+        "name": "C.A.I. SEZIONE DI FINALE LIGURE",
+        "tax_code": "90052240091",
+        "vat_number": null
+    },
+    "9210017": {
+        "name": "C.A.I. SEZIONE DI RAPALLO",
+        "tax_code": "91006480106",
+        "vat_number": null
+    },
+    "9210018": {
+        "name": "C.A.I. SEZIONE DI BOLZANETO",
+        "tax_code": "93013630103",
+        "vat_number": null
+    },
+    "9210019": {
+        "name": "C.A.I. SEZIONE DI SAMPIERDARENA",
+        "tax_code": "80091910101",
+        "vat_number": null
+    },
+    "9212001": {
+        "name": "C.A.I. SEZIONE DI TORINO",
+        "tax_code": "80062110012",
+        "vat_number": "02186330011"
+    },
+    "9212003": {
+        "name": "C.A.I. SEZIONE DI DOMODOSSOLA",
+        "tax_code": "83003830037",
+        "vat_number": "00589640036"
+    },
+    "9212004": {
+        "name": "C.A.I. SEZIONE DI SUSA",
+        "tax_code": "96002170015",
+        "vat_number": null
+    },
+    "9212005": {
+        "name": "C.A.I. SEZIONE DI BIELLA",
+        "tax_code": "81001110022",
+        "vat_number": "00435570023"
+    },
+    "9212006": {
+        "name": "C.A.I. SEZIONE DI CUNEO",
+        "tax_code": null,
+        "vat_number": "00564780047"
+    },
+    "9212007": {
+        "name": "C.A.I. SEZIONE DI VERBANO-VERBANIA",
+        "tax_code": "00495660037",
+        "vat_number": "00495660037"
+    },
+    "9212008": {
+        "name": "C.A.I. SEZIONE DI IVREA",
+        "tax_code": "84004230011",
+        "vat_number": "08458400010"
+    },
+    "9212009": {
+        "name": "C.A.I. SEZIONE DI PINEROLO",
+        "tax_code": "85007510010",
+        "vat_number": "11138560013"
+    },
+    "9212010": {
+        "name": "C.A.I. SEZIONE DI MONDOVI'",
+        "tax_code": null,
+        "vat_number": "00564820041"
+    },
+    "9212011": {
+        "name": "C.A.I. SEZIONE DI SALUZZO",
+        "tax_code": null,
+        "vat_number": "00564840049"
+    },
+    "9212012": {
+        "name": "C.A.I. SEZIONE DI ASTI",
+        "tax_code": "80015480058",
+        "vat_number": null
+    },
+    "9212013": {
+        "name": "C.A.I. SEZIONE DI CHIVASSO",
+        "tax_code": "82503050013",
+        "vat_number": "07477930015"
+    },
+    "9212014": {
+        "name": "C.A.I. SEZIONE DI NOVARA",
+        "tax_code": "00465260032",
+        "vat_number": "00465260032"
+    },
+    "9212015": {
+        "name": "C.A.I. SEZIONE DI CASALE      MONFERRATO",
+        "tax_code": "82003320064",
+        "vat_number": "01423410065"
+    },
+    "9212016": {
+        "name": "C.A.I. SEZIONE DI VERCELLI",
+        "tax_code": "80005860020",
+        "vat_number": null
+    },
+    "9212017": {
+        "name": "C.A.I. SEZIONE DI ALESSANDRIA",
+        "tax_code": "96008790063",
+        "vat_number": null
+    },
+    "9212018": {
+        "name": "C.A.I. SEZIONE DI ARONA",
+        "tax_code": "81005940036",
+        "vat_number": "00979850039"
+    },
+    "9212020": {
+        "name": "C.A.I. SEZIONE DI OMEGNA",
+        "tax_code": "00378610034",
+        "vat_number": "00378610034"
+    },
+    "9212022": {
+        "name": "C.A.I. SEZIONE DI VILLADOSSOLA",
+        "tax_code": "83002860035",
+        "vat_number": null
+    },
+    "9212023": {
+        "name": "C.A.I. SEZIONE DI BUSSOLENO",
+        "tax_code": "96008770016",
+        "vat_number": "05694830018"
+    },
+    "9212024": {
+        "name": "C.A.I. SEZIONE DI CIRIE'",
+        "tax_code": "92006990011",
+        "vat_number": "07316260012"
+    },
+    "9212025": {
+        "name": "C.A.I. SEZIONE DI BORGOMANERO",
+        "tax_code": "82003110036",
+        "vat_number": null
+    },
+    "9212026": {
+        "name": "C.A.I. SEZIONE DI CASELLE     TORINESE",
+        "tax_code": "92015340018",
+        "vat_number": null
+    },
+    "9212027": {
+        "name": "C.A.I. SEZIONE DI PALLANZA",
+        "tax_code": "93009180030",
+        "vat_number": null
+    },
+    "9212028": {
+        "name": "C.A.I. SEZIONE DI PIEDIMULERA",
+        "tax_code": "92001740031",
+        "vat_number": null
+    },
+    "9212029": {
+        "name": "C.A.I. SEZIONE DI VALSESSERA",
+        "tax_code": "82007990029",
+        "vat_number": null
+    },
+    "9212030": {
+        "name": "C.A.I. SEZIONE DI STRESA",
+        "tax_code": "81005700034",
+        "vat_number": null
+    },
+    "9212031": {
+        "name": "C.A.I. SEZIONE DI BARGE",
+        "tax_code": "85010290048",
+        "vat_number": null
+    },
+    "9212032": {
+        "name": "C.A.I. SEZIONE DI BAVENO",
+        "tax_code": "93010170038",
+        "vat_number": null
+    },
+    "9212033": {
+        "name": "C.A.I. SEZIONE DI SAVIGLIANO",
+        "tax_code": null,
+        "vat_number": "00944300045"
+    },
+    "9212034": {
+        "name": "C.A.I. SEZIONE DI FOSSANO",
+        "tax_code": null,
+        "vat_number": "00564800043"
+    },
+    "9212035": {
+        "name": "C.A.I. SEZIONE DI GRAVELLONA  TOCE",
+        "tax_code": "84010390031",
+        "vat_number": "01303040032"
+    },
+    "9212036": {
+        "name": "C.A.I. SEZIONE DI ACQUI TERME",
+        "tax_code": "81002620060",
+        "vat_number": null
+    },
+    "9212037": {
+        "name": "C.A.I. SEZIONE DI GOZZANO",
+        "tax_code": "91002340031",
+        "vat_number": null
+    },
+    "9212038": {
+        "name": "C.A.I. SEZIONE DI GARESSIO",
+        "tax_code": "93042550041",
+        "vat_number": null
+    },
+    "9212039": {
+        "name": "C.A.I. SEZIONE DI LEINI'",
+        "tax_code": null,
+        "vat_number": "02112500018"
+    },
+    "9212040": {
+        "name": "C.A.I. SEZIONE DI TORTONA",
+        "tax_code": "85007750061",
+        "vat_number": null
+    },
+    "9212041": {
+        "name": "C.A.I. SEZIONE DI RIVAROLO CANAVESE",
+        "tax_code": null,
+        "vat_number": "06470420016"
+    },
+    "9212042": {
+        "name": "C.A.I. SEZIONE DI VENARIA     REALE",
+        "tax_code": "80098100011",
+        "vat_number": "04007520010"
+    },
+    "9212043": {
+        "name": "C.A.I. SEZIONE DI GIAVENO",
+        "tax_code": "86048160013",
+        "vat_number": null
+    },
+    "9212044": {
+        "name": "C.A.I. SEZIONE DI ALPIGNANO",
+        "tax_code": "95531010015",
+        "vat_number": null
+    },
+    "9212046": {
+        "name": "C.A.I. SEZIONE DI RACCONIGI",
+        "tax_code": "95007070048",
+        "vat_number": null
+    },
+    "9212047": {
+        "name": "C.A.I. SEZIONE DI LANZO TORINESE",
+        "tax_code": "92000650017",
+        "vat_number": null
+    },
+    "9212048": {
+        "name": "C.A.I. SEZIONE DI BRA",
+        "tax_code": "82003590047",
+        "vat_number": null
+    },
+    "9212049": {
+        "name": "C.A.I. SEZIONE DI VALGERMANASCA",
+        "tax_code": "85004390010",
+        "vat_number": "06544390013"
+    },
+    "9212050": {
+        "name": "C.A.I. SEZIONE DI MACUGNAGA",
+        "tax_code": "83003670037",
+        "vat_number": "01301610034"
+    },
+    "9212051": {
+        "name": "C.A.I. SEZIONE DI S.SALVATORE MONFERRATO",
+        "tax_code": "96047750060",
+        "vat_number": null
+    },
+    "9212052": {
+        "name": "C.A.I. SEZIONE DI BARDONECCHIA",
+        "tax_code": "96034030013",
+        "vat_number": null
+    },
+    "9212053": {
+        "name": "C.A.I. SEZIONE DI VOLPIANO",
+        "tax_code": "85502260012",
+        "vat_number": null
+    },
+    "9212054": {
+        "name": "C.A.I. SEZIONE DI NOVI LIGURE",
+        "tax_code": "92017930063",
+        "vat_number": null
+    },
+    "9212055": {
+        "name": "C.A.I. SEZIONE DI VARZO",
+        "tax_code": "83002950034",
+        "vat_number": null
+    },
+    "9212056": {
+        "name": "C.A.I. SEZIONE DI VALLE        VIGEZZO",
+        "tax_code": "83003890031",
+        "vat_number": null
+    },
+    "9212058": {
+        "name": "C.A.I. SEZIONE DI CEVA",
+        "tax_code": "84014880045",
+        "vat_number": "02651450047"
+    },
+    "9212059": {
+        "name": "C.A.I. SEZIONE DI CHIOMONTE",
+        "tax_code": "96027710019",
+        "vat_number": null
+    },
+    "9212060": {
+        "name": "C.A.I. SEZIONE DI CUMIANA",
+        "tax_code": "85005210019",
+        "vat_number": null
+    },
+    "9212061": {
+        "name": "C.A.I. SEZIONE DI ALMESE",
+        "tax_code": "86045530010",
+        "vat_number": null
+    },
+    "9212062": {
+        "name": "C.A.I. SEZIONE DI PINASCA",
+        "tax_code": "85012370012",
+        "vat_number": null
+    },
+    "9212063": {
+        "name": "C.A.I. SEZIONE DI COAZZE",
+        "tax_code": "05261220015",
+        "vat_number": "05261220015"
+    },
+    "9212064": {
+        "name": "C.A.I. SEZIONE DI ALBA",
+        "tax_code": "90017330045",
+        "vat_number": null
+    },
+    "9212065": {
+        "name": "C.A.I. SEZIONE DI VAL DELLA   TORRE",
+        "tax_code": "95546620014",
+        "vat_number": null
+    },
+    "9212066": {
+        "name": "C.A.I. SEZIONE DI PIANEZZA",
+        "tax_code": "03705950016",
+        "vat_number": null
+    },
+    "9212067": {
+        "name": "C.A.I. SEZIONE DI FORNO CANAVESE",
+        "tax_code": "95019740018",
+        "vat_number": null
+    },
+    "9212068": {
+        "name": "C.A.I. SEZIONE DI OVADA",
+        "tax_code": "93003450066",
+        "vat_number": null
+    },
+    "9212069": {
+        "name": "C.A.I. SEZIONE DI RIVOLI",
+        "tax_code": "95523300010",
+        "vat_number": null
+    },
+    "9212070": {
+        "name": "C.A.I. SEZIONE DI FORMAZZA",
+        "tax_code": "92006610031",
+        "vat_number": null
+    },
+    "9212071": {
+        "name": "C.A.I. SEZIONE DI ORMEA",
+        "tax_code": "01775150046",
+        "vat_number": null
+    },
+    "9212072": {
+        "name": "C.A.I. SEZIONE DI CUORGNE'",
+        "tax_code": "92503040013",
+        "vat_number": null
+    },
+    "9212073": {
+        "name": "C.A.I. SEZIONE DI PEVERAGNO",
+        "tax_code": "96027700044",
+        "vat_number": null
+    },
+    "9212074": {
+        "name": "C.A.I. SEZIONE DI VIGONE",
+        "tax_code": "94527140019",
+        "vat_number": null
+    },
+    "9212075": {
+        "name": "C.A.I. SEZIONE DI ORBASSANO",
+        "tax_code": "95572260016",
+        "vat_number": null
+    },
+    "9212076": {
+        "name": "C.A.I. SEZIONE DI ALA DI STURA",
+        "tax_code": "92011690010",
+        "vat_number": null
+    },
+    "9212077": {
+        "name": "C.A.I. SEZIONE DI CAVOUR",
+        "tax_code": "94527090016",
+        "vat_number": null
+    },
+    "9212078": {
+        "name": "C.A.I. SEZIONE DI PINO        TORINESE",
+        "tax_code": "90011220010",
+        "vat_number": null
+    },
+    "9212079": {
+        "name": "C.A.I. SEZIONE DI MONCALIERI",
+        "tax_code": null,
+        "vat_number": "06874310011"
+    },
+    "9212080": {
+        "name": "C.A.I. SEZIONE DI TRIVERO",
+        "tax_code": "83030070029",
+        "vat_number": null
+    },
+    "9212081": {
+        "name": "C.A.I. SEZIONE DI CERVASCA",
+        "tax_code": "96034040046",
+        "vat_number": null
+    },
+    "9212082": {
+        "name": "C.A.I. SEZIONE DI CARMAGNOLA",
+        "tax_code": "94074660013",
+        "vat_number": null
+    },
+    "9212083": {
+        "name": "C.A.I. SEZIONE DI CAMERI",
+        "tax_code": "80020340032",
+        "vat_number": null
+    },
+    "9212084": {
+        "name": "C.A.I. SEZIONE DI CHIERI",
+        "tax_code": "94089810017",
+        "vat_number": "12989730010"
+    },
+    "9214001": {
+        "name": "C.A.I. SEZIONE DI AOSTA",
+        "tax_code": "80005070075",
+        "vat_number": "00195380076"
+    },
+    "9214002": {
+        "name": "C.A.I. SEZIONE DI GRESSONEY",
+        "tax_code": "81004660072",
+        "vat_number": null
+    },
+    "9214003": {
+        "name": "C.A.I. SEZIONE DI VERRES",
+        "tax_code": "81008360075",
+        "vat_number": null
+    },
+    "9214004": {
+        "name": "C.A.I. SEZIONE DI CHATILLON",
+        "tax_code": "90011700078",
+        "vat_number": null
+    },
+    "9216001": {
+        "name": "C.A.I. SEZIONE DI VALTELLINESE-SONDRIO",
+        "tax_code": "80004760148",
+        "vat_number": "00458790144"
+    },
+    "9216002": {
+        "name": "C.A.I. SEZIONE DI BERGAMO",
+        "tax_code": "80004970168",
+        "vat_number": "00850300161"
+    },
+    "9216003": {
+        "name": "C.A.I. SEZIONE DI MILANO",
+        "tax_code": "80055650156",
+        "vat_number": "12492430157"
+    },
+    "9216004": {
+        "name": "C.A.I. SEZIONE DI LECCO",
+        "tax_code": "83004140139",
+        "vat_number": "00763100138"
+    },
+    "9216005": {
+        "name": "C.A.I. SEZIONE DI BRESCIA",
+        "tax_code": "80018550170",
+        "vat_number": "01011000179"
+    },
+    "9216006": {
+        "name": "C.A.I. SEZIONE DI COMO",
+        "tax_code": "80011180132",
+        "vat_number": "02154620138"
+    },
+    "9216007": {
+        "name": "C.A.I. SEZIONE DI CREMONA",
+        "tax_code": "93005920199",
+        "vat_number": null
+    },
+    "9216008": {
+        "name": "C.A.I. SEZIONE DI MONZA",
+        "tax_code": "85028970151",
+        "vat_number": "06001380960"
+    },
+    "9216009": {
+        "name": "C.A.I. SEZIONE DI VARESE",
+        "tax_code": "80008820120",
+        "vat_number": "03021570126"
+    },
+    "9216010": {
+        "name": "C.A.I. SEZIONE DI PALAZZOLO   SULL'OGLIO",
+        "tax_code": "91007890170",
+        "vat_number": null
+    },
+    "9216011": {
+        "name": "C.A.I. SEZIONE DI DESIO",
+        "tax_code": "83010100150",
+        "vat_number": null
+    },
+    "9216012": {
+        "name": "C.A.I. SEZIONE DI PAVIA",
+        "tax_code": "80015280185",
+        "vat_number": null
+    },
+    "9216013": {
+        "name": "C.A.I. SEZIONE DI VIGEVANO",
+        "tax_code": "85001730184",
+        "vat_number": "01583850183"
+    },
+    "9216014": {
+        "name": "C.A.I. SEZIONE DI BUSTO       ARSIZIO",
+        "tax_code": "81011030129",
+        "vat_number": "01966880120"
+    },
+    "9216015": {
+        "name": "C.A.I. SEZIONE DI GALLARATE",
+        "tax_code": "00598690121",
+        "vat_number": null
+    },
+    "9216016": {
+        "name": "C.A.I. SEZIONE DI SEREGNO",
+        "tax_code": "91064550154",
+        "vat_number": null
+    },
+    "9216017": {
+        "name": "C.A.I. SEZIONE DI LODI",
+        "tax_code": "84505220156",
+        "vat_number": null
+    },
+    "9216018": {
+        "name": "C.A.I. SEZIONE DI CHIAVENNA",
+        "tax_code": "81004710141",
+        "vat_number": "00981720147"
+    },
+    "9216019": {
+        "name": "C.A.I. SEZIONE DI MANDELLO    LARIO",
+        "tax_code": "83009060134",
+        "vat_number": "02927160131"
+    },
+    "9216021": {
+        "name": "C.A.I. SEZIONE DI RHO",
+        "tax_code": "93506620157",
+        "vat_number": null
+    },
+    "9216022": {
+        "name": "C.A.I. SEZIONE DI LEGNANO",
+        "tax_code": null,
+        "vat_number": "11882480152"
+    },
+    "9216023": {
+        "name": "C.A.I. SEZIONE DI MERATE",
+        "tax_code": "94000700131",
+        "vat_number": null
+    },
+    "9216024": {
+        "name": "C.A.I. SEZIONE DI VOGHERA",
+        "tax_code": "86006930183",
+        "vat_number": null
+    },
+    "9216025": {
+        "name": "C.A.I. SEZIONE DI MANTOVA",
+        "tax_code": "80010370205",
+        "vat_number": "01894750205"
+    },
+    "9216026": {
+        "name": "C.A.I. SEZIONE DI BESOZZO     SUPERIORE",
+        "tax_code": null,
+        "vat_number": "00674310123"
+    },
+    "9216027": {
+        "name": "C.A.I. SEZIONE DI CREMA",
+        "tax_code": "82009890193",
+        "vat_number": null
+    },
+    "9216028": {
+        "name": "C.A.I. SEZIONE S.E.M.",
+        "tax_code": "80106050158",
+        "vat_number": null
+    },
+    "9216029": {
+        "name": "C.A.I. SEZIONE DI MORBEGNO",
+        "tax_code": "91006110141",
+        "vat_number": null
+    },
+    "9216030": {
+        "name": "C.A.I. SEZIONE DI CARATE      BRIANZA",
+        "tax_code": "83050960158",
+        "vat_number": null
+    },
+    "9216031": {
+        "name": "C.A.I. SEZIONE DI GERMIGNAGA",
+        "tax_code": "93017700126",
+        "vat_number": null
+    },
+    "9216032": {
+        "name": "C.A.I. SEZIONE DI LAVENO      MOMBELLO",
+        "tax_code": "92001550125",
+        "vat_number": null
+    },
+    "9216033": {
+        "name": "C.A.I. SEZIONE DI SARONNO",
+        "tax_code": "85002680123",
+        "vat_number": "01313950121"
+    },
+    "9216034": {
+        "name": "C.A.I. SEZIONE DI BOLLATE",
+        "tax_code": "97347850154",
+        "vat_number": null
+    },
+    "9216035": {
+        "name": "C.A.I. SEZIONE DI CALOLZIOCORTE",
+        "tax_code": "82005550163",
+        "vat_number": null
+    },
+    "9216036": {
+        "name": "C.A.I. SEZIONE DI CASTELLANZA",
+        "tax_code": "90021930129",
+        "vat_number": null
+    },
+    "9216038": {
+        "name": "C.A.I. SEZIONE DI COLOGNO     MONZESE",
+        "tax_code": "85040700156",
+        "vat_number": null
+    },
+    "9216039": {
+        "name": "C.A.I. SEZIONE DI GIUSSANO",
+        "tax_code": "91074220152",
+        "vat_number": null
+    },
+    "9216040": {
+        "name": "C.A.I. SEZIONE DI LISSONE",
+        "tax_code": "85004110152",
+        "vat_number": "00987360963"
+    },
+    "9216041": {
+        "name": "C.A.I. SEZIONE DI MAGENTA",
+        "tax_code": "93002810153",
+        "vat_number": null
+    },
+    "9216042": {
+        "name": "C.A.I. SEZIONE DI MEDA",
+        "tax_code": "83012540155",
+        "vat_number": "02479930964"
+    },
+    "9216043": {
+        "name": "C.A.I. SEZIONE DI NOVATE      MILANESE",
+        "tax_code": "97065210151",
+        "vat_number": null
+    },
+    "9216044": {
+        "name": "C.A.I. SEZIONE DI SESTO CALENDE",
+        "tax_code": "82010540126",
+        "vat_number": "03540120122"
+    },
+    "9216045": {
+        "name": "C.A.I. SEZIONE DI TREVIGLIO",
+        "tax_code": "93000200167",
+        "vat_number": null
+    },
+    "9216046": {
+        "name": "C.A.I. SEZIONE DI MOLTRASIO",
+        "tax_code": "80027150137",
+        "vat_number": "01255150136"
+    },
+    "9216047": {
+        "name": "C.A.I. SEZIONE DI OLGIATE OLONA",
+        "tax_code": null,
+        "vat_number": "00657320123"
+    },
+    "9216048": {
+        "name": "C.A.I. SEZIONE DI VIMERCATE",
+        "tax_code": null,
+        "vat_number": "02439720968"
+    },
+    "9216049": {
+        "name": "C.A.I. SEZIONE DI ABBIATEGRASSO",
+        "tax_code": "90000340159",
+        "vat_number": null
+    },
+    "9216050": {
+        "name": "C.A.I. SEZIONE DI CANTU'",
+        "tax_code": "90000060138",
+        "vat_number": "01545750133"
+    },
+    "9216051": {
+        "name": "C.A.I. SEZIONE DI CERNUSCO    SUL NAVIGLIO",
+        "tax_code": "97110730153",
+        "vat_number": null
+    },
+    "9216052": {
+        "name": "C.A.I. SEZIONE DI CHIARI",
+        "tax_code": "91007450173",
+        "vat_number": null
+    },
+    "9216053": {
+        "name": "C.A.I. SEZIONE DI DERVIO",
+        "tax_code": "92043090130",
+        "vat_number": null
+    },
+    "9216055": {
+        "name": "C.A.I. SEZIONE DI LOVERE",
+        "tax_code": "96000100162",
+        "vat_number": "02291300164"
+    },
+    "9216057": {
+        "name": "C.A.I. SEZIONE DI PADERNO     DUGNANO",
+        "tax_code": "03626030963",
+        "vat_number": "03626030963"
+    },
+    "9216059": {
+        "name": "C.A.I. SEZIONE DI GAVIRATE",
+        "tax_code": null,
+        "vat_number": "00666420120"
+    },
+    "9216060": {
+        "name": "C.A.I. SEZIONE DI MENAGGIO",
+        "tax_code": "84002810137",
+        "vat_number": "01942860139"
+    },
+    "9216061": {
+        "name": "C.A.I. SEZIONE DI MORTARA",
+        "tax_code": "83000170189",
+        "vat_number": null
+    },
+    "9216062": {
+        "name": "C.A.I. SEZIONE DI CEDEGOLO",
+        "tax_code": "90000360173",
+        "vat_number": "01554190981"
+    },
+    "9216063": {
+        "name": "C.A.I. SEZIONE DI CASLINO     D'ERBA",
+        "tax_code": "91013980130",
+        "vat_number": null
+    },
+    "9216064": {
+        "name": "C.A.I. SEZIONE DI LUINO",
+        "tax_code": "84005030121",
+        "vat_number": "01664110127"
+    },
+    "9216065": {
+        "name": "C.A.I. SEZIONE DI SOMMA       LOMBARDO",
+        "tax_code": "82010520128",
+        "vat_number": "02115990026"
+    },
+    "9216067": {
+        "name": "C.A.I. SEZIONE DI MALNATE",
+        "tax_code": "80100880121",
+        "vat_number": null
+    },
+    "9216068": {
+        "name": "C.A.I. SEZIONE DI ROVAGNATE",
+        "tax_code": "85004000130",
+        "vat_number": null
+    },
+    "9216069": {
+        "name": "C.A.I. SEZIONE DI ASSO",
+        "tax_code": "91015520132",
+        "vat_number": null
+    },
+    "9216070": {
+        "name": "C.A.I. SEZIONE DI GORGONZOLA",
+        "tax_code": "83511430155",
+        "vat_number": null
+    },
+    "9216071": {
+        "name": "C.A.I. SEZIONE DI CODOGNO",
+        "tax_code": "90500020152",
+        "vat_number": null
+    },
+    "9216072": {
+        "name": "C.A.I. SEZIONE DI BRUGHERIO",
+        "tax_code": "94538250153",
+        "vat_number": null
+    },
+    "9216073": {
+        "name": "C.A.I. SEZIONE DI BESANA      BRIANZA",
+        "tax_code": "83009520152",
+        "vat_number": null
+    },
+    "9216074": {
+        "name": "C.A.I. SEZIONE DI MOLTENO",
+        "tax_code": "92028270137",
+        "vat_number": null
+    },
+    "9216075": {
+        "name": "C.A.I. SEZIONE DI VEDANO AL   LAMBRO",
+        "tax_code": "85013510152",
+        "vat_number": null
+    },
+    "9216076": {
+        "name": "C.A.I. SEZIONE DI SALO'",
+        "tax_code": "87006830175",
+        "vat_number": "00726740988"
+    },
+    "9216077": {
+        "name": "C.A.I. SEZIONE DI MARIANO COMENSE",
+        "tax_code": "90031310130",
+        "vat_number": null
+    },
+    "9216078": {
+        "name": "C.A.I. SEZIONE DI VEDANO OLONA",
+        "tax_code": "80100500125",
+        "vat_number": null
+    },
+    "9216079": {
+        "name": "C.A.I. SEZIONE DI CALCO",
+        "tax_code": "94008190137",
+        "vat_number": "02134280136"
+    },
+    "9216080": {
+        "name": "C.A.I. SEZIONE DI CABIATE",
+        "tax_code": "90031250138",
+        "vat_number": null
+    },
+    "9216081": {
+        "name": "C.A.I. SEZIONE DI VALMADRERA",
+        "tax_code": "92029630131",
+        "vat_number": null
+    },
+    "9216082": {
+        "name": "C.A.I. SEZIONE DI BOVISIO     MASCIAGO",
+        "tax_code": "03589100969",
+        "vat_number": "03589100969"
+    },
+    "9216083": {
+        "name": "C.A.I. SEZIONE DI INZAGO",
+        "tax_code": "91523870151",
+        "vat_number": null
+    },
+    "9216085": {
+        "name": "C.A.I. SEZIONE DI CARNAGO",
+        "tax_code": "95075960120",
+        "vat_number": null
+    },
+    "9216086": {
+        "name": "C.A.I. SEZIONE DI FINO        MORNASCO",
+        "tax_code": "90004090131",
+        "vat_number": null
+    },
+    "9216087": {
+        "name": "C.A.I. SEZIONE DI ROMANO DI   LOMBARDIA",
+        "tax_code": "83002300164",
+        "vat_number": null
+    },
+    "9216088": {
+        "name": "C.A.I. SEZIONE DI CASSANO D'ADDA",
+        "tax_code": "83508870157",
+        "vat_number": null
+    },
+    "9216089": {
+        "name": "C.A.I. SEZIONE DI PREMANA",
+        "tax_code": "83013660135",
+        "vat_number": null
+    },
+    "9216090": {
+        "name": "C.A.I. SEZIONE DI BARLASSINA",
+        "tax_code": "91076710150",
+        "vat_number": null
+    },
+    "9216091": {
+        "name": "C.A.I. SEZIONE DI INVERIGO",
+        "tax_code": "81006890131",
+        "vat_number": null
+    },
+    "9216093": {
+        "name": "C.A.I. SEZIONE DI MONTEVECCHIA",
+        "tax_code": "85004320132",
+        "vat_number": null
+    },
+    "9216094": {
+        "name": "C.A.I. SEZIONE DI BORMIO",
+        "tax_code": "83004950149",
+        "vat_number": null
+    },
+    "9216095": {
+        "name": "C.A.I. SEZIONE DI CANZO",
+        "tax_code": "82003120134",
+        "vat_number": null
+    },
+    "9216096": {
+        "name": "C.A.I. SEZIONE DI CASTIGLIONE STIVIERE",
+        "tax_code": "90000270208",
+        "vat_number": null
+    },
+    "9216097": {
+        "name": "C.A.I. SEZIONE DI MERONE",
+        "tax_code": "91000950138",
+        "vat_number": null
+    },
+    "9216098": {
+        "name": "C.A.I. SEZIONE DI CINISELLO   BALSAMO",
+        "tax_code": "94502150157",
+        "vat_number": null
+    },
+    "9216099": {
+        "name": "C.A.I. SEZIONE DI ERBA",
+        "tax_code": "91005050132",
+        "vat_number": null
+    },
+    "9216100": {
+        "name": "C.A.I. SEZIONE DI NERVIANO",
+        "tax_code": "93527450154",
+        "vat_number": null
+    },
+    "9216101": {
+        "name": "C.A.I. SEZIONE DI NOVATE      MEZZOLA",
+        "tax_code": "90002180140",
+        "vat_number": null
+    },
+    "9216102": {
+        "name": "C.A.I. SEZIONE DI BELLANO",
+        "tax_code": "92078020135",
+        "vat_number": null
+    },
+    "9216104": {
+        "name": "C.A.I. SEZIONE DI MADESIMO",
+        "tax_code": "81003830148",
+        "vat_number": "00939680146"
+    },
+    "9216105": {
+        "name": "C.A.I. SEZIONE DI CONCOREZZO",
+        "tax_code": "87005990152",
+        "vat_number": "08165310965"
+    },
+    "9216106": {
+        "name": "C.A.I. SEZIONE DI VALFURVA",
+        "tax_code": "92000380144",
+        "vat_number": null
+    },
+    "9216107": {
+        "name": "C.A.I. SEZIONE DI ALBIATE",
+        "tax_code": "91029040150",
+        "vat_number": "03133990964"
+    },
+    "9216108": {
+        "name": "C.A.I. SEZIONE DI CAPIAGO     INTIMIANO",
+        "tax_code": "95009490137",
+        "vat_number": null
+    },
+    "9216109": {
+        "name": "C.A.I. SEZIONE DI MELEGNANO",
+        "tax_code": "11216050150",
+        "vat_number": null
+    },
+    "9216110": {
+        "name": "C.A.I. SEZIONE DI INTROBIO",
+        "tax_code": "92000120136",
+        "vat_number": null
+    },
+    "9216111": {
+        "name": "C.A.I. SEZIONE DI EDOLO",
+        "tax_code": "90001020172",
+        "vat_number": "03911970980"
+    },
+    "9216112": {
+        "name": "C.A.I. SEZIONE DI VALMALENCO",
+        "tax_code": "93000880141",
+        "vat_number": "00612550145"
+    },
+    "9216113": {
+        "name": "C.A.I. SEZIONE DI BORNO",
+        "tax_code": "90004710175",
+        "vat_number": null
+    },
+    "9216115": {
+        "name": "C.A.I. SEZIONE DI CORSICO",
+        "tax_code": "97074920154",
+        "vat_number": null
+    },
+    "9216116": {
+        "name": "C.A.I. SEZIONE DI CERMENATE",
+        "tax_code": "90000570136",
+        "vat_number": null
+    },
+    "9216117": {
+        "name": "C.A.I. SEZIONE DI BARZANO'",
+        "tax_code": "94007790135",
+        "vat_number": null
+    },
+    "9216118": {
+        "name": "C.A.I. SEZIONE DI SONDALO",
+        "tax_code": "92010270145",
+        "vat_number": null
+    },
+    "9216119": {
+        "name": "C.A.I. SEZIONE DI MACHERIO",
+        "tax_code": "94533680156",
+        "vat_number": null
+    },
+    "9216120": {
+        "name": "C.A.I. SEZIONE DI LIVIGNO",
+        "tax_code": "92024520147",
+        "vat_number": null
+    },
+    "9216121": {
+        "name": "C.A.I. SEZIONE DI SOVICO",
+        "tax_code": "09520140154",
+        "vat_number": "00963890967"
+    },
+    "9216122": {
+        "name": "C.A.I. SEZIONE DI OSTIGLIA",
+        "tax_code": "95000200204",
+        "vat_number": null
+    },
+    "9216123": {
+        "name": "C.A.I. SEZIONE DI COLICO",
+        "tax_code": "02500210139",
+        "vat_number": "02500210139"
+    },
+    "9216125": {
+        "name": "C.A.I. SEZIONE DI ROVATO",
+        "tax_code": "82003050174",
+        "vat_number": null
+    },
+    "9216126": {
+        "name": "C.A.I. SEZIONE DI VILLASANTA",
+        "tax_code": "94561520159",
+        "vat_number": null
+    },
+    "9216127": {
+        "name": "C.A.I. SEZIONE DI APRICA",
+        "tax_code": "92004910144",
+        "vat_number": "00796540144"
+    },
+    "9216128": {
+        "name": "C.A.I. SEZIONE DI INVERUNO",
+        "tax_code": "93004470154",
+        "vat_number": null
+    },
+    "9216129": {
+        "name": "C.A.I. SEZIONE DI BRENO",
+        "tax_code": "90003880177",
+        "vat_number": null
+    },
+    "9216130": {
+        "name": "C.A.I. SEZIONE DI VALLE       INTELVI",
+        "tax_code": "01812530135",
+        "vat_number": null
+    },
+    "9216131": {
+        "name": "C.A.I. SEZIONE DI DONGO",
+        "tax_code": "02451900134",
+        "vat_number": "02451900134"
+    },
+    "9216132": {
+        "name": "C.A.I. SEZIONE DI CLUSONE",
+        "tax_code": "90003140168",
+        "vat_number": "02826890168"
+    },
+    "9216133": {
+        "name": "C.A.I. SEZIONE DI TRADATE",
+        "tax_code": "02025140126",
+        "vat_number": null
+    },
+    "9216135": {
+        "name": "C.A.I. SEZIONE DI PIAZZA      BREMBANA",
+        "tax_code": "94011200162",
+        "vat_number": "02466070162"
+    },
+    "9216137": {
+        "name": "C.A.I. SEZIONE DI BOVEGNO",
+        "tax_code": "92005490179",
+        "vat_number": null
+    },
+    "9216138": {
+        "name": "C.A.I. SEZIONE DI PARABIAGO",
+        "tax_code": "92020030158",
+        "vat_number": null
+    },
+    "9216139": {
+        "name": "C.A.I. SEZIONE DI COCCAGLIO",
+        "tax_code": "91001550176",
+        "vat_number": "01839070982"
+    },
+    "9216140": {
+        "name": "C.A.I. SEZIONE DI BOZZOLO",
+        "tax_code": "80020250207",
+        "vat_number": null
+    },
+    "9216141": {
+        "name": "C.A.I. SEZIONE DI ROVELLASCA",
+        "tax_code": "95049540131",
+        "vat_number": null
+    },
+    "9216142": {
+        "name": "C.A.I. SEZIONE DI MUGGIO'",
+        "tax_code": "03820410961",
+        "vat_number": "03820410961"
+    },
+    "9216143": {
+        "name": "C.A.I. SEZIONE DI OGGIONO",
+        "tax_code": "92043770137",
+        "vat_number": null
+    },
+    "9216144": {
+        "name": "C.A.I. SEZIONE DI LUMEZZANE",
+        "tax_code": "92014170176",
+        "vat_number": null
+    },
+    "9216145": {
+        "name": "C.A.I. SEZIONE DI VITTUONE",
+        "tax_code": "93005840157",
+        "vat_number": null
+    },
+    "9216146": {
+        "name": "C.A.I. SEZIONE DI VILLA CARCINA",
+        "tax_code": "92016110170",
+        "vat_number": "03539180988"
+    },
+    "9216147": {
+        "name": "C.A.I. SEZIONE DI VEDUGGIO",
+        "tax_code": "91011020152",
+        "vat_number": null
+    },
+    "9216148": {
+        "name": "C.A.I. SEZIONE DI GAZZADA SCHIANNO",
+        "tax_code": "95074160128",
+        "vat_number": null
+    },
+    "9216149": {
+        "name": "C.A.I. SEZIONE DI CORNAREDO",
+        "tax_code": "03173120969",
+        "vat_number": null
+    },
+    "9216150": {
+        "name": "C.A.I. SEZIONE DI MISSAGLIA",
+        "tax_code": "03502640133",
+        "vat_number": "03502640133"
+    },
+    "9216151": {
+        "name": "C.A.I. SEZIONE DI VIMODRONE",
+        "tax_code": "91573680153",
+        "vat_number": null
+    },
+    "9216152": {
+        "name": "C.A.I. SEZIONE DI COLLIO",
+        "tax_code": "98216450175",
+        "vat_number": null
+    },
+    "9216153": {
+        "name": "C.A.I. SEZIONE DI ARSAGO SEPRIO",
+        "tax_code": "03477520120",
+        "vat_number": "03477520120"
+    },
+    "9216154": {
+        "name": "C.A.I. SEZIONE DI GAVARDO",
+        "tax_code": "96044950176",
+        "vat_number": null
+    },
+    "9216155": {
+        "name": "C.A.I. SEZIONE DI VESTONE",
+        "tax_code": "96010980173",
+        "vat_number": null
+    },
+    "9216156": {
+        "name": "C.A.I. SEZIONE DI TREZZO SULL'ADDA",
+        "tax_code": "91508720157",
+        "vat_number": null
+    },
+    "9219002": {
+        "name": "C.A.I. SEZIONE DI BOLZANO",
+        "tax_code": "80000690216",
+        "vat_number": "00523080216"
+    },
+    "9219015": {
+        "name": "C.A.I. SEZIONE DI LAIVES",
+        "tax_code": "94059580210",
+        "vat_number": null
+    },
+    "9220001": {
+        "name": "C.A.I. SEZIONE DI AGORDO",
+        "tax_code": "80005960259",
+        "vat_number": "00744590258"
+    },
+    "9220003": {
+        "name": "C.A.I. SEZIONE DI VERONA",
+        "tax_code": "00804420230",
+        "vat_number": "00804420230"
+    },
+    "9220004": {
+        "name": "C.A.I. SEZIONE DI VICENZA",
+        "tax_code": "80017850241",
+        "vat_number": "02471980249"
+    },
+    "9220005": {
+        "name": "C.A.I. SEZIONE DI VENEZIA",
+        "tax_code": "80008930275",
+        "vat_number": "03230470274"
+    },
+    "9220006": {
+        "name": "C.A.I. SEZIONE DI BELLUNO",
+        "tax_code": "80000060253",
+        "vat_number": "00625800255"
+    },
+    "9220007": {
+        "name": "C.A.I. SEZIONE DI SCHIO",
+        "tax_code": "83004490245",
+        "vat_number": "02490960248"
+    },
+    "9220008": {
+        "name": "C.A.I. SEZIONE DI PADOVA APS - ETS",
+        "tax_code": "80018900284",
+        "vat_number": "02262470285"
+    },
+    "9220009": {
+        "name": "C.A.I. SEZIONE DI TREVISO",
+        "tax_code": "80017260268",
+        "vat_number": "01912140264"
+    },
+    "9220010": {
+        "name": "C.A.I. SEZIONE DI BASSANO DEL GRAPPA - APS - ETS",
+        "tax_code": "82003670245",
+        "vat_number": "02904290240"
+    },
+    "9220011": {
+        "name": "C.A.I. SEZIONE DI CORTINA     D'AMPEZZO",
+        "tax_code": "90000380254",
+        "vat_number": "00650550254"
+    },
+    "9220012": {
+        "name": "C.A.I. SEZIONE DI VALDAGNO",
+        "tax_code": "85000840240",
+        "vat_number": "02446520245"
+    },
+    "9220013": {
+        "name": "C.A.I. SEZIONE DI FELTRE",
+        "tax_code": "82002850251",
+        "vat_number": "00824670251"
+    },
+    "9220014": {
+        "name": "C.A.I. SEZIONE DI THIENE",
+        "tax_code": "84006830248",
+        "vat_number": "02726680248"
+    },
+    "9220015": {
+        "name": "C.A.I. SEZIONE DI LONIGO",
+        "tax_code": "02813740244",
+        "vat_number": "02813740244"
+    },
+    "9220016": {
+        "name": "C.A.I. SEZIONE DI CASTELFRANCO VENETO",
+        "tax_code": "90000370263",
+        "vat_number": "05061960265"
+    },
+    "9220017": {
+        "name": "C.A.I. SEZIONE DI VITTORIO    VENETO",
+        "tax_code": "00624480265",
+        "vat_number": "00624480265"
+    },
+    "9220018": {
+        "name": "C.A.I. SEZIONE DI CONEGLIANO",
+        "tax_code": "82009150267",
+        "vat_number": "00623560265"
+    },
+    "9220019": {
+        "name": "C.A.I. SEZIONE DI MONTEBELLUNA",
+        "tax_code": "83006550269",
+        "vat_number": null
+    },
+    "9220020": {
+        "name": "C.A.I. SEZIONE DI CITTADELLA",
+        "tax_code": "81006120281",
+        "vat_number": "04686800287"
+    },
+    "9220021": {
+        "name": "C.A.I. SEZIONE DI MESTRE",
+        "tax_code": "00746510270",
+        "vat_number": "01567450273"
+    },
+    "9220022": {
+        "name": "C.A.I. SEZIONE DI PIEVE DI    CADORE",
+        "tax_code": "00844420257",
+        "vat_number": "00844420257"
+    },
+    "9220023": {
+        "name": "C.A.I. SEZIONE DI ROVIGO",
+        "tax_code": "93001760292",
+        "vat_number": "01022120297"
+    },
+    "9220024": {
+        "name": "C.A.I. SEZIONE DI ARZIGNANO",
+        "tax_code": "81001790245",
+        "vat_number": "00895430247"
+    },
+    "9220025": {
+        "name": "C.A.I. SEZIONE DI CHIOGGIA",
+        "tax_code": "91005990279",
+        "vat_number": null
+    },
+    "9220026": {
+        "name": "C.A.I. SEZIONE DI MAROSTICA",
+        "tax_code": "82003870241",
+        "vat_number": null
+    },
+    "9220028": {
+        "name": "C.A.I. SEZIONE DI MONTECCHIO  MAGGIORE",
+        "tax_code": "81001670249",
+        "vat_number": "03728820246"
+    },
+    "9220030": {
+        "name": "C.A.I. SEZIONE DI PORTOGRUARO",
+        "tax_code": "83007000272",
+        "vat_number": null
+    },
+    "9220031": {
+        "name": "C.A.I. SEZIONE DI DOLO",
+        "tax_code": "82012680276",
+        "vat_number": null
+    },
+    "9220032": {
+        "name": "C.A.I. SEZIONE DI ESTE",
+        "tax_code": "91001950285",
+        "vat_number": null
+    },
+    "9220033": {
+        "name": "C.A.I. SEZIONE DI SAPPADA",
+        "tax_code": null,
+        "vat_number": "00866210255"
+    },
+    "9220034": {
+        "name": "C.A.I. SEZIONE DI MONTEBELLO  VICENTINO",
+        "tax_code": "95073800245",
+        "vat_number": null
+    },
+    "9220035": {
+        "name": "C.A.I. SEZIONE DI CALALZO DI  CADORE",
+        "tax_code": "92002710256",
+        "vat_number": null
+    },
+    "9220036": {
+        "name": "C.A.I. SEZIONE DI S.DONA'     DI PIAVE",
+        "tax_code": "93004190273",
+        "vat_number": null
+    },
+    "9220037": {
+        "name": "C.A.I. SEZIONE DI VAL DI ZOLDO",
+        "tax_code": "93001870257",
+        "vat_number": "00903940252"
+    },
+    "9220038": {
+        "name": "C.A.I. SEZIONE DI LENDINARA",
+        "tax_code": "82003470299",
+        "vat_number": null
+    },
+    "9220039": {
+        "name": "C.A.I. SEZIONE DI DOMEGGE DI  CADORE",
+        "tax_code": "83004650251",
+        "vat_number": null
+    },
+    "9220040": {
+        "name": "C.A.I. SEZIONE DI ASIAGO",
+        "tax_code": null,
+        "vat_number": "02203080243"
+    },
+    "9220041": {
+        "name": "C.A.I. SEZIONE DI LONGARONE",
+        "tax_code": "93000010251",
+        "vat_number": null
+    },
+    "9220042": {
+        "name": "C.A.I. SEZIONE DI VALCOMELICO",
+        "tax_code": "92005310252",
+        "vat_number": "01197440256"
+    },
+    "9220043": {
+        "name": "C.A.I. SEZIONE DI LOZZO DI    CADORE",
+        "tax_code": "83004890253",
+        "vat_number": "00754430254"
+    },
+    "9220044": {
+        "name": "C.A.I. SEZIONE DI LIVINALLONGO - COLLE",
+        "tax_code": "93000880257",
+        "vat_number": null
+    },
+    "9220045": {
+        "name": "C.A.I. SEZIONE DI RECOARO TERME",
+        "tax_code": "85001910240",
+        "vat_number": "03127020240"
+    },
+    "9220046": {
+        "name": "C.A.I. SEZIONE DI MALO",
+        "tax_code": "83003490246",
+        "vat_number": null
+    },
+    "9220047": {
+        "name": "C.A.I. SEZIONE DI VIGO DI     CADORE",
+        "tax_code": "83004850257",
+        "vat_number": null
+    },
+    "9220048": {
+        "name": "C.A.I. SEZIONE DI CAMPOSAMPIERO",
+        "tax_code": "92050820288",
+        "vat_number": null
+    },
+    "9220049": {
+        "name": "C.A.I. SEZIONE DI LORENZAGO",
+        "tax_code": "92009640258",
+        "vat_number": "00947070256"
+    },
+    "9220051": {
+        "name": "C.A.I. SEZIONE DI MOTTA DI    LIVENZA",
+        "tax_code": "80013510260",
+        "vat_number": null
+    },
+    "9220052": {
+        "name": "C.A.I. SEZIONE DI ODERZO",
+        "tax_code": null,
+        "vat_number": "00840100267"
+    },
+    "9220053": {
+        "name": "C.A.I. SEZIONE DI FIAMME GIALLE",
+        "tax_code": "91017750224",
+        "vat_number": null
+    },
+    "9220054": {
+        "name": "C.A.I. SEZIONE DI PIEVE DI    SOLIGO",
+        "tax_code": "91003390266",
+        "vat_number": null
+    },
+    "9220055": {
+        "name": "C.A.I. SEZIONE DI MIRANO",
+        "tax_code": "90028870278",
+        "vat_number": null
+    },
+    "9220056": {
+        "name": "C.A.I. SEZIONE DI SPRESIANO",
+        "tax_code": "94000410269",
+        "vat_number": null
+    },
+    "9220057": {
+        "name": "C.A.I. SEZIONE DI DUEVILLE",
+        "tax_code": "95023890247",
+        "vat_number": null
+    },
+    "9220060": {
+        "name": "C.A.I. SEZIONE DI S.BONIFACIO",
+        "tax_code": "92005870230",
+        "vat_number": "04090420235"
+    },
+    "9220061": {
+        "name": "C.A.I. SEZIONE DI TREGNAGO",
+        "tax_code": "92006050238",
+        "vat_number": null
+    },
+    "9220062": {
+        "name": "C.A.I. SEZIONE CESARE BATTISTI",
+        "tax_code": null,
+        "vat_number": "01409080239"
+    },
+    "9220063": {
+        "name": "C.A.I. SEZIONE DI LEGNAGO",
+        "tax_code": "91018160233",
+        "vat_number": null
+    },
+    "9220064": {
+        "name": "C.A.I. SEZIONE DI FIUME",
+        "tax_code": "90012220324",
+        "vat_number": "03220950277"
+    },
+    "9220065": {
+        "name": "C.A.I. SEZIONE DI ALPAGO",
+        "tax_code": "93044310253",
+        "vat_number": null
+    },
+    "9220066": {
+        "name": "C.A.I. SEZIONE DI CAPRILE",
+        "tax_code": "93008510252",
+        "vat_number": null
+    },
+    "9220067": {
+        "name": "C.A.I. SEZIONE DI CAPRINO VERONESE",
+        "tax_code": "90012360237",
+        "vat_number": null
+    },
+    "9222001": {
+        "name": "C.A.I. SEZIONE DI S.A.G.-TRIESTE",
+        "tax_code": "80016540322",
+        "vat_number": "00243240322"
+    },
+    "9222002": {
+        "name": "C.A.I. SEZIONE DI TOLMEZZO",
+        "tax_code": "84004770305",
+        "vat_number": null
+    },
+    "9222003": {
+        "name": "C.A.I. SEZIONE DI S.A.F.-UDINE",
+        "tax_code": "80001930306",
+        "vat_number": "00670520303"
+    },
+    "9222005": {
+        "name": "C.A.I. SEZIONE DI GORIZIA",
+        "tax_code": "80000410318",
+        "vat_number": "00339680316"
+    },
+    "9222006": {
+        "name": "C.A.I. SEZIONE DI PORDENONE",
+        "tax_code": "80000810939",
+        "vat_number": null
+    },
+    "9222007": {
+        "name": "C.A.I. SEZIONE DI GEMONA DEL  FRIULI",
+        "tax_code": "91001770303",
+        "vat_number": null
+    },
+    "9222008": {
+        "name": "C.A.I. SEZIONE DI MANIAGO",
+        "tax_code": "81005590930",
+        "vat_number": null
+    },
+    "9222010": {
+        "name": "C.A.I. SEZIONE DI TARVISIO",
+        "tax_code": "84007400306",
+        "vat_number": "01628570309"
+    },
+    "9222011": {
+        "name": "C.A.I. SEZIONE XXX OTTOBRE",
+        "tax_code": "80017010325",
+        "vat_number": "00779400324"
+    },
+    "9222012": {
+        "name": "C.A.I. SEZIONE DI MONFALCONE",
+        "tax_code": "81005050315",
+        "vat_number": null
+    },
+    "9222013": {
+        "name": "C.A.I. SEZIONE DI MOGGIO      UDINESE",
+        "tax_code": "93006150309",
+        "vat_number": "02548550306"
+    },
+    "9222014": {
+        "name": "C.A.I. SEZIONE DI CIVIDALE DEL FRIULI",
+        "tax_code": "80024830301",
+        "vat_number": "01957320300"
+    },
+    "9222015": {
+        "name": "C.A.I. SEZIONE DI CLAUT",
+        "tax_code": "90001580936",
+        "vat_number": "01415450939"
+    },
+    "9222016": {
+        "name": "C.A.I. SEZIONE DI CIMOLAIS",
+        "tax_code": "80013810934",
+        "vat_number": null
+    },
+    "9222018": {
+        "name": "C.A.I. SEZIONE DI SPILIMBERGO",
+        "tax_code": "90008620933",
+        "vat_number": null
+    },
+    "9222020": {
+        "name": "C.A.I. SEZIONE DI RAVASCLETTO",
+        "tax_code": "93000280300",
+        "vat_number": null
+    },
+    "9222021": {
+        "name": "C.A.I. SEZIONE DI FORNI DI    SOPRA",
+        "tax_code": "01088800303",
+        "vat_number": null
+    },
+    "9222022": {
+        "name": "C.A.I. SEZIONE DI FORNI AVOLTRI",
+        "tax_code": "93002460306",
+        "vat_number": null
+    },
+    "9222023": {
+        "name": "C.A.I. SEZIONE DI PONTEBBA",
+        "tax_code": "93003810301",
+        "vat_number": null
+    },
+    "9222024": {
+        "name": "C.A.I. SEZIONE DI SACILE",
+        "tax_code": "91001910933",
+        "vat_number": null
+    },
+    "9222025": {
+        "name": "C.A.I. SEZIONE DI MANZANO",
+        "tax_code": "94004860303",
+        "vat_number": null
+    },
+    "9222026": {
+        "name": "C.A.I. SEZIONE DI CERVIGNANO  DEL FRIULI",
+        "tax_code": "02131100303",
+        "vat_number": "02131100303"
+    },
+    "9222027": {
+        "name": "C.A.I. SEZIONE DI CODROIPO",
+        "tax_code": "94080370300",
+        "vat_number": null
+    },
+    "9222028": {
+        "name": "C.A.I. SEZIONE DI VAL NATISONE",
+        "tax_code": "94012900307",
+        "vat_number": null
+    },
+    "9222029": {
+        "name": "C.A.I. SEZIONE DI TRICESIMO",
+        "tax_code": "94150520305",
+        "vat_number": null
+    },
+    "9224001": {
+        "name": "C.A.I. SEZIONE DI PARMA",
+        "tax_code": "92038500341",
+        "vat_number": "02078830342"
+    },
+    "9224002": {
+        "name": "C.A.I. SEZIONE DI BOLOGNA",
+        "tax_code": "80071110375",
+        "vat_number": "04229010378"
+    },
+    "9224003": {
+        "name": "C.A.I. SEZIONE DI MODENA",
+        "tax_code": "80014670360",
+        "vat_number": "01262720368"
+    },
+    "9224004": {
+        "name": "C.A.I. SEZIONE DI FORLI'",
+        "tax_code": "80001810409",
+        "vat_number": null
+    },
+    "9224005": {
+        "name": "C.A.I. SEZIONE DI IMOLA",
+        "tax_code": "90004070372",
+        "vat_number": null
+    },
+    "9224006": {
+        "name": "C.A.I. SEZIONE DI FERRARA",
+        "tax_code": null,
+        "vat_number": "00399570381"
+    },
+    "9224007": {
+        "name": "C.A.I. SEZIONE DI PIACENZA",
+        "tax_code": "91003260337",
+        "vat_number": "01163430331"
+    },
+    "9224008": {
+        "name": "C.A.I. SEZIONE DI REGGIO EMILIA",
+        "tax_code": "80022910352",
+        "vat_number": "01845040359"
+    },
+    "9224009": {
+        "name": "C.A.I. SEZIONE DI RIMINI",
+        "tax_code": "91026460401",
+        "vat_number": "02271740405"
+    },
+    "9224010": {
+        "name": "C.A.I. SEZIONE DI CARPI APS",
+        "tax_code": null,
+        "vat_number": "02178870362"
+    },
+    "9224011": {
+        "name": "C.A.I. SEZIONE DI FAENZA",
+        "tax_code": "90000190398",
+        "vat_number": "00842950396"
+    },
+    "9224012": {
+        "name": "C.A.I. SEZIONE DI CESENA",
+        "tax_code": "81009730409",
+        "vat_number": "02605940408"
+    },
+    "9224013": {
+        "name": "C.A.I. SEZIONE DI CASTELNOVO  NE'MONTI",
+        "tax_code": "91071620354",
+        "vat_number": null
+    },
+    "9224014": {
+        "name": "C.A.I. SEZIONE DI RAVENNA",
+        "tax_code": "92025500395",
+        "vat_number": "01272780394"
+    },
+    "9224015": {
+        "name": "C.A.I. SEZIONE DI SASSUOLO",
+        "tax_code": "93004750365",
+        "vat_number": "02151290364"
+    },
+    "9224016": {
+        "name": "C.A.I. SEZIONE DI ARGENTA",
+        "tax_code": "93091160387",
+        "vat_number": null
+    },
+    "9224017": {
+        "name": "C.A.I. SEZIONE DI CASTELFRANCO EMILIA",
+        "tax_code": "94040280367",
+        "vat_number": null
+    },
+    "9224018": {
+        "name": "C.A.I. SEZIONE DI PORRETTA    TERME",
+        "tax_code": "01722351200",
+        "vat_number": "01722351200"
+    },
+    "9224019": {
+        "name": "C.A.I. SEZIONE DI LUGO",
+        "tax_code": "91015090391",
+        "vat_number": null
+    },
+    "9224020": {
+        "name": "C.A.I. SEZIONE DI PAVULLO NEL FRIGNANO",
+        "tax_code": "94192810367",
+        "vat_number": "03783230364"
+    },
+    "9226001": {
+        "name": "C.A.I. SEZIONE DI FIRENZE",
+        "tax_code": "80030310488",
+        "vat_number": "03422260483"
+    },
+    "9226002": {
+        "name": "C.A.I. SEZIONE DI SIENA",
+        "tax_code": "80007600523",
+        "vat_number": null
+    },
+    "9226003": {
+        "name": "C.A.I. SEZIONE DI PISA",
+        "tax_code": "80009440506",
+        "vat_number": "01483260509"
+    },
+    "9226004": {
+        "name": "C.A.I. SEZIONE DI LIVORNO",
+        "tax_code": "92093620497",
+        "vat_number": null
+    },
+    "9226005": {
+        "name": "C.A.I. SEZIONE DI CARRARA",
+        "tax_code": "82001640455",
+        "vat_number": "00705080455"
+    },
+    "9226006": {
+        "name": "C.A.I. SEZIONE DI LUCCA",
+        "tax_code": "80009480460",
+        "vat_number": "01612420461"
+    },
+    "9226007": {
+        "name": "C.A.I. SEZIONE DI PISTOIA",
+        "tax_code": "90015970479",
+        "vat_number": "00512280470"
+    },
+    "9226008": {
+        "name": "C.A.I. SEZIONE DI EMILIO BERTINI-PRATO",
+        "tax_code": "92003870489",
+        "vat_number": "00338670979"
+    },
+    "9226009": {
+        "name": "C.A.I. SEZIONE DI AREZZO",
+        "tax_code": "80013910510",
+        "vat_number": "00861710515"
+    },
+    "9226010": {
+        "name": "C.A.I. SEZIONE DI VIAREGGIO",
+        "tax_code": "82003990460",
+        "vat_number": "01282230463"
+    },
+    "9226011": {
+        "name": "C.A.I. SEZIONE DI SESTO       FIORENTINO",
+        "tax_code": null,
+        "vat_number": "01468200488"
+    },
+    "9226012": {
+        "name": "C.A.I. SEZIONE DI FORTE DEI   MARMI",
+        "tax_code": "82011530464",
+        "vat_number": "02020510463"
+    },
+    "9226013": {
+        "name": "C.A.I. SEZIONE DI MASSA",
+        "tax_code": "80003810456",
+        "vat_number": "00613010453"
+    },
+    "9226015": {
+        "name": "C.A.I. SEZIONE DI MONTAGNA PISTOIESE-MARESCA",
+        "tax_code": "80015050471",
+        "vat_number": "00838210474"
+    },
+    "9226016": {
+        "name": "C.A.I. SEZIONE DI PIETRASANTA",
+        "tax_code": "91000570464",
+        "vat_number": null
+    },
+    "9226017": {
+        "name": "C.A.I. SEZIONE DI PONTREMOLI",
+        "tax_code": "81009080458",
+        "vat_number": null
+    },
+    "9226018": {
+        "name": "C.A.I. SEZIONE DI VALDARNO    INFERIORE",
+        "tax_code": "91001320489",
+        "vat_number": null
+    },
+    "9226019": {
+        "name": "C.A.I. SEZIONE DI FIVIZZANO",
+        "tax_code": null,
+        "vat_number": "01203550452"
+    },
+    "9226020": {
+        "name": "C.A.I. SEZIONE DI GROSSETO",
+        "tax_code": "92024220532",
+        "vat_number": null
+    },
+    "9226021": {
+        "name": "C.A.I. SEZIONE DI CASTELNUOVO  GARFAGNANA",
+        "tax_code": "90001470468",
+        "vat_number": "01923120461"
+    },
+    "9226022": {
+        "name": "C.A.I. SEZIONE DI SANSEPOLCRO",
+        "tax_code": null,
+        "vat_number": "01422310514"
+    },
+    "9226023": {
+        "name": "C.A.I. SEZIONE DI VALDARNO    SUPERIORE",
+        "tax_code": "90004590510",
+        "vat_number": null
+    },
+    "9226024": {
+        "name": "C.A.I. SEZIONE DI BARGA",
+        "tax_code": "90005580460",
+        "vat_number": null
+    },
+    "9226025": {
+        "name": "C.A.I. SEZIONE PONTEDERA",
+        "tax_code": "90039730503",
+        "vat_number": "01840220501"
+    },
+    "9226026": {
+        "name": "C.A.I. SEZIONE DI PESCIA",
+        "tax_code": "91030010473",
+        "vat_number": "01829120474"
+    },
+    "9226027": {
+        "name": "C.A.I. SEZIONE DI SCANDICCI",
+        "tax_code": "94193230482",
+        "vat_number": null
+    },
+    "9226028": {
+        "name": "C.A.I. SEZIONE DI STIA",
+        "tax_code": "92064990515",
+        "vat_number": null
+    },
+    "9228001": {
+        "name": "C.A.I. SEZIONE DI ANCONA",
+        "tax_code": "93006510429",
+        "vat_number": null
+    },
+    "9228002": {
+        "name": "C.A.I. SEZIONE DI ASCOLI PICENO",
+        "tax_code": "92000570447",
+        "vat_number": "01395490442"
+    },
+    "9228003": {
+        "name": "C.A.I. SEZIONE DI JESI",
+        "tax_code": "91015120420",
+        "vat_number": null
+    },
+    "9228004": {
+        "name": "C.A.I. SEZIONE DI FERMO",
+        "tax_code": "90001130443",
+        "vat_number": null
+    },
+    "9228005": {
+        "name": "C.A.I. SEZIONE DI CAMERINO",
+        "tax_code": "90009830432",
+        "vat_number": null
+    },
+    "9228006": {
+        "name": "C.A.I. SEZIONE DI PESARO",
+        "tax_code": null,
+        "vat_number": "00366010411"
+    },
+    "9228007": {
+        "name": "C.A.I. SEZIONE DI FABRIANO",
+        "tax_code": "81003650421",
+        "vat_number": "01588560423"
+    },
+    "9228008": {
+        "name": "C.A.I. SEZIONE DI MACERATA",
+        "tax_code": "80001530437",
+        "vat_number": null
+    },
+    "9228010": {
+        "name": "C.A.I. SEZIONE DI AMANDOLA",
+        "tax_code": null,
+        "vat_number": "01498170446"
+    },
+    "9228011": {
+        "name": "C.A.I. SEZIONE DI SARNANO",
+        "tax_code": "92003660435",
+        "vat_number": null
+    },
+    "9228012": {
+        "name": "C.A.I. SEZIONE DI SENIGALLIA",
+        "tax_code": "92003730428",
+        "vat_number": null
+    },
+    "9228013": {
+        "name": "C.A.I. SEZIONE DI S.BENEDETTO DEL TRONTO",
+        "tax_code": "91002240447",
+        "vat_number": null
+    },
+    "9228014": {
+        "name": "C.A.I. SEZIONE DI POTENZA     PICENA",
+        "tax_code": "91011610432",
+        "vat_number": null
+    },
+    "9228015": {
+        "name": "C.A.I. SEZIONE DI MONTEFELTRO",
+        "tax_code": "91027080414",
+        "vat_number": null
+    },
+    "9230001": {
+        "name": "C.A.I. SEZIONE DI PERUGIA",
+        "tax_code": "94027770547",
+        "vat_number": null
+    },
+    "9230002": {
+        "name": "C.A.I. SEZIONE DI SPOLETO",
+        "tax_code": "84003820549",
+        "vat_number": null
+    },
+    "9230003": {
+        "name": "C.A.I. SEZIONE DI TERNI",
+        "tax_code": "80050130550",
+        "vat_number": null
+    },
+    "9230004": {
+        "name": "C.A.I. SEZIONE DI FOLIGNO",
+        "tax_code": "91002370541",
+        "vat_number": null
+    },
+    "9230005": {
+        "name": "C.A.I. SEZIONE DI CITTA' DI   CASTELLO",
+        "tax_code": "90002110543",
+        "vat_number": null
+    },
+    "9230006": {
+        "name": "C.A.I. SEZIONE DI GUBBIO",
+        "tax_code": "95002270544",
+        "vat_number": null
+    },
+    "9230007": {
+        "name": "C.A.I. SEZIONE DI GUALDO TADINO",
+        "tax_code": "92001410544",
+        "vat_number": null
+    },
+    "9230008": {
+        "name": "C.A.I. SEZIONE DI ORVIETO",
+        "tax_code": "90019530550",
+        "vat_number": null
+    },
+    "9232001": {
+        "name": "C.A.I. SEZIONE DI ROMA",
+        "tax_code": null,
+        "vat_number": "01104691009"
+    },
+    "9232002": {
+        "name": "C.A.I. SEZIONE DI SORA",
+        "tax_code": "82005730609",
+        "vat_number": null
+    },
+    "9232003": {
+        "name": "C.A.I. SEZIONE DI FROSINONE",
+        "tax_code": "80005310604",
+        "vat_number": null
+    },
+    "9232004": {
+        "name": "C.A.I. SEZIONE DI RIETI  APS- ETS",
+        "tax_code": "80016860571",
+        "vat_number": "00830810578"
+    },
+    "9232005": {
+        "name": "C.A.I. SEZIONE DI VITERBO",
+        "tax_code": "90049280564",
+        "vat_number": null
+    },
+    "9232006": {
+        "name": "C.A.I. SEZIONE DI LATINA",
+        "tax_code": "80006960597",
+        "vat_number": null
+    },
+    "9232009": {
+        "name": "C.A.I. SEZIONE DI CASSINO",
+        "tax_code": "90021200606",
+        "vat_number": null
+    },
+    "9232010": {
+        "name": "C.A.I. SEZIONE DI ALATRI",
+        "tax_code": "92002960604",
+        "vat_number": null
+    },
+    "9232011": {
+        "name": "C.A.I. SEZIONE DI PALESTRINA",
+        "tax_code": "93025740585",
+        "vat_number": null
+    },
+    "9232012": {
+        "name": "C.A.I. SEZIONE DI FRASCATI",
+        "tax_code": "92002170584",
+        "vat_number": null
+    },
+    "9232013": {
+        "name": "C.A.I. SEZIONE DI ESPERIA",
+        "tax_code": "90004140605",
+        "vat_number": null
+    },
+    "9232014": {
+        "name": "C.A.I. SEZIONE DI TIVOLI",
+        "tax_code": "94024380589",
+        "vat_number": null
+    },
+    "9232018": {
+        "name": "C.A.I. SEZIONE DI COLLEFERRO",
+        "tax_code": "95011070588",
+        "vat_number": null
+    },
+    "9232019": {
+        "name": "C.A.I. SEZIONE DI AMATRICE",
+        "tax_code": "90036980572",
+        "vat_number": null
+    },
+    "9232020": {
+        "name": "C.A.I. SEZIONE DI ANTRODOCO",
+        "tax_code": "90025670572",
+        "vat_number": null
+    },
+    "9232021": {
+        "name": "C.A.I. SEZIONE DI APRILIA",
+        "tax_code": "91121850597",
+        "vat_number": null
+    },
+    "9232022": {
+        "name": "C.A.I. SEZIONE DI LEONESSA",
+        "tax_code": "90071130570",
+        "vat_number": "01145210579"
+    },
+    "9232023": {
+        "name": "C.A.I. SEZIONE DI MONTEROTONDO",
+        "tax_code": "97368600587",
+        "vat_number": null
+    },
+    "9234001": {
+        "name": "C.A.I. SEZIONE DI CHIETI",
+        "tax_code": "80003750694",
+        "vat_number": "00629300690"
+    },
+    "9234002": {
+        "name": "C.A.I. SEZIONE DI L'AQUILA",
+        "tax_code": "00145680666",
+        "vat_number": "00145680666"
+    },
+    "9234003": {
+        "name": "C.A.I. SEZIONE DI TERAMO",
+        "tax_code": "80006280673",
+        "vat_number": "00908080674"
+    },
+    "9234004": {
+        "name": "C.A.I. SEZIONE DI SULMONA",
+        "tax_code": "83003230667",
+        "vat_number": null
+    },
+    "9234005": {
+        "name": "C.A.I. SEZIONE DI PESCARA",
+        "tax_code": "91041720680",
+        "vat_number": "01823940687"
+    },
+    "9234006": {
+        "name": "C.A.I. SEZIONE DI PENNE",
+        "tax_code": "80014770681",
+        "vat_number": null
+    },
+    "9234007": {
+        "name": "C.A.I. SEZIONE DI GUARDIAGRELE",
+        "tax_code": "80000600694",
+        "vat_number": null
+    },
+    "9234008": {
+        "name": "C.A.I. SEZIONE DI FARINDOLA",
+        "tax_code": "80019430687",
+        "vat_number": null
+    },
+    "9234010": {
+        "name": "C.A.I. SEZIONE DI CASTELLI",
+        "tax_code": "00407370675",
+        "vat_number": null
+    },
+    "9234011": {
+        "name": "C.A.I. SEZIONE DI ATESSA",
+        "tax_code": "90027780692",
+        "vat_number": null
+    },
+    "9234013": {
+        "name": "C.A.I. SEZIONE DI AVEZZANO",
+        "tax_code": "90008240666",
+        "vat_number": null
+    },
+    "9234015": {
+        "name": "C.A.I. SEZIONE DI CASTEL DI SANGRO",
+        "tax_code": "91001930667",
+        "vat_number": null
+    },
+    "9234016": {
+        "name": "C.A.I. SEZIONE DI POPOLI",
+        "tax_code": "90001120683",
+        "vat_number": null
+    },
+    "9234017": {
+        "name": "C.A.I. SEZIONE DI LANCIANO",
+        "tax_code": "90008320690",
+        "vat_number": null
+    },
+    "9234019": {
+        "name": "C.A.I. SEZIONE DI VALLE ROVETO",
+        "tax_code": "90019100669",
+        "vat_number": null
+    },
+    "9234020": {
+        "name": "C.A.I. SEZIONE DI ORTONA",
+        "tax_code": "91002490695",
+        "vat_number": null
+    },
+    "9234022": {
+        "name": "C.A.I. SEZIONE DI VASTO",
+        "tax_code": "92013420697",
+        "vat_number": null
+    },
+    "9234023": {
+        "name": "C.A.I. SEZIONE DI LORETO APRUTINO",
+        "tax_code": "01831370687",
+        "vat_number": null
+    },
+    "9234024": {
+        "name": "C.A.I. SEZIONE DI CARSOLI",
+        "tax_code": "90030620661",
+        "vat_number": null
+    },
+    "9234025": {
+        "name": "C.A.I. SEZIONE DI VALLELONGA - COPPO DELL'ORSO",
+        "tax_code": null,
+        "vat_number": "01797560669"
+    },
+    "9234026": {
+        "name": "C.A.I. SEZIONE DI ARSITA",
+        "tax_code": "92021940678",
+        "vat_number": null
+    },
+    "9236001": {
+        "name": "C.A.I. SEZIONE DI CAMPOBASSO",
+        "tax_code": "92001140703",
+        "vat_number": null
+    },
+    "9236002": {
+        "name": "C.A.I. SEZIONE DI ISERNIA",
+        "tax_code": "90022750948",
+        "vat_number": null
+    },
+    "9238001": {
+        "name": "C.A.I. SEZIONE DI NAPOLI",
+        "tax_code": "80034500639",
+        "vat_number": null
+    },
+    "9238003": {
+        "name": "C.A.I. SEZIONE DI SALERNO",
+        "tax_code": "02360400655",
+        "vat_number": "02360400655"
+    },
+    "9238004": {
+        "name": "C.A.I. SEZIONE DI AVELLINO",
+        "tax_code": "92029400642",
+        "vat_number": null
+    },
+    "9238005": {
+        "name": "C.A.I. SEZIONE DI PIEDIMONTE  MATESE",
+        "tax_code": "91004470612",
+        "vat_number": null
+    },
+    "9238006": {
+        "name": "C.A.I. SEZIONE DI CASERTA",
+        "tax_code": "93067720610",
+        "vat_number": null
+    },
+    "9238008": {
+        "name": "C.A.I. SEZIONE DI BENEVENTO",
+        "tax_code": "92047030629",
+        "vat_number": null
+    },
+    "9238009": {
+        "name": "C.A.I. SEZIONE DI CASTELLAMMARE DI STABIA",
+        "tax_code": "90068070631",
+        "vat_number": null
+    },
+    "9240001": {
+        "name": "C.A.I. SEZIONE DI GIOIA DEL   COLLE",
+        "tax_code": "91002080728",
+        "vat_number": null
+    },
+    "9240002": {
+        "name": "C.A.I. SEZIONE DI BARI",
+        "tax_code": "93014720721",
+        "vat_number": null
+    },
+    "9240003": {
+        "name": "C.A.I. SEZIONE DI FOGGIA",
+        "tax_code": "94077140716",
+        "vat_number": null
+    },
+    "9240004": {
+        "name": "C.A.I. SEZIONE DI GROTTAGLIE",
+        "tax_code": "90271510738",
+        "vat_number": null
+    },
+    "9240005": {
+        "name": "C.A.I. SEZIONE DI LECCE",
+        "tax_code": "93172510757",
+        "vat_number": null
+    },
+    "9242001": {
+        "name": "C.A.I. SEZIONE DI POTENZA",
+        "tax_code": "96031200767",
+        "vat_number": null
+    },
+    "9242002": {
+        "name": "C.A.I. SEZIONE DI LAGONEGRO",
+        "tax_code": "91001120764",
+        "vat_number": null
+    },
+    "9242003": {
+        "name": "C.A.I. SEZIONE DI MELFI",
+        "tax_code": "93028070766",
+        "vat_number": null
+    },
+    "9242004": {
+        "name": "C.A.I. SEZIONE DI MATERA",
+        "tax_code": "93031390771",
+        "vat_number": null
+    },
+    "9244001": {
+        "name": "C.A.I. SEZIONE DI REGGIO CALABRIA",
+        "tax_code": "92006240805",
+        "vat_number": null
+    },
+    "9244002": {
+        "name": "C.A.I. SEZIONE DI COSENZA",
+        "tax_code": "98017970785",
+        "vat_number": null
+    },
+    "9244004": {
+        "name": "C.A.I. SEZIONE DI CATANZARO",
+        "tax_code": "97020360794",
+        "vat_number": null
+    },
+    "9244005": {
+        "name": "C.A.I. SEZIONE DI CASTROVILLARI",
+        "tax_code": "94005130789",
+        "vat_number": null
+    },
+    "9244006": {
+        "name": "C.A.I. SEZIONE DI VERBICARO",
+        "tax_code": "96027600780",
+        "vat_number": null
+    },
+    "9246001": {
+        "name": "C.A.I. SEZIONE DI CATANIA",
+        "tax_code": null,
+        "vat_number": "00492410873"
+    },
+    "9246002": {
+        "name": "C.A.I. SEZIONE DI PALERMO",
+        "tax_code": "80017020829",
+        "vat_number": "05118300820"
+    },
+    "9246003": {
+        "name": "C.A.I. SEZIONE DI PETRALIA    SOTTANA",
+        "tax_code": "83001150826",
+        "vat_number": null
+    },
+    "9246004": {
+        "name": "C.A.I. SEZIONE DI LINGUAGLOSSA",
+        "tax_code": "83004040875",
+        "vat_number": null
+    },
+    "9246005": {
+        "name": "C.A.I. SEZIONE DI GIARRE",
+        "tax_code": "92000140878",
+        "vat_number": null
+    },
+    "9246006": {
+        "name": "C.A.I. SEZIONE DI MESSINA",
+        "tax_code": "97005790833",
+        "vat_number": null
+    },
+    "9246007": {
+        "name": "C.A.I. SEZIONE DI POLIZZI     GENEROSA",
+        "tax_code": "95002820827",
+        "vat_number": null
+    },
+    "9246009": {
+        "name": "C.A.I. SEZIONE DI ACIREALE",
+        "tax_code": "90010810878",
+        "vat_number": null
+    },
+    "9246010": {
+        "name": "C.A.I. SEZIONE DI BELPASSO",
+        "tax_code": "93064500874",
+        "vat_number": null
+    },
+    "9246013": {
+        "name": "C.A.I. SEZIONE DI SIRACUSA",
+        "tax_code": "93035250898",
+        "vat_number": null
+    },
+    "9246014": {
+        "name": "C.A.I. SEZIONE DI RAGUSA",
+        "tax_code": "92017890887",
+        "vat_number": null
+    },
+    "9246015": {
+        "name": "C.A.I. SEZIONE DI PEDARA",
+        "tax_code": "90027920876",
+        "vat_number": null
+    },
+    "9246016": {
+        "name": "C.A.I. SEZIONE DI CEFALU'",
+        "tax_code": "91000970821",
+        "vat_number": null
+    },
+    "9246017": {
+        "name": "C.A.I. SEZIONE DI BRONTE",
+        "tax_code": "93037210874",
+        "vat_number": null
+    },
+    "9246018": {
+        "name": "C.A.I. SEZIONE DI NOVARA DI SICILIA",
+        "tax_code": "90018510835",
+        "vat_number": null
+    },
+    "9246019": {
+        "name": "C.A.I. SEZIONE DI ERICE",
+        "tax_code": "93080880813",
+        "vat_number": null
+    },
+    "9246020": {
+        "name": "C.A.I. SEZIONE DI CACCAMO",
+        "tax_code": "96038000822",
+        "vat_number": null
+    },
+    "9248001": {
+        "name": "C.A.I. SEZIONE DI CAGLIARI",
+        "tax_code": "80014590923",
+        "vat_number": null
+    },
+    "9248002": {
+        "name": "C.A.I. SEZIONE DI NUORO",
+        "tax_code": "93011260911",
+        "vat_number": null
+    },
+    "9248003": {
+        "name": "C.A.I. SEZIONE DI SASSARI",
+        "tax_code": "92090260909",
+        "vat_number": null
+    },
+    "9248004": {
+        "name": "C.A.I. SEZIONE DI ORISTANO",
+        "tax_code": "90061560950",
+        "vat_number": null
+    }
+}

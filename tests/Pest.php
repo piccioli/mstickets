@@ -15,6 +15,8 @@ use App\Domain\Ticketing\Models\TicketLog;
 use App\Domain\Ticketing\Models\TicketMessage;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Support\Str;
+use OpenSpout\Common\Entity\Row;
+use OpenSpout\Writer\XLSX\Writer as XlsxWriter;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -425,6 +427,31 @@ function caiSection(array $attributes = []): CaiSection
         'name' => 'Sezione CAI '.$sequence,
         'region' => 'LOMBARDIA',
     ], $attributes))->fresh();
+}
+
+/**
+ * Scrive un foglio Excel "Sezioni CAI con CF e P.IVA" di fixture (stesso formato del
+ * foglio manuale del committente: nome sezione, CF, PIVA, senza `codice_cai`), letto da
+ * `CaiTaxCodeFallbackGenerator`/`cai:generate-tax-code-fallback` — il chiamante è
+ * responsabile di `unlink()` il file al termine del test.
+ *
+ * @param  list<list<string>>  $rows
+ */
+function writeCaiTaxCodeFallbackFixtureXlsx(array $rows): string
+{
+    $path = tempnam(sys_get_temp_dir(), 'cai-tax-code-fallback-fixture-');
+
+    $writer = new XlsxWriter;
+    $writer->openToFile($path);
+    $writer->addRow(Row::fromValues(['Sezione / Gruppo Regionale', 'Codice Fiscale', 'Partita IVA']));
+
+    foreach ($rows as $row) {
+        $writer->addRow(Row::fromValues($row));
+    }
+
+    $writer->close();
+
+    return $path;
 }
 
 /**

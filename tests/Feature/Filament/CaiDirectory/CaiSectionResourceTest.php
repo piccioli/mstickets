@@ -56,7 +56,13 @@ test('a user without cai-directory.view is denied access to the list and detail 
 test('a user with cai-directory.view can access the list page and sees the expected columns', function (): void {
     $user = grantCaiDirectoryPanelAccess(userWithPermissions(PermissionEnum::CaiDirectoryView));
     $linkedUser = User::factory()->create(['name' => 'Mario Rossi']);
-    $section = caiSection(['name' => 'Sezione di Abbiategrasso', 'region' => 'LOMBARDIA', 'user_id' => $linkedUser->id]);
+    $section = caiSection([
+        'name' => 'Sezione di Abbiategrasso',
+        'region' => 'LOMBARDIA',
+        'user_id' => $linkedUser->id,
+        'tax_code' => '90000340159',
+        'vat_number' => '01234567890',
+    ]);
     CaiRuntsRegistration::create([
         'id_runts' => 'RUNTS-'.$section->codice_cai,
         'cai_section_id' => $section->codice_cai,
@@ -73,7 +79,9 @@ test('a user with cai-directory.view can access the list page and sees the expec
         ->assertSee('Sezione di Abbiategrasso')
         ->assertSee('Abbiategrasso')
         ->assertSee('LOMBARDIA')
-        ->assertSee('Mario Rossi');
+        ->assertSee('Mario Rossi')
+        ->assertSee('90000340159')
+        ->assertSee('01234567890');
 });
 
 test('the resource has no create, edit or delete function', function (): void {
@@ -142,6 +150,25 @@ test('the table is filterable by presence of a linked user', function (): void {
         ->filterTable('user_id', false)
         ->assertCanSeeTableRecords([$withoutUser])
         ->assertCanNotSeeTableRecords([$withUser]);
+});
+
+test('the table is filterable by missing tax_code', function (): void {
+    $user = grantCaiDirectoryPanelAccess(userWithPermissions(PermissionEnum::CaiDirectoryView));
+    $withTaxCode = caiSection(['tax_code' => '90000340159']);
+    $withoutTaxCode = caiSection(['tax_code' => null]);
+    $withEmptyTaxCode = caiSection(['tax_code' => '']);
+
+    $this->actingAs($user);
+
+    Livewire::test(ListCaiSections::class)
+        ->filterTable('tax_code', true)
+        ->assertCanSeeTableRecords([$withoutTaxCode, $withEmptyTaxCode])
+        ->assertCanNotSeeTableRecords([$withTaxCode]);
+
+    Livewire::test(ListCaiSections::class)
+        ->filterTable('tax_code', false)
+        ->assertCanSeeTableRecords([$withTaxCode])
+        ->assertCanNotSeeTableRecords([$withoutTaxCode, $withEmptyTaxCode]);
 });
 
 test('viewing a section with runts data, statements and attachments shows the expected data', function (): void {

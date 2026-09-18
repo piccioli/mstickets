@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domain\CaiDirectory\Models\CaiRuntsRegistration;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 
 uses(RefreshDatabase::class);
@@ -113,6 +114,29 @@ test('cai:sync-runts-all counts a not-found section separately from a synced one
     $this->artisan('cai:sync-runts-all', ['--delay-ms' => 0])
         ->expectsOutputToContain('1 sezioni esaminate, 0 sincronizzate, 1 non trovate, 0 errori')
         ->assertExitCode(0);
+});
+
+test('cai:sync-runts-all fills a missing tax_code from the fallback before selecting sections to sync', function (): void {
+    $section = caiSection(['codice_cai' => '9226012', 'tax_code' => null]);
+
+    $fallbackPath = tempnam(sys_get_temp_dir(), 'cai-tax-code-fallback-');
+    file_put_contents($fallbackPath, json_encode([
+        '9226012' => ['name' => 'Sezione di test', 'tax_code' => '01234567890', 'vat_number' => null],
+    ]));
+    Config::set('cai_directory.tax_code_fallback_path', $fallbackPath);
+
+    Http::fake([
+        'http://cai-runts-scraper:8000/scrape/runts-entity*' => Http::response(runtsEntityFoundPayload('555', '01234567890', 'Sezione Test')),
+    ]);
+
+    $this->artisan('cai:sync-runts-all', ['--delay-ms' => 0])
+        ->expectsOutputToContain('Fallback CF/PIVA: 1 sezione/i completata/e dal foglio manuale.')
+        ->expectsOutputToContain('1 sezioni esaminate, 1 sincronizzate, 0 non trovate, 0 errori')
+        ->assertExitCode(0);
+
+    unlink($fallbackPath);
+
+    expect($section->fresh()->tax_code)->toBe('01234567890');
 });
 
 test('cai:sync-runts-all --limit processes only the first N sections', function (): void {

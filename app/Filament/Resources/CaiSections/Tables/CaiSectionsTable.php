@@ -46,6 +46,14 @@ class CaiSectionsTable
                 TextColumn::make('region')
                     ->label('Regione')
                     ->sortable(),
+                TextColumn::make('tax_code')
+                    ->label('Codice Fiscale')
+                    ->searchable()
+                    ->placeholder('—'),
+                TextColumn::make('vat_number')
+                    ->label('Partita IVA')
+                    ->searchable()
+                    ->placeholder('—'),
                 TextColumn::make('user.name')
                     ->label('Utente collegato')
                     ->placeholder('—'),
@@ -71,6 +79,16 @@ class CaiSectionsTable
                     ->queries(
                         true: self::withLinkedUserQuery(...),
                         false: self::withoutLinkedUserQuery(...),
+                        blank: fn (Builder $query): Builder => $query,
+                    ),
+                TernaryFilter::make('tax_code')
+                    ->label('CF mancante')
+                    ->placeholder('Tutte')
+                    ->trueLabel('CF mancante')
+                    ->falseLabel('Con CF')
+                    ->queries(
+                        true: self::withoutTaxCodeQuery(...),
+                        false: self::withTaxCodeQuery(...),
                         blank: fn (Builder $query): Builder => $query,
                     ),
                 SelectFilter::make('runts_presence_status')
@@ -137,5 +155,23 @@ class CaiSectionsTable
     private static function withoutLinkedUserQuery(Builder $query): Builder
     {
         return $query->whereNull('user_id');
+    }
+
+    /**
+     * @param  Builder<CaiSection>  $query
+     * @return Builder<CaiSection>
+     */
+    private static function withTaxCodeQuery(Builder $query): Builder
+    {
+        return $query->whereNotNull('tax_code')->where('tax_code', '!=', '');
+    }
+
+    /**
+     * @param  Builder<CaiSection>  $query
+     * @return Builder<CaiSection>
+     */
+    private static function withoutTaxCodeQuery(Builder $query): Builder
+    {
+        return $query->where(fn (Builder $q): Builder => $q->whereNull('tax_code')->orWhere('tax_code', ''));
     }
 }

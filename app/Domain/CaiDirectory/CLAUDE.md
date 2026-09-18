@@ -176,3 +176,31 @@ parametro di rotta) e `docs/collaudo/CLAUDE.md` per il metodo di generazione del
   payload di `/scrape/runts-entity`, ~19 documenti) può esaurirlo dentro `json_decode()`. Usare
   `docker compose exec -T app php -d memory_limit=512M artisan tinker --execute="..."` per qualunque
   verifica manuale che invochi `CaiRuntsScraperClient::scrapeEntity()` o un payload HTTP comparabile.
+
+## Fallback CF/PIVA da foglio Excel manuale (`cai:generate-tax-code-fallback` / `cai:fill-tax-codes-from-fallback`)
+
+- Il foglio Excel del committente ("Sezioni CAI con CF e P.IVA") **non contiene `codice_cai`**, solo la
+  denominazione in un formato testuale diverso da `cai_sections.name` (es. "C.A.I. SEZIONE DI ABBIATEGRASSO"
+  nel foglio vs "SEZ. ABBIATEGRASSO" nel datapack RUNTS-CAI): `CaiTaxCodeFallbackGenerator` matcha per nome
+  normalizzato (prefissi, forme giuridiche APS/ETS/ONLUS/ODV, accenti, spazi multipli) — verificato sul
+  dataset reale: ~92% delle righe trova un match univoco; il resto (soprattutto le righe "GR <regione>",
+  Gruppi Regionali, non sezioni) resta correttamente senza match e va rivisto a mano se un giorno serve
+  completarlo. Due sezioni che normalizzano allo stesso nome non vengono mai matchate (nessun modo di
+  distinguerle dal solo testo) — meglio "senza corrispondenza" che un match sbagliato.
+- Il JSON generato (`resources/data/cai/tax-code-fallback.json`) è **committato nel repo** (a differenza di
+  `cai-datapack/`, gitignored): è dato di fallback stabile, non un dump v1/RUNTS rigenerabile ad ogni
+  deploy. Va rigenerato a mano (`cai:generate-tax-code-fallback --path=...`) e ricommittato solo quando
+  arriva un foglio Excel aggiornato dal committente.
+- `FillCaiSectionFiscalCodesFromFallback` riempie SOLO `tax_code`/`vat_number` mancanti, mai sovrascrive un
+  valore già presente — riusata sia da `cai:fill-tax-codes-from-fallback` (standalone) sia in testa a
+  `cai:sync-runts-all` (fallback automatico prima del giro di sync live).
+- **Gotcha test**: `CaiSyncRuntsAllCommandTest`/altri fixture di questo dominio riusano `codice_cai` REALI
+  del dataset RUNTS-CAI (es. "9226005" = SEZ. CARRARA) come valori comodi e leggibili. Se
+  `CaiTaxCodeFallbackRepository` leggesse di default il JSON reale committato, il fallback riempirebbe a
+  sorpresa il `tax_code` di quelle sezioni di test durante `cai:sync-runts-all`, cambiando silenziosamente
+  comportamento/asserzioni di test che non parlano affatto di fallback. Il percorso del JSON è quindi esposto
+  via `config('cai_directory.tax_code_fallback_path')` (mai un default hardcoded nella classe), puntato da
+  `phpunit.xml` a un file inesistente (`CAI_TAX_CODE_FALLBACK_PATH`, sia `<env force="true">` sia `<server>`,
+  stesso motivo del blocco DB_CONNECTION già documentato lì) — un file assente è trattato come dataset vuoto,
+  mai un errore. Qualunque futuro dataset "di fallback" statico committato nel repo dovrebbe seguire lo
+  stesso pattern (percorso via config, mai un default che punta silenziosamente al file reale nei test).
