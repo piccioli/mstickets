@@ -95,6 +95,15 @@ class ViewCaiSection extends ViewRecord
                 );
 
                 Notification::make()->success()->title('Documento caricato')->send();
+
+                // Ricarica l'intera pagina (non solo un refresh Livewire): l'Infolist legge
+                // `$section->documents`/`runtsRegistrations` già risolte in memoria all'apertura
+                // della pagina, un `CaiDocument` appena creato non ci comparirebbe senza una
+                // richiesta nuova. Riporta esplicitamente sul tab "Allegati"
+                // (`CaiSectionInfolist::configure()`, `->persistTabInQueryString('tab')` +
+                // `Tab::make('Allegati')->id('allegati')`), a prescindere da quale tab fosse
+                // attivo prima del caricamento.
+                $this->redirect(CaiSectionResource::getUrl('view', ['record' => $section, 'tab' => 'allegati']));
             });
     }
 }

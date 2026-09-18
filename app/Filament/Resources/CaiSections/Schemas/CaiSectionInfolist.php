@@ -30,6 +30,13 @@ use Filament\Schemas\Schema;
  * RUNTS (`runtsRegistrations->flatMap->...`, la maggioranza) e quelli collegati direttamente
  * alla sezione (`CaiSection::documents()`/`financialStatements()`, upload manuale/Veryfico per
  * una sezione senza presenza RUNTS) — un unico elenco, mai due tab separati.
+ *
+ * `->persistTabInQueryString('tab')` + `Tab::make('Allegati')->id('allegati')`: dopo un upload
+ * manuale (`ViewCaiSection::uploadDocumentAction()`) la pagina va ricaricata per rileggere le
+ * relazioni della sezione (un `CaiDocument` appena creato non è nella cache Eloquent già
+ * caricata dall'Infolist) — un id esplicito e stabile sul tab "Allegati" permette a
+ * quell'azione di ricaricare direttamente su `?tab=allegati`, senza dipendere dallo slug
+ * generato automaticamente da Filament (che cambierebbe se l'etichetta del tab cambiasse).
  */
 class CaiSectionInfolist
 {
@@ -39,6 +46,7 @@ class CaiSectionInfolist
             ->components([
                 Tabs::make('cai_section')
                     ->columnSpanFull()
+                    ->persistTabInQueryString('tab')
                     ->tabs([
                         Tab::make('Dati CAI')
                             ->schema([self::caiDataSection()]),
@@ -49,6 +57,7 @@ class CaiSectionInfolist
                         Tab::make('Bilanci')
                             ->schema([self::financialStatementsSection()]),
                         Tab::make('Allegati')
+                            ->id('allegati')
                             ->schema([self::documentsSection()]),
                         Tab::make('Sottosezioni')
                             ->schema([self::subsectionsSection()]),

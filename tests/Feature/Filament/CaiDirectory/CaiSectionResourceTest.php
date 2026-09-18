@@ -642,7 +642,8 @@ test('uploading a document always attaches it directly to the section, with no r
             'title' => 'Nota caricata a mano',
             'file' => UploadedFile::fake()->create('nota.pdf', 5, 'application/pdf'),
         ])
-        ->assertHasNoActionErrors();
+        ->assertHasNoActionErrors()
+        ->assertRedirect(CaiSectionResource::getUrl('view', ['record' => $section, 'tab' => 'allegati']));
 
     $document = CaiDocument::query()->where('cai_section_id', $section->codice_cai)->sole();
     expect($document->cai_runts_registration_id)->toBeNull()
