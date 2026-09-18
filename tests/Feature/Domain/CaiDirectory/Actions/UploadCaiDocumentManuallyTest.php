@@ -51,7 +51,7 @@ test('run dispatches the financial-statement analysis job for a Mod A/B/D type o
     foreach ([CaiDocumentType::ModA, CaiDocumentType::ModB, CaiDocumentType::ModD, CaiDocumentType::ModAB, CaiDocumentType::CompletoABC, CaiDocumentType::CompletoDRevisori] as $type) {
         $file = UploadedFile::fake()->create('bilancio.pdf', 10, 'application/pdf');
 
-        $document = UploadCaiDocumentManually::run(User::factory()->create(), $section, $type, 2025, null, $file);
+        $document = UploadCaiDocumentManually::run(User::factory()->create(), $section, $type, 2025, 'Bilancio', $file);
 
         Queue::assertPushed(
             AnalyzeCaiFinancialStatementDocument::class,
@@ -74,7 +74,7 @@ test('run never dispatches the analysis job for a narrative type (relazioni, ver
     ] as $type) {
         $file = UploadedFile::fake()->create('documento.pdf', 5, 'application/pdf');
 
-        UploadCaiDocumentManually::run(User::factory()->create(), $section, $type, null, null, $file);
+        UploadCaiDocumentManually::run(User::factory()->create(), $section, $type, null, 'Documento', $file);
     }
 
     Queue::assertNotPushed(AnalyzeCaiFinancialStatementDocument::class);

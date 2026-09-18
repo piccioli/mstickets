@@ -32,7 +32,7 @@ final class UploadCaiDocumentManually
         CaiSection $section,
         CaiDocumentType $documentType,
         ?int $year,
-        ?string $title,
+        string $title,
         UploadedFile $file,
     ): CaiDocument {
         $storedFileName = Str::uuid()->toString().'-'.$file->getClientOriginalName();

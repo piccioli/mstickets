@@ -16,7 +16,10 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class ViewCaiSection extends ViewRecord
 {
@@ -54,16 +57,26 @@ class ViewCaiSection extends ViewRecord
                         fn (CaiDocumentType $type): array => [$type->value => $type->getLabel()],
                     ))
                     ->required(),
-                TextInput::make('year')
+                Select::make('year')
                     ->label('Anno')
-                    ->numeric(),
+                    ->options(collect(range(now()->year, now()->year - 20))->mapWithKeys(
+                        fn (int $year): array => [$year => (string) $year],
+                    ))
+                    ->placeholder('—'),
                 TextInput::make('title')
-                    ->label('Titolo'),
+                    ->label('Titolo')
+                    ->required(),
                 FileUpload::make('file')
                     ->label('File')
                     ->required()
                     ->storeFiles(false)
-                    ->acceptedFileTypes(['application/pdf']),
+                    ->acceptedFileTypes(['application/pdf'])
+                    ->live()
+                    ->afterStateUpdated(function (Set $set, Get $get, mixed $state): void {
+                        if (blank($get('title')) && $state instanceof TemporaryUploadedFile) {
+                            $set('title', $state->getClientOriginalName());
+                        }
+                    }),
             ])
             ->action(function (array $data) use ($section): void {
                 $user = Auth::user();
@@ -77,7 +90,7 @@ class ViewCaiSection extends ViewRecord
                     $section,
                     CaiDocumentType::from($data['document_type']),
                     $data['year'] !== null ? (int) $data['year'] : null,
-                    $data['title'] !== null ? (string) $data['title'] : null,
+                    (string) $data['title'],
                     $data['file'],
                 );
 

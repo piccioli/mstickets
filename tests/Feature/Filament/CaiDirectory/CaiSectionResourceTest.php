@@ -663,6 +663,7 @@ test('uploading a Mod A document dispatches the financial-statement analysis job
         ->callAction('upload_document', data: [
             'document_type' => CaiDocumentType::ModA->value,
             'year' => 2025,
+            'title' => 'Mod A 2025',
             'file' => UploadedFile::fake()->create('mod-a.pdf', 5, 'application/pdf'),
         ])
         ->assertHasNoActionErrors();
