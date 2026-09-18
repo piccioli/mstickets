@@ -6,6 +6,7 @@ namespace App\Domain\CaiDirectory\Models;
 
 use App\Domain\CaiDirectory\Enums\CaiDocumentAnalysisStatus;
 use App\Domain\CaiDirectory\Enums\CaiDocumentSource;
+use App\Domain\CaiDirectory\Enums\CaiDocumentType;
 use App\Domain\CaiDirectory\Jobs\AnalyzeCaiFinancialStatementDocument;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
@@ -19,10 +20,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class CaiDocument extends Model
 {
     /**
-     * Tipi documento che alimentano l'estrazione automatica delle cifre finanziarie
-     * ({@see AnalyzeCaiFinancialStatementDocument}) — condiviso fra
-     * `SyncCaiRuntsRegistration` (sync live) e `UploadCaiDocumentManually` (upload manuale), mai
-     * duplicato: un documento di questo tipo va sempre analizzato, a prescindere da come è arrivato.
+     * Tipi documento RUNTS (vocabolario libero della fonte, mai il vocabolario
+     * {@see CaiDocumentType} dell'upload manuale) che alimentano
+     * l'estrazione automatica delle cifre finanziarie
+     * ({@see AnalyzeCaiFinancialStatementDocument}) — usato SOLO da `SyncCaiRuntsRegistration`.
+     * `UploadCaiDocumentManually` decide con un criterio indipendente
+     * (`CaiDocumentType::triggersFinancialAnalysis()`), perché i due percorsi non condividono lo stesso
+     * vocabolario di tipo documento.
      *
      * @var list<string>
      */

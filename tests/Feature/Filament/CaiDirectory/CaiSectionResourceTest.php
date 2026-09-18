@@ -3,7 +3,9 @@
 declare(strict_types=1);
 
 use App\Domain\CaiDirectory\Enums\CaiDocumentSource;
+use App\Domain\CaiDirectory\Enums\CaiDocumentType;
 use App\Domain\CaiDirectory\Enums\CaiRuntsPresenceStatus;
+use App\Domain\CaiDirectory\Jobs\AnalyzeCaiFinancialStatementDocument;
 use App\Domain\CaiDirectory\Models\CaiDocument;
 use App\Domain\CaiDirectory\Models\CaiFinancialStatement;
 use App\Domain\CaiDirectory\Models\CaiRuntsRegistration;
@@ -19,6 +21,7 @@ use App\Filament\Resources\CaiSections\Pages\ViewCaiSection;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
@@ -624,49 +627,51 @@ test('the upload document action is only visible with cai-directory.upload-docum
         ->assertActionVisible('upload_document');
 });
 
-test('uploading a document without selecting a registration attaches it directly to the section', function (): void {
+test('uploading a document always attaches it directly to the section, with no registration picker in the form', function (): void {
     Storage::fake('cai-documents');
 
     $user = grantCaiDirectoryPanelAccess(userWithPermissions(PermissionEnum::CaiDirectoryView, PermissionEnum::CaiDirectoryUploadDocument));
     $section = caiSection();
+    CaiRuntsRegistration::create(['id_runts' => 'RUNTS-'.$section->codice_cai, 'cai_section_id' => $section->codice_cai]);
 
     $this->actingAs($user);
 
     Livewire::test(ViewCaiSection::class, ['record' => $section->getKey()])
         ->callAction('upload_document', data: [
-            'document_type' => 'altro',
+            'document_type' => CaiDocumentType::Altro->value,
             'title' => 'Nota caricata a mano',
             'file' => UploadedFile::fake()->create('nota.pdf', 5, 'application/pdf'),
         ])
         ->assertHasNoActionErrors();
 
     $document = CaiDocument::query()->where('cai_section_id', $section->codice_cai)->sole();
-    expect($document->title)->toBe('Nota caricata a mano')
+    expect($document->cai_runts_registration_id)->toBeNull()
+        ->and($document->title)->toBe('Nota caricata a mano')
         ->and($document->source)->toBe(CaiDocumentSource::Manual);
 });
 
-test('uploading a document while selecting a registration attaches it to that registration instead of the section', function (): void {
+test('uploading a Mod A document dispatches the financial-statement analysis job', function (): void {
     Storage::fake('cai-documents');
+    Queue::fake();
 
     $user = grantCaiDirectoryPanelAccess(userWithPermissions(PermissionEnum::CaiDirectoryView, PermissionEnum::CaiDirectoryUploadDocument));
     $section = caiSection();
-    $registration = CaiRuntsRegistration::create([
-        'id_runts' => 'RUNTS-'.$section->codice_cai,
-        'cai_section_id' => $section->codice_cai,
-    ]);
 
     $this->actingAs($user);
 
     Livewire::test(ViewCaiSection::class, ['record' => $section->getKey()])
         ->callAction('upload_document', data: [
-            'registration_id' => $registration->id_runts,
-            'document_type' => 'statuto',
-            'file' => UploadedFile::fake()->create('statuto.pdf', 5, 'application/pdf'),
+            'document_type' => CaiDocumentType::ModA->value,
+            'year' => 2025,
+            'file' => UploadedFile::fake()->create('mod-a.pdf', 5, 'application/pdf'),
         ])
         ->assertHasNoActionErrors();
 
-    $document = CaiDocument::query()->where('cai_runts_registration_id', $registration->id_runts)->sole();
-    expect($document->cai_section_id)->toBeNull();
+    $document = CaiDocument::query()->where('cai_section_id', $section->codice_cai)->sole();
+    Queue::assertPushed(
+        AnalyzeCaiFinancialStatementDocument::class,
+        fn ($job): bool => $job->caiDocumentId === $document->id,
+    );
 });
 
 test('the section detail page shows the last live-sync timestamp, or a "never synced" placeholder', function (): void {
