@@ -84,6 +84,9 @@ final class CollaudoGenerateCommand extends Command
         '8' => [
             ['file' => '15-fase-8.md', 'titolo' => 'Fase 8 (Integrazione dati RUNTS-CAI — Sezioni/Sottosezioni) — Casi di test dettagliati'],
         ],
+        '9' => [
+            ['file' => '16-fase-9.md', 'titolo' => 'Fase 9 (Sincronizzazione live CAI/RUNTS, fallback CF/PIVA, upload manuale documenti, menu Gruppo Regionale) — Casi di test dettagliati'],
+        ],
     ];
 
     /**
@@ -100,6 +103,7 @@ final class CollaudoGenerateCommand extends Command
         '6' => 'Fase 6 (Portale cliente e rifinitura)',
         '7' => 'Fase 7 (Tipologia di cliente CAI)',
         '8' => 'Fase 8 (Integrazione dati RUNTS-CAI — Sezioni/Sottosezioni)',
+        '9' => 'Fase 9 (Sincronizzazione live CAI/RUNTS, fallback CF/PIVA, upload manuale documenti, menu Gruppo Regionale)',
     ];
 
     public function handle(): int
