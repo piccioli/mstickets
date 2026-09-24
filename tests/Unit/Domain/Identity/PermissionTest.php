@@ -36,12 +36,13 @@ test('contains exactly the permission catalog of PRD §9.3', function (): void {
         // Sistema
         'horizon.access', 'logs.access', 'import.view',
         // Anagrafica CAI
-        'cai-directory.view',
+        'cai-directory.view', 'cai-directory.review-unparsed-documents',
+        'cai-directory.upload-document',
     ];
 
     $actual = array_map(fn (Permission $permission): string => $permission->value, Permission::cases());
 
-    expect($actual)->toHaveCount(53)
+    expect($actual)->toHaveCount(55)
         ->and($actual)->toEqualCanonicalizing($expected);
 });
 

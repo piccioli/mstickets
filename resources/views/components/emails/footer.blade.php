@@ -12,11 +12,13 @@
     <tr>
         <td style="padding:16px 0;font-size:11.5px;line-height:1.5;color:{{ \App\Support\DesignTokens::get('ms-text-muted') }};text-align:center;">
             <p style="margin:0 0 8px;">
-                Montagna Servizi SCPA &mdash; Via Errico Petrella 19, 20124 Milano (MI)<br>
+                Montagna Servizi SCPA &mdash; Via Decorati al Valor Civile 15, 20138 Milano (MI)<br>
                 P.IVA 11790660960 &middot; SDI: M5UXCR1
             </p>
             <p style="margin:0 0 8px;">
                 <a href="mailto:info@montagnaservizi.com" style="color:{{ \App\Support\DesignTokens::get('ms-brand') }};text-decoration:none;">info@montagnaservizi.com</a>
+                &middot;
+                <a href="tel:+390282197148" style="color:{{ \App\Support\DesignTokens::get('ms-brand') }};text-decoration:none;">+39 02 82197148</a>
             </p>
             @if (filled($preferencesUrl))
                 <p style="margin:0 0 8px;">

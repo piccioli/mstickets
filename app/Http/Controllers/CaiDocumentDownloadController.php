@@ -22,8 +22,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * applicativo diretto): l'autorizzazione è verificata qui direttamente invece che tramite
  * `AuthorizesRequests`/una Policy, con due vie d'accesso (US-804, US-806):
  * - lo staff con il permesso di catalogo `Permission::CaiDirectoryView` (intera anagrafica);
- * - il cliente Sezione proprietario della `CaiSection` a cui il documento appartiene (via
- *   `CaiRuntsRegistration::section()`), per i propri allegati sulla `CustomerDashboard`;
+ * - il cliente Sezione proprietario della `CaiSection` a cui il documento appartiene, risalendo via
+ *   `CaiRuntsRegistration::section()` oppure via `CaiDocument::section()` per un documento caricato a
+ *   mano senza registrazione RUNTS (i due genitori sono mutuamente esclusivi), per i propri allegati
+ *   sulla `CustomerDashboard`;
  * - un cliente Gruppo Regionale la cui regione combacia con quella dell'utente cliente Sezione
  *   collegato alla `CaiSection` (US-807), per gli allegati mostrati sulla pagina di dettaglio
  *   {@see CaiSectionRegionalDetail} — confronto sull'account cliente
@@ -55,7 +57,7 @@ class CaiDocumentDownloadController extends Controller
             return true;
         }
 
-        $section = $caiDocument->runtsRegistration?->section;
+        $section = $caiDocument->runtsRegistration === null ? $caiDocument->section : $caiDocument->runtsRegistration->section;
 
         if ($section?->user_id === $user->id) {
             return true;

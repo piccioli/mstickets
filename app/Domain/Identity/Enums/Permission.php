@@ -91,6 +91,8 @@ enum Permission: string implements HasLabel
 
     // Anagrafica CAI
     case CaiDirectoryView = 'cai-directory.view';
+    case CaiDirectoryReviewUnparsedDocuments = 'cai-directory.review-unparsed-documents';
+    case CaiDirectoryUploadDocument = 'cai-directory.upload-document';
 
     public function getLabel(): string
     {
@@ -159,6 +161,8 @@ enum Permission: string implements HasLabel
             self::ImportView => 'Visualizzare lo stato delle importazioni',
 
             self::CaiDirectoryView => "Visualizzare l'anagrafica CAI",
+            self::CaiDirectoryReviewUnparsedDocuments => 'Rivedere i bilanci CAI non interpretati dal parser',
+            self::CaiDirectoryUploadDocument => "Caricare documenti manualmente nell'anagrafica CAI",
         };
     }
 }

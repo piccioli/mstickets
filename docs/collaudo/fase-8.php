@@ -314,8 +314,8 @@ return [
                 ],
                 [
                     'id' => 'F8-51',
-                    'descrizione' => 'La card "Sezioni del gruppo regionale" sulla dashboard cliente collega alla pagina di dettaglio sezione',
-                    'test_automatico' => 'tests/Feature/Filament/Pages/CaiSectionRegionalDetailTest.php::the regional group sections card on the customer dashboard links to the section detail page',
+                    'descrizione' => 'La card "Sezioni del gruppo regionale" collega alla pagina di dettaglio sezione',
+                    'test_automatico' => 'tests/Feature/Filament/Pages/CaiSectionRegionalDetailTest.php::the regional group sections page links to the section detail page',
                 ],
             ],
         ],

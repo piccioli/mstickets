@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Filament\Pages;
 
+use App\Domain\CaiDirectory\Actions\ScrapeCaiSection;
+use App\Domain\CaiDirectory\Actions\SyncCaiRuntsRegistration;
 use App\Domain\CaiDirectory\Models\CaiSection;
 use App\Domain\CaiDirectory\Models\CaiSubsection;
 use App\Domain\Documentation\Models\DocumentationPage;
@@ -11,7 +13,6 @@ use App\Domain\Fundraising\Models\FundraisingProject;
 use App\Domain\Identity\Enums\CustomerType;
 use App\Domain\Identity\Enums\UserRole;
 use App\Domain\Identity\Models\User;
-use App\Domain\Identity\Queries\SectionsInRegionQuery;
 use App\Domain\Reporting\Models\ActivityReport;
 use App\Domain\Ticketing\Models\Ticket;
 use App\Domain\Ticketing\Queries\MyTicketsAwaitingResponseQuery;
@@ -23,11 +24,14 @@ use App\Filament\Resources\DocumentationPages\DocumentationPageResource;
 use App\Filament\Resources\Tickets\TicketResource;
 use App\Filament\Resources\Users\Schemas\UserForm;
 use BackedEnum;
+use Filament\Actions\Action;
+use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Facades\Auth;
+use Throwable;
 use UnitEnum;
 
 /**
@@ -40,8 +44,11 @@ use UnitEnum;
  * fuori scope, §PRD Fase 6).
  *
  * Il redirect di ruolo su {@see Dashboard::mount()} è US-602, che raggruppa
- * anche questa pagina sotto "Area cliente" in navigazione —
- * {@see self::canAccess()} resta comunque il gate reale per l'accesso
+ * anche questa pagina sotto "Area cliente" in navigazione (per qualunque
+ * `customer_type` tranne Gruppo Regionale — {@see self::getNavigationGroup()}
+ * la sposta sotto "GR", separata dalla card "Sezioni del gruppo regionale"
+ * che ha una voce di navigazione propria in {@see CustomerRegionalSectionsDashboard})
+ * — {@see self::canAccess()} resta comunque il gate reale per l'accesso
  * diretto via URL.
  *
  * `canAccess()` riusa lo stesso idioma già in uso altrove nel dominio Mail
@@ -60,8 +67,6 @@ class CustomerDashboard extends Page
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedHome;
 
-    protected static string|UnitEnum|null $navigationGroup = 'Area cliente';
-
     protected static ?string $navigationLabel = 'Dashboard';
 
     protected static ?int $navigationSort = -2;
@@ -71,6 +76,30 @@ class CustomerDashboard extends Page
         $user = Auth::user();
 
         return $user instanceof User && $user->hasRole(UserRole::Customer->value);
+    }
+
+    /**
+     * Un cliente Gruppo Regionale vede questa pagina sotto il gruppo "GR" (senza la card
+     * "Sezioni del gruppo regionale", che ha la sua voce sotto "Sezioni" —
+     * {@see CustomerRegionalSectionsDashboard}), qualunque altro cliente la vede sotto
+     * "Area cliente" come sempre — stesso idioma di {@see TicketResource::getNavigationGroup()}
+     * (§US-602 di `app/Filament/CLAUDE.md`).
+     */
+    public static function getNavigationGroup(): string|UnitEnum|null
+    {
+        $user = Auth::user();
+
+        return ($user instanceof User && $user->customer_type === CustomerType::GruppoRegionale)
+            ? 'GR'
+            : 'Area cliente';
+    }
+
+    /**
+     * @return list<Action>
+     */
+    protected function getHeaderActions(): array
+    {
+        return [$this->syncCaiDataAction(), $this->syncRuntsDataAction()];
     }
 
     public function customerType(): ?CustomerType
@@ -102,11 +131,6 @@ class CustomerDashboard extends Page
         }
 
         return $label;
-    }
-
-    public function isGruppoRegionale(): bool
-    {
-        return $this->customerType() === CustomerType::GruppoRegionale;
     }
 
     public function isSezione(): bool
@@ -157,43 +181,109 @@ class CustomerDashboard extends Page
     }
 
     /**
-     * Sezioni della stessa regione del Gruppo Regionale corrente (US-705). Stato vuoto esplicito
-     * (mai un errore) sia quando la regione non ha ancora nessuna sezione classificata, sia quando
-     * il Gruppo Regionale ha `region = null`.
-     *
-     * @return EloquentCollection<int, User>
+     * Bottone "Sincronizza dati CAI" (Fase 9, storia 1): chiama dal vivo l'API
+     * pubblica CAI ({@see ScrapeCaiSection}) scoped alla sola sezione dell'utente
+     * corrente — mai l'intero elenco nazionale da un bottone cliente. Sostituisce il
+     * precedente re-import dal datapack statico (design doc §3.4): il datapack resta
+     * comunque il meccanismo di bootstrap iniziale per un ambiente nuovo, invariato.
+     * Visibile solo se esiste già una `CaiSection` collegata. Registrata via
+     * {@see self::getHeaderActions()} (pattern collaudato nel repo): un'action
+     * standalone risolta solo dinamicamente da una property blade non esegue il
+     * proprio closure quando invocata tramite `Livewire::test()->callAction()` in
+     * questa versione di Filament — verificato empiricamente. Registrarla qui evita
+     * il problema.
      */
-    public function regionalGroupSections(): EloquentCollection
+    public function syncCaiDataAction(): Action
     {
-        $user = Auth::user();
+        return Action::make('sync_cai_data')
+            ->label('Sincronizza dati CAI')
+            ->icon(Heroicon::OutlinedArrowPath)
+            ->color('gray')
+            ->visible(fn (): bool => $this->isSezione() && $this->caiSection() !== null)
+            ->action(function (): void {
+                $section = $this->caiSection();
 
-        if (! $user instanceof User || $user->customer_type !== CustomerType::GruppoRegionale || $user->region === null) {
-            return new EloquentCollection;
-        }
+                if ($section === null) {
+                    return;
+                }
 
-        return SectionsInRegionQuery::for($user->region)->get();
+                try {
+                    $results = app(ScrapeCaiSection::class)->run($section->codice_cai);
+                } catch (Throwable $exception) {
+                    Notification::make()
+                        ->danger()
+                        ->title('Sincronizzazione non riuscita')
+                        ->body($exception->getMessage())
+                        ->send();
+
+                    return;
+                }
+
+                $updated = $results['cai_sections']->created > 0 || $results['cai_sections']->updated > 0;
+
+                Notification::make()
+                    ->success()
+                    ->title('Sincronizzazione completata')
+                    ->body($updated ? 'I dati della tua sezione sono stati aggiornati dal sito CAI.' : 'I dati della tua sezione erano già aggiornati.')
+                    ->send();
+            });
     }
 
     /**
-     * Conteggio ticket aperti di una Sezione elencata nella card "Sezioni del gruppo regionale":
-     * riusa {@see MyTicketsQuery} passando la Sezione stessa (non l'utente autenticato) — il suo
-     * unico permesso `ticket.view.own` scopa comunque il risultato ai propri ticket, quindi il
-     * conteggio resta corretto senza duplicare la regola "aperti = non Done/Rejected".
+     * Bottone "Sincronizza dati RUNTS" (Fase 9, storia 3): chiama dal vivo il servizio
+     * `cai-runts-scraper` ({@see SyncCaiRuntsRegistration}) scoped alla sola sezione
+     * dell'utente corrente — registrazione RUNTS, cariche sociali e documenti di
+     * bilancio (con dispatch dell'analisi finanziaria asincrona), mai i campi propri
+     * di `CaiSection` (nome/contatti/orari, di provenienza sito CAI, gestiti dal
+     * bottone gemello {@see self::syncCaiDataAction()}). Sostituisce il precedente
+     * re-import dal datapack statico: il datapack resta comunque il meccanismo di
+     * bootstrap iniziale per un ambiente nuovo, invariato. Stessa
+     * visibilità/pattern header-action di {@see self::syncCaiDataAction()}.
      */
-    public function sectionOpenTicketsCount(User $section): int
+    public function syncRuntsDataAction(): Action
     {
-        return MyTicketsQuery::for($section)->count();
-    }
+        return Action::make('sync_runts_data')
+            ->label('Sincronizza dati RUNTS')
+            ->icon(Heroicon::OutlinedArrowPath)
+            ->color('gray')
+            ->visible(fn (): bool => $this->isSezione() && $this->caiSection() !== null)
+            ->action(function (): void {
+                $section = $this->caiSection();
 
-    /**
-     * URL della pagina di dettaglio CAI/RUNTS di una Sezione elencata nella card "Sezioni del
-     * gruppo regionale" (US-807, {@see CaiSectionRegionalDetail}) — l'autorizzazione sulla
-     * singola sezione (deve appartenere alla propria regione) è verificata lato server in
-     * {@see CaiSectionRegionalDetail::mount()}, non solo dall'assenza del link in UI.
-     */
-    public function sectionDetailUrl(User $section): string
-    {
-        return CaiSectionRegionalDetail::getUrl(['record' => $section->id]);
+                if ($section === null) {
+                    return;
+                }
+
+                try {
+                    $result = app(SyncCaiRuntsRegistration::class)->run($section);
+                } catch (Throwable $exception) {
+                    Notification::make()
+                        ->danger()
+                        ->title('Sincronizzazione RUNTS non riuscita')
+                        ->body($exception->getMessage())
+                        ->send();
+
+                    return;
+                }
+
+                if (! $result->found) {
+                    Notification::make()
+                        ->warning()
+                        ->title('Nessuna registrazione RUNTS trovata')
+                        ->body('Non è stata trovata alcuna registrazione RUNTS per il codice fiscale della tua sezione.')
+                        ->send();
+
+                    return;
+                }
+
+                Notification::make()
+                    ->success()
+                    ->title('Sincronizzazione RUNTS completata')
+                    ->body($result->queuedAnalysisCount > 0
+                        ? "Dati aggiornati. L'analisi di {$result->queuedAnalysisCount} bilancio/i è stata avviata in background."
+                        : 'Dati RUNTS aggiornati.')
+                    ->send();
+            });
     }
 
     public function openTicketsCount(): int

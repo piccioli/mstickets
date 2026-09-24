@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\CaiDirectory\Models;
 
+use App\Domain\CaiDirectory\Enums\CaiRuntsPresenceStatus;
 use App\Domain\Identity\Models\User;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
@@ -13,7 +14,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable([
     'codice_cai', 'name', 'tax_code', 'vat_number', 'email', 'pec', 'phone_office', 'phone', 'fax',
     'address', 'postal_address', 'website', 'office_hours', 'notices', 'founded_year', 'members_count',
-    'latitude', 'longitude', 'region', 'user_id',
+    'latitude', 'longitude', 'region', 'user_id', 'cai_last_synced_at',
+    'runts_presence_status', 'runts_presence_checked_at',
 ])]
 class CaiSection extends Model
 {
@@ -33,6 +35,9 @@ class CaiSection extends Model
             'members_count' => 'integer',
             'latitude' => 'decimal:7',
             'longitude' => 'decimal:7',
+            'cai_last_synced_at' => 'datetime',
+            'runts_presence_status' => CaiRuntsPresenceStatus::class,
+            'runts_presence_checked_at' => 'datetime',
         ];
     }
 
@@ -58,5 +63,26 @@ class CaiSection extends Model
     public function runtsRegistrations(): HasMany
     {
         return $this->hasMany(CaiRuntsRegistration::class, 'cai_section_id', 'codice_cai');
+    }
+
+    /**
+     * Documenti collegati DIRETTAMENTE alla sezione (mai passando da una `CaiRuntsRegistration`):
+     * upload manuale/Veryfico per una sezione senza (ancora) presenza RUNTS — vedi
+     * {@see CaiDocument::section()}. La maggior parte dei documenti
+     * resta raggiungibile solo via `runtsRegistrations->flatMap->documents` (sync live, US-804).
+     *
+     * @return HasMany<CaiDocument, $this>
+     */
+    public function documents(): HasMany
+    {
+        return $this->hasMany(CaiDocument::class, 'cai_section_id', 'codice_cai');
+    }
+
+    /**
+     * @return HasMany<CaiFinancialStatement, $this>
+     */
+    public function financialStatements(): HasMany
+    {
+        return $this->hasMany(CaiFinancialStatement::class, 'cai_section_id', 'codice_cai');
     }
 }

@@ -1,145 +1,263 @@
 {
-  "project": "Orchestrator v2 — Fase 8: Integrazione dati RUNTS-CAI (Sezioni/Sottosezioni)",
-  "branchName": "ralph/orchestrator-v2-fase-8",
-  "description": "Integra le funzionalità del prototipo esterno RUNTS-CAI (dati Sezioni/Sottosezioni CAI dal RUNTS + directory ufficiale CAI: contatti, bilanci, allegati), limitatamente a Sezioni/Sottosezioni. Fonte scomposta in tasks/prd-fase-8-integrazione-runts-cai.md, design approvato col committente in orchestrator/docs/superpowers/specs/2026-08-28-integrazione-runts-cai-design.md. Il datapack (cai-datapack/runts-cai.sqlite + cai-datapack/attachments/, mai versionato con git) è già stato costruito e sincronizzato su UAT (msuat:/opt/mstickets-uat/cai-datapack) in una sessione precedente tramite bin/push-cai-datapack (già committato) — NON va ricreato, va solo copiato in locale a mano (come v1dumps/latest.sql) prima di sviluppare/testare l'import. Collegamento agli utenti clienti esistenti (customer_type = Sezione, Fase 7) per email case-insensitive: verificato 505/529 sezioni con match diretto nel dataset reale. Gruppi Regionali RUNTS esplicitamente fuori scope (nessuna tabella, nessuna UI). Report PDF per singola sezione, refresh automatico del datapack e scraper Python restano fuori scope.",
+  "project": "Orchestrator v2 — Fase 9, Storie 2-3: servizio cai-runts-scraper + wiring PHP (sincronizzazione live RUNTS)",
+  "branchName": "ralph/orchestrator-v2-fase-9",
+  "description": "Implementa le Storie 2-3 del design doc `docs/superpowers/specs/2026-09-07-cai-runts-scraper-service-design.md` (seguito diretto della Storia 1, già consegnata: US-901..US-911, tutte passes:true). Storia 2 (US-912..US-918): nuovo servizio Python `cai-runts-scraper` (FastAPI, porting del codice Playwright/pdfplumber del prototipo `/Users/alessiopiccioli/Documents/LAVORO/MS/SOFTWARE/RUNTS`), due endpoint HTTP (`POST /scrape/runts-entity`, `POST /analyze/bilancio`), containerizzato. Piano dettagliato: `docs/superpowers/plans/2026-09-08-cai-runts-scraper-service.md` (Task 1-7, uno per ogni story US-912..US-918, stesso ordine). Storia 3 (US-919..US-928): wiring lato Orchestrator (PHP) — mapper condivisi, client HTTP verso il nuovo servizio, Action sincrona per metadati+documenti, job asincrono su coda Horizon dedicata per l'analisi finanziaria, wiring del bottone dashboard esistente, colonna Infolist. Piano dettagliato: `docs/superpowers/plans/2026-09-08-cai-runts-orchestrator-wiring.md` (Task 1-10, uno per ogni story US-919..US-928, stesso ordine). LEGGERE SEMPRE la sezione \"Task N\" corrispondente del piano pertinente PRIMA di implementare ciascuna story: contiene path esatti, firme, codice di test e implementazione già verificati contro il codice reale del repo — non reinventare né indovinare. Se emerge una divergenza reale fra un piano e lo stato attuale del codice, annotarla in `notes` della story e in progress.txt, adattando l'implementazione allo stato reale del codice (mai il contrario). Storia 3 dipende da un servizio Storia 2 realmente raggiungibile per il proprio smoke test manuale finale (US-928), ma i test automatici di Storia 3 sono tutti mockati via Http::fake() e non richiedono il servizio reale in esecuzione durante lo sviluppo — l'ordine di priorità (Storia 2 prima di Storia 3) resta comunque quello giusto da seguire. NOTA su US-918 (verifica manuale contro il sito RUNTS reale del governo, Task 7 del piano Storia 2) e US-928 (smoke test end-to-end finale, Task 10 del piano Storia 3): sono passi che toccano una rete/sito esterno reale, non riproducibili in modo affidabile da CI. Eseguili comunque (curl reali, come descritto nei rispettivi task) e registra l'esito onestamente in notes/progress.txt; se il sito RUNTS reale risulta irraggiungibile o si comporta in modo diverso da quanto documentato nel design doc, NON forzare passes:true su una semplice ipotesi — segna la story passes:true solo se la sua parte automatizzata (test pytest/Pest, build Docker, wiring) è verde, e lascia una nota esplicita che la verifica dal vivo va ripetuta da un umano prima di considerare l'intera Fase 9 Storie 2-3 chiusa: il committente la rifarà di persona.",
   "userStories": [
     {
-      "id": "US-801",
-      "title": "Schema dati App\\Domain\\CaiDirectory",
-      "description": "As a developer, ho bisogno delle tabelle per persistere i dati CAI/RUNTS di Sezioni e Sottosezioni collegati agli utenti clienti esistenti.",
+      "id": "US-912",
+      "title": "Scaffold servizio cai-runts-scraper, Dockerfile, endpoint /health",
+      "description": "As a developer, ho bisogno dello scaffold minimo del nuovo servizio Python (FastAPI + Dockerfile) prima di portare la logica di scraping vera e propria.",
       "acceptanceCriteria": [
-        "Nuove migrazioni additive: cai_sections (da sezioni_cai: codice_cai PK naturale, contatti, indirizzo, anno fondazione, soci, coordinate, regione, user_id nullable FK users), cai_subsections (da sottosezioni_cai: cai_codice PK naturale, FK cai_section_id, stessi campi contatto, user_id nullable FK users), cai_runts_registrations (da enti: id_runts PK naturale, FK cai_section_id nullable, natura giuridica, data iscrizione, PEC, rappresentante legale, url scheda ufficiale), cai_financial_statements (da bilanci: FK cai_runts_registration_id, oneri/proventi per categoria, risultato d'esercizio), cai_board_members (da cariche_sociali: FK cai_runts_registration_id, ruolo, nominativo, validità — tabella vuota all'origine, struttura pronta), cai_documents (da allegati: FK cai_runts_registration_id, tipo documento, anno, riferimento al file nello storage privato, hash)",
-        "Modelli Eloquent nel dominio App\\Domain\\CaiDirectory\\Models, relazioni esplicite (CaiSection hasMany CaiSubsection, belongsTo User nullable, ecc.)",
-        "Nessuna tabella per gruppi_regionali_cai/geocoding_cache (fuori scope)",
-        "Typecheck passes",
-        "Tests pass"
+        "Riferimento obbligatorio: docs/superpowers/plans/2026-09-08-cai-runts-scraper-service.md, Task 1 — seguire esattamente path/codice lì indicati",
+        "Nuova cartella cai-runts-scraper/ (sibling di app/, docker/) con requirements.txt (fastapi, uvicorn, playwright, pdfplumber, pytest, httpx), app/main.py con un'app FastAPI e GET /health, Dockerfile basato su un'immagine ufficiale Playwright Python (mcr.microsoft.com/playwright/python)",
+        "Test pytest per /health, verde",
+        "docker build riuscito e curl reale su /health contro il container avviato risponde {\"status\":\"ok\"}",
+        "Tests pass (pytest)"
       ],
       "priority": 1,
       "passes": true,
-      "notes": ""
+      "notes": "Nessuna divergenza dal piano. Verificata versione Python dell'immagine base (3.10.12, mcr.microsoft.com/playwright/python:v1.47.0-jammy). Test locale in venv host (Python 3.14.4) + build/run Docker reale con curl su /health, entrambi verdi."
     },
     {
-      "id": "US-802",
-      "title": "Comando cai:import-datapack",
-      "description": "As a sistema, devo importare il datapack RUNTS-CAI nelle tabelle di Orchestrator, collegando ogni sezione/sottosezione all'utente cliente corrispondente per email.",
+      "id": "US-913",
+      "title": "Porting di scraper.py/analyzer.py dal prototipo RUNTS",
+      "description": "As a developer, devo portare (non riscrivere) la logica di scraping Playwright e di estrazione pdfplumber già verificata nel prototipo, adattando solo i path di import.",
       "acceptanceCriteria": [
-        "Nuovo comando php artisan cai:import-datapack {--path=cai-datapack/runts-cai.sqlite}: apre il file SQLite del datapack tramite una connessione DB dedicata in sola lettura (estensione pdo_sqlite/sqlite3, già presente nell'immagine PHP)",
-        "Se il file al path indicato non esiste: messaggio esplicito e uscita, nessun errore criptico",
-        "Importa sezioni_cai→cai_sections, sottosezioni_cai→cai_subsections (per intero), enti→cai_runts_registrations (collegate a cai_sections via codice fiscale), bilanci→cai_financial_statements, cariche_sociali→cai_board_members, allegati→cai_documents",
-        "user_id di cai_sections/cai_subsections valorizzato per match case-insensitive fra l'email CAI e users.email — nessun match lascia user_id = null, mai un errore",
-        "I file referenziati da allegati (path relativo dentro cai-datapack/attachments/) vengono copiati nello storage privato esistente (stesso disco/pattern degli allegati ticket, Fase 1), con download autorizzato coerente con quel pattern",
-        "Idempotente: una seconda esecuzione sullo stesso datapack non duplica nulla né modifica righe invariate. --dry-run non scrive. Log strutturato (letti/creati/aggiornati/saltati per ciascuna tabella)",
-        "Test unit/feature: matching email (case-insensitive, nessun match → user_id = null), import completo su una fixture ridotta, idempotenza, --dry-run, file mancante → messaggio esplicito",
-        "Typecheck passes",
-        "Tests pass"
+        "Riferimento obbligatorio: docs/superpowers/plans/2026-09-08-cai-runts-scraper-service.md, Task 2 — seguire esattamente path/codice lì indicati",
+        "app/scraper.py e app/analyzer.py copiati verbatim da /Users/alessiopiccioli/Documents/LAVORO/MS/SOFTWARE/RUNTS/scraper/{scraper,analyzer}.py, SOLO i path di import adattati al nuovo package app (mai altra logica/regex/timeout modificati)",
+        "Nessun riferimento residuo al vecchio nome di package scraper.* (verificare con grep)",
+        "Test di smoke che verifica le firme attese di run_scraper/classify_codice_pratica/extract_bilancio_pdf",
+        "Tests pass (pytest)"
       ],
       "priority": 2,
       "passes": true,
-      "notes": ""
+      "notes": "Nessun `from scraper.X import` da adattare: entrambi i file del prototipo importavano solo librerie standard/terze parti (asyncio/logging/re/pathlib/playwright per scraper.py; argparse/logging/re/sqlite3/pathlib per analyzer.py), nessun modulo `db`/`geocoder`/sibling. Copiati verbatim, aggiunto solo un commento in testa con l'hash del commit prototipo (4d171ee756d2a68f5493d122ff82dbfac9065c64). Smoke test copiato alla lettera dal piano, 3/3 verde in venv locale (Python 3.14 host), grep di verifica nessun riferimento residuo a `scraper.*`."
     },
     {
-      "id": "US-803",
-      "title": "Wiring dell'import in make setup e nel deploy UAT",
-      "description": "As a sistema, i dati CAI devono essere popolati automaticamente in locale (se il datapack è presente) e ad ogni deploy UAT (dove l'intero DB viene ricreato da zero).",
+      "id": "US-914",
+      "title": "POST /scrape/runts-entity — caso non trovato",
+      "description": "As a sistema, l'endpoint di scrape deve restituire un esito pulito quando il codice fiscale richiesto non ha alcuna registrazione RUNTS, senza mai propagare l'ambiguità/bug del CLI del prototipo.",
       "acceptanceCriteria": [
-        "make setup (locale): esegue cai:import-datapack best-effort dopo v1:import — se cai-datapack/runts-cai.sqlite non esiste, logga un avviso e prosegue (nessun blocco del setup)",
-        "Nuova variabile CAI_DATAPACK_HOST_PATH in .env.uat.example/docker-compose.uat.yml, bind-mount del servizio app su cai-datapack/ (stesso pattern già in uso per LEGACY_MEDIA_HOST_PATH)",
-        "deploy/remote-deploy.sh: nuova riga che esegue cai:import-datapack dopo v1:import --anonymize, leggendo dal bind-mount",
-        "Commento esplicito nel diff/PR che segnala che remote-deploy.sh va ricopiato a mano su msuat da un umano dopo il merge (design esistente, mai automatico) — il datapack stesso è già sincronizzato su msuat (/opt/mstickets-uat/cai-datapack)",
-        "Test: verifica che il comando venga effettivamente invocato nel flusso make setup (test di integrazione o verifica statica dello script, secondo cosa è ragionevolmente testabile per uno script di shell)",
-        "Typecheck passes",
-        "Tests pass"
+        "Riferimento obbligatorio: docs/superpowers/plans/2026-09-08-cai-runts-scraper-service.md, Task 3 — seguire esattamente path/codice lì indicati",
+        "POST /scrape/runts-entity?codice_fiscale=<CF> chiama run_scraper() direttamente (mai il CLI main() del prototipo)",
+        "Quando run_scraper ritorna ([], {}) (nessun risultato), risposta {\"found\": false}, HTTP 200",
+        "Tests pass (pytest, mockando run_scraper — nessun Playwright/RUNTS reale)"
       ],
       "priority": 3,
       "passes": true,
-      "notes": ""
+      "notes": "Nessuna divergenza dal piano. TDD rispettato: test fallito con AttributeError su app.main.run_scraper prima di aggiungere la route, poi verde. Verificata firma reale di run_scraper (app/scraper.py:708, portata verbatim in US-913): denominazione/headless/delay_ms/filter_denominazione/codice_fiscale/attachments_dir, compatibile con la chiamata del piano."
     },
     {
-      "id": "US-804",
-      "title": "Filament Resource staff — consultazione Sezioni/Sottosezioni CAI",
-      "description": "As a membro dello staff, voglio consultare l'intero directory CAI di Sezioni e Sottosezioni (contatti, dati RUNTS, bilanci, allegati), per avere il quadro completo a fini di segreteria/gestione.",
+      "id": "US-915",
+      "title": "POST /scrape/runts-entity — caso di successo",
+      "description": "As a sistema, quando l'ente viene trovato, l'endpoint deve restituire metadati, cariche sociali e documenti (con contenuto PDF incorporato in base64 per quelli scaricati con successo) in una forma JSON stabile.",
       "acceptanceCriteria": [
-        "Nuova Filament Resource CaiSectionResource (namespace App\\Filament\\Resources\\CaiSections), sola consultazione: nessuna azione Create/Edit/Delete",
-        "Lista: colonne principali (denominazione, comune, regione, utente collegato se presente), filtri per regione e per presenza di un utente collegato",
-        "Dettaglio: tab/sezioni per dati CAI (contatti, indirizzo, anno fondazione, soci), dati RUNTS (natura giuridica, data iscrizione, PEC, rappresentante legale, link alla scheda ufficiale), bilanci (tabella per anno), allegati (elenco con download autorizzato), sottosezioni collegate",
-        "Gated da un permesso dedicato nel catalogo (es. Permission::CaiDirectoryView), concesso di default almeno ad admin/manager/developer",
-        "Test feature: lista/filtri funzionano; dettaglio mostra i dati attesi per una sezione con bilanci/allegati e per una senza; un utente senza permesso non accede alla resource",
-        "Typecheck passes",
-        "Tests pass",
-        "Verifica in browser (screenshot Chrome headless) di lista e dettaglio con dati reali (dopo cai:import-datapack sul dataset locale)"
+        "Riferimento obbligatorio: docs/superpowers/plans/2026-09-08-cai-runts-scraper-service.md, Task 4 — seguire esattamente path/codice lì indicati (schema JSON completo, incluso il campo \"documento\" per ogni documento)",
+        "Ogni campo dell'entità è costruito esplicitamente con .get(key) (mai uno spread verbatim del dict grezzo dello scraper), così una chiave assente nello scrape diventa sempre null in JSON invece di sparire dalla risposta",
+        "raw_json/atti_documenti/cariche non compaiono mai nell'oggetto entity della risposta",
+        "Un documento con skip_reason valorizzato non ha mai content_base64",
+        "Tests pass (pytest, mockando run_scraper con fixture realistiche — nessun Playwright/RUNTS reale)"
       ],
       "priority": 4,
       "passes": true,
-      "notes": ""
+      "notes": "Nessuna divergenza dal piano. TDD rispettato: aggiunto il test del caso di successo (fallito con NotImplementedError prima dell'implementazione), poi implementato il ramo esplicitando ogni campo con .get() come richiesto (mai uno spread del dict grezzo). Suite completa del servizio 6/6 verde."
     },
     {
-      "id": "US-805",
-      "title": "Mappa e export (staff)",
-      "description": "As a membro dello staff, voglio vedere le sezioni su una mappa ed esportare l'elenco, per analisi e condivisione con terzi.",
+      "id": "US-916",
+      "title": "POST /scrape/runts-entity — fallimento dello scrape diventa 502 esplicito",
+      "description": "As a sistema, un errore reale durante lo scrape (dopo i retry interni già presenti in run_scraper) deve tornare un errore HTTP strutturato, mai un 500 con traceback Python grezzo.",
       "acceptanceCriteria": [
-        "Nuova pagina Filament \"Mappa sezioni CAI\" con tutte le sezioni geolocalizzate (Leaflet via CDN — se già in uso altrove nel pannello riusare lo stesso meccanismo di inclusione, altrimenti introdurlo qui in modo isolato)",
-        "Azioni di export sulla tabella di CaiSectionResource: CSV, XLSX, GeoJSON (solo sezioni correntemente filtrate/visibili, coerente coi filtri applicati)",
-        "Stesso permesso di US-804",
-        "Test feature: ogni formato di export produce un file col contenuto atteso per un dataset noto",
-        "Typecheck passes",
-        "Tests pass",
-        "Verifica in browser (screenshot Chrome headless) della mappa con dati reali"
+        "Riferimento obbligatorio: docs/superpowers/plans/2026-09-08-cai-runts-scraper-service.md, Task 5 — seguire esattamente path/codice lì indicati",
+        "Un'eccezione sollevata da run_scraper() viene catturata e trasformata in HTTPException(status_code=502, detail=str(exc))",
+        "Tests pass (pytest)"
       ],
       "priority": 5,
       "passes": true,
-      "notes": ""
+      "notes": "Nessuna divergenza dal piano. TDD rispettato: test fallito con RuntimeError propagato (nessun 502 strutturato) prima di aggiungere il try/except attorno alla chiamata a run_scraper(), poi verde. Suite completa del servizio 7/7 verde."
     },
     {
-      "id": "US-806",
-      "title": "Dati CAI sulla dashboard del cliente Sezione",
-      "description": "As a cliente Sezione, voglio vedere i miei dati CAI/RUNTS (contatti ufficiali, bilanci, allegati, sottosezioni) sulla mia dashboard, senza dover contattare lo staff.",
+      "id": "US-917",
+      "title": "POST /analyze/bilancio",
+      "description": "As a sistema, devo poter inviare un PDF di bilancio e ricevere le cifre finanziarie estratte, senza che un PDF non interpretabile causi mai un errore.",
       "acceptanceCriteria": [
-        "Nuova card/sezione su CustomerDashboard (Fase 6/7), visibile per un cliente customer_type = Sezione con un CaiSection/CaiSubsection collegato (user_id = utente corrente)",
-        "Contenuto: contatti ufficiali CAI, anno fondazione, soci, bilanci (per anno), allegati scaricabili, sottosezioni proprie (se il cliente è una Sezione con sottosezioni collegate)",
-        "Se nessun CaiSection/CaiSubsection è collegato all'utente corrente: stato vuoto esplicito (\"nessun dato CAI/RUNTS disponibile per la tua sezione\"), mai una card assente silenziosa",
-        "Test feature: la card mostra i dati corretti per un cliente con match; stato vuoto per un cliente senza match; un cliente non vede mai dati di un'altra sezione",
-        "Typecheck passes",
-        "Tests pass",
-        "Verifica in browser (screenshot Chrome headless) per un cliente Sezione con match reale"
+        "Riferimento obbligatorio: docs/superpowers/plans/2026-09-08-cai-runts-scraper-service.md, Task 6 — seguire esattamente path/codice lì indicati",
+        "POST /analyze/bilancio accetta un upload multipart, scrive su un path temporaneo effimero, chiama extract_bilancio_pdf(path, ocr_fallback=False), risponde con le stesse 15 chiavi italiane già usate dal prototipo (oneri_a_interesse_generale ... risultato_esercizio) + raw_text + ocr",
+        "Un PDF non interpretabile risponde comunque 200 con tutti i 15 campi null (mai un errore)",
+        "Tests pass (pytest, mockando extract_bilancio_pdf)"
       ],
       "priority": 6,
       "passes": true,
-      "notes": ""
+      "notes": "Divergenza dal piano annotata: `python-multipart` non era elencato in requirements.txt ma è richiesto a runtime da FastAPI per `UploadFile`/`File(...)` (senza, la collection dei test falliva con `RuntimeError: Form data requires \"python-multipart\" to be installed`) — aggiunto `python-multipart>=0.0.9` a requirements.txt e installato nel venv locale. Nessun'altra divergenza: codice/test copiati alla lettera dal Task 6. TDD rispettato (test falliti prima su 404/route mancante, poi su python-multipart mancante, poi verdi). Suite completa del servizio 9/9 verde."
     },
     {
-      "id": "US-807",
-      "title": "Dettaglio sezione dalla dashboard del Gruppo Regionale",
-      "description": "As a cliente Gruppo Regionale, voglio aprire il dettaglio completo di una sezione della mia regione dalla card \"Sezioni del gruppo regionale\" (Fase 7), per avere visibilità sul territorio che rappresento.",
+      "id": "US-918",
+      "title": "Wiring docker-compose.yml + verifica reale contro RUNTS",
+      "description": "As a sistema, il servizio deve essere raggiungibile dagli altri container via rete Docker Compose, e va verificato almeno una volta contro il sito RUNTS reale prima di considerare la Storia 2 conclusa.",
       "acceptanceCriteria": [
-        "Ogni riga della card \"Sezioni del gruppo regionale\" (SectionsInRegionQuery, Fase 7 US-705) diventa un link a una pagina di dettaglio",
-        "La pagina di dettaglio mostra lo stesso contenuto della card cliente Sezione (US-806) per la sezione scelta, riusando lo stesso componente/vista (nessuna duplicazione di markup/logica fra staff, cliente Sezione, cliente Gruppo Regionale — solo l'autorizzazione cambia)",
-        "Autorizzazione verificata lato server: un cliente Gruppo Regionale può aprire solo sezioni la cui region combacia con la propria — un tentativo di accesso diretto a una sezione di un'altra regione (URL manipolato) deve fallire (403 o redirect), non solo essere assente dal link in UI",
-        "Nessun campo nascosto per sensibilità (dati di fonte pubblica RUNTS) — la restrizione riguarda esclusivamente lo scope (propria regione), non i singoli campi mostrati",
-        "Test feature: apertura riuscita per una sezione della propria regione; tentativo diretto su una sezione di un'altra regione respinto; nessuna card/link per un Gruppo Regionale senza sezioni classificate",
-        "Typecheck passes",
-        "Tests pass",
-        "Verifica in browser (screenshot Chrome headless) del percorso completo: card → click → dettaglio, per un cliente Gruppo Regionale con sezioni reali nella propria regione"
+        "Riferimento obbligatorio: docs/superpowers/plans/2026-09-08-cai-runts-scraper-service.md, Task 7 — seguire esattamente path/codice lì indicati",
+        "Nuovo servizio cai-runts-scraper in docker-compose.yml (build dalla cartella cai-runts-scraper/), porta pubblicata verso l'host solo per la verifica manuale",
+        "docker compose exec app curl http://cai-runts-scraper:8000/health risponde correttamente (conferma raggiungibilità container-to-container, lo stesso percorso che userà PHP nella Storia 3)",
+        "Eseguire la verifica manuale reale del Task 7 (un codice fiscale reale esistente + uno inesistente) e registrare l'esito onestamente in notes/progress.txt — vedi nota generale del PRD su questo punto",
+        "Tests pass (suite pytest completa del servizio)"
       ],
       "priority": 7,
       "passes": true,
-      "notes": ""
+      "notes": "Servizio cai-runts-scraper aggiunto a docker-compose.yml (build ./cai-runts-scraper, porta host 8010:8000 solo per verifica manuale, rete `orchestrator` esplicita come gli altri servizi — necessaria per la risoluzione hostname container-to-container, non menzionata nello snippet YAML del piano ma richiesta per farlo funzionare). `docker compose exec app curl http://cai-runts-scraper:8000/health` risponde {\"status\":\"ok\"} — raggiungibilità container-to-container confermata. BUG REALE trovato ed corretto durante la verifica manuale: requirements.txt aveva `playwright>=1.44.0` (non pinnato), risolto a 1.62.0 al build time (2026-09-08), mentre l'immagine base `mcr.microsoft.com/playwright/python:v1.47.0-jammy` ha i browser Chromium installati solo per la versione 1.47.0 — ogni scrape reale falliva con \"BrowserType.launch: Executable doesn't exist\". Fissato a `playwright==1.47.0` (allineato al commento del Dockerfile), rebuild, browser ora si avvia correttamente. Verifica manuale reale (Task 7 Step 3) eseguita con successo: (1) CF 00951210103 (sezione CAI Liguria-Genova, con una registrazione RUNTS già importata dal datapack storico, quindi nota per certo presente in RUNTS) → HTTP 200, `found:true`, entità/documenti/base64 reali estratti correttamente dal sito RUNTS live (denominazione \"CAI LIGURE GENOVA APS - ETS\", PEC, documenti PDF con hash reale). (2) CF 93002220031 (prima sezione con tax_code trovata, nessuna garanzia di presenza in RUNTS) e CF 00000000000 (sintatticamente valido ma inventato) → entrambi HTTP 502 con lo stesso identico messaggio \"Page.wait_for_selector: Timeout 30000ms exceeded ... waiting for locator input[value=Dettaglio]\" — verificato nei log (`docker compose logs`) che non è un errore di navigazione/markup rotto, è esattamente l'ambiguità nota già documentata nel design doc §3.3/§7 (\"timeout sulla ricerca stessa\" per zero risultati, distinto dal successo genuino solo dal fatto che qui il timeout scatta sempre sullo stesso selettore mai apparso) — comportamento esplicitamente accettato dal design (\"altrimenti un errore 502 esplicito\"), non un difetto di questa story. Nessun fix di codice richiesto per questo comportamento (il fix reale necessario era la versione Playwright). Suite pytest completa: 9/9 verde (venv locale)."
     },
     {
-      "id": "US-808",
-      "title": "Checkpoint di fine fase — verifica end-to-end e pacchetto di collaudo",
-      "description": "As a team, prima di considerare la fase conclusa, voglio un test end-to-end che replichi il flusso completo e un pacchetto di collaudo aggiornato.",
+      "id": "US-919",
+      "title": "Migrazione runts_last_synced_at su cai_runts_registrations",
+      "description": "As a sistema, devo tracciare quando una CaiRuntsRegistration è stata sincronizzata l'ultima volta dal vivo, distinto dal semplice import da datapack statico.",
       "acceptanceCriteria": [
-        "Nuovo test end-to-end in tests/Feature/EndToEnd/ che copre: import del datapack (fixture ridotta) → collegamento per email → consultazione staff (resource) → dashboard cliente Sezione (con e senza match) → dashboard cliente Gruppo Regionale (dettaglio sezione della propria regione, accesso negato su un'altra regione)",
-        "docs/collaudo/fase-8.php (manifest di tracciabilità) e manuale dettagliato docs/collaudo/15-fase-8.md, con un topic per ciascuna user story di questa fase",
-        "php artisan collaudo:verify-manifest 8 passa",
-        "php artisan collaudo:generate 8 genera il PDF, verificato visivamente",
-        "docs/data-model.md/docs/architecture.md aggiornati per riflettere lo schema/dominio nuovi",
-        "Typecheck passes",
-        "Tests pass (suite completa, nessuna regressione sulle fasi precedenti)"
+        "Riferimento obbligatorio: docs/superpowers/plans/2026-09-08-cai-runts-orchestrator-wiring.md, Task 1 — seguire esattamente path/codice lì indicati",
+        "Nuova migrazione additiva: cai_runts_registrations.runts_last_synced_at (timestamp nullable)",
+        "Aggiunta a #[Fillable] e casts() di CaiRuntsRegistration (senza, il mass-assignment lo scarta silenziosamente — gotcha già noto in questo repo)",
+        "La suite esistente cai:import-datapack resta verde, invariata",
+        "Tests pass"
       ],
       "priority": 8,
       "passes": true,
+      "notes": "Nessuna divergenza dal piano. Migrazione additiva + Fillable/casts aggiornati alla lettera dal Task 1. Test nuovo 1/1 verde, suite pre-esistente CaiImportDatapackCommandTest 6/6 invariata, pint/phpstan puliti."
+    },
+    {
+      "id": "US-920",
+      "title": "CaiRuntsRegistrationFieldMapper condiviso",
+      "description": "As a developer, la mappatura riga→attributi di CaiRuntsRegistration/CaiBoardMember deve essere condivisa (non duplicata) fra l'import da datapack statico e il futuro scrape live.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: docs/superpowers/plans/2026-09-08-cai-runts-orchestrator-wiring.md, Task 2 — seguire esattamente path/codice lì indicati",
+        "Nuova classe App\\Domain\\CaiDirectory\\Import\\CaiRuntsRegistrationFieldMapper con mapRegistration(object $row, string $sectionCode): array e mapBoardMember(object $row, string $idRunts): array",
+        "CaiDatapackImporter::importRegistrations()/importBoardMembers() richiamano il nuovo mapper condiviso invece di costruire gli array inline",
+        "lat/lon letti con ?? null nel mapper (assenti sulla fonte live, presenti sulla fonte datapack)",
+        "La suite esistente tests/Feature/Console/CaiImportDatapackCommandTest.php resta verde con GLI STESSI conteggi di prima del refactor",
+        "Tests pass"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": "Nessuna divergenza funzionale dal piano. Verificato con `grep` (gotcha già noto da US-903): nessun altro call site oltre importRegistrations()/importBoardMembers() usava i blocchi inline sostituiti, refactor sicuro. Gotcha nuovo scoperto: Pint (regola `fully_qualified_strict_types`) riscrive un `{@see \\Fully\\Qualified\\ClassName}` inline nel docblock in un `use` statement importato — anche per una classe che NON esiste ancora nel repo (qui `App\\Domain\\CaiDirectory\\Actions\\SyncCaiRuntsRegistration`, arriva solo in US-923). Verificato che è innocuo: un `use` mai referenziato nel corpo del codice (solo in un commento `@see`) non attiva mai l'autoloader, e sia `phpstan analyse --memory-limit=1G` sia l'intera suite Pint restano puliti con quell'import 'a vuoto' presente. Lasciato così com'è (non ha senso combattere il fixer del progetto); da tenere a mente per Task 5 (US-923), quando quella classe verrà finalmente creata nello stesso namespace."
+    },
+    {
+      "id": "US-921",
+      "title": "CaiFinancialStatementFieldMapper condiviso",
+      "description": "As a developer, la mappatura dei 15 campi finanziari deve essere condivisa fra l'import da datapack statico e il futuro job di analisi live.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: docs/superpowers/plans/2026-09-08-cai-runts-orchestrator-wiring.md, Task 3 — seguire esattamente path/codice lì indicati",
+        "Nuova classe App\\Domain\\CaiDirectory\\Import\\CaiFinancialStatementFieldMapper con mapFinancialStatement(object $row): array (SOLO i 15 campi finanziari, mai cai_runts_registration_id/year)",
+        "CaiDatapackImporter::importFinancialStatements() richiama il nuovo mapper condiviso",
+        "La suite esistente cai:import-datapack resta verde con gli stessi conteggi",
+        "Tests pass"
+      ],
+      "priority": 10,
+      "passes": true,
+      "notes": "Nessuna divergenza dal piano. Verificato con grep (stesso gotcha già noto da US-903/US-920): solo `importFinancialStatements()` usava i 15 campi italiani, nessun altro call site. Refactor sicuro."
+    },
+    {
+      "id": "US-922",
+      "title": "CaiRuntsScraperClient + configurazione",
+      "description": "As a sistema, devo poter chiamare i due endpoint del nuovo servizio cai-runts-scraper da PHP.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: docs/superpowers/plans/2026-09-08-cai-runts-orchestrator-wiring.md, Task 4 — seguire esattamente path/codice lì indicati",
+        "Nuova classe App\\Domain\\CaiDirectory\\Support\\CaiRuntsScraperClient con scrapeEntity(string $codiceFiscale): array (invia codice_fiscale come query param, MAI nel body JSON — l'endpoint FastAPI lo legge come query param) e analyzeBilancio(string $pdfContent): array (upload multipart)",
+        "NESSUN retry proprio in questo client: il servizio Python già ritenta internamente, un secondo livello qui raddoppierebbe inutilmente l'attesa in caso di fallimento reale",
+        "URL base e timeout letti da config('cai_directory.runts_scraper.*'), mai env() fuori da config/. Nuove chiavi CAI_RUNTS_SCRAPER_* in .env.example",
+        "Tests pass (Http::fake, mai una chiamata reale al servizio)"
+      ],
+      "priority": 11,
+      "passes": true,
+      "notes": "Divergenza dal piano annotata (comportamento ambientale, non un bug del client): il test `analyzeBilancio` del Task 4 asserisce `expect($result)->toBe(['totale_oneri' => 1200.0])`, ma `Http::response(['totale_oneri' => 1200.0])` viene serializzato da `json_encode()` su questo PHP (serialize_precision=-1 di default) come `1200` (nessuna parte frazionaria), quindi il round-trip `json_decode()` fatto da `Response::json()` restituisce un `int(1200)`, non un `float(1200.0)` — verificato empiricamente con `php -r 'var_dump(json_decode(json_encode([\"x\"=>1200.0]),true));'`. Corretta l'aspettativa del test a `['totale_oneri' => 1200]` con un commento esplicativo; nessuna modifica al codice del client (già corretto, si limita a passare `$response->json()`). Resto del Task 4 implementato alla lettera: config `runts_scraper.*` + env `CAI_RUNTS_SCRAPER_*`, `CaiRuntsScraperClient` con `scrapeEntity()`/`analyzeBilancio()`, nessun retry proprio. Suite `--filter=Cai` 116 passed/1 skipped, `pint --test` 820 file puliti, `phpstan analyse --memory-limit=1G` 466 file nessun errore."
+    },
+    {
+      "id": "US-923",
+      "title": "SyncCaiRuntsRegistrationResult + SyncCaiRuntsRegistration (metadati + cariche sociali)",
+      "description": "As a sistema, devo poter sincronizzare dal vivo la registrazione RUNTS e le cariche sociali di UNA sezione, gestendo esplicitamente il caso di nessuna registrazione trovata.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: docs/superpowers/plans/2026-09-08-cai-runts-orchestrator-wiring.md, Task 5 — seguire esattamente path/codice lì indicati (documenti/dispatch analisi arrivano nella story US-926, non qui)",
+        "Nuovo DTO App\\Domain\\CaiDirectory\\Support\\SyncCaiRuntsRegistrationResult (found, registration, queuedAnalysisCount) e nuova Action App\\Domain\\CaiDirectory\\Actions\\SyncCaiRuntsRegistration con run(CaiSection $section): SyncCaiRuntsRegistrationResult",
+        "Se la sezione non ha tax_code, o il servizio risponde found:false, ritorna un esito notFound() esplicito senza scrivere nulla (e senza chiamare il servizio se tax_code manca)",
+        "Se trovato: upsert CaiRuntsRegistration (+ runts_last_synced_at sempre valorizzato a now(), anche se nessun campo di business è cambiato) e sync delle cariche sociali con lo stesso schema di dedup del datapack importer",
+        "Tests pass (Http::fake)"
+      ],
+      "priority": 12,
+      "passes": true,
       "notes": ""
+    },
+    {
+      "id": "US-924",
+      "title": "AnalyzeCaiFinancialStatementDocument job + coda Horizon dedicata",
+      "description": "As a sistema, l'estrazione delle cifre finanziarie da un documento di bilancio già scaricato deve avvenire in background, su una coda dedicata che non compete con la posta o la generazione PDF dei report.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: docs/superpowers/plans/2026-09-08-cai-runts-orchestrator-wiring.md, Task 6 — seguire esattamente path/codice lì indicati",
+        "Nuovo job App\\Domain\\CaiDirectory\\Jobs\\AnalyzeCaiFinancialStatementDocument implements ShouldQueue, costruttore con SOLO un int $caiDocumentId (mai il modello serializzato — stesso pattern già in uso da GenerateDocumentationPagePdfJob), handle() ri-legge il CaiDocument, scarica il PDF dal disco cai-documents, chiama CaiRuntsScraperClient::analyzeBilancio(), upsert CaiFinancialStatement per (cai_runts_registration_id, year)",
+        "Se il CaiDocument non esiste più (find restituisce null), il job non fa nulla, nessun errore",
+        "Nuovo supervisor Horizon dedicato in config/horizon.php ('cai-runts-analysis' key sotto 'defaults', queue ['cai-runts-analysis'], timeout 120, tries 3) — è la prima coda dedicata (non default) di questo repo",
+        "docker compose restart queue e verifica che Horizon avvii il nuovo supervisor senza errori (docker compose logs queue)",
+        "Tests pass (Http::fake, Storage::fake('cai-documents'))"
+      ],
+      "priority": 13,
+      "passes": true,
+      "notes": "Nessuna divergenza dal piano. Job `AnalyzeCaiFinancialStatementDocument implements ShouldQueue` (costruttore con solo `int $caiDocumentId`, `handle(CaiRuntsScraperClient $client)` ri-legge il `CaiDocument`, scarica il PDF da `Storage::disk('cai-documents')`, chiama `analyzeBilancio()`, mappa con `CaiFinancialStatementFieldMapper` (US-921) e fa upsert su `CaiFinancialStatement` per `(cai_runts_registration_id, year)`), no-op silenzioso se il documento non esiste più o il file non è sul disco. Aggiunto helper `caiDocument()` a `tests/Pest.php`. Nuovo supervisor Horizon dedicato `cai-runts-analysis` in `config/horizon.php` (`defaults`, queue `['cai-runts-analysis']`, timeout 120, tries 3) — prima coda dedicata (non default) del repo. Verificato con `docker compose restart queue` + `docker compose logs queue` (\"Horizon started successfully\") + `php artisan horizon:list` che il nuovo master gira entrambi i supervisor (`supervisor-1, cai-runts-analysis`) senza errori."
+    },
+    {
+      "id": "US-925",
+      "title": "Documenti di bilancio — sync sincrono + dispatch dell'analisi",
+      "description": "As a cliente Sezione, quando sincronizzo i dati RUNTS voglio che i documenti di bilancio non ancora scaricati vengano scaricati e allegati subito, e che la loro analisi finanziaria parta in background senza farmi aspettare.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: docs/superpowers/plans/2026-09-08-cai-runts-orchestrator-wiring.md, Task 7 — seguire esattamente path/codice lì indicati",
+        "SyncCaiRuntsRegistration::syncDocuments(): per ogni documento nella risposta con skip_reason nullo e content_base64 presente, dedup per (cai_runts_registration_id, filename); se nuovo, decodifica base64 e salva sul disco cai-documents esistente + crea CaiDocument (title da \"documento\", document_type da \"tipo\", ecc.)",
+        "Solo i documenti NUOVI con tipo === 'bilancio_esercizio' vengono accodati per l'analisi (AnalyzeCaiFinancialStatementDocument::dispatch($document->id)->onQueue('cai-runts-analysis')) — situazione_patrimoniale/bilancio_sociale/altri tipi MAI accodati",
+        "Un documento già presente (stesso filename per la stessa registrazione) non viene mai ri-scaricato né ri-accodato",
+        "SyncCaiRuntsRegistrationResult::queuedAnalysisCount riflette il conteggio reale",
+        "Tests pass (Http::fake, Storage::fake, Queue::fake)"
+      ],
+      "priority": 14,
+      "passes": true,
+      "notes": "Task 7 del piano implementato alla lettera: SyncCaiRuntsRegistration::syncDocuments() dedup per (cai_runts_registration_id, filename), decodifica base64, salva su disco cai-documents, crea CaiDocument; dispatch AnalyzeCaiFinancialStatementDocument solo per tipo=bilancio_esercizio nuovi. 6/6 test del file verdi, suite Cai completa (125 test) verde, Pint+Larastan puliti."
+    },
+    {
+      "id": "US-926",
+      "title": "Il bottone \"Sincronizza dati RUNTS\" chiama il servizio live",
+      "description": "As a cliente Sezione, quando clicco \"Sincronizza dati RUNTS\" voglio che i dati della mia sola sezione vengano aggiornati dal vivo, con un messaggio chiaro se non viene trovata alcuna registrazione.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: docs/superpowers/plans/2026-09-08-cai-runts-orchestrator-wiring.md, Task 8 — seguire esattamente path/codice lì indicati (contiene il corpo esatto pre-esistente del metodo da preservare/modificare)",
+        "CustomerDashboard::syncRuntsDataAction() chiama SyncCaiRuntsRegistration::run($section) invece di CaiDatapackImporter::import(...) — nome dell'action, label, icona, colore e ->visible() restano identici, cambia solo il closure ->action()",
+        "Caso found:false → notifica informativa esplicita (\"nessuna registrazione RUNTS trovata\"), MAI un errore generico",
+        "Errore durante la sincronizzazione → notifica danger, stesso pattern già usato dal bottone CAI (Storia 1)",
+        "resolveDatapackAbsolutePathOrNotify() e l'import di CaiDatapackImporter rimossi da CustomerDashboard.php se non più referenziati da nessun'altra parte del file (verificare con grep prima di rimuovere)",
+        "Test feature aggiornato/sostituito: il click del bottone chiama il servizio live (Http::fake) invece del datapack",
+        "Tests pass"
+      ],
+      "priority": 15,
+      "passes": true,
+      "notes": "Nessuna divergenza dal piano. TDD rispettato: i due nuovi test (live-scrape + not-found) sostituiscono alla lettera il vecchio test 'the sync runts data action re-imports only the RUNTS tables...' del Task 8, falliti prima con ModelNotFoundException (il bottone chiamava ancora CaiDatapackImporter), poi verdi dopo il wiring a SyncCaiRuntsRegistration::run($section). Usato l'helper già in uso nel file (`withRole(User::factory()->create(), UserRole::Customer)`), non `grantCustomerRole` (inesistente in questo file, come previsto dalla nota del piano su 'se il file usa un nome diverso, usare quello esistente'). Rimossi resolveDatapackAbsolutePathOrNotify() e l'import di CaiDatapackImporter (nessun altro call site, verificato con grep) — restava solo in due riferimenti @see nel docblock di syncCaiDataAction()/syncRuntsDataAction(), aggiornati a testo semplice (nessun import fully-qualified da riattivare, gotcha Pint di US-920/923 evitato a monte). Pint ha rimosso un `use Storage` diventato orfano nel file di test dopo la sostituzione (nessuna azione manuale oltre a rilanciare `vendor/bin/pint`). Suite `--filter=Cai` 125 passed/1 skipped (stesso conteggio di prima, nessuna regressione), `pint --test` 825 file puliti, `phpstan analyse --memory-limit=1G` 469 file nessun errore (un primo tentativo ha incontrato il noto race condition virtiofs sulla cache nette.configurator, già documentato in CLAUDE.md — retry immediato risolto)."
+    },
+    {
+      "id": "US-927",
+      "title": "Data ultimo aggiornamento RUNTS visibile nell'Infolist condiviso",
+      "description": "As a cliente/staff, voglio vedere quando i dati RUNTS di una registrazione sono stati sincronizzati l'ultima volta dal vivo, o che non lo sono mai stati.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: docs/superpowers/plans/2026-09-08-cai-runts-orchestrator-wiring.md, Task 9 — seguire esattamente path/codice lì indicati",
+        "app/Filament/Resources/CaiSections/Schemas/CaiSectionInfolist.php, tab \"Dati RUNTS\": mostra runts_last_synced_at per ciascuna registrazione, placeholder 'Mai sincronizzato dal vivo' quando null",
+        "Nessuna modifica alla firma pubblica configure(Schema $schema): Schema — componente condiviso da staff/dashboard cliente/dettaglio regionale",
+        "Tests pass"
+      ],
+      "priority": 16,
+      "passes": true,
+      "notes": "Nessuna divergenza dal piano. TDD rispettato: aggiunto il test 'the section detail page shows the last RUNTS live-sync timestamp, or a \"never synced\" placeholder' (fallito prima con 08/09/2026 non trovato nell'HTML), poi aggiunta la TextEntry('runts_last_synced_at') nel RepeatableEntry di runtsSection() (columns 3→4), verde. Riusati gli helper globali già esistenti in tests/Pest.php (caiSection()/caiRuntsRegistration()) e l'helper locale grantCaiDirectoryPanelAccess() del file, invece di Livewire::actingAs()/getRouteKey() del piano (il file usa $this->actingAs()+->getKey(), stesso schema di tutti gli altri test del file). Suite del file 21/21 verde (+1 rispetto a prima), suite --filter=Cai 126 passed/1 skipped (+1, nessuna regressione), pint --test e phpstan analyse --memory-limit=1G puliti."
+    },
+    {
+      "id": "US-928",
+      "title": "Checkpoint finale — regressione end-to-end e smoke test reale",
+      "description": "As a team, prima di considerare le Storie 2-3 concluse, voglio la certezza che nessuna storia precedente abbia introdotto una regressione, e una verifica reale end-to-end col servizio Python davvero in esecuzione.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: docs/superpowers/plans/2026-09-08-cai-runts-orchestrator-wiring.md, Task 10 — seguire esattamente i comandi lì indicati",
+        "Tutti i file di test creati/modificati da US-919..US-927 eseguiti insieme passano",
+        "tests/Feature/Console/CaiImportDatapackCommandTest.php (suite pre-esistente di Fase 8/9, toccata solo dal refactor mapper) passa con esiti identici a prima",
+        "composer run analyse e composer run lint non introducono nuovi errori",
+        "Smoke test manuale end-to-end col servizio cai-runts-scraper realmente in esecuzione (docker compose up -d cai-runts-scraper) per una sezione con tax_code reale — vedi nota generale del PRD: registra l'esito onestamente, non forzare passes:true su un'ipotesi se il sito RUNTS reale è irraggiungibile da questo ambiente",
+        "Tests pass"
+      ],
+      "priority": 17,
+      "passes": true,
+      "notes": "Task 10 eseguito alla lettera. Step 1: i 9 file di test elencati dal piano eseguiti insieme, 76/76 verdi (283→285 assertion dopo il fix del Passo 4), CaiImportDatapackCommandTest con gli stessi identici 6 test/conteggi di prima. Step 2: composer run analyse (469 file, 0 errori) e composer run lint (825 file puliti) senza nuovi errori. Step 3 (smoke test reale end-to-end): portato su `docker compose up -d cai-runts-scraper`, poi eseguita SyncCaiRuntsRegistration::run() da tinker (stesso codepath del bottone dashboard, sostituisce il click browser reale — nessun tool MCP browser disponibile in questa sessione) sulla CaiSection reale con tax_code 00951210103 (SEZ. LIGURE-GENOVA, stesso CF già verificato in US-918). Gap ambientale trovato e risolto: la migrazione `runts_last_synced_at` (US-919) non era mai stata eseguita sul Postgres di sviluppo persistente (`db`) — applicata con `php artisan migrate --force` (nessuna altra migrazione pendente, additiva, sicura). Esito: found=true, completato in ~1 minuto, 19 CaiDocument creati (0 CaiBoardMember — dato reale plausibile, RUNTS non elenca sempre cariche sociali, non un bug: la creazione/dedup delle cariche è già coperta da test mockati in SyncCaiRuntsRegistrationTest), 5 documenti bilancio_esercizio nuovi accodati su cai-runts-analysis (`docker compose logs queue` conferma RUNNING/DONE su quella coda), 2 CaiFinancialStatement creati (uno con cifre reali estratte, uno con tutti i 15 campi null perché il PDF 2025 non è risultato interpretabile da pdfplumber — comportamento atteso da US-917, non un difetto). BUG REALE trovato dal solo smoke test con dati reali (mai riprodotto dai fixture mockati delle story precedenti): 2 dei 5 documenti bilancio_esercizio avevano `year=null` (RUNTS non sempre espone un anno estraibile per un bilancio, `cai_documents.year` è nullable per questo), ma `AnalyzeCaiFinancialStatementDocument::handle()` passava quel `null` a `cai_financial_statements.year`, colonna NOT NULL (parte della chiave composita) → PDOException, job fallito 3/3 tentativi, finito in `failed_jobs`. Fix (Step 4 del Task 10): guard esplicito `if ($document->year === null) { return; }` prima di scaricare il PDF/chiamare il servizio — no-op silenzioso, stesso principio già in uso per 'documento non più esistente'/'file assente sul disco'. Nuovo test di regressione aggiunto a AnalyzeCaiFinancialStatementDocumentTest.php, verificato anche manually rilanciando handle() sui due documenti reali falliti (nessuna eccezione). Suite Cai + analyse + lint ri-verificati verdi dopo il fix (vedi sopra). `failed_jobs` per la coda cai-runts-analysis ripulita dopo la verifica. Nessun'altra regressione trovata."
     }
   ]
 }

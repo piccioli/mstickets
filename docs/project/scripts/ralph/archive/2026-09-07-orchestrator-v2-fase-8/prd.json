@@ -1,0 +1,188 @@
+{
+  "project": "Orchestrator v2 — Fase 9, Storia 1: Scraper CAI nativo PHP (sincronizzazione live)",
+  "branchName": "ralph/orchestrator-v2-fase-9",
+  "description": "Implementa la Storia 1 del design doc `docs/superpowers/specs/2026-09-07-cai-runts-live-sync-design.md` (§3.1 scraper CAI, §3.3 timestamp, §3.4 bottone dashboard, §3.5 refresh nazionale, §6 item 1): sostituisce il re-import dal datapack statico dietro il bottone \"Sincronizza dati CAI\" con una chiamata live all'API pubblica CAI, aggiunge `cai_last_synced_at` su `cai_sections`/`cai_subsections`, e un comando schedulato mensile `cai:sync-national` dietro feature flag. Le Storie 2-5 del design doc (servizio Python `cai-runts-scraper`, wiring RUNTS, refresh nazionale RUNTS, deploy UAT) NON sono in questo PRD: dipendono da decisioni implementative non ancora prese e avranno un proprio ciclo ralph separato in futuro — non implementarle qui. Piano di implementazione dettagliato, con firme di classi/metodi esatte e codice di riferimento per ogni story: `docs/superpowers/plans/2026-09-07-cai-scraper-native-php.md` (Task 1-11, uno per ogni user story di questo PRD, stesso ordine). LEGGERE SEMPRE la sezione \"Task N\" corrispondente di quel piano PRIMA di implementare la story US-90N: contiene i path esatti dei file, le firme dei metodi, il codice dei test e dell'implementazione già verificati contro il codice reale del repo — non reinventare né indovinare firme/nomi che il piano già specifica. Se durante l'implementazione emerge una divergenza reale fra il piano e lo stato attuale del codice (es. un file citato nel piano è cambiato da quando il piano è stato scritto), annotarla in `notes` della story e in progress.txt, adattando l'implementazione allo stato reale del codice (mai il contrario).",
+  "userStories": [
+    {
+      "id": "US-901",
+      "title": "Migrazione cai_last_synced_at su cai_sections/cai_subsections",
+      "description": "As a sistema, devo tracciare quando una CaiSection/CaiSubsection è stata sincronizzata l'ultima volta dal vivo con l'API CAI, distinto dal semplice import da datapack statico.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: docs/superpowers/plans/2026-09-07-cai-scraper-native-php.md, Task 1 — seguire esattamente path/codice lì indicati",
+        "Nuova migrazione additiva che aggiunge una colonna timestamp nullable cai_last_synced_at sia a cai_sections sia a cai_subsections (null finché la riga non è mai stata sincronizzata dal vivo)",
+        "down() rimuove la colonna da entrambe le tabelle",
+        "Test feature che verifica l'esistenza della colonna su entrambe le tabelle e che resta null su una riga creata senza valorizzarla esplicitamente",
+        "Tests pass"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-902",
+      "title": "cai_last_synced_at mass-assignable e castato sui modelli CaiSection/CaiSubsection",
+      "description": "As a developer, devo poter scrivere cai_last_synced_at tramite create()/update() sui modelli CaiSection/CaiSubsection, e riceverlo come istanza Carbon quando lo leggo.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: docs/superpowers/plans/2026-09-07-cai-scraper-native-php.md, Task 2 — seguire esattamente path/codice lì indicati",
+        "cai_last_synced_at aggiunto all'attributo #[Fillable] di CaiSection e CaiSubsection (senza, il mass-assignment lo scarta silenziosamente — gotcha già documentato in CLAUDE.md, US-703)",
+        "cai_last_synced_at aggiunto a casts() come 'datetime' su entrambi i modelli",
+        "Test unit che verifica che CaiSection::create([..., 'cai_last_synced_at' => $carbon]) e CaiSubsection::create([...]) persistano davvero il valore e lo restituiscano come istanza Carbon",
+        "La suite esistente di cai:import-datapack (tests/Feature/Console/CaiImportDatapackCommandTest.php) e la Resource staff (tests/Feature/Filament/CaiDirectory/CaiSectionResourceTest.php) restano verdi, invariate",
+        "Tests pass"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-903",
+      "title": "Estrazione di CaiSectionFieldMapper condiviso da CaiDatapackImporter",
+      "description": "As a developer, la mappatura riga→attributi di CaiSection/CaiSubsection deve essere condivisa (non duplicata) fra l'import da datapack statico e il futuro scrape live, così i due percorsi scrivono sempre con la stessa logica.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: docs/superpowers/plans/2026-09-07-cai-scraper-native-php.md, Task 3 — seguire esattamente path/codice lì indicati",
+        "Nuova classe App\\Domain\\CaiDirectory\\Import\\CaiSectionFieldMapper con metodi statici puri mapSection(object $row, array $usersByLowerEmail): array, mapSubsection(...), toInt(), toCoordinate(), matchUserId() — spostati (non copiati e lasciati anche nel vecchio posto) da CaiDatapackImporter",
+        "CaiDatapackImporter::importSections()/importSubsections() richiamano il nuovo mapper condiviso invece di costruire l'array $attributes inline",
+        "L'input dei metodi resta un object con le stesse proprietà cai_* già usate dalle righe sezioni_cai/sottosezioni_cai del datapack — nessuna conoscenza della fonte dati dentro il mapper",
+        "Nuovi test unit sul mapper puro (mapping esatto, toCoordinate scarta |x|>=1000, matchUserId case-insensitive/trim)",
+        "La suite esistente tests/Feature/Console/CaiImportDatapackCommandTest.php resta verde con GLI STESSI conteggi created/updated/skipped di prima del refactor (verifica di non-regressione esplicita)",
+        "Tests pass"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-904",
+      "title": "Normalizzatore JSON API CAI → forma cai_* del datapack",
+      "description": "As a developer, devo convertire il JSON grezzo restituito dall'API pubblica CAI nella stessa forma di riga (nomi di proprietà cai_*) già consumata da CaiSectionFieldMapper, così quest'ultimo non deve sapere se i dati vengono dal datapack o dall'API live.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: docs/superpowers/plans/2026-09-07-cai-scraper-native-php.md, Task 4 — seguire esattamente path/codice lì indicati (include la tabella di mapping campo-per-campo API→cai_*, verificata contro il prototipo Python RUNTS/scraper/cai_scraper.py)",
+        "Nuova classe App\\Domain\\CaiDirectory\\Import\\CaiApiSectionNormalizer con normalizeSection(array $raw): object e normalizeSubsection(array $raw, string $sectionCode): object",
+        "officeAddress/postalAddress (oggetti JSON annidati nella risposta API) vengono ri-serializzati con json_encode() in una stringa, compatibile con CaiRuntsAddressFormatter::format() che si aspetta una stringa JSON, non un array già decodificato",
+        "Gestisce sia i nomi camelCase (officeAddress) sia gli eventuali fallback snake_case (office_address) osservati nel prototipo",
+        "Test unit con fixture JSON realistiche (sezione e sottosezione) che verificano ogni campo mappato",
+        "Tests pass"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-905",
+      "title": "CaiApiClient — chiamate HTTP all'API pubblica CAI con retry",
+      "description": "As a sistema, devo poter chiamare l'elenco nazionale sezioni e l'elenco sottosezioni di una sezione sull'API pubblica CAI, con retry su errori di rete/transitori, senza mai bloccare l'intera sincronizzazione per un singolo errore di rete isolato.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: docs/superpowers/plans/2026-09-07-cai-scraper-native-php.md, Task 5 — seguire esattamente path/codice lì indicati",
+        "Nuova classe App\\Domain\\CaiDirectory\\Support\\CaiApiClient con fetchNationalSections(): array e fetchSubsections(string $sectionCode): array, basata sulla facade Http di Laravel (prima introduzione di Http:: in questo repo)",
+        "URL/timeout letti da config('cai_directory.api.*') (mai env() fuori da config/), nuove chiavi aggiunte a config/cai_directory.php e le corrispondenti CAI_API_* a .env.example",
+        "Retry con backoff esponenziale (3 tentativi), stesso schema del prototipo Python RUNTS/scraper/cai_scraper.py::_with_retry — dopo 3 fallimenti lancia un'eccezione esplicita",
+        "Test feature con Http::fake()/Http::fakeSequence() (successo, retry-poi-successo, fallimento definitivo dopo 3 tentativi)",
+        "Tests pass"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-906",
+      "title": "SyncCaiSectionAndSubsections — sincronizzazione live condivisa di una sezione",
+      "description": "As a developer, devo avere un unico punto che sincronizza dal vivo UNA sezione CAI e le sue sottosezioni (create/update/skip + bump di cai_last_synced_at), riusabile sia dal bottone dashboard sia dal futuro comando di refresh nazionale.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: docs/superpowers/plans/2026-09-07-cai-scraper-native-php.md, Task 6 — seguire esattamente path/codice lì indicati (include lo spostamento del test helper caiSection() in tests/Pest.php, con rimozione della dichiarazione locale duplicata in CaiSectionResourceTest.php per evitare un fatal error di redeclare)",
+        "Nuova classe App\\Domain\\CaiDirectory\\Actions\\SyncCaiSectionAndSubsections con run(object $normalizedSectionRow, bool $dryRun = false): array{cai_sections: CaiImportTableResult, cai_subsections: CaiImportTableResult}",
+        "Usa CaiSectionFieldMapper (US-903) per il mapping, DiffsAttributes::attributesDiffer() per decidere created/updated/skipped sui SOLI campi di business (mai includendo cai_last_synced_at nel confronto)",
+        "cai_last_synced_at viene sempre valorizzato a now() quando non in dry-run, anche quando il risultato è 'skipped' (nessun campo di business cambiato) — contattare la fonte e confermare l'invarianza resta comunque una sincronizzazione avvenuta",
+        "In dry-run non scrive nulla su nessuna delle due tabelle",
+        "Sottosezioni recuperate via CaiApiClient::fetchSubsections() (US-905) e sincronizzate con lo stesso schema create/update/skip",
+        "Test feature: creazione, aggiornamento con bump timestamp, skip con comunque bump timestamp, creazione sottosezioni, dry-run senza scritture, match utente per email case-insensitive",
+        "Tests pass"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-907",
+      "title": "ScrapeCaiSection — sincronizzazione live di una sola sezione",
+      "description": "As a sistema, devo poter sincronizzare dal vivo UNA sola sezione data il suo codice CAI, per alimentare il bottone \"Sincronizza dati CAI\" della dashboard cliente senza mai ri-scaricare/scrivere le altre sezioni.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: docs/superpowers/plans/2026-09-07-cai-scraper-native-php.md, Task 7 — seguire esattamente path/codice lì indicati",
+        "Nuova classe App\\Domain\\CaiDirectory\\Actions\\ScrapeCaiSection con run(string $codiceCai): array{cai_sections: CaiImportTableResult, cai_subsections: CaiImportTableResult}",
+        "Recupera l'elenco nazionale (l'API non supporta un filtro per singola sezione, verificato sul prototipo Python), isola la sola sezione richiesta, delega la sincronizzazione a SyncCaiSectionAndSubsections (US-906)",
+        "Se il codice richiesto non è presente nell'elenco nazionale: lancia un'eccezione esplicita (RuntimeException), mai un errore criptico o una scrittura parziale",
+        "Non deve mai chiamare l'endpoint sottosezioni per una sezione diversa da quella richiesta",
+        "Test feature: sincronizzazione riuscita isolando la sezione corretta dall'elenco nazionale, nessuna chiamata sottosezioni per altre sezioni, eccezione se il codice non esiste",
+        "Tests pass"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-908",
+      "title": "Il bottone \"Sincronizza dati CAI\" chiama l'API live invece del datapack statico",
+      "description": "As a cliente Sezione, quando clicco \"Sincronizza dati CAI\" sulla mia dashboard, voglio che i dati della mia sola sezione vengano aggiornati dal vivo dal sito CAI, non da un file datapack statico potenzialmente non aggiornato.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: docs/superpowers/plans/2026-09-07-cai-scraper-native-php.md, Task 8 — seguire esattamente path/codice lì indicati (contiene il corpo esatto pre-esistente del metodo da preservare/modificare)",
+        "CustomerDashboard::syncCaiDataAction() chiama ScrapeCaiSection::run($section->codice_cai) (US-907) invece di CaiDatapackImporter::import(...) — nome dell'action, label, icona, colore e condizione ->visible() restano identici a prima, cambia solo la logica del closure ->action()",
+        "Un errore durante la sincronizzazione (es. sezione non trovata sull'API, chiamata HTTP fallita) produce una notifica di errore esplicita (Filament\\Notifications\\Notification, danger), mai un'eccezione non gestita che rompe la pagina",
+        "syncRuntsDataAction() e resolveDatapackAbsolutePathOrNotify() restano invariati (il bottone RUNTS continua a usare il datapack statico — fuori scope di questa storia)",
+        "Test feature aggiornato/sostituito su CustomerDashboardTest.php: il click del bottone chiama l'API live (Http::fake) invece del datapack, aggiorna la sezione e mostra la notifica; il test del bottone RUNTS resta verde e invariato",
+        "Tests pass"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-909",
+      "title": "Data ultimo aggiornamento CAI visibile nell'Infolist condiviso",
+      "description": "As a cliente/staff, voglio vedere sempre chiaramente quando i dati CAI di una sezione (o sottosezione) sono stati sincronizzati l'ultima volta dal vivo, o che non lo sono mai stati.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: docs/superpowers/plans/2026-09-07-cai-scraper-native-php.md, Task 9 — seguire esattamente path/codice lì indicati",
+        "app/Filament/Resources/CaiSections/Schemas/CaiSectionInfolist.php mostra cai_last_synced_at sia nella sezione dati CAI principale sia per ciascuna sottosezione elencata, con placeholder 'Mai sincronizzato dal vivo' quando null",
+        "Nessuna modifica alla firma pubblica configure(Schema $schema): Schema — è un componente condiviso da staff (CaiSectionResource), dashboard cliente Sezione e dettaglio Gruppo Regionale: questa singola modifica deve coprire automaticamente tutte e tre le superfici",
+        "Test feature che verifica sia il timestamp formattato sia il placeholder 'Mai sincronizzato dal vivo' su una sezione con/senza cai_last_synced_at valorizzato",
+        "Tests pass"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-910",
+      "title": "Comando schedulato cai:sync-national dietro feature flag",
+      "description": "As a product owner, voglio che i dati CAI di TUTTE le sezioni vengano aggiornati automaticamente almeno una volta al mese, senza intervento manuale, con un errore su una singola sezione che non blocca le altre.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: docs/superpowers/plans/2026-09-07-cai-scraper-native-php.md, Task 10 — seguire esattamente path/codice lì indicati",
+        "Nuovo comando php artisan cai:sync-national {--dry-run}: recupera l'elenco nazionale (CaiApiClient), sincronizza ogni sezione+sottosezioni riusando SyncCaiSectionAndSubsections (US-906) in loop, mai una seconda implementazione della logica di sync",
+        "Un errore su una singola sezione (es. l'endpoint sottosezioni di quella sezione fallisce) viene loggato (Log::warning) e non interrompe le sezioni successive",
+        "Log strutturato di inizio/fine (Log::info) con conteggi esaminate/create/aggiornate/invariate/errori e durata",
+        "Nuova chiave config('cai_directory.sync_national.schedule_cron') e config('orchestrator.features.cai_sync_national') (env ENABLE_CAI_SYNC_NATIONAL, default false), registrato in routes/console.php con Schedule::command(...)->cron(...)->withoutOverlapping()->when(fn () => config('orchestrator.features.cai_sync_national')) — stesso identico pattern degli altri comandi schedulati del repo, nessun ->timeout() (non supportato in questo Laravel per comandi in-process)",
+        "Il comando resta eseguibile manualmente da CLI indipendentemente dal feature flag (il flag gate solo la schedulazione automatica, non il comando stesso)",
+        "Test feature: sincronizza ogni sezione dell'elenco nazionale, --dry-run non scrive nulla, un errore su una sezione non blocca le altre",
+        "Tests pass"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-911",
+      "title": "Checkpoint di fine storia — regressione end-to-end",
+      "description": "As a team, prima di considerare questa storia conclusa, voglio la certezza che nessuna delle storie precedenti (US-901..US-910) abbia introdotto una regressione sul percorso CAI/RUNTS esistente (Fase 8), in particolare sul refactor di CaiDatapackImporter.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: docs/superpowers/plans/2026-09-07-cai-scraper-native-php.md, Task 11 — seguire esattamente i comandi lì indicati",
+        "Tutti i file di test creati/modificati da US-901..US-910 eseguiti insieme passano",
+        "tests/Feature/Console/CaiImportDatapackCommandTest.php (suite pre-esistente di Fase 8, non modificata da questa storia se non dal refactor di US-903) passa con esiti identici a prima di questa storia",
+        "composer run analyse (Larastan livello 6) non introduce nuovi errori",
+        "composer run lint (Pint) non richiede modifiche non ancora applicate",
+        "Ogni eventuale regressione trovata viene investigata con causa radice (mai silenziata) prima di essere corretta",
+        "Tests pass"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}

@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Console\Commands\CaiCheckRuntsPresenceCommand;
+use App\Console\Commands\CaiSyncNationalCommand;
 use App\Console\Commands\MailFetchInboundCommand;
 use App\Console\Commands\MailRetryFailedCommand;
 use App\Console\Commands\MailSendDigestCommand;
@@ -138,3 +140,23 @@ Schedule::command(TicketsNotifyIdleDevelopersCommand::class)
     ->cron((string) config('ticketing.idle_developer_notice.schedule_cron'))
     ->withoutOverlapping()
     ->when(fn (): bool => (bool) config('orchestrator.features.tickets_idle_developer_notice'));
+
+// Fase 9, storia 1 (design doc `2026-09-07-cai-runts-live-sync-design.md` §3.5):
+// refresh mensile nazionale dei dati CAI dall'API pubblica. Cadenza configurabile
+// da config('cai_directory.sync_national.schedule_cron'), dietro il feature flag
+// config('orchestrator.features.cai_sync_national'). `cai:sync-national` resta
+// comunque richiamabile manualmente da CLI indipendentemente da questo flag.
+Schedule::command(CaiSyncNationalCommand::class)
+    ->cron((string) config('cai_directory.sync_national.schedule_cron'))
+    ->withoutOverlapping()
+    ->when(fn (): bool => (bool) config('orchestrator.features.cai_sync_national'));
+
+// Fase 9: verifica mensile leggera (sola ricerca, mai lo scrape completo) di presenza
+// RUNTS per ogni sezione con codice fiscale. Cadenza configurabile da
+// config('cai_directory.runts_presence_check.schedule_cron'), dietro il feature flag
+// config('orchestrator.features.cai_check_runts_presence'). `cai:check-runts-presence`
+// resta comunque richiamabile manualmente da CLI indipendentemente da questo flag.
+Schedule::command(CaiCheckRuntsPresenceCommand::class)
+    ->cron((string) config('cai_directory.runts_presence_check.schedule_cron'))
+    ->withoutOverlapping()
+    ->when(fn (): bool => (bool) config('orchestrator.features.cai_check_runts_presence'));

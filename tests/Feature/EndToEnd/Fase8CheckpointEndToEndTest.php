@@ -10,6 +10,7 @@ use App\Domain\Identity\Enums\UserRole;
 use App\Domain\Identity\Models\User;
 use App\Filament\Pages\CaiSectionRegionalDetail;
 use App\Filament\Pages\CustomerDashboard;
+use App\Filament\Pages\CustomerRegionalSectionsDashboard;
 use App\Filament\Resources\CaiSections\CaiSectionResource;
 use Database\Seeders\RolePermissionSeeder;
 use Filament\Facades\Filament;
@@ -260,10 +261,10 @@ test('the full RUNTS-CAI flow works end-to-end: import, email matching, staff co
         ->assertSee('Nessun dato CAI/RUNTS disponibile per la tua sezione')
         ->assertDontSee('Sez. Checkpoint Lombardia');
 
-    // 5. Dashboard del cliente Gruppo Regionale: la card elenca la sezione della
-    // propria regione, con link al dettaglio.
+    // 5. Pagina "Sezioni" del cliente Gruppo Regionale: la card elenca la sezione
+    // della propria regione, con link al dettaglio.
     $this->actingAs($regionalGroupLeader)
-        ->get(CustomerDashboard::getUrl())
+        ->get(CustomerRegionalSectionsDashboard::getUrl())
         ->assertSuccessful()
         ->assertSee(CaiSectionRegionalDetail::getUrl(['record' => $matchedCustomer->id]), false);
 

@@ -26,5 +26,7 @@ test('the feature flag catalog matches §10.2 of the PRD', function (): void {
         'reports_monthly',
         'mail_digest',
         'tickets_idle_developer_notice',
+        'cai_sync_national',
+        'cai_check_runts_presence',
     ]);
 });

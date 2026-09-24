@@ -15,5 +15,13 @@
         {{ __('We received your request by email and opened ticket #:id. We will update you as soon as there is news.', ['id' => $ticket->id]) }}
     </p>
 
+    @if ($firstMessage !== null)
+        <x-emails.message-block
+            :author-name="$firstMessage->author?->name ?? $ticket->requester?->name ?? __('You')"
+            :occurred-at="$firstMessage->posted_at"
+            :body-html="$firstMessage->body_html"
+        />
+    @endif
+
     <x-emails.cta-button :label="__('Go to ticket')" :url="$portalUrl" />
 @endsection

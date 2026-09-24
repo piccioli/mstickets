@@ -2,10 +2,13 @@
 
 declare(strict_types=1);
 
+use App\Domain\CaiDirectory\Enums\CaiDocumentSource;
+use App\Domain\CaiDirectory\Enums\CaiDocumentType;
+use App\Domain\CaiDirectory\Enums\CaiRuntsPresenceStatus;
+use App\Domain\CaiDirectory\Jobs\AnalyzeCaiFinancialStatementDocument;
 use App\Domain\CaiDirectory\Models\CaiDocument;
 use App\Domain\CaiDirectory\Models\CaiFinancialStatement;
 use App\Domain\CaiDirectory\Models\CaiRuntsRegistration;
-use App\Domain\CaiDirectory\Models\CaiSection;
 use App\Domain\CaiDirectory\Models\CaiSubsection;
 use App\Domain\Identity\Enums\CustomerType;
 use App\Domain\Identity\Enums\Permission as PermissionEnum;
@@ -17,6 +20,8 @@ use App\Filament\Resources\CaiSections\Pages\ListCaiSections;
 use App\Filament\Resources\CaiSections\Pages\ViewCaiSection;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
@@ -41,21 +46,6 @@ function grantCaiDirectoryPanelAccess(User $user): User
     return $user->fresh();
 }
 
-/**
- * @param  array<string, mixed>  $attributes
- */
-function caiSection(array $attributes = []): CaiSection
-{
-    static $sequence = 0;
-    $sequence++;
-
-    return CaiSection::create(array_merge([
-        'codice_cai' => 'CAI-'.$sequence,
-        'name' => 'Sezione CAI '.$sequence,
-        'region' => 'LOMBARDIA',
-    ], $attributes))->fresh();
-}
-
 test('a user without cai-directory.view is denied access to the list and detail pages', function (): void {
     $section = caiSection();
     $user = grantCaiDirectoryPanelAccess(userWithPermissions());
@@ -71,7 +61,13 @@ test('a user without cai-directory.view is denied access to the list and detail 
 test('a user with cai-directory.view can access the list page and sees the expected columns', function (): void {
     $user = grantCaiDirectoryPanelAccess(userWithPermissions(PermissionEnum::CaiDirectoryView));
     $linkedUser = User::factory()->create(['name' => 'Mario Rossi']);
-    $section = caiSection(['name' => 'Sezione di Abbiategrasso', 'region' => 'LOMBARDIA', 'user_id' => $linkedUser->id]);
+    $section = caiSection([
+        'name' => 'Sezione di Abbiategrasso',
+        'region' => 'LOMBARDIA',
+        'user_id' => $linkedUser->id,
+        'tax_code' => '90000340159',
+        'vat_number' => '01234567890',
+    ]);
     CaiRuntsRegistration::create([
         'id_runts' => 'RUNTS-'.$section->codice_cai,
         'cai_section_id' => $section->codice_cai,
@@ -88,7 +84,9 @@ test('a user with cai-directory.view can access the list page and sees the expec
         ->assertSee('Sezione di Abbiategrasso')
         ->assertSee('Abbiategrasso')
         ->assertSee('LOMBARDIA')
-        ->assertSee('Mario Rossi');
+        ->assertSee('Mario Rossi')
+        ->assertSee('90000340159')
+        ->assertSee('01234567890');
 });
 
 test('the resource has no create, edit or delete function', function (): void {
@@ -120,6 +118,26 @@ test('the table is filterable by region', function (): void {
         ->assertCanNotSeeTableRecords([$piemonte]);
 });
 
+test('the table is filterable by RUNTS presence status', function (): void {
+    $user = grantCaiDirectoryPanelAccess(userWithPermissions(PermissionEnum::CaiDirectoryView));
+    $registered = caiSection(['runts_presence_status' => CaiRuntsPresenceStatus::Registered]);
+    $notRegistered = caiSection(['runts_presence_status' => CaiRuntsPresenceStatus::NotRegistered]);
+    $timedOut = caiSection(['runts_presence_status' => CaiRuntsPresenceStatus::Timeout]);
+    $neverChecked = caiSection(['runts_presence_status' => null]);
+
+    $this->actingAs($user);
+
+    Livewire::test(ListCaiSections::class)
+        ->filterTable('runts_presence_status', CaiRuntsPresenceStatus::Registered->value)
+        ->assertCanSeeTableRecords([$registered])
+        ->assertCanNotSeeTableRecords([$notRegistered, $timedOut, $neverChecked]);
+
+    Livewire::test(ListCaiSections::class)
+        ->filterTable('runts_presence_status', CaiRuntsPresenceStatus::Timeout->value)
+        ->assertCanSeeTableRecords([$timedOut])
+        ->assertCanNotSeeTableRecords([$registered, $notRegistered, $neverChecked]);
+});
+
 test('the table is filterable by presence of a linked user', function (): void {
     $user = grantCaiDirectoryPanelAccess(userWithPermissions(PermissionEnum::CaiDirectoryView));
     $linkedUser = User::factory()->create();
@@ -137,6 +155,25 @@ test('the table is filterable by presence of a linked user', function (): void {
         ->filterTable('user_id', false)
         ->assertCanSeeTableRecords([$withoutUser])
         ->assertCanNotSeeTableRecords([$withUser]);
+});
+
+test('the table is filterable by missing tax_code', function (): void {
+    $user = grantCaiDirectoryPanelAccess(userWithPermissions(PermissionEnum::CaiDirectoryView));
+    $withTaxCode = caiSection(['tax_code' => '90000340159']);
+    $withoutTaxCode = caiSection(['tax_code' => null]);
+    $withEmptyTaxCode = caiSection(['tax_code' => '']);
+
+    $this->actingAs($user);
+
+    Livewire::test(ListCaiSections::class)
+        ->filterTable('tax_code', true)
+        ->assertCanSeeTableRecords([$withoutTaxCode, $withEmptyTaxCode])
+        ->assertCanNotSeeTableRecords([$withTaxCode]);
+
+    Livewire::test(ListCaiSections::class)
+        ->filterTable('tax_code', false)
+        ->assertCanSeeTableRecords([$withTaxCode])
+        ->assertCanNotSeeTableRecords([$withoutTaxCode, $withEmptyTaxCode]);
 });
 
 test('viewing a section with runts data, statements and attachments shows the expected data', function (): void {
@@ -209,6 +246,17 @@ test('viewing a section without runts data, statements or attachments does not c
         ->assertSee('Nessun bilancio disponibile')
         ->assertSee('Nessun allegato disponibile')
         ->assertSee('Nessuna sottosezione collegata');
+});
+
+test('the CAI directory tab links to the official cai.it section page, built from codice_cai, regardless of the website field', function (): void {
+    $user = grantCaiDirectoryPanelAccess(userWithPermissions(PermissionEnum::CaiDirectoryView));
+    $section = caiSection(['codice_cai' => '9216006', 'name' => 'Sezione Senza Sito Proprio', 'website' => null]);
+
+    $this->actingAs($user);
+
+    Livewire::test(ViewCaiSection::class, ['record' => $section->getKey()])
+        ->assertOk()
+        ->assertSee('https://www.cai.it/sezioni-territoriali/sezioni-e-sottosezioni/sezione/?codice=9216006', false);
 });
 
 test('an authorized user can download a cai document', function (): void {
@@ -287,6 +335,44 @@ test('a customer can download a document belonging to their own cai section', fu
     $response = $this->actingAs($customer)->get(route('cai-documents.download', $document));
 
     $response->assertOk();
+});
+
+test('a customer can download a document attached directly to their own section, without any runts registration', function (): void {
+    Storage::fake('cai-documents');
+
+    $customer = withRole(User::factory()->create(), UserRole::Customer);
+    $section = caiSection(['user_id' => $customer->id]);
+    Storage::disk('cai-documents')->put('manual/nota.pdf', '%PDF-1.4 fake content');
+    $document = CaiDocument::create([
+        'cai_section_id' => $section->codice_cai,
+        'document_type' => 'altro',
+        'file_path' => 'manual/nota.pdf',
+        'file_name' => 'nota.pdf',
+        'source' => 'manual',
+    ]);
+
+    $response = $this->actingAs($customer)->get(route('cai-documents.download', $document));
+
+    $response->assertOk();
+});
+
+test('a customer cannot download a document attached directly to another cai section', function (): void {
+    Storage::fake('cai-documents');
+
+    $customer = withRole(User::factory()->create(), UserRole::Customer);
+    $otherSection = caiSection();
+    Storage::disk('cai-documents')->put('manual/nota.pdf', '%PDF-1.4 fake content');
+    $document = CaiDocument::create([
+        'cai_section_id' => $otherSection->codice_cai,
+        'document_type' => 'altro',
+        'file_path' => 'manual/nota.pdf',
+        'file_name' => 'nota.pdf',
+        'source' => 'manual',
+    ]);
+
+    $response = $this->actingAs($customer)->get(route('cai-documents.download', $document));
+
+    $response->assertForbidden();
 });
 
 test('a customer cannot download a document belonging to another cai section', function (): void {
@@ -373,4 +459,251 @@ test('a gruppo regionale customer cannot download a document belonging to a sect
     $response = $this->actingAs($groupLeader)->get(route('cai-documents.download', $document));
 
     $response->assertForbidden();
+});
+
+test('office hours and notices are shown as formatted text, not raw HTML source', function (): void {
+    $user = grantCaiDirectoryPanelAccess(userWithPermissions(PermissionEnum::CaiDirectoryView));
+    $section = caiSection([
+        'name' => 'Sezione Orari',
+        'office_hours' => "\n                        Martedi dalle 18 alle 19&nbsp;<span style=\"background-color: rgb(254, 251, 243);\">(da ottobre a maggio, restanti mesi chiuso)</span><br>Venerdi dalle 21 alle 22:30\n                    ",
+        'notices' => '<script>alert(1)</script><p>Sede chiusa per lavori.</p>',
+    ]);
+
+    $this->actingAs($user);
+
+    $test = Livewire::test(ViewCaiSection::class, ['record' => $section->getKey()])
+        ->assertOk()
+        ->assertSee('Martedi dalle 18 alle 19', escape: false)
+        ->assertSee('(da ottobre a maggio, restanti mesi chiuso)', escape: false)
+        ->assertSee('Venerdi dalle 21 alle 22:30', escape: false)
+        ->assertSee('Sede chiusa per lavori.', escape: false)
+        ->assertDontSee('&lt;span', escape: false)
+        ->assertDontSee('<script>', escape: false);
+
+    expect($test->html())->not->toContain('background-color');
+});
+
+test('the differences tab shows the comparison between CaiSection and its RUNTS registration', function (): void {
+    $user = grantCaiDirectoryPanelAccess(userWithPermissions(PermissionEnum::CaiDirectoryView));
+    $section = caiSection(['name' => 'Sezione Confronto', 'pec' => 'sezione@pec.example.com']);
+    CaiRuntsRegistration::create([
+        'id_runts' => 'RUNTS-'.$section->codice_cai,
+        'cai_section_id' => $section->codice_cai,
+        'name' => 'Denominazione RUNTS diversa',
+        'pec' => 'sezione@pec.example.com',
+    ]);
+
+    $this->actingAs($user);
+
+    Livewire::test(ViewCaiSection::class, ['record' => $section->getKey()])
+        ->assertOk()
+        ->assertSee('Denominazione')
+        ->assertSee('Sezione Confronto')
+        ->assertSee('Denominazione RUNTS diversa')
+        ->assertSee('Diverso')
+        ->assertSee('Uguale');
+});
+
+test('the differences tab shows an explicit empty state when no RUNTS registration is linked', function (): void {
+    $user = grantCaiDirectoryPanelAccess(userWithPermissions(PermissionEnum::CaiDirectoryView));
+    $section = caiSection(['name' => 'Sezione Senza RUNTS']);
+
+    $this->actingAs($user);
+
+    Livewire::test(ViewCaiSection::class, ['record' => $section->getKey()])
+        ->assertOk()
+        ->assertSee('Nessuna registrazione RUNTS collegata: nessun confronto possibile');
+});
+
+test('the financial statements tab lists years from most recent to oldest', function (): void {
+    $user = grantCaiDirectoryPanelAccess(userWithPermissions(PermissionEnum::CaiDirectoryView));
+    $section = caiSection(['name' => 'Sezione Bilanci Ordinati']);
+    $registration = CaiRuntsRegistration::create([
+        'id_runts' => 'RUNTS-'.$section->codice_cai,
+        'cai_section_id' => $section->codice_cai,
+        'name' => 'Ente Bilanci',
+    ]);
+    foreach ([2022, 2024, 2023] as $year) {
+        CaiFinancialStatement::create([
+            'cai_runts_registration_id' => $registration->id_runts,
+            'year' => $year,
+        ]);
+    }
+
+    $this->actingAs($user);
+
+    $html = Livewire::test(ViewCaiSection::class, ['record' => $section->getKey()])->assertOk()->html();
+
+    expect(strpos($html, '2024'))->toBeLessThan(strpos($html, '2023'))
+        ->and(strpos($html, '2023'))->toBeLessThan(strpos($html, '2022'));
+});
+
+test('the documents tab lists attachments from most recent to oldest year', function (): void {
+    Storage::fake('cai-documents');
+
+    $user = grantCaiDirectoryPanelAccess(userWithPermissions(PermissionEnum::CaiDirectoryView));
+    $section = caiSection(['name' => 'Sezione Allegati Ordinati']);
+    $registration = CaiRuntsRegistration::create([
+        'id_runts' => 'RUNTS-'.$section->codice_cai,
+        'cai_section_id' => $section->codice_cai,
+        'name' => 'Ente Allegati',
+    ]);
+    foreach ([2022, 2024, 2023] as $year) {
+        Storage::disk('cai-documents')->put("bilanci/{$year}.pdf", '%PDF-1.4 fake content');
+        CaiDocument::create([
+            'cai_runts_registration_id' => $registration->id_runts,
+            'document_type' => 'bilancio',
+            'year' => $year,
+            'title' => "Bilancio {$year}",
+            'file_path' => "bilanci/{$year}.pdf",
+            'file_name' => "{$year}.pdf",
+            'mime_type' => 'application/pdf',
+        ]);
+    }
+
+    $this->actingAs($user);
+
+    $html = Livewire::test(ViewCaiSection::class, ['record' => $section->getKey()])->assertOk()->html();
+
+    expect(strpos($html, 'Bilancio 2024'))->toBeLessThan(strpos($html, 'Bilancio 2023'))
+        ->and(strpos($html, 'Bilancio 2023'))->toBeLessThan(strpos($html, 'Bilancio 2022'));
+});
+
+test('the documents and financial statements tabs merge documents/bilanci attached directly to the section with those attached via a runts registration', function (): void {
+    Storage::fake('cai-documents');
+
+    $user = grantCaiDirectoryPanelAccess(userWithPermissions(PermissionEnum::CaiDirectoryView));
+    $section = caiSection(['name' => 'Sezione Mista']);
+    $registration = CaiRuntsRegistration::create([
+        'id_runts' => 'RUNTS-'.$section->codice_cai,
+        'cai_section_id' => $section->codice_cai,
+    ]);
+
+    Storage::disk('cai-documents')->put('runts/doc.pdf', '%PDF-1.4 fake content');
+    CaiDocument::create([
+        'cai_runts_registration_id' => $registration->id_runts,
+        'document_type' => 'bilancio',
+        'title' => 'Documento da RUNTS',
+        'file_path' => 'runts/doc.pdf',
+        'file_name' => 'doc.pdf',
+        'source' => 'runts',
+    ]);
+    Storage::disk('cai-documents')->put('manual/doc.pdf', '%PDF-1.4 fake content');
+    CaiDocument::create([
+        'cai_section_id' => $section->codice_cai,
+        'document_type' => 'altro',
+        'title' => 'Documento caricato a mano',
+        'file_path' => 'manual/doc.pdf',
+        'file_name' => 'doc-manuale.pdf',
+        'source' => 'manual',
+    ]);
+
+    CaiFinancialStatement::create(['cai_runts_registration_id' => $registration->id_runts, 'year' => 2024, 'net_result' => 1.0]);
+    CaiFinancialStatement::create(['cai_section_id' => $section->codice_cai, 'year' => 2023, 'net_result' => 2.0]);
+
+    $this->actingAs($user);
+
+    Livewire::test(ViewCaiSection::class, ['record' => $section->getKey()])
+        ->assertOk()
+        ->assertSee('Documento da RUNTS')
+        ->assertSee('Documento caricato a mano')
+        ->assertSee('RUNTS')
+        ->assertSee('Caricamento manuale')
+        ->assertSeeText('2024')
+        ->assertSeeText('2023');
+});
+
+test('the upload document action is only visible with cai-directory.upload-document', function (): void {
+    $withoutUploadPermission = grantCaiDirectoryPanelAccess(userWithPermissions(PermissionEnum::CaiDirectoryView));
+    $withUploadPermission = grantCaiDirectoryPanelAccess(userWithPermissions(PermissionEnum::CaiDirectoryView, PermissionEnum::CaiDirectoryUploadDocument));
+    $section = caiSection();
+
+    $this->actingAs($withoutUploadPermission);
+    Livewire::test(ViewCaiSection::class, ['record' => $section->getKey()])
+        ->assertActionHidden('upload_document');
+
+    $this->actingAs($withUploadPermission);
+    Livewire::test(ViewCaiSection::class, ['record' => $section->getKey()])
+        ->assertActionVisible('upload_document');
+});
+
+test('uploading a document always attaches it directly to the section, with no registration picker in the form', function (): void {
+    Storage::fake('cai-documents');
+
+    $user = grantCaiDirectoryPanelAccess(userWithPermissions(PermissionEnum::CaiDirectoryView, PermissionEnum::CaiDirectoryUploadDocument));
+    $section = caiSection();
+    CaiRuntsRegistration::create(['id_runts' => 'RUNTS-'.$section->codice_cai, 'cai_section_id' => $section->codice_cai]);
+
+    $this->actingAs($user);
+
+    Livewire::test(ViewCaiSection::class, ['record' => $section->getKey()])
+        ->callAction('upload_document', data: [
+            'document_type' => CaiDocumentType::Altro->value,
+            'title' => 'Nota caricata a mano',
+            'file' => UploadedFile::fake()->create('nota.pdf', 5, 'application/pdf'),
+        ])
+        ->assertHasNoActionErrors()
+        ->assertRedirect(CaiSectionResource::getUrl('view', ['record' => $section, 'tab' => 'allegati']));
+
+    $document = CaiDocument::query()->where('cai_section_id', $section->codice_cai)->sole();
+    expect($document->cai_runts_registration_id)->toBeNull()
+        ->and($document->title)->toBe('Nota caricata a mano')
+        ->and($document->source)->toBe(CaiDocumentSource::Manual);
+});
+
+test('uploading a Mod A document dispatches the financial-statement analysis job', function (): void {
+    Storage::fake('cai-documents');
+    Queue::fake();
+
+    $user = grantCaiDirectoryPanelAccess(userWithPermissions(PermissionEnum::CaiDirectoryView, PermissionEnum::CaiDirectoryUploadDocument));
+    $section = caiSection();
+
+    $this->actingAs($user);
+
+    Livewire::test(ViewCaiSection::class, ['record' => $section->getKey()])
+        ->callAction('upload_document', data: [
+            'document_type' => CaiDocumentType::ModA->value,
+            'year' => 2025,
+            'title' => 'Mod A 2025',
+            'file' => UploadedFile::fake()->create('mod-a.pdf', 5, 'application/pdf'),
+        ])
+        ->assertHasNoActionErrors();
+
+    $document = CaiDocument::query()->where('cai_section_id', $section->codice_cai)->sole();
+    Queue::assertPushed(
+        AnalyzeCaiFinancialStatementDocument::class,
+        fn ($job): bool => $job->caiDocumentId === $document->id,
+    );
+});
+
+test('the section detail page shows the last live-sync timestamp, or a "never synced" placeholder', function (): void {
+    $user = grantCaiDirectoryPanelAccess(userWithPermissions(PermissionEnum::CaiDirectoryView));
+
+    $syncedSection = caiSection(['cai_last_synced_at' => now()]);
+    $neverSyncedSection = caiSection(['cai_last_synced_at' => null]);
+
+    $this->actingAs($user);
+
+    Livewire::test(ViewCaiSection::class, ['record' => $syncedSection->getKey()])
+        ->assertOk()
+        ->assertSeeText(now()->format('d/m/Y'));
+
+    Livewire::test(ViewCaiSection::class, ['record' => $neverSyncedSection->getKey()])
+        ->assertOk()
+        ->assertSeeText('Mai sincronizzato dal vivo');
+});
+
+test('the section detail page shows the last RUNTS live-sync timestamp, or a "never synced" placeholder', function (): void {
+    $user = grantCaiDirectoryPanelAccess(userWithPermissions(PermissionEnum::CaiDirectoryView));
+
+    $section = caiSection();
+    caiRuntsRegistration(['cai_section_id' => $section->codice_cai, 'runts_last_synced_at' => now()]);
+    caiRuntsRegistration(['cai_section_id' => $section->codice_cai, 'runts_last_synced_at' => null]);
+
+    $this->actingAs($user);
+
+    Livewire::test(ViewCaiSection::class, ['record' => $section->getKey()])
+        ->assertOk()
+        ->assertSeeText(now()->format('d/m/Y'))
+        ->assertSeeText('Mai sincronizzato dal vivo');
 });

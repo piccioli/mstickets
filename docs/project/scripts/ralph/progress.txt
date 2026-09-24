@@ -1,408 +1,837 @@
 # Ralph Progress Log
-Started: 2026-08-28 (Fase 8 — Integrazione dati RUNTS-CAI)
+Started: Lun  7 Set 2026 15:44:39 CEST
 ---
 
 ## Codebase Patterns
-- Progetto: `mstickets/orchestrator` (Laravel, Filament), git separato dalla root `mstickets/` (che non è
-  un repo git). Ambiente via `docker compose` (servizi `app`/`db`/`redis`/`queue`/`web`/`scheduler`/
-  `db_legacy`), già up in questa sessione — comandi con `docker compose exec app ...`, non `php artisan`
-  sull'host (l'host non risolve l'hostname `db`).
-- Comandi qualità: `docker compose exec app composer analyse` (phpstan/larastan, level 6), `docker compose
-  exec app vendor/bin/pint --test` (lint), `docker compose exec app php artisan test` (Pest, DB sqlite
-  :memory: per i test — vedi gotcha sotto sul crash del suite completo).
-- Migrazioni: `database/migrations/YYYY_MM_DD_HHMMSS_create_<tabella>_table.php`, classe anonima,
-  `declare(strict_types=1)`, `Schema::create`/`dropIfExists`. FK standard: `$table->foreignId('x')
-  ->nullable()->constrained('users')->nullOnDelete()`.
-- Modelli: `App\Domain\<Dominio>\Models\*`, `Model` puro (nessuna base class custom), attributo PHP
-  `#[Fillable([...])]` (non `protected $fillable`), cast via `protected function casts(): array` (stile
-  Laravel 11+, richiede `parseModelCastsMethod: true` in phpstan.neon per l'inferenza tipo enum), relazioni
-  tipizzate `BelongsTo`/`HasMany` con PHPDoc `@return BelongsTo<Target, $this>`.
-- Nessuna factory dedicata per modelli di dominio (solo `database/factories/UserFactory.php`): nei test si
-  usa `Model::create([...])` diretto + `User::factory()->create()`.
-- Test di schema/relazioni: `tests/Feature/Domain/<Dominio>/*Test.php` (non `tests/Unit/Domain`, che è per
-  enum/state machine), `uses(RefreshDatabase::class)`, `Schema::hasColumns(...)` per le colonne attese.
-- **Per qualunque comando di import da una fonte dati reale**: se il file/dump reale è disponibile in
-  locale, eseguire sempre il comando anche contro quello (non solo contro la fixture di test) prima di
-  dichiarare la story completa — i test verdi su fixture non garantiscono che la forma dei dati reali sia
-  quella attesa (vedi US-802: 2 bug reali, 0 dei quali coperti dalla fixture iniziale, entrambi trovati
-  solo eseguendo contro `cai-datapack/runts-cai.sqlite`).
-- Se il log di un'iterazione precedente mostra "Background tasks still running after 600s; terminating":
-  il lavoro dell'agente in background non è perso, resta uncommitted nel working tree del branch —
-  verificarlo e riprenderlo, non ripartire da zero.
-- **Gotcha grosso**: `php artisan test` senza filtri crasha in modo deterministico e preesistente (non
-  causato da alcuna story di questa fase), sempre nello stesso punto, subito prima di
-  `tests/Unit/Domain/Mail/Parsers/*` (uso di `symfony/html-sanitizer` → `\Dom\HTMLDocument`, verosimile bug
-  nativo dell'estensione PHP 8.4). Verificato riproducibile identico anche su un `git stash` pulito. Per
-  "Tests pass" su una story che non tocca il dominio Mail: filtrare i test della propria story/dominio, non
-  fidarsi del codice di uscita della run senza filtri. Dettagli completi in `orchestrator/CLAUDE.md`, sezione
-  US-801.
-- **Download di file da un'azione Filament**: un'`Action::make()->action(fn () => response()->streamDownload(...))`
-  funziona come download browser out-of-the-box (Livewire intercetta nativamente il ritorno
-  `StreamedResponse`/`BinaryFileResponse` di un metodo, nessun controller/route dedicato necessario). In
-  test: `Livewire::test(...)->callTableAction('nomeAzione')`, poi `$test->effects['download']` (proprietà
-  magica, non `assertFileDownloaded()` se serve ispezionare il contenuto). Dettagli completi in
-  `orchestrator/CLAUDE.md`, sezione "Export di file da un'azione Filament".
-- **Dati geografici reali col rumore**: prima di un `fitBounds()`/qualunque calcolo di viewport su
-  coordinate provenienti da un import reale, verificare sempre con lo screenshot vero (non solo la fixture)
-  — il datapack RUNTS-CAI contiene almeno un outlier geocodificato fuori dall'Italia che, non gestito,
-  rende una mappa inutilizzabile pur passando tutti i test automatici.
+- Repo git root è direttamente `mstickets/` (non un sottodirectory `orchestrator/` separato — quella
+  cartella esiste ma è vuota/legacy, ignorarla). `git rev-parse --show-toplevel` conferma.
+- Ambiente via `docker compose` (servizi `app`/`db`/`redis`/`queue`/`web`/`scheduler`/`mailpit`), già up in
+  questa sessione. Comandi via `docker compose exec -T app ...`.
+- **Isolamento test da dev DB**: `docker compose exec -T app env -u DB_CONNECTION -u DB_DATABASE -u DB_HOST
+  -u DB_PORT -u DB_USERNAME -u DB_PASSWORD php -d memory_limit=512M vendor/bin/pest <path>` — necessario
+  perché le env reali del container (iniettate da `env_file: .env`) altrimenti sovrascrivono gli `<env>` di
+  `phpunit.xml` (gotcha già documentato in CLAUDE.md, ora forse mitigato da un fix in 3c0d277 "isolamento
+  reale dell'ambiente di test" — verificato comunque che il workaround esplicito resta necessario/innocuo).
+- Analyse: `docker compose exec -T app vendor/bin/phpstan analyse --memory-limit=1G`. Lint: `docker compose
+  exec -T app vendor/bin/pint --test`.
+- Il piano dettagliato `docs/superpowers/plans/2026-09-07-cai-scraper-native-php.md` contiene il codice
+  ESATTO (migrazione, test, classi) da usare per ogni Task N ↔ US-90(N). Copiarlo alla lettera invece di
+  reinventare, come richiesto dal PRD.
 
-## 2026-08-28 - US-801
-- Implementato lo schema dati `App\Domain\CaiDirectory`: 6 migrazioni additive (`cai_sections`,
-  `cai_subsections`, `cai_runts_registrations`, `cai_financial_statements`, `cai_board_members`,
-  `cai_documents`) e 6 modelli Eloquent con relazioni esplicite (`CaiSection hasMany CaiSubsection`,
-  `hasMany CaiRuntsRegistration`, `belongsTo User` nullable; `CaiRuntsRegistration hasMany` verso bilanci/
-  cariche/allegati). Nessuna tabella per `gruppi_regionali_cai`/`geocoding_cache` (fuori scope, confermato
-  nel design). Colonne dedotte da `scraper/db.py` del prototipo sorgente RUNTS-CAI
-  (`/Users/alessiopiccioli/Documents/LAVORO/MS/SOFTWARE/RUNTS`), nomi colonna in inglese per coerenza con
-  le altre migrazioni del repo (es. Fundraising), tranne le 3 chiavi naturali esplicitamente richieste
-  dall'AC (`codice_cai`, `cai_codice`, `id_runts`).
-- File: `database/migrations/2026_08_28_1300[00-05]_create_cai_*_table.php`,
-  `app/Domain/CaiDirectory/Models/{CaiSection,CaiSubsection,CaiRuntsRegistration,CaiFinancialStatement,
-  CaiBoardMember,CaiDocument}.php`, `tests/Feature/Domain/CaiDirectory/CaiDirectorySchemaTest.php` (10
-  test: colonne per tabella, chiave naturale non incrementale, relazioni, `nullOnDelete` su `user_id`).
-- Verifica: migrazioni eseguite con successo su Postgres reale (`docker compose exec app php artisan
-  migrate --force`); `composer analyse` (phpstan level 6) e `vendor/bin/pint --test` puliti; i 10 test nuovi
-  passano; suite completa non attendibile per il crash preesistente descritto sopra (riprodotto identico
-  anche senza le modifiche di questa story, via `git stash`).
-- **Learnings for future iterations:**
-  - Vedi "Codebase Patterns" in cima a questo file e la sezione US-801 di `orchestrator/CLAUDE.md` per il
-    pattern di chiave primaria naturale string e il gotcha del test suite.
-  - US-802 (comando `cai:import-datapack`) dovrà: aprire `cai-datapack/runts-cai.sqlite` (non ancora
-    presente in locale in questa sessione — va copiato a mano prima di sviluppare/testare l'import, come
-    da PRD), fare upsert idempotente su queste 6 tabelle, parsare `enti.data_iscrizione` (formato sorgente
-    `DD/MM/YYYY`, es. `08/05/2026`) verso la colonna `registration_date` (cast `date`), e concatenare
-    `cariche_sociali.nome`+`cognome` in `cai_board_members.full_name` (la tabella sorgente è vuota nel
-    dataset attuale, quindi non testabile su dati reali finché la fonte non la popola).
+## [2026-09-07] - US-901
+- Migrazione `cai_last_synced_at` (nullable timestamp) aggiunta sia a `cai_sections` sia a `cai_subsections`,
+  seguendo alla lettera Task 1 del piano.
+- Nuovo test `tests/Feature/Database/CaiLastSyncedAtColumnsTest.php` (2 test): verifica esistenza colonna e
+  che resti `null` su una riga creata senza valorizzarla esplicitamente.
+- File: `database/migrations/2026_09_07_140000_add_cai_last_synced_at_to_cai_sections_and_cai_subsections_tables.php`,
+  `tests/Feature/Database/CaiLastSyncedAtColumnsTest.php`.
+- Verificato: nuovo test passa (2/2), l'intera suite `--filter=Cai` (82 test pre-esistenti, incluso
+  `CaiSectionResourceTest`) resta verde, `pint --test` e `phpstan analyse --memory-limit=1G` puliti.
+- Nessuna modifica ai modelli `CaiSection`/`CaiSubsection` in questa story (Fillable/casts sono compito di
+  US-902) — i `Fillable` esistenti già coprono i campi usati dal test (`codice_cai`/`name`/`region`/
+  `cai_codice`/`cai_section_id`).
+- **Learnings**: nessuna sorpresa, il piano combacia esattamente con lo stato reale del codice per questo
+  Task. Prossima story (US-902) deve aggiungere `cai_last_synced_at` a `#[Fillable]`/`casts()` di entrambi
+  i modelli — vedere Task 2 del piano.
 ---
 
-## 2026-08-28 - US-802
-- Trovato lavoro non committato di un'iterazione precedente (agente in background, interrotta dal loop
-  Ralph prima della verifica): comando `cai:import-datapack`, `CaiDatapackImporter` (576 righe, le 6
-  tabelle in ordine di dipendenza FK, matching email case-insensitive, idempotenza via confronto attributi
-  normalizzato sui cast del modello), `CaiRuntsDateParser` (estrae l'ultima sottostringa `DD/MM/YYYY` da
-  testo libero, gestisce le date narrative reali tipo "Iscritto tramite trasmigrazione ... il 24/02/2023"),
-  disco privato dedicato `cai-documents` (stesso pattern di `ticket-attachments`/`raw-emails`), fixture
-  SQLite di test costruita via PHP invece di un binario committato. Ho verificato tutto (phpstan, pint,
-  test mirati) prima di fidarmene, poi eseguito l'import contro il datapack reale (`cai-datapack/
-  runts-cai.sqlite`, 529 sezioni/224 sottosezioni/184 enti/67 bilanci/201 allegati) per collaudarlo oltre
-  la fixture — **e ho trovato 2 bug reali non coperti dalla fixture**, che ho corretto in questa iterazione:
-  1. `sezioni_cai.cai_indirizzo_sede`/`cai_indirizzo_postale` (e l'equivalente sottosezioni) sono JSON di
-     geocoding nel 100% delle righe reali (`{"address1":...,"number":...,"zip":...,"city":...,
-     "province":...}`), non testo semplice come `enti.sede_indirizzo` — inserire il JSON grezzo (fino a
-     ~300 caratteri) in `address`/`postal_address` (`string(255)`) troncava con errore Postgres. Aggiunto
-     `CaiRuntsAddressFormatter` che produce una riga leggibile (max osservato 142 caratteri).
-  2. Una riga reale (`sezioni_cai.codice_cai = 9220033`) ha `cai_lat = 25614`, una coordinata palesemente
-     corrotta alla fonte che trabocca `decimal(10,7)` e fa fallire l'intero insert. Aggiunto
-     `CaiDatapackImporter::toCoordinate()` che scarta a `null` qualunque |valore| >= 1000 invece di far
-     fallire l'import.
-  - Estesa la fixture di test con un indirizzo JSON e una coordinata fuori range per coprire entrambi i
-    casi in futuro (prima non erano testati, solo scoperti eseguendo contro il dataset reale).
-- File: `app/Console/Commands/CaiImportDatapackCommand.php`, `app/Domain/CaiDirectory/Import/
-  {CaiDatapackImporter,CaiImportTableResult,CaiRuntsDateParser,CaiRuntsAddressFormatter}.php`,
-  `app/Domain/CaiDirectory/Import/Concerns/DiffsAttributes.php`, `config/filesystems.php` (disco
-  `cai-documents`), `tests/Feature/Console/CaiImportDatapackCommandTest.php`, `CLAUDE.md`.
-- Verifica: `composer analyse` (phpstan level 6) e `vendor/bin/pint --test` puliti; 4 test del comando + 10
-  test schema US-801 passano (14/14, 72 assertion); **import reale eseguito 2 volte contro il datapack di
-  produzione**: prima run popola tutte le 6 tabelle (529/224/184/67/0/201 righe), seconda run interamente
-  idempotente (tutto "saltato", zero creati/aggiornati) — non solo verificato su fixture.
-- **Learnings for future iterations:**
-  - **Non fidarsi mai di una fixture di test come unica prova che un import funziona sui dati reali.**
-    Questa story aveva 4 test verdi sulla fixture eppure falliva al primo giro contro il datapack reale
-    (2 bug diversi, entrambi data-shape non anticipate). Se il datapack reale è disponibile in locale
-    (`cai-datapack/runts-cai.sqlite`, non versionato — verificare con `ls` prima di assumere che manchi),
-    eseguire sempre il comando anche contro quello, non solo la suite di test, prima di dichiarare la
-    story completa.
-  - Pattern per campi testuali "sembrano stringa ma sono in realtà JSON strutturato" nel datapack RUNTS-CAI:
-    verificare sempre con un campione reale (`json_decode($valore) !== null`) prima di assumere che una
-    colonna sorgente sia testo semplice — vedi nota `CaiRuntsAddressFormatter` in `CLAUDE.md` per il
-    dettaglio completo e come estendere il pattern se emergono altri campi.
-  - Vedi anche la sezione "Import — cai:import-datapack" in `orchestrator/CLAUDE.md` per il dettaglio
-    completo dei due gotcha.
-  - Un'iterazione Ralph può lanciare un agente in background e uscire prima che finisca (visibile nel log
-    come "Background tasks still running after 600s; terminating"): il lavoro non è perso, resta
-    uncommitted nel working tree e va ripreso/verificato dall'iterazione successiva, non ripartito da zero.
+## [2026-09-07] - US-902
+- `cai_last_synced_at` aggiunto a `#[Fillable]` e a `casts()` (come `'datetime'`) sia su `CaiSection` sia su
+  `CaiSubsection`, seguendo alla lettera Task 2 del piano.
+- Nuovo test `tests/Unit/Domain/CaiDirectory/Models/CaiLastSyncedAtFillableTest.php` (2 test): verifica che
+  `create([..., 'cai_last_synced_at' => $carbon])` persista davvero il valore e lo restituisca come istanza
+  `Carbon` su entrambi i modelli.
+- File: `app/Domain/CaiDirectory/Models/CaiSection.php`, `app/Domain/CaiDirectory/Models/CaiSubsection.php`,
+  `tests/Unit/Domain/CaiDirectory/Models/CaiLastSyncedAtFillableTest.php`.
+- Verificato: nuovo test passa (2/2), `tests/Feature/Console/CaiImportDatapackCommandTest.php` +
+  `tests/Feature/Filament/CaiDirectory/CaiSectionResourceTest.php` restano verdi e invariati (25/25),
+  `pint --test` e `phpstan analyse --memory-limit=1G` puliti.
+- **Learnings**: nessuna sorpresa, il piano combacia esattamente con lo stato reale del codice per questo
+  Task. Prossima story (US-903) estrae `CaiSectionFieldMapper` da `CaiDatapackImporter` — vedere Task 3 del
+  piano, che include già il codice esatto della classe e il refactor dell'importer.
 ---
 
-## 2026-08-28 - US-803
-- Wiring di `cai:import-datapack` (US-802) in `make setup` (locale, best-effort) e nel deploy UAT. `make
-  setup`: eseguito dopo `v1:import --anonymize`/`collaudo:ensure-manager-account`, dentro un check `if [ -f
-  cai-datapack/runts-cai.sqlite ]` — se il datapack non è stato copiato a mano, logga un avviso su stderr e
-  il target non fallisce (stesso principio già in uso per gli allegati v1 best-effort). `deploy/
-  remote-deploy.sh`: eseguito **sempre**, senza check, dopo `v1:import --anonymize` — ogni deploy UAT fa
-  `migrate:fresh`, quindi senza questo passo i dati CAI andrebbero persi ad ogni push su `develop`. Nuova
-  variabile `CAI_DATAPACK_HOST_PATH` in `.env.uat.example`, nuovo bind-mount in `docker-compose.uat.yml`
-  sul servizio `app` (`cai-datapack/` dentro al container, **read-only** — il comando apre già il file
-  SQLite con `PDO::SQLITE_OPEN_READONLY`, US-802), stesso pattern di `LEGACY_MEDIA_HOST_PATH` ma senza
-  ambiguità di nomi (nessuna env var applicativa parallela "CAI_DATAPACK_PATH" da confondere, a differenza
-  del gotcha già documentato in `CLAUDE.md` per `LEGACY_MEDIA_HOST_PATH` vs `LEGACY_MEDIA_PATH`). Il
-  datapack su msuat è già sincronizzato da una story precedente (`bin/push-cai-datapack`, già committato).
-- File: `Makefile`, `.env.uat.example`, `docker-compose.uat.yml`, `deploy/remote-deploy.sh`,
-  `tests/Feature/Deploy/CaiDatapackWiringTest.php` (nuovo), `CLAUDE.md`.
-- Verifica: `composer analyse` (phpstan level 6) e `vendor/bin/pint --test` puliti; 4 test nuovi (verifica
-  statica del contenuto di Makefile/`.env.uat.example`/`docker-compose.uat.yml`/`remote-deploy.sh`, nessuno
-  dei quattro file è eseguibile in un test Pest — richiedono Docker/SSH su msuat) più i 14 test di
-  US-801/US-802 passano; `make -n setup` per validare la sintassi Makefile; simulato a mano il branch
-  "datapack presente" del nuovo check (`sh -c 'if [ -f cai-datapack/runts-cai.sqlite ]; ...'` dalla
-  directory giusta) ed eseguito `cai:import-datapack` per davvero contro il datapack reale locale per
-  confermare che il wiring produce un comando funzionante end-to-end (529/224/184/67/0/201 righe).
-- **Learnings for future iterations:**
-  - Per uno script di shell/Makefile/YAML non eseguibile a sé in un test Pest, il pattern di questo repo è
-    un test di "verifica statica del contenuto" (`file_get_contents(base_path(...))` + `expect(...)
-    ->toContain(...)`/posizione relativa fra due stringhe con `strpos`), non un test che invoca
-    effettivamente Docker/SSH. Vedi `tests/Feature/Deploy/CaiDatapackWiringTest.php`.
-  - `remote-deploy.sh` è testo con wrap manuale a ~80 colonne: una frase come "Copiato manualmente su" può
-    spezzarsi su un a-capo letterale (`Copiato\n# manualmente su`) — se un test asserisce `toContain()` su
-    una frase che potrebbe essere andata a capo nel file sorgente, verificare prima con `head`/`grep` il
-    testo esatto invece di assumere che la frase sia su una riga sola.
-  - Nessun umano deve ricopiare nulla per `docker-compose.uat.yml`/`.env.uat.example` (letti direttamente da
-    `remote-deploy.sh` via `--env-file .env.uat` e dal `docker compose -f docker-compose.uat.yml` lì dentro,
-    entrambi nel repo): solo `remote-deploy.sh` stesso richiede la copia manuale post-merge già nota.
+## [2026-09-07] - US-903
+- Estratta `App\Domain\CaiDirectory\Import\CaiSectionFieldMapper` (metodi statici puri
+  `mapSection()`/`mapSubsection()`/`toInt()`/`toCoordinate()`/`matchUserId()`), seguendo alla lettera il
+  codice del Task 3 del piano. `CaiDatapackImporter::importSections()`/`importSubsections()` ora costruiscono
+  `$attributes` chiamando il mapper condiviso invece dell'array inline.
+- **Divergenza dal piano, annotata in `notes` della story**: il piano indicava di cancellare i tre metodi
+  privati `toInt()`/`toCoordinate()`/`matchUserId()` da `CaiDatapackImporter` assumendo fossero usati solo in
+  `importSections()`/`importSubsections()`. Verificato con `grep` che `toInt()` era invece richiamato ANCHE
+  da `importFinancialStatements()` (`'year' => $this->toInt($row->anno)`) e `importDocuments()`
+  (`'year'`/`'size'`) — cancellarlo a mano avrebbe rotto quei due metodi. Adattamento: quei call site ora
+  usano `CaiSectionFieldMapper::toInt(...)` invece di `$this->toInt(...)`, cosicché il metodo resta
+  effettivamente SPOSTATO (mai duplicato) come richiesto dall'AC, coprendo anche gli usi che il piano non
+  aveva notato. `toCoordinate()`/`matchUserId()` erano invece usati solo in importSections/importSubsections,
+  cancellati senza bisogno di adattamento.
+- Nuovo test `tests/Unit/Domain/CaiDirectory/Import/CaiSectionFieldMapperTest.php` (4 test, copiato alla
+  lettera dal piano): mapSection, mapSubsection, toCoordinate scarta |x|>=1000, matchUserId case-insensitive.
+- File: `app/Domain/CaiDirectory/Import/CaiSectionFieldMapper.php` (nuovo),
+  `app/Domain/CaiDirectory/Import/CaiDatapackImporter.php`,
+  `tests/Unit/Domain/CaiDirectory/Import/CaiSectionFieldMapperTest.php` (nuovo).
+- Verificato: nuovo test passa (4/4), `tests/Feature/Console/CaiImportDatapackCommandTest.php` resta verde
+  con gli stessi 6 test/67 assertion di prima (nessuna regressione di conteggi created/updated/skipped),
+  l'intera suite `--filter=Cai` (88 test) resta verde, `pint --test` (802 file) e
+  `phpstan analyse --memory-limit=1G` (457 file) puliti.
+- **Learnings**: quando un piano elenca "questi N metodi sono usati solo qui", verificare comunque con
+  `grep` prima di cancellare — un metodo privato può essere richiamato da altri rami dello stesso file non
+  esplicitamente citati dal piano. Il fix corretto in questi casi è quasi sempre "sposta la chiamata al nuovo
+  posto condiviso", non "lascia il vecchio metodo duplicato per compatibilità". Prossima story (US-904)
+  crea `CaiApiSectionNormalizer` (JSON API CAI → forma `cai_*` già consumata da questo mapper) — vedere Task
+  4 del piano, che include già la tabella di mapping campo-per-campo.
 ---
 
-## 2026-08-28 - US-804
-- Ripreso e verificato lavoro non committato di un'iterazione precedente (agente in background, interrotta
-  dal loop Ralph prima della verifica — stesso pattern già visto per US-702/US-802): nuova Filament Resource
-  `CaiSectionResource` (namespace `App\Filament\Resources\CaiSections`), sola consultazione (nessuna
-  Create/Edit/Delete, `can*()` la negano esplicitamente). Lista con colonne denominazione/comune/regione/
-  utente collegato, filtri per regione (opzioni costruite dai valori distinti realmente presenti in tabella,
-  non dall'enum `Region` applicativo — il datapack RUNTS-CAI contiene valori come "EXTRA REGIONE" che
-  quell'enum non copre) e per presenza di un utente collegato. Dettaglio con 5 tab (Dati CAI, Dati RUNTS,
-  Bilanci, Allegati, Sottosezioni) in una classe statica indipendente `CaiSectionInfolist`, pensata per
-  essere riusata tal quale da US-806/US-807 (design doc §7: "un solo componente/vista riusato da tutti e tre
-  i punti di accesso"). Nuovo permesso di catalogo `Permission::CaiDirectoryView`, concesso di default a
-  manager/developer (RolePermissionSeeder), gate sia la Resource sia un nuovo
-  `CaiDocumentDownloadController` dedicato (route `cai-documents.download`, disco privato `cai-documents`
-  da US-802) — nessuna Policy dedicata, permesso unico verificato direttamente con `Auth::user()?->can(...)`
-  perché i modelli CAI vengono dall'importer, senza owner applicativo da confrontare.
-- File: `app/Filament/Resources/CaiSections/{CaiSectionResource,Tables/CaiSectionsTable,Schemas/
-  CaiSectionInfolist,Pages/ListCaiSections,Pages/ViewCaiSection}.php`, `app/Http/Controllers/
-  CaiDocumentDownloadController.php`, `app/Domain/Identity/Enums/Permission.php`, `database/seeders/
-  RolePermissionSeeder.php`, `routes/web.php`, `config/filesystems.php` (commento aggiornato),
-  `tests/Feature/Filament/CaiDirectory/CaiSectionResourceTest.php` (9 test), `orchestrator/CLAUDE.md`.
-- Verifica: `composer analyse` (phpstan level 6) e `vendor/bin/pint --test` puliti; 9/9 test nuovi passano
-  (42 assertion); una run più ampia (`tests/Feature/Domain/Identity tests/Feature/Filament tests/Feature/
-  Domain/CaiDirectory tests/Feature/Console/CaiImportDatapackCommandTest.php tests/Unit/Domain/Identity`)
-  mostra 30 fallimenti preesistenti sparsi su Auth/Documentation/Fundraising/Identity/Mail/Organizations/
-  Ticketing — **confermato non una regressione di questa story**: riprodotti identici (anzi di più, 36) su
-  un `git stash` pulito dello stesso branch, quindi un problema di ordine/stato condiviso fra test già
-  presente prima di questa modifica, non correlato a `CaiDirectory`. Import reale eseguito sul dataset
-  locale (`cai-datapack/runts-cai.sqlite`, 529 sezioni), poi verificato in browser via Playwright ad-hoc
-  (script `.mjs` in `/tmp`, mai committato — nessun MCP browser registrato in questo repo): login con
-  l'account di collaudo (`php artisan collaudo:ensure-manager-account`), screenshot di lista (529 risultati,
-  filtri visibili) e dettaglio per una sezione minima (SEZ. C.A.A.I., indirizzo JSON formattato
-  correttamente) e per una sezione con dati RUNTS/bilanci/allegati completi (SEZ. PARMA: natura giuridica,
-  bilanci 2021-2025, 13 allegati con link di download funzionante) — tutti e 5 i tab renderizzano
-  correttamente con dati reali.
-- **Learnings for future iterations:**
-  - US-806/US-807 devono riusare `CaiSectionInfolist::configure()` così com'è (nessuna duplicazione di
-    markup), cambiando solo l'autorizzazione nel punto d'accesso — vedi nota dedicata in
-    `orchestrator/CLAUDE.md` (sezione "Filament staff `CaiSectionResource`").
-  - Prima di un collaudo in browser su questa fase, verificare che il datapack sia stato importato
-    localmente (`CaiSection::count()` — `v1:import` non lo tocca, ma un `migrate:fresh` sì) e che esista un
-    account di collaudo (`php artisan collaudo:ensure-manager-account`).
-  - Se una run ampia di test mostra fallimenti sparsi su più domini non toccati dalla propria story, prima
-    di assumere una regressione verificare su un `git stash` pulito dello stesso branch — in questo repo
-    esiste almeno un problema noto di ordine/stato condiviso fra test Filament quando eseguiti tutti insieme
-    (oltre al gotcha già noto sul crash Mail/HTML-sanitizer), quindi non è una sorpresa isolata a questa
-    story.
+## [2026-09-07] - US-904
+- Creata `App\Domain\CaiDirectory\Import\CaiApiSectionNormalizer` con `normalizeSection(array $raw): object`
+  e `normalizeSubsection(array $raw, string $sectionCode): object`, seguendo alla lettera il codice del
+  Task 4 del piano — converte il JSON grezzo dell'API pubblica CAI (camelCase, con fallback snake_case per
+  `officeAddress`/`postalAddress`) nella stessa forma `cai_*` già consumata da `CaiSectionFieldMapper`
+  (US-903). `officeAddress`/`postalAddress` (array PHP decodificati) vengono ri-serializzati con
+  `json_encode()` in una stringa, compatibile con `CaiRuntsAddressFormatter::format()` che si aspetta una
+  stringa JSON.
+- Nuovo test `tests/Unit/Domain/CaiDirectory/Import/CaiApiSectionNormalizerTest.php` (4 test, copiato alla
+  lettera dal piano): mapping sezione completo, fallback snake_case indirizzo, mapping sottosezione con
+  scope al codice sezione padre, fallback `lastyearMembershipsCount` quando `currentMemberships` manca.
+- File: `app/Domain/CaiDirectory/Import/CaiApiSectionNormalizer.php` (nuovo),
+  `tests/Unit/Domain/CaiDirectory/Import/CaiApiSectionNormalizerTest.php` (nuovo).
+- Verificato: TDD rispettato (test fallito su classe mancante prima di creare l'implementazione), poi
+  4/4 verdi (26 assertion); l'intera suite `--filter=Cai` (92 test, 88 pre-esistenti + 4 nuovi) resta verde;
+  `pint --test` (20 file del dominio) e `phpstan analyse --memory-limit=1G` (458 file, intero progetto)
+  puliti.
+- **Learnings**: nessuna sorpresa, il piano combacia esattamente con lo stato reale del codice per questo
+  Task — nessuna divergenza da annotare. Prossima story (US-905) crea `CaiApiClient` (chiamate HTTP con
+  retry alla facade `Http::` di Laravel, prima introduzione in questo repo) — vedere Task 5 del piano, che
+  include già le chiavi config da aggiungere e lo schema di retry con backoff esponenziale.
 ---
 
-## 2026-08-28 - US-805
-- Implementati mappa ed export (staff) per `CaiSectionResource`: nuova pagina Filament standalone
-  `CaiSectionsMap` (namespace `App\Filament\Pages`, stesso pattern di `WorkBoard`), navigazione nello
-  stesso gruppo "Anagrafica CAI" della resource, gated dallo stesso permesso `Permission::CaiDirectoryView`
-  (`canAccess()`), con Leaflet incluso via CDN solo nella sua view (nessuna dipendenza Leaflet preesistente
-  nel pannello, introdotta qui in modo isolato) e marker solo per le sezioni con `latitude`/`longitude`
-  valorizzate. Tre nuove `headerActions` su `CaiSectionsTable` (Esporta CSV/XLSX/GeoJSON), tutte scoperte
-  tramite `$livewire->getFilteredSortedTableQuery()` (rispettano filtri/ricerca correnti della tabella, mai
-  `CaiSection::all()`), implementate in una classe di supporto dedicata `CaiSectionsExporter` (CSV via
-  `fputcsv`, XLSX via `openspout/openspout` già presente come dipendenza transitiva di `filament/actions`,
-  GeoJSON via `json_encode` manuale — Filament supporta nativamente solo CSV/XLSX e richiederebbe
-  tabelle/coda dedicate, inutile per un export sincrono su tre formati).
-- File: `app/Filament/Pages/CaiSectionsMap.php`, `resources/views/filament/pages/cai-sections-map.blade.php`,
-  `app/Filament/Resources/CaiSections/Support/CaiSectionsExporter.php`, `app/Filament/Resources/CaiSections/
-  Tables/CaiSectionsTable.php` (headerActions), `tests/Feature/Filament/CaiDirectory/{CaiSectionsExportTest,
-  CaiSectionsMapTest}.php` (10 test nuovi), `orchestrator/CLAUDE.md`.
-- Verifica: `composer analyse` (phpstan level 6) e `vendor/bin/pint --test` puliti; 10/10 test nuovi passano
-  (assieme ai 19 test US-801/US-804 già esistenti su CaiDirectory, nessuna regressione); import reale
-  eseguito sul dataset locale (`cai-datapack/runts-cai.sqlite`, 529 sezioni, 520 con coordinate) via `php
-  artisan cai:import-datapack`; verificato in browser via Playwright ad-hoc (nessun MCP registrato):
-  screenshot lista con i 3 pulsanti di export, click reale su ciascuno con evento `download` del browser
-  catturato per tutti e 3 i formati, screenshot mappa con 520 marker reali e inquadratura centrata
-  sull'Italia. Una run più ampia di `tests/Feature/Filament` mostra 7 fallimenti preesistenti su
-  `TicketResourceTest` — confermato non una regressione: riprodotti identici su un `git stash` pulito dello
-  stesso branch.
-- **Learnings for future iterations:**
-  - Vedi "Codebase Patterns" in cima a questo file e le due nuove sezioni di `orchestrator/CLAUDE.md`
-    ("Export di file da un'azione Filament" e "Mappa Leaflet in una pagina Filament custom") per il pattern
-    completo di download-da-azione-Filament e per il gotcha sui dati geografici reali col rumore (una
-    sezione del datapack geocodificata in Papua Nuova Guinea, gestita con un `fitBounds()` scoperto solo sui
-    marker dentro un bounding box dell'Italia, non filtrando il dato).
-  - US-806/US-807 riusano `CaiSectionInfolist::configure()` per il dettaglio, non serve toccare
-    `CaiSectionsExporter`/`CaiSectionsMap` (restano funzionalità solo staff, US-805).
+## [2026-09-07] - US-905
+- Creata `App\Domain\CaiDirectory\Support\CaiApiClient` (`fetchNationalSections()`/`fetchSubsections(string
+  $sectionCode)`, prima introduzione della facade `Http::` in questo repo) con retry a backoff esponenziale
+  (3 tentativi, `sleep(2**attempt)` fra un tentativo e l'altro) su `ConnectionException`/`RequestException`,
+  seguendo alla lettera il codice del Task 5 del piano. Aggiunta chiave `'api'` a `config/cai_directory.php`
+  (`sections_list_url`/`subsections_list_url_template`/`timeout_seconds`) e le tre `CAI_API_*` a `.env.example`.
+- Nuovo test `tests/Feature/Domain/CaiDirectory/Support/CaiApiClientTest.php` (4 test, copiato alla lettera
+  dal piano): successo elenco nazionale, successo sottosezioni, retry-poi-fallimento definitivo dopo 3
+  tentativi (`Http::assertSentCount(3)`), retry-poi-successo (`Http::fakeSequence()`).
+- File: `app/Domain/CaiDirectory/Support/CaiApiClient.php` (nuovo), `config/cai_directory.php`, `.env.example`,
+  `tests/Feature/Domain/CaiDirectory/Support/CaiApiClientTest.php` (nuovo).
+- **Divergenza dal piano, annotata in `notes` della story**: il codice suggerito costruiva `previous:
+  $lastException instanceof Throwable ? $lastException : null` prima di passarlo a `RuntimeException` —
+  Larastan livello 6 segnala `instanceof.alwaysTrue` (sia `ConnectionException` sia `RequestException`
+  implementano già `Throwable`, il check è sempre vero). Fix: passato `$lastException` direttamente
+  (`ConnectionException|RequestException|null`, già compatibile con `?Throwable`), rimosso l'import
+  inutilizzato di `Throwable`.
+- Verificato: TDD rispettato (test fallito su classe mancante prima di creare l'implementazione: 4/4 rossi
+  con `BindingResolutionException`), poi 4/4 verdi (7 assertion, il test di retry-poi-fallimento impiega
+  ~6s reali per via degli `sleep()`, atteso non un hang); l'intera suite `--filter=Cai` (96 test, 92
+  pre-esistenti + 4 nuovi) resta verde; `pint --test` (3 file toccati) e `phpstan analyse
+  --memory-limit=1G` (459 file, intero progetto) puliti dopo il fix sopra.
+- **Learnings**: un codice di piano copiato alla lettera può comunque introdurre un errore Larastan non
+  visibile finché non si esegue `composer run analyse` per davvero — verificarlo sempre anche quando il
+  piano sembra già "verificato contro il codice reale del repo" (qui l'errore non dipendeva dallo stato del
+  repo, ma da un pattern di codice ridondante rispetto ai tipi già garantiti dalla firma del catch). Prossima
+  story (US-906) crea `SyncCaiSectionAndSubsections` (sincronizzazione live condivisa di UNA sezione+sue
+  sottosezioni, con spostamento del test helper `caiSection()` in `tests/Pest.php`) — vedere Task 6 del
+  piano, che include già il codice esatto dell'Action e dei test.
 ---
 
-## 2026-08-28 - US-806
-- Nuova card "I miei dati CAI/RUNTS" su `CustomerDashboard` (Fase 6/7), visibile solo per un cliente
-  `customer_type = Sezione`. Se l'utente ha una `CaiSection` collegata (`user_id`), la card riusa
-  `CaiSectionInfolist::configure()` (US-804) **tal quale** — nessuna duplicazione di markup — embeddando lo
-  schema Filament dentro la pagina custom `CustomerDashboard` (non una `ViewRecord` di Resource): scoperto che
-  `Filament\Pages\Page` eredita già `InteractsWithSchemas` da `BasePage`, quindi è bastato un metodo
-  `caiSectionInfolist(Schema $schema): Schema` (auto-scoperto per nome) e `{{ $this->caiSectionInfolist }}` in
-  Blade (`Schema` implementa `Htmlable`) — nessun trait/interfaccia da aggiungere a mano. Se l'utente ha invece
-  solo una `CaiSubsection` collegata (caso raro, Fase 7 non distingue Sezione/Sottosezione come
-  `customer_type`), mostrato un blocco Blade più semplice con i soli contatti diretti (quel modello non ha
-  `region`/`runtsRegistrations`/`subsections`, non riusa l'Infolist). Nessun match → stato vuoto esplicito
-  ("Nessun dato CAI/RUNTS disponibile per la tua sezione"), mai una card assente silenziosa.
-- `CaiDocumentDownloadController` (US-804) esteso con una seconda via d'accesso: oltre allo staff con
-  `Permission::CaiDirectoryView`, ora anche il cliente proprietario della sezione a cui il documento appartiene
-  (`CaiDocument->runtsRegistration->section->user_id === $user->id`), per scaricare i propri allegati dalla
-  dashboard.
-- File: `app/Filament/Pages/CustomerDashboard.php`, `resources/views/filament/pages/customer-dashboard.blade.php`,
-  `app/Http/Controllers/CaiDocumentDownloadController.php`, `tests/Feature/Filament/Pages/CustomerDashboardTest.php`
-  (6 test nuovi), `tests/Feature/Filament/CaiDirectory/CaiSectionResourceTest.php` (2 test nuovi sul download),
-  `CLAUDE.md`.
-- Verifica: `composer analyse` (phpstan level 6) e `vendor/bin/pint --test` puliti sull'intero repo (787 file);
-  57/57 test su `CustomerDashboardTest`+`CaiSectionResourceTest`+`CaiDirectory`+`CaiImportDatapackCommandTest`
-  passano; `TicketResourceTest` mostra gli stessi 7 fallimenti preesistenti riprodotti identici su un
-  `git stash` pulito dello stesso branch (non una regressione di questa story, causa OOM nativa preesistente
-  già documentata). Il datapack locale era stato svuotato da un `migrate:fresh` di una sessione precedente:
-  rieseguito `cai:import-datapack` sul dataset reale (529/224/184/67/0/201 righe) prima del collaudo browser.
-  Verificato in browser via Playwright ad-hoc (nessun MCP registrato): creato un utente cliente Sezione
-  temporaneo, collegato a mano a SEZ. PISA (`CaiSection.user_id`, dati reali con bilanci 2022-2024 e 3
-  allegati), screenshot di tutti e 5 i tab della card (Dati CAI, Dati RUNTS, Bilanci, Allegati, Sottosezioni)
-  con dati reali corretti; verificato che il link "Scarica il file" in Allegati risponde 200
-  `application/pdf` per il cliente proprietario (non solo per lo staff); screenshot dello stato vuoto per un
-  secondo cliente Sezione senza match. Utenti/collegamento di test rimossi dal DB locale dopo il collaudo (mai
-  committati).
-- **Learnings for future iterations:**
-  - Vedi la nuova sezione "Riusare un Infolist Filament dentro una pagina custom non-Resource (US-806)" in
-    `orchestrator/CLAUDE.md` per il pattern completo di embedding schema/Infolist in una pagina Filament
-    custom, e per il dettaglio dell'estensione a due vie di `CaiDocumentDownloadController`.
-  - **US-807 (dettaglio sezione da Gruppo Regionale) deve riusare lo stesso schema/metodo**: aggiungere un
-    `caiSectionInfolist`-equivalente sulla nuova pagina di dettaglio GR (o factorizzare in un trait/metodo
-    condiviso se conviene), e per il download **estendere lo stesso `authorized()` di
-    `CaiDocumentDownloadController`** (non introdurne un secondo) con la condizione "sezione della propria
-    regione" per un cliente Gruppo Regionale.
-  - Dopo un `migrate:fresh` fra una sessione e l'altra, `cai-datapack/runts-cai.sqlite` resta sul filesystem
-    ma le tabelle sono vuote: verificare sempre `CaiSection::count()` prima di assumere che il collaudo browser
-    abbia dati reali disponibili, e rieseguire `php artisan cai:import-datapack` se serve (idempotente, sicuro
-    da rieseguire).
+## [2026-09-07] - US-906
+- Creata `App\Domain\CaiDirectory\Actions\SyncCaiSectionAndSubsections` (`run(object
+  $normalizedSectionRow, bool $dryRun = false): array{cai_sections: CaiImportTableResult, cai_subsections:
+  CaiImportTableResult}`), seguendo alla lettera il codice del Task 6 del piano: usa
+  `CaiSectionFieldMapper` (US-903) per il mapping, `DiffsAttributes::attributesDiffer()` per i contatori
+  created/updated/skipped sui soli campi di business (mai `cai_last_synced_at`), e valorizza sempre
+  `cai_last_synced_at = now()` fuori da dry-run indipendentemente dal fatto che qualcosa sia cambiato.
+  Sottosezioni recuperate via `CaiApiClient::fetchSubsections()` (US-905) e sincronizzate con lo stesso
+  schema create/update/skip.
+- Spostato il test helper `caiSection()` da `tests/Feature/Filament/CaiDirectory/CaiSectionResourceTest.php`
+  a `tests/Pest.php` (terzo call site: questa story + le future Task 7/10), rimossa la dichiarazione locale
+  duplicata e l'import ormai inutilizzato di `CaiSection` in quel file (non più referenziato una volta tolta
+  la funzione locale).
+- Nuovo test `tests/Feature/Domain/CaiDirectory/Actions/SyncCaiSectionAndSubsectionsTest.php` (6 test,
+  copiato alla lettera dal piano): create, update con bump timestamp, skip con comunque bump timestamp,
+  creazione sottosezioni, dry-run senza scritture, match utente per email case-insensitive.
+- File: `app/Domain/CaiDirectory/Actions/SyncCaiSectionAndSubsections.php` (nuovo), `tests/Pest.php`,
+  `tests/Feature/Filament/CaiDirectory/CaiSectionResourceTest.php`,
+  `tests/Feature/Domain/CaiDirectory/Actions/SyncCaiSectionAndSubsectionsTest.php` (nuovo).
+- **Divergenza dal piano, annotata in `notes` della story**: il piano indicava di inserire l'import `use
+  App\Domain\CaiDirectory\Models\CaiSection;` in `tests/Pest.php` subito dopo `use
+  App\Domain\Identity\Models\User;` (non alfabetico a livello di `Domain\`) — `pint --test` ha segnalato
+  `ordered_imports` con quella posizione letterale. Fix: spostato prima di `Identity\...` (ordine alfabetico
+  reale), come già rispettato dal resto del file.
+- Verificato: TDD rispettato (test fallito su classe mancante prima di creare l'implementazione: 6/6 rossi
+  con `BindingResolutionException`), poi 6/6 verdi (19 assertion); `CaiSectionResourceTest.php` resta verde
+  e invariato (19/19, 70 assertion, helper ora risolto da `tests/Pest.php`); l'intera suite `--filter=Cai`
+  (102 test, 96 pre-esistenti + 6 nuovi) resta verde; `pint --test` (808 file, dopo il fix sopra) e `phpstan
+  analyse --memory-limit=1G` (460 file, intero progetto) puliti.
+- **Learnings**: quando un piano indica una posizione di inserimento letterale per un `use` che non rispetta
+  l'ordine alfabetico reale del namespace, verificare comunque con `pint --test` prima di committare — la
+  regola `ordered_imports` del preset Laravel è più severa della semplice vicinanza logica suggerita dal
+  testo del piano. Prossima story (US-907) crea `ScrapeCaiSection` (sincronizzazione di una sola sezione,
+  isolata dall'elenco nazionale, per il bottone dashboard) — vedere Task 7 del piano.
 ---
 
-## 2026-08-28 - US-807
-- Ogni riga della card "Sezioni del gruppo regionale" (Fase 7 US-705, `CustomerDashboard`) apre ora una
-  pagina di dettaglio completa dedicata: nuova Filament Page `App\Filament\Pages\CaiSectionRegionalDetail`
-  (nessuna voce di navigazione, si apre solo dal link della card), con rotta parametrica
-  `getRoutePath()` override → `/cai-section-regional-detail/{record}` (primo caso nel repo di una Page
-  custom non-Resource con parametro di rotta — precedente esistente era solo su `ViewRecord`). `$record` è
-  l'id dell'utente cliente Sezione (non un `CaiSection`: la card Fase 7 elenca `User` con
-  `customer_type = Sezione`, {@see SectionsInRegionQuery}), risolto a mano con `findOrFail` (404 su id
-  inesistente/non Sezione). Autorizzazione a due livelli: `canAccess()` (statico, gate generico "è un
-  cliente Gruppo Regionale") + `mount()` (abort 403 se la regione della sezione aperta non combacia con la
-  propria — un accesso diretto via URL manipolato fallisce lato server, non solo assente in UI).
-- Stesso contenuto della card cliente Sezione (US-806) riusato **senza duplicare markup**: estratto il
-  blocco `@if($this->caiSection())...@elseif($this->caiSubsection())...@else...@endif` in una partial
-  condivisa `resources/views/filament/pages/partials/cai-directory-detail.blade.php`, inclusa sia da
-  `CustomerDashboard` sia dalla nuova pagina — entrambe le classi espongono gli stessi metodi
-  (`caiSection()`, `caiSubsection()`, `caiSectionInfolist`), quindi `$this` dentro la partial risolve al
-  componente Livewire corretto in entrambi i contesti (nessun dato passato esplicitamente, solo
-  `$emptyMessage` per il testo dello stato vuoto).
-- Estesa l'autorizzazione di `CaiDocumentDownloadController` (US-804/US-806) con una terza via: un cliente
-  Gruppo Regionale può scaricare un allegato se la sua regione combacia con quella dell'utente cliente
-  Sezione collegato alla `CaiSection` del documento (confronto sull'account cliente collegato, non sul
-  campo testo libero `CaiSection.region`) — senza questa estensione il tab "Allegati" della pagina di
-  dettaglio avrebbe mostrato link di download sempre 403 per il Gruppo Regionale, contraddicendo l'AC
-  "stesso contenuto della card cliente Sezione, nessun campo nascosto".
-- La riga della card linkava prima direttamente ai ticket della sezione (`sectionTicketsUrl`, US-705): ora
-  linka al dettaglio, e il link ai ticket è stato spostato in un header action "Vedi i ticket di questa
-  sezione" sulla nuova pagina (`getHeaderActions()`), per non perdere silenziosamente quella funzionalità.
-- File: `app/Filament/Pages/CaiSectionRegionalDetail.php`, `resources/views/filament/pages/
-  cai-section-regional-detail.blade.php`, `resources/views/filament/pages/partials/
-  cai-directory-detail.blade.php`, `app/Filament/Pages/CustomerDashboard.php` (sectionTicketsUrl →
-  sectionDetailUrl), `resources/views/filament/pages/customer-dashboard.blade.php` (usa la partial + nuovo
-  link), `app/Http/Controllers/CaiDocumentDownloadController.php` (terza via d'accesso),
-  `tests/Feature/Filament/Pages/CaiSectionRegionalDetailTest.php` (9 test nuovi),
-  `tests/Feature/Filament/CaiDirectory/CaiSectionResourceTest.php` (2 test nuovi sul download GR),
-  `orchestrator/CLAUDE.md`.
-- Verifica: `composer analyse` (phpstan level 6) e `vendor/bin/pint --test` puliti sui file toccati; 54/54
-  test su `CaiDirectory`+`CustomerDashboardTest`+`CaiSectionRegionalDetailTest` passano; una run più ampia
-  di `tests/Feature/Filament` mostra 9 fallimenti preesistenti su `TicketResourceTest`/
-  `CreateCommessaActionTest` (OOM nativa preesistente, stesso gotcha già documentato) — confermato non una
-  regressione: riprodotti identici (stesso numero, 9) su un `git stash -u` pulito dello stesso branch.
-  Import reale eseguito sul dataset locale (`cai-datapack/runts-cai.sqlite`, 529 sezioni, dopo un
-  `RolePermissionSeeder` che mancava sul DB locale — ruoli/permessi erano stati svuotati da un
-  `migrate:fresh` di una sessione precedente); creati due utenti cliente temporanei via tinker (una Sezione
-  = SEZ. PISA reale con bilanci/allegati, un Gruppo Regionale Toscana), verificato in browser via
-  Playwright ad-hoc (nessun MCP registrato): screenshot dashboard con la card e la riga della sezione,
-  click reale sulla riga, screenshot del dettaglio con tutti e 5 i tab e l'header action "Vedi i ticket di
-  questa sezione" — percorso completo card → click → dettaglio confermato con dati reali. Utenti temporanei
-  e collegamento `CaiSection.user_id` rimossi dal DB locale dopo il collaudo (mai committati).
-- **Learnings for future iterations:**
-  - Vedi la nuova sezione "Pagina Filament custom con parametro di rotta + record scoping in `mount()`" in
-    `orchestrator/CLAUDE.md` per il pattern completo (rotta parametrica su una Page non-Resource,
-    autorizzazione a due livelli statico/istanza, riuso di una partial fra Page diverse via `$this`
-    condiviso).
-  - Dopo un `migrate:fresh` di una sessione precedente, non solo i dati CAI (`cai:import-datapack`) ma
-    anche ruoli/permessi (`RolePermissionSeeder`) possono risultare vuoti sul DB locale: se
-    `collaudo:ensure-manager-account` fallisce con `RoleDoesNotExist`, riseedare prima
-    `RolePermissionSeeder`.
-  - US-808 (checkpoint di fine fase) deve coprire nel test end-to-end anche questo percorso: dashboard
-    Gruppo Regionale → dettaglio sezione della propria regione (successo) → tentativo diretto su sezione di
-    un'altra regione (403), come da design doc §8.
-- **Manuale dettagliato di collaudo (`docs/collaudo/NN-fase-N.md`) generato con uno script PHP usa-e-getta**
-  invece di scritto a mano quando i test superano la trentina: leggere il manifest `fase-N.php` (già scritto
-  a mano) e generare ogni blocco `### Fxx-yy — ...` col template standard (i casi AUTOMATICO sono quasi
-  interamente derivabili dalla `descrizione`/`test_automatico` del manifest, solo i casi MANUALE UI
-  richiedono dati extra per la Procedura). Lo stesso script genera anche le righe di
-  `01-matrice-tracciabilita.md`/`11-registro-esiti.md`. Dettaglio completo in `orchestrator/CLAUDE.md`,
-  sezione "Checkpoint di fine Fase 8 (US-808)".
+## [2026-09-07] - US-907
+- Creata `App\Domain\CaiDirectory\Actions\ScrapeCaiSection` (`run(string $codiceCai): array{cai_sections:
+  CaiImportTableResult, cai_subsections: CaiImportTableResult}`), seguendo alla lettera il codice del Task 7
+  del piano: recupera l'elenco nazionale via `CaiApiClient::fetchNationalSections()` (US-905), isola la sola
+  sezione richiesta con `Collection::first()` su `code === $codiceCai`, normalizza con
+  `CaiApiSectionNormalizer::normalizeSection()` (US-904) e delega a
+  `SyncCaiSectionAndSubsections::run()` (US-906). Lancia `RuntimeException` esplicita se il codice non è
+  presente nell'elenco nazionale — mai chiama l'endpoint sottosezioni per un'altra sezione, perché isola
+  PRIMA di richiamare il syncer (che chiama sottosezioni solo per la sezione passata).
+- Nuovo test `tests/Feature/Domain/CaiDirectory/Actions/ScrapeCaiSectionTest.php` (3 test, copiato alla
+  lettera dal piano): sincronizzazione riuscita isolando la sezione corretta, nessuna chiamata sottosezioni
+  per l'altra sezione dell'elenco (`Http::assertNotSent`), eccezione se il codice richiesto non esiste.
+- File: `app/Domain/CaiDirectory/Actions/ScrapeCaiSection.php` (nuovo),
+  `tests/Feature/Domain/CaiDirectory/Actions/ScrapeCaiSectionTest.php` (nuovo).
+- **Divergenza dal piano, annotata in `notes` della story**: il docblock di classe (copiato alla lettera dal
+  piano) referenziava `{@see \App\Filament\Pages\CustomerDashboard::syncCaiDataAction()}` fully-qualified —
+  `pint --test` (regola `fully_qualified_strict_types`, preset Laravel) richiede invece un `use
+  App\Filament\Pages\CustomerDashboard;` esplicito con riferimento breve nel docblock. Fix non funzionale,
+  nessun'altra divergenza.
+- Verificato: TDD rispettato (test fallito su classe mancante prima di creare l'implementazione: 3/3 rossi
+  con `BindingResolutionException`), poi 3/3 verdi (6 assertion); l'intera suite `--filter=Cai` (108 test,
+  105 pre-esistenti + 3 nuovi) resta verde; `pint --test` (810 file, dopo il fix sopra) e `phpstan analyse
+  --memory-limit=1G` (461 file, intero progetto) puliti.
+- **Learnings**: un docblock `@see` con un riferimento fully-qualified copiato alla lettera da un piano può
+  comunque violare `fully_qualified_strict_types` di Pint se la classe referenziata non ha già un `use`
+  nel file — verificarlo sempre con `pint --test`, anche per codice "solo commento". Prossima story
+  (US-908) collega il bottone "Sincronizza dati CAI" della dashboard cliente a questa Action al posto di
+  `CaiDatapackImporter::import(...)` — vedere Task 8 del piano, che include il corpo esatto pre-esistente
+  del metodo `CustomerDashboard::syncCaiDataAction()` da preservare/modificare.
 ---
 
-## 2026-08-28 - US-808
-- Implementato il checkpoint di fine Fase 8: nuovo test end-to-end
-  `tests/Feature/EndToEnd/Fase8CheckpointEndToEndTest.php` (fixture SQLite ridotta del datapack
-  RUNTS-CAI, import reale via `cai:import-datapack`, matching per email, consultazione staff
-  (`CaiSectionResource`), dashboard cliente Sezione con match e senza match, dashboard cliente Gruppo
-  Regionale con dettaglio scoped alla propria regione e tentativo di accesso diretto a una sezione di
-  un'altra regione respinto con 403) — riusa lo schema SQLite completo già validato in
-  `CaiImportDatapackCommandTest.php` (colonne complete richieste dall'importer, non un sottoinsieme:
-  il primo tentativo con uno schema ridotto è fallito con `Undefined property` sulle colonne mancanti).
-- Pacchetto di collaudo Fase 8: nuovo manifest `docs/collaudo/fase-8.php` (8 topic, US-801..US-808, 52
-  test F8-01..F8-52, uno per topic per user story più il checkpoint finale) e nuovo manuale dettagliato
-  `docs/collaudo/15-fase-8.md` (52 casi, stesso template delle fasi precedenti), generati con uno script
-  PHP one-off (non committato, vedi pattern sopra) a partire dal manifest. `CollaudoGenerateCommand.php`
-  esteso con la voce `'8' => [...15-fase-8.md...]` in `FASE_NARRATIVE_FILES`/`FASE_TITLES` (senza questo
-  passo `collaudo:generate 8` avrebbe prodotto silenziosamente solo la variante sintetica, gotcha già
-  documentato in CLAUDE.md per Fase 4+). `php artisan collaudo:verify-manifest 8` passa; `php artisan
-  collaudo:generate 8` genera un PDF di 537 pagine, verificato visivamente (copertina, indice, sezione
-  Fase 8 con tutti i 52 casi renderizzati correttamente, nessun overflow di testo).
-- Aggiornati i 5 file "vivi" cumulativi del pacchetto (mai il manifest/manuale di una fase da soli):
-  `00-istruzioni-generali.md` (versione 7.0→8.0, changelog, §2/§3/§4, §17, glossario), `01-matrice-
-  tracciabilita.md` (contatori + 52 righe F8-xx), `11-registro-esiti.md` (nuova sezione Fase 8 + totale),
-  `12-verbale-collaudo.md` (conteggio test), `README.md` (riepilogo numerico + indice) — totale pacchetto
-  612→664 test, 103→111 argomenti.
-- Aggiornati `docs/data-model.md` (nuova area "CaiDirectory" con le 6 tabelle, ER diagram, sezione "Note
-  aggiuntive Fase 8") e `docs/architecture.md` (modulo `App\Domain\CaiDirectory` nella struttura a moduli,
-  riga "Integrazione dati RUNTS-CAI" nella mappa "Dove sta cosa").
-- File: `tests/Feature/EndToEnd/Fase8CheckpointEndToEndTest.php`, `docs/collaudo/fase-8.php`,
-  `docs/collaudo/15-fase-8.md`, `app/Console/Commands/CollaudoGenerateCommand.php`, `docs/collaudo/
-  {00-istruzioni-generali,01-matrice-tracciabilita,11-registro-esiti,12-verbale-collaudo,README}.md`,
-  `docs/data-model.md`, `docs/architecture.md`, `orchestrator/CLAUDE.md`.
-- Verifica: `composer analyse` (phpstan level 6) pulito su 453 file; `vendor/bin/pint --test` pulito su
-  791 file; suite mirata (schema/import/wiring/resource/map/export/dashboard/regional-detail/e2e CAI, 10
-  test collaudo:generate) tutta verde. Una run più ampia di `tests/Feature/EndToEnd` mostra 2 fallimenti
-  preesistenti (`Fase4CheckpointEndToEndTest` — PDF null, `Fase7CheckpointEndToEndTest` — enum non
-  persistito): confermato non regressioni di questa story, riprodotti identici su un `git stash -u` pulito
-  dello stesso branch.
-- Tutte le 8 user story della Fase 8 (US-801..US-808) sono ora `passes: true` in prd.json — fase completa.
+## [2026-09-07] - US-908
+- `CustomerDashboard::syncCaiDataAction()` ora chiama `ScrapeCaiSection::run($section->codice_cai)`
+  (US-907) invece di `CaiDatapackImporter::import(...)`, seguendo alla lettera il codice del Task 8 del
+  piano: label/icona/colore/`->visible()` invariati, cambia solo il closure `->action()`. Un errore
+  qualunque (sezione non trovata sull'API, chiamata HTTP fallita) è catturato con `try/catch (Throwable
+  $exception)` e produce una notifica `danger` col messaggio dell'eccezione, mai un'eccezione non gestita.
+  `syncRuntsDataAction()`/`resolveDatapackAbsolutePathOrNotify()` restano invariati (bottone RUNTS ancora
+  sul datapack statico, fuori scope). Docblock del metodo aggiornato per descrivere il comportamento live.
+- Sostituito il test esistente `tests/Feature/Filament/Pages/CustomerDashboardTest.php` (`the sync cai
+  data action re-imports only the current customer's own section from the datapack`) con la versione
+  live-scrape del piano (`Http::fake()` sugli endpoint sezioni/sottosezioni, verifica nome aggiornato +
+  `cai_last_synced_at` valorizzato). Il test RUNTS gemello resta invariato e verde.
+- File: `app/Filament/Pages/CustomerDashboard.php`,
+  `tests/Feature/Filament/Pages/CustomerDashboardTest.php`.
+- **Divergenza dal piano, annotata in `notes` della story**: il piano suggeriva l'helper `grantCustomerRole($user)` — non esiste in questo file, il pattern già in uso è `withRole(User::factory()->create(), UserRole::Customer)` + `->forceFill(['customer_type' => CustomerType::Sezione])->save()` (usato dai test vicini nello stesso file). Usato anche l'helper condiviso `caiSection()` (`tests/Pest.php`, US-906) invece di `CaiSection::create()` diretto per costruire la sezione fixture. Nel codice applicativo, `catch (\Throwable ...)` fully-qualified del piano è stato sostituito con `catch (Throwable ...)` + `use Throwable;` importato, coerente con l'unico altro precedente nel dominio (`CaiRuntsDateParser`) e per evitare lo stesso tipo di violazione Pint già visto in US-907.
+- Verificato: TDD rispettato (test fallito prima del fix: `'SEZ. ABBIATEGRASSO'` invece del nome
+  aggiornato dall'API, perché il bottone chiamava ancora il datapack), poi 30/30 verdi nel file (94
+  assertion, incluso il test RUNTS invariato); `tests/Feature/Console/CaiImportDatapackCommandTest.php`
+  resta verde con gli stessi 6 test/67 assertion di prima (nessuna regressione); `--filter=Cai` (105 test)
+  verde; `pint --test` (810 file) e `phpstan analyse --memory-limit=1G` (461 file) puliti.
+- **Learnings**: quando un piano suggerisce un helper di test che non esiste nel file target, controllare
+  sempre i test "vicini" nello stesso file per il pattern realmente già in uso (qui `withRole()` +
+  `forceFill()`), invece di introdurre un helper nuovo che duplicherebbe una funzionalità già coperta.
+  Prossima story (US-909) mostra `cai_last_synced_at` in `CaiSectionInfolist` (componente condiviso da
+  staff/dashboard cliente/dettaglio Gruppo Regionale) — vedere Task 9 del piano.
+---
+
+## [2026-09-07] - US-909
+- `app/Filament/Resources/CaiSections/Schemas/CaiSectionInfolist.php` mostra ora `cai_last_synced_at` sia
+  nella sezione "Dati CAI" principale (`TextEntry` in `caiDataSection()`, prima di `user.name`) sia per
+  ciascuna sottosezione elencata in `subsectionsSection()` (nuova colonna, `->columns(4)` → `->columns(5)`),
+  con `->dateTime('d/m/Y H:i')->placeholder('Mai sincronizzato dal vivo')` su entrambe, seguendo alla
+  lettera il codice del Task 9 del piano. Nessuna modifica alla firma pubblica `configure(Schema $schema):
+  Schema` — componente condiviso, copre automaticamente staff/dashboard cliente Sezione/dettaglio Gruppo
+  Regionale.
+- Aggiunto un test a `tests/Feature/Filament/CaiDirectory/CaiSectionResourceTest.php` (copiato dal piano,
+  con un solo adattamento di pattern: `$this->actingAs($user)` + `Livewire::test(ViewCaiSection::class,
+  ['record' => $section->getKey()])` invece di `Livewire::actingAs($user)->test(...,
+  ['record' => $section->getRouteKey()])` suggerito dal piano — il file usa sistematicamente il primo
+  pattern per ogni test esistente, mai il secondo).
+- File: `app/Filament/Resources/CaiSections/Schemas/CaiSectionInfolist.php`,
+  `tests/Feature/Filament/CaiDirectory/CaiSectionResourceTest.php`.
+- **Divergenza dal piano, annotata in `notes` della story**: nessuna divergenza applicativa (il markup
+  copiato alla lettera). L'unico adattamento è di pattern di test (sopra), esplicitamente previsto dal
+  piano stesso ("if `Livewire::actingAs($user)` is not the pattern used... match whatever pattern the file
+  already uses").
+- Verificato: TDD rispettato (test fallito prima dell'implementazione: `assertSeeText` non trovava
+  "07/09/2026" da nessuna parte, 1 failed/2 assertion), poi 20/20 verdi nel file (74 assertion, incluso il
+  nuovo test); l'intera suite `--filter=Cai` (106 test, 105 pre-esistenti + 1 nuovo) resta verde; `pint
+  --test` (810 file) e `phpstan analyse --memory-limit=1G` (461 file, intero progetto) puliti.
+- **Learnings**: nessuna sorpresa, il piano combacia esattamente con lo stato reale del codice per questo
+  Task, incluso l'avvertimento esplicito su come gestire eventuali divergenze di pattern di test. Prossima
+  story (US-910) crea il comando schedulato `cai:sync-national` dietro feature flag
+  (`config('orchestrator.features.cai_sync_national')`), riusando `SyncCaiSectionAndSubsections` in loop
+  sull'intero elenco nazionale — vedere Task 10 del piano, che include già le chiavi config
+  (`cai_directory.sync_national.schedule_cron`, `ENABLE_CAI_SYNC_NATIONAL`), il codice del comando e i test
+  (uno dei tre marcato `->skip()` per costo tempo reale dei retry con `sleep()`, motivato nel piano stesso).
+---
+
+## [2026-09-07] - US-910
+- Nuovo comando `php artisan cai:sync-national {--dry-run}` (Fase 9, storia 1, design doc §3.5), seguendo
+  alla lettera Task 10 del piano: recupera l'elenco nazionale via `CaiApiClient::fetchNationalSections()`,
+  normalizza ogni riga con `CaiApiSectionNormalizer::normalizeSection()` e delega la sincronizzazione a
+  `SyncCaiSectionAndSubsections::run()` in loop — nessuna seconda implementazione della logica di sync.
+  Un errore su una singola sezione è catturato per-item (`Log::warning`), non blocca le altre; log
+  strutturato `cai.sync_national.started`/`finished` con conteggi esaminate/create/aggiornate/invariate/
+  errori e durata.
+- Nuove chiavi `config('cai_directory.sync_national.schedule_cron')` (env `CAI_SYNC_NATIONAL_SCHEDULE_CRON`,
+  default `0 6 1 * *`) e `config('orchestrator.features.cai_sync_national')` (env
+  `ENABLE_CAI_SYNC_NATIONAL`, default `false`). Registrato in `routes/console.php` con lo stesso identico
+  pattern degli altri comandi schedulati (`Schedule::command(...)->cron(...)->withoutOverlapping()->when(...)`,
+  nessun `->timeout()`), sempre eseguibile manualmente da CLI a prescindere dal flag.
+- File: `app/Console/Commands/CaiSyncNationalCommand.php` (nuovo), `config/cai_directory.php`,
+  `config/orchestrator.php`, `.env.example`, `routes/console.php`,
+  `tests/Feature/Console/CaiSyncNationalCommandTest.php` (nuovo, 3 test: 2 eseguiti + 1 skip documentato
+  per il costo in secondi reali del retry di `CaiApiClient`, stesso motivo già nel piano).
+- Verificato: nuovo test 2/2 passa (1 skip atteso), `php artisan schedule:list` esce 0 e mostra la riga
+  `cai:sync-national` (il flag risultava già `true` nell'ambiente Docker locale — comunque corretto, l'AC
+  ammette entrambi gli esiti), l'intera suite `--filter=Cai` (108 test) resta verde, `pint --test` e
+  `phpstan analyse --memory-limit=1G` puliti sui file toccati.
+- **Learnings**: nessuna divergenza dal piano. Pint ha riscritto da sé il riferimento `{@see
+  \App\Domain\CaiDirectory\Actions\ScrapeCaiSection}` nel docblock in un `use` statement + riferimento breve
+  (stessa dinamica già annotata nelle note di US-907) — lasciarlo fare, non serve pre-aggiungere l'import a
+  mano. Prossima story (US-911) è il checkpoint di fine storia: eseguire l'intera batteria di test elencata
+  nel Task 11 del piano, `composer run analyse`/`composer run lint` sull'intero repo (non solo i file
+  toccati) e investigare root cause di qualunque regressione prima di correggerla.
+---
+
+## [2026-09-07] - US-911
+- Checkpoint di fine storia (Fase 9, storia 1): eseguita l'intera batteria di test del Task 11 del piano
+  (11 file: le 9 nuove suite US-901..910 + tests/Feature/Filament/CaiDirectory/CaiSectionResourceTest.php +
+  la suite pre-esistente di Fase 8 tests/Feature/Console/CaiImportDatapackCommandTest.php), tutti insieme
+  nello stesso processo `vendor/bin/pest`, con l'isolamento env già stabilito (`docker compose exec -T app
+  env -u DB_CONNECTION -u DB_DATABASE -u DB_HOST -u DB_PORT -u DB_USERNAME -u DB_PASSWORD php -d
+  memory_limit=512M vendor/bin/pest ...`).
+- Esito: 83 passed / 1 skipped (316 assertion), lo skip è quello già documentato in US-910 (costo in
+  secondi reali del retry con `sleep()` di `CaiApiClient`, non una regressione). `CaiImportDatapackCommandTest.php`
+  (suite Fase 8, refactorata solo indirettamente da US-903) passa con gli stessi 6 test/67 assertion di
+  prima di questo PRD — nessuna regressione sul refactor di `CaiDatapackImporter`.
+- `composer run analyse` (Larastan livello 6, `--memory-limit=1G`, intero repo — 462 file): `[OK] No
+  errors`. `composer run lint -- --test` (Pint, intero repo — 812 file): `PASS`, nessuna modifica
+  richiesta.
+- Nessuna regressione trovata in nessuno dei tre step: nessun fix da applicare, quindi nessun commit
+  "fix: Fase 9 storia 1.11 - correzioni emerse dalla verifica di regressione end-to-end" (Step 5 del Task 11
+  è esplicitamente condizionato a "only if Step 4 produced changes").
+- File: nessuna modifica al codice applicativo/test in questa story (solo verifica), `prd.json` (US-911 →
+  `passes: true`), `progress.txt`.
+- **Learnings**: il checkpoint di fine storia di Fase 9/Storia 1 conferma che tutte le 10 story precedenti
+  (US-901..910) sono state implementate senza introdurre alcuna regressione misurabile sul percorso
+  CAI/RUNTS di Fase 8 (US-801..808), né sul lint/analyse dell'intero repo. Tutte le user stories di questo
+  PRD (`Fase 9, Storia 1: Scraper CAI nativo PHP`) risultano ora `passes: true` — il PRD è completo. Le
+  Storie 2-5 del design doc (servizio Python `cai-runts-scraper`, wiring RUNTS, refresh nazionale RUNTS,
+  deploy UAT) restano esplicitamente fuori scope di questo PRD, da pianificare in un ciclo ralph separato
+  in futuro (vedi campo `description` di `prd.json`).
+---
+
+## [2026-09-08] - US-912
+- Scaffold del nuovo servizio Python `cai-runts-scraper/` (Fase 9, storia 2, Task 1 del piano
+  `docs/superpowers/plans/2026-09-08-cai-runts-scraper-service.md`): `requirements.txt` (fastapi, uvicorn,
+  playwright, pdfplumber, pytest, httpx), `app/main.py` (FastAPI minimale con `GET /health` →
+  `{"status": "ok"}`), `Dockerfile` basato su `mcr.microsoft.com/playwright/python:v1.47.0-jammy`
+  (verificato Python 3.10.12 nell'immagine con `docker run --rm ... python3 --version`, come richiesto dal
+  piano), healthcheck via `urllib.request` (nessuna dipendenza aggiuntiva).
+- TDD rispettato: test scritto per primo (`tests/test_main.py`), fallito con `ModuleNotFoundError` prima di
+  creare `app/main.py`, poi verde. Verificato anche con un vero build+run Docker (`docker build`, `docker
+  run -p 8010:8000`, `curl -sf http://localhost:8010/health` → `{"status":"ok"}`, exit 0), non solo il test
+  in-process.
+- Aggiunto `cai-runts-scraper/.gitignore` (`.venv/`, `__pycache__/`, `*.pyc`, `.pytest_cache/`), non previsto
+  esplicitamente dal piano ma necessario per non committare il venv locale usato per eseguire i test fuori
+  da Docker.
+- File: `cai-runts-scraper/{requirements.txt,Dockerfile,.gitignore,app/__init__.py,app/main.py,
+  tests/__init__.py,tests/test_main.py}` (tutti nuovi).
+- Verificato: `pytest tests/test_main.py -v` in un venv locale (Python 3.14.4 host, non l'immagine Docker)
+  passa 1/1; `docker build -t cai-runts-scraper:dev .` riuscito; container avviato e `curl` reale sull'health
+  endpoint pubblicato risponde correttamente.
+- **Learnings**: questo repo non ha ancora Python installato/gestito in modo standard — creato un venv
+  locale ad-hoc in `cai-runts-scraper/.venv/` (ignorato da git) solo per eseguire pytest fuori da Docker
+  durante lo sviluppo; l'immagine Docker resta comunque la fonte di verità per l'ambiente reale (Python
+  3.10.12, non 3.14 dell'host). Nessuna sorpresa nel resto: il piano combacia esattamente col codice
+  prodotto. Prossima story (US-913) porta `scraper.py`/`analyzer.py` dal prototipo
+  `/Users/alessiopiccioli/Documents/LAVORO/MS/SOFTWARE/RUNTS/scraper/` — vedere Task 2 del piano.
+---
+
+## [2026-09-08] - US-913
+- Portati verbatim `scraper.py`/`analyzer.py` dal prototipo
+  `/Users/alessiopiccioli/Documents/LAVORO/MS/SOFTWARE/RUNTS/scraper/` (commit prototipo
+  `4d171ee756d2a68f5493d122ff82dbfac9065c64`, repo git verificato) in `cai-runts-scraper/app/`, seguendo
+  alla lettera Task 2 del piano.
+- **Divergenza dal piano, annotata in `notes` della story**: nessun `from scraper.X import`/`import
+  scraper.X` da adattare — verificato con grep sugli import di entrambi i file prima di copiarli: solo
+  librerie standard/terze parti (`asyncio`/`logging`/`re`/`pathlib`/`playwright.async_api` in `scraper.py`;
+  `argparse`/`logging`/`re`/`sqlite3`/`pathlib` in `analyzer.py`), nessun modulo sibling `db`/`geocoder`
+  importato da nessuno dei due file (il CLI `main.py` del prototipo, non portato, è l'unico a farne uso).
+  Nessun adattamento di import quindi necessario, solo un commento in testa a ciascun file col riferimento
+  al commit prototipo (richiesto dal piano anche in questo caso, "no git history" non applicabile perché il
+  prototipo È un repo git).
+- Nuovo test `cai-runts-scraper/tests/test_ported_modules.py` (3 test, copiato alla lettera dal piano):
+  verifica firma async di `run_scraper` (parametri `codice_fiscale`/`attachments_dir`/`headless`/
+  `delay_ms`), mapping noto/sconosciuto di `classify_codice_pratica`, firma sync di `extract_bilancio_pdf`
+  (parametri `path`/`ocr_fallback`).
+- File: `cai-runts-scraper/app/scraper.py` (nuovo), `cai-runts-scraper/app/analyzer.py` (nuovo),
+  `cai-runts-scraper/tests/test_ported_modules.py` (nuovo).
+- Verificato: `pip install -r requirements.txt` nel venv locale (mancavano `playwright`/`pdfplumber`,
+  installati ora), poi `pytest tests/test_ported_modules.py -v` 3/3 verde; l'intera suite del servizio
+  (`pytest -q`, incluso `test_main.py` di US-912) resta verde: 4 passed. `grep -rn "from scraper\.\|^import
+  scraper\." app/` vuoto (nessun riferimento residuo al vecchio nome di package). Verifica sintattica
+  aggiuntiva (`ast.parse`) su entrambi i file portati, nessun errore.
+- **Learnings**: prima di assumere che il porting richieda un adattamento di import (come il piano
+  ipotizzava in via cautelativa), verificare con `grep -n "^import\|^from"` sui file sorgente del prototipo
+  — in questo caso lo scraper/analyzer erano già "foglie" del package (nessuna dipendenza da moduli sibling
+  come `db.py`/`geocoder.py`, che restano usati solo dal CLI `main.py` non portato), quindi il porting è
+  stato un puro `cp` + commento di provenienza. Il venv locale creato in US-912 non aveva ancora
+  `playwright`/`pdfplumber` installati (solo `fastapi` dal primo giro): reinstallare da
+  `requirements.txt` prima di eseguire i test quando si riprende il lavoro su questo servizio in una nuova
+  sessione. Prossima story (US-914) crea `POST /scrape/runts-entity` — caso "non trovato" (mockando
+  `run_scraper`, mai Playwright/RUNTS reale) — vedere Task 3 del piano.
+---
+
+## [2026-09-08] - US-914
+- Aggiunto `POST /scrape/runts-entity?codice_fiscale=<CF>` a `cai-runts-scraper/app/main.py`: chiama
+  `run_scraper()` direttamente (mai il CLI `main()` del prototipo), e quando ritorna `([], {})` risponde
+  `{"found": false}` con HTTP 200, seguendo alla lettera Task 3 del piano
+  `docs/superpowers/plans/2026-09-08-cai-runts-scraper-service.md`. Il ramo di successo (`entities` non
+  vuoto) resta un `raise NotImplementedError` esplicito, da completare in US-915 (Task 4 del piano).
+- Nuovo test `cai-runts-scraper/tests/test_scrape_runts_entity.py` (1 test, copiato alla lettera dal
+  piano): mocka `app.main.run_scraper` con `AsyncMock(return_value=([], {}))`, verifica
+  `{"found": False}`/200 e che `codice_fiscale` sia passato come kwarg a `run_scraper`.
+- File: `cai-runts-scraper/app/main.py`, `cai-runts-scraper/tests/test_scrape_runts_entity.py` (nuovo).
+- Verificato: TDD rispettato (test fallito con `AttributeError: ... does not have the attribute
+  'run_scraper'` prima di aggiungere la route/l'import, poi verde); l'intera suite del servizio
+  (`pytest -q`, venv locale) resta verde: 5 passed (4 pre-esistenti + 1 nuovo).
+- **Learnings**: nessuna divergenza dal piano — la firma reale di `run_scraper` (portata verbatim in
+  US-913, `app/scraper.py:708`: `denominazione: str = "CLUB ALPINO ITALIANO"`, `headless`, `delay_ms`,
+  `filter_denominazione`, `codice_fiscale`, `attachments_dir`) combacia esattamente con la chiamata
+  suggerita dal piano (`denominazione=None` passato comunque, Python non impone i type hint a runtime).
+  Prossima story (US-915) implementa il ramo di successo dell'endpoint (schema JSON completo di
+  entity/cariche/documenti con content_base64) — vedere Task 4 del piano, che include lo schema JSON
+  completo e le fixture di test realistiche.
+---
+
+## [2026-09-08] - US-915
+- Implementato il ramo di successo di `POST /scrape/runts-entity` in `cai-runts-scraper/app/main.py`,
+  seguendo alla lettera Task 4 del piano `docs/superpowers/plans/2026-09-08-cai-runts-scraper-service.md`.
+  Ogni campo dell'entità è costruito esplicitamente con `.get(key)` (mai uno spread verbatim del dict
+  grezzo dello scraper), `raw_json`/`atti_documenti`/`cariche` rimossi dall'oggetto `entity` restituito.
+  Un documento è incluso in `documents` con `content_base64` valorizzato SOLO se `skip_reason` è `None` E
+  `path` è presente (letto da disco e codificato base64); un documento con `skip_reason` valorizzato non
+  ha mai `content_base64`. `import base64` spostato in cima al file (non inline, come indicato dal piano).
+- Nuovo test `test_scrape_runts_entity_returns_metadata_board_members_and_documents` aggiunto a
+  `cai-runts-scraper/tests/test_scrape_runts_entity.py` (copiato alla lettera dal piano): mocka
+  `run_scraper` con un'entità fixture completa di due documenti (uno scaricato con PDF reale su disco
+  temporaneo `tmp_path`, uno skippato con `skip_reason="no_button"`) e una carica sociale; verifica
+  metadati, assenza delle chiavi grezze, board_members, conteggio/contenuto documenti (base64 decodificato
+  combacia col contenuto scritto su disco) e che il documento skippato non abbia `content_base64`.
+- File: `cai-runts-scraper/app/main.py`, `cai-runts-scraper/tests/test_scrape_runts_entity.py`.
+- Verificato: TDD rispettato (test fallito con `NotImplementedError` prima dell'implementazione, come
+  atteso dal piano), poi `pytest tests/test_scrape_runts_entity.py -v` 2/2 verde; l'intera suite del
+  servizio (`pytest -q`, venv locale Python 3.14.4) resta verde: 6 passed (4 pre-esistenti + 2 nuovi in
+  questo file, il conteggio pre-esistente era 5 ma un test era già lì da US-914: 4 file * ~1-2 test =
+  totale corretto 6).
+- **Learnings**: nessuna divergenza dal piano, il codice suggerito ha combaciato esattamente. Prossima
+  story (US-916) trasforma un'eccezione sollevata da `run_scraper()` in `HTTPException(status_code=502,
+  detail=str(exc))` — vedere Task 5 del piano.
+---
+
+## [2026-09-08] - US-916
+- Implementato il try/except attorno alla chiamata `await run_scraper(...)` in
+  `cai-runts-scraper/app/main.py`: un'eccezione qualunque sollevata da `run_scraper()` (dopo i suoi retry
+  interni) viene ora catturata e trasformata in `HTTPException(status_code=502, detail=str(exc))`, seguendo
+  alla lettera Task 5 del piano `docs/superpowers/plans/2026-09-08-cai-runts-scraper-service.md`.
+- Nuovo test `test_scrape_runts_entity_returns_502_when_scraper_raises` aggiunto a
+  `cai-runts-scraper/tests/test_scrape_runts_entity.py` (copiato alla lettera dal piano): mocka
+  `app.main.run_scraper` con `AsyncMock(side_effect=RuntimeError("Playwright timeout"))`, verifica status
+  502 e che il messaggio dell'eccezione compaia nel campo `detail` della risposta JSON.
+- File: `cai-runts-scraper/app/main.py`, `cai-runts-scraper/tests/test_scrape_runts_entity.py`.
+- Verificato: TDD rispettato (test fallito con l'eccezione `RuntimeError` propagata non gestita, mai un 502
+  strutturato, prima della modifica), poi `pytest -v` (venv locale, Python 3.14.4) 7/7 verde (4 pre-esistenti
+  + 3 in `test_scrape_runts_entity.py`, incluso quello nuovo).
+- **Learnings**: nessuna divergenza dal piano, il codice suggerito ha combaciato esattamente. Prossima
+  story (US-917) implementa `POST /analyze/bilancio` (upload multipart, `extract_bilancio_pdf(path,
+  ocr_fallback=False)`, 15 campi italiani + raw_text + ocr, mai un errore anche su PDF non interpretabile)
+  — vedere Task 6 del piano.
+---
+
+## [2026-09-08] - US-917
+- Implementato `POST /analyze/bilancio` in `cai-runts-scraper/app/main.py`, seguendo alla lettera Task 6
+  del piano `docs/superpowers/plans/2026-09-08-cai-runts-scraper-service.md`: accetta un upload multipart
+  `file`, scrive il contenuto su un `tempfile.NamedTemporaryFile(suffix=".pdf")` effimero, chiama
+  `extract_bilancio_pdf(path, ocr_fallback=False)` e risponde con le 15 chiavi italiane
+  (`oneri_*`/`proventi_*`/`totale_*`/`risultato_*`/`imposte`) + `raw_text` (troncato a 2000 char) + `ocr`
+  (bool). Un PDF non interpretabile (tutti i campi `None` dal mock) risponde comunque 200.
+- Nuovo test `cai-runts-scraper/tests/test_analyze_bilancio.py` (2 test, copiato alla lettera dal piano):
+  mocka `app.main.extract_bilancio_pdf`, verifica i campi finanziari/ocr/raw_text nel caso di successo e
+  che un PDF "vuoto"/non interpretabile risponda comunque 200 con `totale_oneri: null`.
+- **Divergenza dal piano, annotata in `notes` della story**: `requirements.txt` non elencava
+  `python-multipart`, ma FastAPI lo richiede a runtime per qualunque endpoint con `UploadFile`/`File(...)`
+  — senza, la sola *collezione* dei test falliva (`RuntimeError: Form data requires "python-multipart" to
+  be installed`, prima ancora di eseguire il corpo dei test). Aggiunto `python-multipart>=0.0.9` a
+  `requirements.txt` e installato nel `.venv` locale (`pip install "python-multipart>=0.0.9"`). Nessun'altra
+  divergenza: codice della route/test combaciano esattamente col piano.
+- File: `cai-runts-scraper/app/main.py`, `cai-runts-scraper/requirements.txt`,
+  `cai-runts-scraper/tests/test_analyze_bilancio.py` (nuovo).
+- Verificato: TDD rispettato (test falliti prima con 404/route inesistente, poi con l'errore
+  python-multipart, poi verdi dopo entrambi i fix), `./.venv/bin/python3 -m pytest -v` (venv locale, Python
+  3.14.4) 9/9 verde (7 pre-esistenti + 2 nuovi).
+- **Nota ambientale**: in questa sessione sono presenti DUE venv nella cartella del servizio: `.venv/`
+  (quello con tutte le dipendenze già installate, usato per questa story) e un `venv/` che avevo creato per
+  errore vuoto in un tentativo di attivazione fallito nella stessa sessione — rimosso subito dopo essermene
+  accorto, prima del commit. Usare sempre `./.venv/bin/python3 -m pytest` (con il punto), non `./venv/...`.
+- **Learnings**: quando un piano introduce il primo endpoint FastAPI con upload multipart in un servizio,
+  verificare `requirements.txt` per `python-multipart` PRIMA di eseguire i test — è una dipendenza runtime
+  di FastAPI stesso (non di Starlette/pydantic), facilmente dimenticata perché non serve per nessun altro
+  endpoint del servizio (gli altri sono JSON/query-param). Prossima story (US-918) è l'ultima di Storia 2:
+  wiring in `docker-compose.yml` + verifica manuale reale contro il sito RUNTS — vedere Task 7 del piano,
+  e la nota generale del PRD su come registrare l'esito onestamente se il sito reale non è raggiungibile.
+---
+
+## [2026-09-08] - US-918
+- Aggiunto il servizio `cai-runts-scraper` a `docker-compose.yml` (`build: ./cai-runts-scraper`, porta
+  host `8010:8000` solo per la verifica manuale, `restart: unless-stopped` come da Task 7 del piano), con
+  `networks: [orchestrator]` esplicito (non presente nello snippet YAML del piano, ma indispensabile: senza,
+  il servizio finirebbe sulla rete `default` di Compose e non sarebbe risolvibile per hostname da `app`,
+  stesso pattern già usato da tutti gli altri servizi in questo file).
+- `docker compose up -d --build cai-runts-scraper` poi `docker compose exec app curl -sf
+  http://cai-runts-scraper:8000/health` → `{"status":"ok"}`, confermando la raggiungibilità
+  container-to-container (stesso percorso che userà PHP nella Storia 3).
+- **BUG REALE trovato e corretto durante la verifica manuale (Task 7 Step 3)**: `requirements.txt` aveva
+  `playwright>=1.44.0` non pinnato, risolto da pip a `1.62.0` al momento del build (2026-09-08) — ma
+  l'immagine base `mcr.microsoft.com/playwright/python:v1.47.0-jammy` ha i binari Chromium installati SOLO
+  per la 1.47.0. Ogni scrape reale falliva immediatamente con `BrowserType.launch: Executable doesn't
+  exist at /ms-playwright/chromium_headless_shell-1234/...` (mai emerso nei test automatici, che mockano
+  sempre `run_scraper`). Fix: pinnato `playwright==1.47.0` in `requirements.txt` (allineato al commento
+  già presente in cima al Dockerfile, "Python 3.10.12 verified via ... v1.47.0-jammy" — quel commento
+  documentava già la versione attesa, solo `requirements.txt` non la rispecchiava), rebuild dell'immagine.
+- **Verifica manuale reale contro RUNTS (Task 7 Step 3), eseguita con successo dopo il fix**:
+  1. `codice_fiscale=00951210103` (Sezione CAI Liguria-Genova, con una registrazione RUNTS GIÀ importata
+     dal datapack storico in `cai_runts_registrations` — quindi nota per certo presente in RUNTS, scelta
+     deliberatamente al posto della prima sezione con `tax_code` qualunque, che non garantisce una
+     registrazione reale) → HTTP 200, `found: true`, entità/cariche/documenti reali estratti dal sito RUNTS
+     live: denominazione "CAI LIGURE GENOVA APS - ETS", PEC `GENOVALIGURE@PEC.CAI.IT`, documenti PDF con
+     `hash_sha256`/`content_base64` reali (risposta di ~9MB per via del base64 dei bilanci, coerente col
+     rischio dimensionale già noto in design doc §7).
+  2. `codice_fiscale=93002220031` (prima sezione con `tax_code`, nessuna garanzia di presenza RUNTS) e
+     `codice_fiscale=00000000000` (sintatticamente valido ma inventato) → entrambi HTTP 502, stesso identico
+     messaggio `Page.wait_for_selector: Timeout 30000ms exceeded ... waiting for locator
+     input[value="Dettaglio"]`. Verificato con `docker compose logs cai-runts-scraper` che non è un errore
+     di navigazione/markup rotto (nessun altro errore nei log, il processo Playwright si avvia e naviga
+     correttamente come dimostra il caso di successo sopra) — è esattamente l'ambiguità "timeout sulla
+     ricerca stessa" già documentata come rischio noto e accettato nel design doc §3.3/§7 ("altrimenti un
+     errore 502 esplicito"): un CF senza risultati non fa mai apparire il selettore `input[value="Dettaglio"]`
+     entro 30s, quindi degrada sempre a un timeout Playwright anziché a un `{"found": false}` pulito. Nessun
+     fix di codice necessario per questo comportamento specifico (già esplicitamente accettato dal design),
+     l'unico bug reale era la versione Playwright non pinnata.
+- File: `docker-compose.yml`, `cai-runts-scraper/requirements.txt`.
+- Verificato: suite pytest completa del servizio (venv locale) 9/9 verde; `docker compose config --quiet`
+  pulito; container fermato con `docker compose down cai-runts-scraper` a fine verifica (rimuove solo quel
+  container, non l'intero stack — confermato con `docker compose ps` che gli altri servizi restano `Up`
+  invariati).
+- **Learnings**: quando un piano fornisce uno snippet YAML per un nuovo servizio Docker Compose, verificare
+  sempre se serve `networks:` esplicito confrontando con lo stile degli altri servizi nello stesso file —
+  uno snippet minimale nel piano può omettere dettagli "impliciti" che in realtà sono necessari (qui: senza
+  `networks: [orchestrator]` il servizio non sarebbe stato raggiungibile per hostname, vanificando l'intero
+  scopo della story). Una dipendenza Python non pinnata (`>=`) in un servizio containerizzato con
+  un'immagine base che include asset binari version-locked (qui: i browser Chromium di Playwright,
+  scaricati SOLO per la versione del tag dell'immagine) è un rischio concreto di drift silenzioso: pip
+  installa sempre l'ultima versione compatibile al momento del build, che può disallinearsi dall'immagine
+  base in qualunque momento futuro senza che nessun file sia stato toccato — pinnare sempre la versione
+  esatta quando il resto dello stack (qui: il tag dell'immagine Docker) non è altrettanto flessibile.
+  Storia 2 (US-912..US-918) conclusa: tutte le acceptance criteria automatizzate verdi, verifica manuale
+  reale eseguita con successo (non solo tentata) — nessuna nota di "da ripetere da un umano" necessaria per
+  questa story specifica, a differenza di quanto la nota generale del PRD paventava come possibilità.
+  Prossima story (US-919, Storia 3 lato PHP) inizia la migrazione `runts_last_synced_at` — vedere Task 1 del
+  piano `docs/superpowers/plans/2026-09-08-cai-runts-orchestrator-wiring.md`.
+---
+
+## [2026-09-08] - US-919
+- Migrazione additiva `runts_last_synced_at` (timestamp nullable) su `cai_runts_registrations`, seguendo
+  alla lettera Task 1 del piano `docs/superpowers/plans/2026-09-08-cai-runts-orchestrator-wiring.md`.
+  Aggiunta a `#[Fillable([...])]` e a `casts()` (`'datetime'`) di `CaiRuntsRegistration` — senza questo la
+  colonna verrebbe scartata silenziosamente dal mass-assignment (gotcha già noto in questo repo, US-703).
+- Nuovo test `tests/Feature/Database/CaiRuntsRegistrationLastSyncedAtTest.php` (1 test, copiato alla lettera
+  dal piano): verifica esistenza colonna + mass-assignment + cast Carbon.
+- File: `database/migrations/2026_09_08_100000_add_runts_last_synced_at_to_cai_runts_registrations_table.php`
+  (nuovo), `app/Domain/CaiDirectory/Models/CaiRuntsRegistration.php`,
+  `tests/Feature/Database/CaiRuntsRegistrationLastSyncedAtTest.php` (nuovo).
+- Verificato: nuovo test 1/1 verde, `tests/Feature/Console/CaiImportDatapackCommandTest.php` resta verde
+  con gli stessi 6 test/67 assertion di prima (nessuna regressione), `pint --test` (3 file) e
+  `phpstan analyse --memory-limit=1G` (463 file, intero progetto) puliti.
+- **Learnings**: nessuna sorpresa, il piano combacia esattamente con lo stato reale del codice per questo
+  Task — nessuna divergenza da annotare. Prossima story (US-920) estrae
+  `CaiRuntsRegistrationFieldMapper` (mapRegistration/mapBoardMember) da `CaiDatapackImporter`, con `lat`/`lon`
+  letti con `?? null` (assenti sulla fonte live) — vedere Task 2 del piano, verificare con `grep` se i metodi
+  da spostare sono usati anche da altri call site non citati esplicitamente dal piano (stesso gotcha già
+  incontrato in US-903 con `toInt()`).
+---
+
+## [2026-09-08] - US-920
+- Estratta `App\Domain\CaiDirectory\Import\CaiRuntsRegistrationFieldMapper` (metodi statici puri
+  `mapRegistration(object $row, string $sectionCode): array`/`mapBoardMember(object $row, string $idRunts): array`),
+  seguendo alla lettera Task 2 del piano `docs/superpowers/plans/2026-09-08-cai-runts-orchestrator-wiring.md`.
+  `CaiDatapackImporter::importRegistrations()`/`importBoardMembers()` ora costruiscono `$attributes`
+  richiamando il mapper condiviso invece dell'array inline; la query di dedup di `importBoardMembers()`
+  legge da `$attributes` invece delle variabili locali `$fullName`/`$validFrom`/`$validTo` ormai rimosse.
+- `lat`/`lon` letti con `?? null` + `CaiSectionFieldMapper::toCoordinate(...)` (stessa protezione overflow
+  |x|>=1000 già nota da US-802/US-903), a differenza del vecchio codice inline che assegnava `$row->lat`/
+  `$row->lon` grezzi senza coercizione — nessuna regressione: nessuna fixture di test include quelle
+  colonne sulla tabella `enti` (verificato con grep), quindi il comportamento sulla suite esistente è
+  invariato, solo più robusto per la futura fonte live (Task 5/US-923).
+- Nuovo test `tests/Unit/Domain/CaiDirectory/Import/CaiRuntsRegistrationFieldMapperTest.php` (4 test,
+  copiato alla lettera dal piano): mapRegistration con tutti i campi, mapRegistration con lat/lon presenti,
+  mapBoardMember con nome+cognome concatenati, mapBoardMember con nome/cognome assenti.
+- File: `app/Domain/CaiDirectory/Import/CaiRuntsRegistrationFieldMapper.php` (nuovo),
+  `app/Domain/CaiDirectory/Import/CaiDatapackImporter.php`,
+  `tests/Unit/Domain/CaiDirectory/Import/CaiRuntsRegistrationFieldMapperTest.php` (nuovo).
+- Verificato: nuovo test 4/4 verde, `tests/Feature/Console/CaiImportDatapackCommandTest.php` resta verde
+  con gli stessi 6 test/67 assertion di prima (nessuna regressione di conteggi), l'intera suite
+  `--filter=Cai` (113 test, 1 skipped) resta verde, `pint --test` (816 file) e
+  `phpstan analyse --memory-limit=1G` (464 file, intero progetto) puliti.
+- **Gotcha nuovo scoperto**: Pint (regola `fully_qualified_strict_types`) riscrive un riferimento
+  `{@see \Fully\Qualified\ClassName}` inline in un docblock in un vero `use` statement importato — anche
+  quando quella classe NON esiste ancora nel repo (qui `App\Domain\CaiDirectory\Actions\SyncCaiRuntsRegistration`,
+  arriva solo con US-923/Task 5). Verificato che è innocuo: un `use` mai referenziato nel corpo del codice
+  (solo dentro un commento `@see`) non attiva mai l'autoloader — sia `phpstan analyse --memory-limit=1G`
+  sia l'intera suite Pint del progetto restano puliti con quell'import "a vuoto" presente. Non c'è motivo
+  di combattere il fixer del progetto (avrebbe richiesto disabilitare la regola o riscrivere il commento in
+  modo innaturale): lasciato il `use` generato automaticamente da Pint. Da tenere a mente per qualunque
+  futura classe che referenzi in un `@see` un'altra classe non ancora creata nella stessa feature — Pint
+  genererà comunque l'import, e va bene così.
+- **Learnings**: stesso gotcha "verificare con grep se un pezzo di codice da estrarre è usato anche altrove"
+  già incontrato in US-903, confermato di nuovo negativo qui (nessun altro call site). Prossima story
+  (US-921) estrae `CaiFinancialStatementFieldMapper::mapFinancialStatement(object $row): array` (SOLO i 15
+  campi finanziari, mai `cai_runts_registration_id`/`year`) da `CaiDatapackImporter::importFinancialStatements()`
+  — vedere Task 3 del piano.
+---
+
+## [2026-09-08] - US-921
+- Estratta `App\Domain\CaiDirectory\Import\CaiFinancialStatementFieldMapper` (metodo statico puro
+  `mapFinancialStatement(object $row): array`, SOLO i 15 campi finanziari inglesi, mai
+  `cai_runts_registration_id`/`year`), seguendo alla lettera Task 3 del piano
+  `docs/superpowers/plans/2026-09-08-cai-runts-orchestrator-wiring.md`.
+  `CaiDatapackImporter::importFinancialStatements()` ora costruisce `$attributes` con
+  `'cai_runts_registration_id' => ..., 'year' => CaiSectionFieldMapper::toInt(...), ...CaiFinancialStatementFieldMapper::mapFinancialStatement($row)`
+  invece dell'array inline di 15 righe.
+- Nuovo test `tests/Unit/Domain/CaiDirectory/Import/CaiFinancialStatementFieldMapperTest.php` (1 test,
+  copiato alla lettera dal piano): tutti e 15 i campi mappati correttamente (compresi i valori null).
+- File: `app/Domain/CaiDirectory/Import/CaiFinancialStatementFieldMapper.php` (nuovo),
+  `app/Domain/CaiDirectory/Import/CaiDatapackImporter.php`,
+  `tests/Unit/Domain/CaiDirectory/Import/CaiFinancialStatementFieldMapperTest.php` (nuovo).
+- Verificato: nuovo test 1/1 verde, `tests/Feature/Console/CaiImportDatapackCommandTest.php` resta verde
+  con gli stessi 6 test/67 assertion di prima (nessuna regressione), l'intera suite `--filter=Cai`
+  (114 test, 1 skipped) resta verde, `pint --test` (3 file) e `phpstan analyse --memory-limit=1G`
+  (465 file, intero progetto) puliti.
+- **Learnings**: stesso gotcha "verificare con grep se il codice da estrarre è usato anche altrove" già
+  incontrato in US-903/US-920, confermato di nuovo negativo qui (nessun altro call site per i 15 campi
+  italiani `oneri_*`/`proventi_*`/ecc.). Prossima story (US-922) crea `CaiRuntsScraperClient` +
+  configurazione (`config/cai_directory.php`, `.env.example`) per chiamare i due endpoint HTTP del
+  servizio `cai-runts-scraper` da PHP — vedere Task 4 del piano: `scrapeEntity()` invia `codice_fiscale`
+  come query param (mai nel body JSON), `analyzeBilancio()` fa upload multipart, NESSUN retry proprio nel
+  client (il servizio Python già ritenta internamente), timeout/URL letti da config, mai `env()` fuori da
+  `config/`.
+---
+
+## [2026-09-08] - US-922
+- Aggiunta la sezione `runts_scraper` a `config/cai_directory.php` (`base_url`/`scrape_timeout_seconds`/
+  `analyze_timeout_seconds`, letti da `CAI_RUNTS_SCRAPER_BASE_URL`/`_SCRAPE_TIMEOUT_SECONDS`/
+  `_ANALYZE_TIMEOUT_SECONDS`) + le stesse 3 chiavi in `.env.example`, seguendo alla lettera il Task 4 del
+  piano `2026-09-08-cai-runts-orchestrator-wiring.md`.
+- Nuova classe `App\Domain\CaiDirectory\Support\CaiRuntsScraperClient` con `scrapeEntity(string $codiceFiscale): array`
+  (invia `codice_fiscale` come query param via `Http::withOptions(['query' => ...])`, MAI nel body JSON) e
+  `analyzeBilancio(string $pdfContent): array` (upload multipart via `Http::attach('file', ...)`). Nessun
+  retry proprio (il servizio Python già ritenta internamente). `$response->throw()` propaga un errore HTTP
+  come eccezione (gestito lato chiamante nelle story successive, US-923/US-924/US-926).
+- File: `config/cai_directory.php`, `.env.example`, `app/Domain/CaiDirectory/Support/CaiRuntsScraperClient.php`
+  (nuovo), `tests/Feature/Domain/CaiDirectory/Support/CaiRuntsScraperClientTest.php` (nuovo).
+- Verificato: nuovo test 2/2 verde, l'intera suite `--filter=Cai` (116 test, 1 skipped) resta verde,
+  `pint --test` (820 file) e `phpstan analyse --memory-limit=1G` (466 file) puliti.
+- **Divergenza dal piano (ambientale, non un bug del client)**: il test `analyzeBilancio` del piano
+  asserisce `expect($result)->toBe(['totale_oneri' => 1200.0])`, ma su questo PHP (serialize_precision=-1
+  di default) `json_encode(['totale_oneri' => 1200.0])` produce `{"totale_oneri":1200}` (nessuna parte
+  frazionaria per un float dal valore intero) — verificato con
+  `php -r 'var_dump(json_decode(json_encode(["x"=>1200.0]),true));'` → `int(1200)`, non `float(1200.0)`.
+  `Http::response(...)` di Laravel fa esattamente questo json_encode/decode round-trip, quindi
+  `$response->json()` restituisce un int quando la fixture del test passa un float dal valore intero.
+  Corretta l'aspettativa del test a `['totale_oneri' => 1200]` (con commento esplicativo), nessuna modifica
+  al codice del client (che si limita a restituire `$response->json()` as-is, comportamento corretto).
+- **Learnings**: quando un test Http::fake()/->toBe() confronta un valore float "tondo" (es. `1200.0`)
+  dopo un giro `Http::response()`→`$response->json()`, aspettarsi che possa arrivare come int, non float
+  — è un comportamento di `json_encode`/`serialize_precision`, non specifico di questo repo. Prossima
+  story (US-923) crea `SyncCaiRuntsRegistrationResult` + `SyncCaiRuntsRegistration::run(CaiSection $section)`
+  (metadati + cariche sociali, documenti rimandati a US-925) — vedere Task 5 del piano: usa
+  `CaiRuntsScraperClient::scrapeEntity()` + `CaiRuntsRegistrationFieldMapper` (già pronto da US-920),
+  richiede l'helper `caiRuntsRegistration()` in `tests/Pest.php` (da aggiungere in questa story).
+---
+
+## [2026-09-08] - US-923
+- Aggiunta `App\Domain\CaiDirectory\Support\SyncCaiRuntsRegistrationResult` (DTO readonly, factory
+  `notFound()`/`synced()`) e `App\Domain\CaiDirectory\Actions\SyncCaiRuntsRegistration::run(CaiSection $section)`
+  (steps 1-3: not-found se `tax_code` mancante o `found:false` dal servizio senza scrivere nulla; upsert
+  `CaiRuntsRegistration` con `runts_last_synced_at` sempre valorizzato a `Carbon::now()` anche a parità di
+  campi di business; sync cariche sociali con lo stesso schema di dedup — chiave `(cai_runts_registration_id,
+  role, tax_code, valid_from)` — già in uso in `CaiDatapackImporter::importBoardMembers()`), seguendo alla
+  lettera Task 5 del piano `docs/superpowers/plans/2026-09-08-cai-runts-orchestrator-wiring.md`. I documenti
+  di bilancio e il dispatch dell'analisi async restano fuori scope (arrivano con US-926/Task 7).
+- Aggiunto l'helper `caiRuntsRegistration()` a `tests/Pest.php` (dopo `caiSection()`, stesso stile: sequenza
+  incrementale per `id_runts`, `cai_section_id` da una `caiSection()` fresca se non passato esplicitamente)
+  + `use App\Domain\CaiDirectory\Models\CaiRuntsRegistration;` in cima al file.
+- Nuovo test `tests/Feature/Domain/CaiDirectory/Actions/SyncCaiRuntsRegistrationTest.php` (4 test, copiato
+  alla lettera dal piano, con helper locale `fakeRuntsEntityFound()` — verificato nessuna collisione di nome
+  con altri file di test): not-found su `found:false` (nessuna riga scritta), not-found senza chiamare il
+  servizio quando `tax_code` è `null` (`Http::assertNothingSent()`), creazione registrazione+carica sociale
+  nuova con `runts_last_synced_at` valorizzato, update di una registrazione esistente con
+  `runts_last_synced_at` ribadito anche se già presente.
+- File: `app/Domain/CaiDirectory/Support/SyncCaiRuntsRegistrationResult.php` (nuovo),
+  `app/Domain/CaiDirectory/Actions/SyncCaiRuntsRegistration.php` (nuovo),
+  `tests/Feature/Domain/CaiDirectory/Actions/SyncCaiRuntsRegistrationTest.php` (nuovo), `tests/Pest.php`.
+- Verificato: nuovo test 4/4 verde, l'intera suite `--filter=Cai` (120 test, 1 skipped) resta verde
+  (116→120, +4 come atteso, nessuna regressione sui conteggi esistenti — incluse le due test suite
+  pre-esistenti e non correlate "sync runts data action..." di `CustomerDashboardTest.php`, un'altra
+  funzionalità di re-import da datapack, non lo scrape live di questa story), `pint --test` (823 file) e
+  `phpstan analyse --memory-limit=1G` (468 file, intero progetto) puliti.
+- **Gotcha Pint ricorrente (già documentato in US-920)**: il fixer `fully_qualified_strict_types` ha
+  auto-importato sia `App\Filament\Pages\CustomerDashboard` (referenziata solo in un `{@see}` nel docblock di
+  `SyncCaiRuntsRegistration`, classe che arriva solo con US-926/Task 8) sia
+  `App\Domain\CaiDirectory\Actions\SyncCaiRuntsRegistration` (referenziata in un `{@see}` nel docblock di
+  `SyncCaiRuntsRegistrationResult`) — lanciato `vendor/bin/pint` (non `--test`) sui due file nuovi per farlo
+  applicare, poi riverificato `pint --test`/`phpstan analyse` puliti: nessuna azione manuale necessaria oltre
+  a lasciar fare al fixer, stesso comportamento innocuo già confermato in precedenza.
+- **Learnings**: tutte le classi dipendenti (`CaiRuntsScraperClient`/US-922, `CaiRuntsRegistrationFieldMapper`/
+  US-920, `DiffsAttributes`/preesistente da Fase 8, `runts_last_synced_at` già in Fillable/casts di
+  `CaiRuntsRegistration` da US-919) erano già pronte esattamente come previsto dal piano — zero divergenze,
+  zero adattamenti necessari in questa story. Prossima story (US-924) crea
+  `AnalyzeCaiFinancialStatementDocument` (job in coda dedicata `cai-runts-analysis`, mai la coda default) +
+  supervisor Horizon dedicato in `config/horizon.php` — vedere Task 6 del piano: costruttore con SOLO
+  `int $caiDocumentId` (mai il modello serializzato, stesso pattern di `GenerateDocumentationPagePdfJob`),
+  no-op silenzioso se il `CaiDocument` non esiste più, upsert `CaiFinancialStatement` per
+  `(cai_runts_registration_id, year)`. Richiede anche `docker compose restart queue` + verifica log Horizon
+  come AC esplicito, non solo test automatici.
+---
+
+## [2026-09-08] - US-924
+- Creato `App\Domain\CaiDirectory\Jobs\AnalyzeCaiFinancialStatementDocument implements ShouldQueue`
+  (costruttore con SOLO `int $caiDocumentId`, mai il modello serializzato — stesso pattern di
+  `GenerateDocumentationPagePdfJob`), seguendo alla lettera Task 6 del piano
+  `docs/superpowers/plans/2026-09-08-cai-runts-orchestrator-wiring.md`. `handle(CaiRuntsScraperClient $client)`:
+  ri-legge il `CaiDocument` (no-op se `find()` restituisce `null`), scarica il PDF da
+  `Storage::disk('cai-documents')` (no-op se il file manca), chiama `analyzeBilancio()`, mappa la risposta
+  con `CaiFinancialStatementFieldMapper::mapFinancialStatement()` (US-921) e fa upsert (create/update) di
+  `CaiFinancialStatement` per `(cai_runts_registration_id, year)`.
+- Aggiunto l'helper `caiDocument()` a `tests/Pest.php` (dopo `caiRuntsRegistration()`, stesso stile:
+  sequenza incrementale, `cai_runts_registration_id` da una `caiRuntsRegistration()` fresca se non passato
+  esplicitamente; il file su `Storage::disk('cai-documents')` non viene scritto dall'helper stesso) +
+  `use App\Domain\CaiDirectory\Models\CaiDocument;` in cima al file.
+- Nuovo test `tests/Feature/Domain/CaiDirectory/Jobs/AnalyzeCaiFinancialStatementDocumentTest.php` (3 test,
+  copiato alla lettera dal piano): creazione di un `CaiFinancialStatement` nuovo, update di uno esistente per
+  la stessa `(registration, year)`, no-op quando il `CaiDocument` non esiste più (`Http::assertNothingSent()`).
+- Aggiunto un nuovo supervisor Horizon dedicato `cai-runts-analysis` in `config/horizon.php`
+  (`'defaults'`, `queue => ['cai-runts-analysis']`, `balance => 'simple'`, `maxProcesses => 2`,
+  `tries => 3`, `timeout => 120`) — prima coda dedicata (non `default`) di questo repo, per non far
+  competere l'estrazione PDF di bilancio con la posta/generazione PDF report attività. Nessuna modifica a
+  `'environments'`: Horizon fonde gli override per-ambiente sui supervisor già in `defaults`, non serve
+  elencare `cai-runts-analysis` anche lì per farlo girare in ogni ambiente.
+- File: `app/Domain/CaiDirectory/Jobs/AnalyzeCaiFinancialStatementDocument.php` (nuovo),
+  `config/horizon.php`, `tests/Pest.php`,
+  `tests/Feature/Domain/CaiDirectory/Jobs/AnalyzeCaiFinancialStatementDocumentTest.php` (nuovo).
+- Verificato: nuovo test 3/3 verde (5 assertion); l'intera suite `--filter=Cai` (124 test totali,
+  120→123 passed + 1 skipped, +3 come atteso, nessuna regressione sui conteggi esistenti); la suite
+  pre-esistente `tests/Feature/Console/CaiImportDatapackCommandTest.php` resta identica (6 test/67
+  assertion); `pint --test` (825 file, dopo aver lasciato applicare il fixer `fully_qualified_strict_types`/
+  `ordered_imports` sul nuovo file di test — stesso gotcha innocuo già noto da US-920/US-923) e
+  `phpstan analyse --memory-limit=1G` (469 file, intero progetto) puliti. `docker compose restart queue` +
+  `docker compose logs --tail=40 queue` mostra "Horizon started successfully."; `php artisan horizon:list`
+  conferma che il nuovo master gira entrambi i supervisor (`supervisor-1, cai-runts-analysis`) senza errori
+  (verificato che il vecchio master sparisce da solo dopo qualche secondo, sostituito dal nuovo).
+- **Learnings**: nessuna sorpresa, il piano combacia esattamente con lo stato reale del codice per questo
+  Task (nessuna divergenza da annotare). Prossima story (US-925) estende `SyncCaiRuntsRegistration` con
+  `syncDocuments()` — vedere Task 7 del piano: dedup per `(cai_runts_registration_id, filename)`, decodifica
+  base64 + salvataggio su disco `cai-documents` + creazione `CaiDocument` per ogni documento nuovo con
+  `skip_reason` nullo, dispatch di `AnalyzeCaiFinancialStatementDocument::dispatch($document->id)
+  ->onQueue('cai-runts-analysis')` SOLO per i documenti nuovi con `document_type === 'bilancio_esercizio'`.
+---
+
+## 2026-09-08 - US-925
+- Implementato Task 7 del piano `docs/superpowers/plans/2026-09-08-cai-runts-orchestrator-wiring.md`: `SyncCaiRuntsRegistration::syncDocuments()` scarica e allega i documenti di bilancio non ancora presenti, dispatcha `AnalyzeCaiFinancialStatementDocument` sulla coda `cai-runts-analysis` solo per i nuovi documenti `tipo === 'bilancio_esercizio'`.
+- Files: `app/Domain/CaiDirectory/Actions/SyncCaiRuntsRegistration.php` (nuovo metodo privato `syncDocuments()`, wiring in `run()`, costanti `DOCUMENTS_DISK`/`BILANCIO_DOCUMENT_TYPES`), `tests/Feature/Domain/CaiDirectory/Actions/SyncCaiRuntsRegistrationTest.php` (2 nuovi test: download+dispatch selettivo, idempotenza no-redownload/no-requeue).
 - **Learnings for future iterations:**
-  - Vedi la nuova sezione "Checkpoint di fine Fase 8 (US-808)" in `orchestrator/CLAUDE.md` per il pattern
-    completo dello script generatore del manuale di collaudo, e per il gotcha dell'apostrofo lato
-    visualizzazione (distinto da quello, già documentato, lato `verify-manifest`).
-  - Non dimenticare MAI i 5 file cumulativi (`00-istruzioni-generali.md`, `01-matrice-tracciabilita.md`,
-    `11-registro-esiti.md`, `12-verbale-collaudo.md`, `README.md`) ad ogni nuova fase: sono inclusi per
-    intero in ogni PDF generato (`COMMON_PREFIX_FILES`/`COMMON_SUFFIX_FILES`), quindi un PDF "corretto" per
-    la fase nuova può comunque mostrare conteggi/indice obsoleti se questi file restano indietro.
+  - Implementazione presa alla lettera dal piano (Task 7): dedup per `(cai_runts_registration_id, file_name)`, `base64_decode($x, true)` con controllo `=== false`, path su disco `"{$idRunts}/{$fileName}"`, righe con `skip_reason` non nullo o senza `content_base64`/`filename` semplicemente saltate (mai un errore).
+  - Pint riformatta automaticamente da FQCN inline (come scritto nel piano) a `use` statement + `ordered_imports` — atteso, non un problema: lanciare `vendor/bin/pint <file>` dopo aver incollato codice di piano con nomi qualificati per esteso.
+  - Suite mirata `--filter=Cai` (125 test, dominio CaiDirectory) verde dopo la modifica: nessuna regressione sulle story precedenti della Storia 3.
+  - Prossima story: US-926 (bottone dashboard "Sincronizza dati RUNTS" → wiring reale, Task 8 del piano) — verificare se già in parte presente (il commento della classe `SyncCaiRuntsRegistration` referenzia già `CustomerDashboard::syncRuntsDataAction()`).
+---
+
+## 2026-09-08 - US-926
+- Implementato Task 8 del piano `docs/superpowers/plans/2026-09-08-cai-runts-orchestrator-wiring.md`: `CustomerDashboard::syncRuntsDataAction()` ora chiama `SyncCaiRuntsRegistration::run($section)` (il servizio live `cai-runts-scraper`) invece di `CaiDatapackImporter::import(...)` (re-import dal datapack statico).
+- Files: `app/Filament/Pages/CustomerDashboard.php` (import `CaiDatapackImporter` → `SyncCaiRuntsRegistration`, corpo di `syncRuntsDataAction()` riscritto, rimosso il metodo privato ormai morto `resolveDatapackAbsolutePathOrNotify()`, docblock di `syncCaiDataAction()`/`syncRuntsDataAction()` aggiornati), `tests/Feature/Filament/Pages/CustomerDashboardTest.php` (il vecchio test "re-imports only the RUNTS tables..." sostituito dai due test del Task 8: live-scrape con successo + notifica "nessuna registrazione trovata").
+- **Learnings for future iterations:**
+  - Nessun helper `grantCustomerRole($user)` esiste in questo file di test (il piano lo menzionava come possibile nome, con l'istruzione esplicita di usare quello realmente presente se diverso): l'idioma già in uso qui è `withRole(User::factory()->create(), UserRole::Customer)` seguito da `->forceFill(['customer_type' => CustomerType::Sezione])->save()`, riusato identico dai test già esistenti di `sync_cai_data` nello stesso file.
+  - Rimuovere un metodo/import "ormai morto" dopo un refactor: verificare sempre con `grep` (non solo leggendo il piano) che non resti referenziato da un docblock `{@see ...}` altrove nella stessa classe — qui `syncCaiDataAction()` referenziava ancora `{@see CaiDatapackImporter}` in un commento. Un riferimento bare (senza backslash) in un docblock non attiva il fixer Pint `fully_qualified_strict_types` (quello scatta solo su riferimenti FQCN con backslash, gotcha già noto da US-920/US-923): aggiornare il testo del commento a prosa semplice evita sia l'import morto sia il rischio di reintrodurlo per errore via Pint.
+  - Pint rimuove da solo un `use` diventato orfano in un file di test dopo aver sostituito un blocco di test (qui `Illuminate\Support\Facades\Storage`, usato solo dal test rimosso) — lanciare `vendor/bin/pint <file>` (non solo `--test`) dopo un refactor di test che elimina l'ultimo uso di un import.
+  - Prossima story (US-927): mostrare `runts_last_synced_at` nel tab "Dati RUNTS" di `CaiSectionInfolist` (componente condiviso staff/dashboard cliente/dettaglio regionale, firma pubblica `configure(Schema $schema): Schema` invariata) — vedere Task 9 del piano.
+---
+
+## 2026-09-08 - US-927
+- Implementato Task 9 del piano `docs/superpowers/plans/2026-09-08-cai-runts-orchestrator-wiring.md`: `CaiSectionInfolist::runtsSection()` mostra ora `runts_last_synced_at` per ciascuna registrazione RUNTS nel tab "Dati RUNTS", con placeholder "Mai sincronizzato dal vivo" quando null.
+- Files: `app/Filament/Resources/CaiSections/Schemas/CaiSectionInfolist.php` (nuova `TextEntry::make('runts_last_synced_at')` dentro il `RepeatableEntry::make('runtsRegistrations')`, `->columns(3)` → `->columns(4)`), `tests/Feature/Filament/CaiDirectory/CaiSectionResourceTest.php` (nuovo test).
+- **Learnings for future iterations:**
+  - Nessuna divergenza dal piano: firma pubblica `configure(Schema $schema): Schema` invariata, componente condiviso staff/dashboard cliente/dettaglio regionale la eredita gratis.
+  - Riusati gli helper globali `caiSection()`/`caiRuntsRegistration()` già presenti in `tests/Pest.php` (aggiunti da US-923/US-924) invece di scriverne di nuovi, e l'helper locale `grantCaiDirectoryPanelAccess()`/idioma `$this->actingAs($user)` + `->getKey()` già in uso in tutti gli altri test del file (il piano suggeriva `Livewire::actingAs()`/`getRouteKey()` solo come possibile alternativa, con l'istruzione esplicita di seguire quanto già presente nel file).
+  - Suite mirata `--filter=Cai` 126 passed/1 skipped (125→126, +1 come atteso, nessuna regressione); `pint --test` e `phpstan analyse --memory-limit=1G` puliti.
+  - Prossima e ultima story della Storia 3 (US-928): checkpoint finale di regressione end-to-end + smoke test manuale col servizio `cai-runts-scraper` realmente in esecuzione — vedere Task 10 del piano.
+---
+
+## [2026-09-08] - US-928
+- Task 10 del piano wiring (Step 1-5) eseguito per intero: regressione end-to-end di tutta la Storia 3
+  (US-919..US-927) + smoke test manuale reale contro il servizio cai-runts-scraper realmente in esecuzione.
+- Step 1: i 9 file di test elencati dal piano eseguiti insieme (`vendor/bin/pest <9 file>`), 76/76 verdi
+  (75 pre-esistenti + 1 nuovo test di regressione aggiunto in questa story). `CaiImportDatapackCommandTest`
+  invariato: stessi 6 test, stessi conteggi.
+- Step 2: `composer run analyse` (469 file, 0 errori) e `composer run lint` (825 file puliti), nessun nuovo
+  errore introdotto da nessuna delle story Storia 3.
+- Step 3 (smoke test reale, nessun tool MCP browser disponibile in questa sessione): `docker compose up -d
+  cai-runts-scraper`, poi invocata `SyncCaiRuntsRegistration::run($section)` da `php artisan tinker` (stesso
+  identico codepath del bottone "Sincronizza dati RUNTS" della dashboard cliente) sulla `CaiSection` reale
+  con tax_code `00951210103` (SEZ. LIGURE-GENOVA, stesso CF già verificato dal vivo in US-918).
+  - Gap ambientale scoperto e risolto: la migrazione `runts_last_synced_at` di US-919 non era mai stata
+    applicata al Postgres di sviluppo persistente (`db`) — nessuno l'aveva rilanciata dopo il commit.
+    `php artisan migrate --force` (unica migrazione pendente, additiva) l'ha applicata senza toccare altro.
+  - Esito sync: `found=true`, completato in circa 1 minuto (in linea con l'AC "~1 minuto"), 19 nuovi
+    `CaiDocument` creati, 0 `CaiBoardMember` (dato reale plausibile — RUNTS non sempre espone cariche
+    sociali per un ente, comportamento già coperto da test mockati in `SyncCaiRuntsRegistrationTest`), 5
+    documenti `bilancio_esercizio` nuovi accodati su `cai-runts-analysis` (confermato in `docker compose
+    logs queue`: RUNNING/DONE su quella coda specifica), 2 `CaiFinancialStatement` creati (uno con cifre
+    reali estratte — totale oneri 295218, totale proventi 316724, risultato 20527 — uno con tutti i 15
+    campi null perché quel PDF 2025 non è risultato interpretabile da pdfplumber, comportamento atteso da
+    US-917, non un difetto).
+  - **BUG REALE trovato dal solo smoke test con dati reali** (mai riprodotto dai fixture mockati delle
+    story precedenti, perché tutti i test esistenti usavano sempre un `year` valorizzato): 2 dei 5
+    documenti `bilancio_esercizio` avevano `year=null` — RUNTS non sempre espone un anno estraibile per un
+    bilancio nei metadati del documento (`cai_documents.year` è nullable proprio per questo, US-801), ma
+    `AnalyzeCaiFinancialStatementDocument::handle()` passava quel `null` direttamente a
+    `cai_financial_statements.year`, colonna NOT NULL e parte della chiave composita `(cai_runts_
+    registration_id, year)` → `PDOException` (violazione NOT NULL), job fallito per tutti e 3 i tentativi
+    Horizon, finito in `failed_jobs`.
+  - **Fix (Step 4 del Task 10)**: aggiunto un guard esplicito in cima a `handle()` — `if ($document->year
+    === null) { return; }`, PRIMA di scaricare il PDF/chiamare il servizio Python — no-op silenzioso,
+    stesso identico principio già in uso nello stesso metodo per "documento non più esistente"/"file
+    assente sul disco" (mai un errore per un caso di dato reale incompleto ma legittimo).
+  - Nuovo test di regressione `handle does nothing when the document has no extractable year` in
+    `AnalyzeCaiFinancialStatementDocumentTest.php`. Verificato anche manualmente rilanciando `handle()` sui
+    due documenti reali (id 217, 219) che avevano fatto fallire il job: nessuna eccezione dopo il fix.
+  - Suite Cai (9 file, ora 76 test) + `composer run analyse`/`lint` ri-verificati verdi dopo il fix.
+    `failed_jobs` per la coda `cai-runts-analysis` ripulita a fine verifica.
+- File: `app/Domain/CaiDirectory/Jobs/AnalyzeCaiFinancialStatementDocument.php`,
+  `tests/Feature/Domain/CaiDirectory/Jobs/AnalyzeCaiFinancialStatementDocumentTest.php`.
+- **Learnings for future iterations:**
+  - Un checkpoint di fine fase/storia che include uno smoke test con dati reali (non solo Http::fake) è
+    l'unico modo realistico di scoprire un edge case come "una colonna nullable sulla sorgente diventa
+    NOT NULL sulla destinazione, e nessun fixture di test lo ha mai esercitato perché tutti valorizzano
+    quel campo per comodità": prima di fixare un bug così, verificare sempre se altre colonne
+    "derivate/opzionali" nello stesso dominio hanno lo stesso rischio (qui non ce n'erano altre: gli altri
+    14 campi finanziari sono tutti nullable anche sulla destinazione).
+  - Gotcha ambientale riconfermato: un ambiente Docker "già in esecuzione da giorni" (container `app`/`db`
+    non ricreati dall'ultimo `docker compose up`) può avere migrazioni pendenti mai applicate se nessuna
+    story precedente ha eseguito `php artisan migrate` per davvero sul DB persistente di sviluppo (i test
+    Pest girano su sqlite in-memory via RefreshDatabase, quindi non lo intercettano mai) — verificare
+    sempre con `php artisan migrate --pretend`/`migrate --force` prima di uno smoke test manuale che scrive
+    sul DB reale, non assumere che "i test passano" implichi "lo schema Postgres di sviluppo è aggiornato".
+  - `php artisan tinker` di default ha `memory_limit=128M` (non eredita l'override del comando esterno se
+    non passato con `-d`): una risposta HTTP con più PDF in base64 (qui l'intero payload di scrape con 19
+    documenti) può esaurirlo in `json_decode()` dentro `Illuminate\Http\Client\Response`. Usare `docker
+    compose exec -T app php -d memory_limit=512M artisan tinker --execute="..."` per qualunque verifica
+    manuale che invochi `CaiRuntsScraperClient::scrapeEntity()`/uno smoke test simile con payload grandi.
 ---

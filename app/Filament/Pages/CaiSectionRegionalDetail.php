@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\Auth;
 
 /**
  * Dettaglio completo di una Sezione CAI/RUNTS aperto da un cliente Gruppo Regionale (US-807)
- * dalla card "Sezioni del gruppo regionale" ({@see CustomerDashboard::regionalGroupSections()},
+ * dalla card "Sezioni del gruppo regionale" ({@see CustomerRegionalSectionsDashboard::regionalGroupSections()},
  * Fase 7 US-705). Nessuna voce di navigazione (si apre solo dal link della card): stesso
  * contenuto e stesso componente {@see CaiSectionInfolist} già usato dallo staff (US-804) e dalla
  * dashboard cliente Sezione (US-806) — vedi la partial condivisa

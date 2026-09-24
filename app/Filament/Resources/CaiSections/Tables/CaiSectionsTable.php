@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\CaiSections\Tables;
 
+use App\Domain\CaiDirectory\Enums\CaiRuntsPresenceStatus;
 use App\Domain\CaiDirectory\Models\CaiSection;
 use App\Filament\Resources\CaiSections\Support\CaiSectionsExporter;
 use Filament\Actions\Action;
@@ -45,9 +46,21 @@ class CaiSectionsTable
                 TextColumn::make('region')
                     ->label('Regione')
                     ->sortable(),
+                TextColumn::make('tax_code')
+                    ->label('Codice Fiscale')
+                    ->searchable()
+                    ->placeholder('—'),
+                TextColumn::make('vat_number')
+                    ->label('Partita IVA')
+                    ->searchable()
+                    ->placeholder('—'),
                 TextColumn::make('user.name')
                     ->label('Utente collegato')
                     ->placeholder('—'),
+                TextColumn::make('runts_presence_status')
+                    ->label('Presenza su RUNTS')
+                    ->badge()
+                    ->placeholder('Mai verificato'),
             ])
             ->filters([
                 SelectFilter::make('region')
@@ -68,6 +81,21 @@ class CaiSectionsTable
                         false: self::withoutLinkedUserQuery(...),
                         blank: fn (Builder $query): Builder => $query,
                     ),
+                TernaryFilter::make('tax_code')
+                    ->label('CF mancante')
+                    ->placeholder('Tutte')
+                    ->trueLabel('CF mancante')
+                    ->falseLabel('Con CF')
+                    ->queries(
+                        true: self::withoutTaxCodeQuery(...),
+                        false: self::withTaxCodeQuery(...),
+                        blank: fn (Builder $query): Builder => $query,
+                    ),
+                SelectFilter::make('runts_presence_status')
+                    ->label('Presenza su RUNTS')
+                    ->options(collect(CaiRuntsPresenceStatus::cases())->mapWithKeys(
+                        fn (CaiRuntsPresenceStatus $status): array => [$status->value => $status->getLabel()],
+                    )),
             ])
             ->headerActions([
                 Action::make('exportCsv')
@@ -127,5 +155,23 @@ class CaiSectionsTable
     private static function withoutLinkedUserQuery(Builder $query): Builder
     {
         return $query->whereNull('user_id');
+    }
+
+    /**
+     * @param  Builder<CaiSection>  $query
+     * @return Builder<CaiSection>
+     */
+    private static function withTaxCodeQuery(Builder $query): Builder
+    {
+        return $query->whereNotNull('tax_code')->where('tax_code', '!=', '');
+    }
+
+    /**
+     * @param  Builder<CaiSection>  $query
+     * @return Builder<CaiSection>
+     */
+    private static function withoutTaxCodeQuery(Builder $query): Builder
+    {
+        return $query->where(fn (Builder $q): Builder => $q->whereNull('tax_code')->orWhere('tax_code', ''));
     }
 }

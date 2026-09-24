@@ -5,8 +5,8 @@
 Tabella da compilare durante il collaudo, una riga per test. Il campo "Esito" accetta solo uno tra
 `PASS`, `FAIL`, `BLOCKED`, `NOT APPLICABLE` (vedi §17 di `00-istruzioni-generali.md` per i criteri generali
 e la sezione "Criterio di superamento" di ciascun test in `02-fase-0.md`/`03-fase-1.md`/`04-fase-1a.md`/
-`05-fase-2.md`/`06-fase-3.md`/`07-fase-4.md`/`10-fase-5.md`/`13-fase-6.md`/`14-fase-7.md`/`15-fase-8.md`
-per il criterio specifico). Il campo "Anomalia" riporta l'ID assegnato secondo
+`05-fase-2.md`/`06-fase-3.md`/`07-fase-4.md`/`10-fase-5.md`/`13-fase-6.md`/`14-fase-7.md`/`15-fase-8.md`/
+`16-fase-9.md` per il criterio specifico). Il campo "Anomalia" riporta l'ID assegnato secondo
 §19 di `00-istruzioni-generali.md` (es. `AN-001`), lasciare vuoto se non ci sono anomalie da segnalare per
 quel test.
 
@@ -721,11 +721,190 @@ quel test.
 | F8-48 | Aprire il dettaglio per un utente che non è una Sezione risulta non trovato (404) |  |  |  |  |  |  |  |
 | F8-49 | La pagina di dettaglio mostra lo stesso contenuto della dashboard del cliente Sezione, riusando lo stesso Infolist |  |  |  |  |  |  |  |
 | F8-50 | La pagina di dettaglio mostra uno stato vuoto esplicito per una sezione senza dati CAI collegati |  |  |  |  |  |  |  |
-| F8-51 | La card "Sezioni del gruppo regionale" sulla dashboard cliente collega alla pagina di dettaglio sezione |  |  |  |  |  |  |  |
+| F8-51 | La card "Sezioni del gruppo regionale" collega alla pagina di dettaglio sezione |  |  |  |  |  |  |  |
 | F8-52 | Il flusso completo RUNTS-CAI funziona end-to-end: import, matching per email, consultazione staff, dashboard cliente Sezione e dettaglio scoped del cliente Gruppo Regionale |  |  |  |  |  |  |  |
+## Fase 9 (Sincronizzazione live CAI/RUNTS, fallback CF/PIVA, upload manuale documenti, menu Gruppo Regionale) — 174 test
+
+| ID | Titolo | Esito | Tester | Data | Versione | Evidenza | Anomalia | Note |
+|---|---|---|---|---|---|---|---|---|
+| F9-01 | Creare un ticket richiede sempre una Richiesta |  |  |  |  |  |  |  |
+| F9-02 | La Richiesta diventa il primo messaggio pubblico del ticket, con i suoi allegati |  |  |  |  |  |  |  |
+| F9-03 | Anche lo staff che crea un ticket fornisce la Richiesta come primo messaggio pubblico |  |  |  |  |  |  |  |
+| F9-04 | Il campo "Ticket padre" è assente dal form di creazione ma resta presente in modifica |  |  |  |  |  |  |  |
+| F9-05 | Il campo nascosto "Ticket padre" in creazione non è impostabile manipolando la fillForm |  |  |  |  |  |  |  |
+| F9-06 | L'email mostra il titolo e il corpo del primo messaggio pubblico (la Richiesta) |  |  |  |  |  |  |  |
+| F9-07 | Un ticket senza alcun messaggio rende l'email senza andare in errore |  |  |  |  |  |  |  |
+| F9-08 | Il footer mostra il nuovo indirizzo/telefono aziendale, mai il vecchio indirizzo |  |  |  |  |  |  |  |
+| F9-09 | cai_sections ha una colonna cai_last_synced_at nullable |  |  |  |  |  |  |  |
+| F9-10 | cai_subsections ha una colonna cai_last_synced_at nullable |  |  |  |  |  |  |  |
+| F9-11 | cai_last_synced_at è mass-assignable e castato a datetime su CaiSection |  |  |  |  |  |  |  |
+| F9-12 | cai_last_synced_at è mass-assignable e castato a datetime su CaiSubsection |  |  |  |  |  |  |  |
+| F9-13 | mapSection mappa una riga cai_* normalizzata sugli attributi di CaiSection |  |  |  |  |  |  |  |
+| F9-14 | mapSubsection mappa una riga cai_* normalizzata sugli attributi di CaiSubsection |  |  |  |  |  |  |  |
+| F9-15 | toCoordinate scarta valori non plausibili (|x| >= 1000) |  |  |  |  |  |  |  |
+| F9-16 | matchUserId cerca l'email in modo case-insensitive e con trim |  |  |  |  |  |  |  |
+| F9-17 | normalizeSection converte i campi grezzi dell'API CAI nella forma cai_* del datapack |  |  |  |  |  |  |  |
+| F9-18 | normalizeSection ripiega su office_address/postal_address in snake_case |  |  |  |  |  |  |  |
+| F9-19 | normalizeSubsection converte i campi grezzi dell'API CAI, associati al codice della sezione madre |  |  |  |  |  |  |  |
+| F9-20 | normalizeSubsection ripiega su lastyearMembershipsCount se currentMemberships è assente |  |  |  |  |  |  |  |
+| F9-21 | fetchNationalSections restituisce l'array JSON decodificato dall'endpoint sections-list-simple |  |  |  |  |  |  |  |
+| F9-22 | fetchSubsections restituisce l'array JSON decodificato dall'endpoint per-sezione |  |  |  |  |  |  |  |
+| F9-23 | fetchNationalSections ritenta fino a 3 volte su un fallimento di connessione, poi lancia un'eccezione |  |  |  |  |  |  |  |
+| F9-24 | fetchNationalSections ha successo se un tentativo successivo recupera |  |  |  |  |  |  |  |
+| F9-25 | run crea una nuova CaiSection con cai_last_synced_at valorizzato |  |  |  |  |  |  |  |
+| F9-26 | run aggiorna una CaiSection esistente quando un campo è davvero cambiato, e aggiorna sempre cai_last_synced_at |  |  |  |  |  |  |  |
+| F9-27 | run conta una sezione come invariata quando nulla è davvero cambiato, ma aggiorna comunque cai_last_synced_at |  |  |  |  |  |  |  |
+| F9-28 | run crea le sottosezioni recuperate dall'endpoint per-sezione |  |  |  |  |  |  |  |
+| F9-29 | run non scrive nulla in modalità dry-run |  |  |  |  |  |  |  |
+| F9-30 | run associa l'email di una sezione a un utente esistente, senza distinguere maiuscole/minuscole |  |  |  |  |  |  |  |
+| F9-31 | run recupera l'elenco nazionale, isola la sezione richiesta e la sincronizza |  |  |  |  |  |  |  |
+| F9-32 | run recupera le sottosezioni solo della sezione richiesta, mai delle altre sezioni dell'elenco nazionale |  |  |  |  |  |  |  |
+| F9-33 | run lancia un'eccezione se il codice sezione richiesto non è nell'elenco nazionale |  |  |  |  |  |  |  |
+| F9-34 | Il bottone è visibile solo per un cliente Sezione con una CaiSection collegata |  |  |  |  |  |  |  |
+| F9-35 | Il bottone sincronizza dal vivo solo la sezione del cliente autenticato, tramite l'API pubblica CAI |  |  |  |  |  |  |  |
+| F9-36 | La pagina sezione mostra la data dell'ultimo aggiornamento dal vivo (CAI), o un segnaposto "mai sincronizzato" |  |  |  |  |  |  |  |
+| F9-37 | La pagina sezione mostra la data dell'ultimo aggiornamento dal vivo RUNTS, o un segnaposto "mai sincronizzato" |  |  |  |  |  |  |  |
+| F9-38 | cai_runts_registrations ha una colonna runts_last_synced_at nullable, mass-assignable e castata a datetime |  |  |  |  |  |  |  |
+| F9-39 | cai:sync-national sincronizza ogni sezione e sottosezione restituita dall'API nazionale |  |  |  |  |  |  |  |
+| F9-40 | cai:sync-national --dry-run non scrive nulla |  |  |  |  |  |  |  |
+| F9-41 | cai:sync-national prosegue oltre una sezione che fallisce la sincronizzazione |  |  |  |  |  |  |  |
+| F9-42 | L'endpoint /health del servizio risponde ok |  |  |  |  |  |  |  |
+| F9-43 | run_scraper è una funzione asincrona con i parametri attesi (porting dal prototipo) |  |  |  |  |  |  |  |
+| F9-44 | classify_codice_pratica mappa correttamente i codici pratica noti |  |  |  |  |  |  |  |
+| F9-45 | extract_bilancio_pdf è una funzione sincrona con i parametri attesi |  |  |  |  |  |  |  |
+| F9-46 | Restituisce found:false quando la ricerca non produce risultati |  |  |  |  |  |  |  |
+| F9-47 | Restituisce metadati, cariche sociali e documenti quando l'ente è trovato |  |  |  |  |  |  |  |
+| F9-48 | Un errore dello scraper diventa un 502 esplicito, mai un errore generico |  |  |  |  |  |  |  |
+| F9-49 | Restituisce i campi finanziari estratti da un bilancio leggibile |  |  |  |  |  |  |  |
+| F9-50 | Non fallisce mai, nemmeno su un PDF illeggibile (campi null invece di un errore) |  |  |  |  |  |  |  |
+| F9-51 | Il totale oneri combacia anche a cavallo di un a-capo, su un layout a due colonne |  |  |  |  |  |  |  |
+| F9-52 | Il totale proventi combacia sul terzo numero della riga valore |  |  |  |  |  |  |  |
+| F9-53 | Le imposte combaciano quando un simbolo di euro separa l'etichetta dal valore |  |  |  |  |  |  |  |
+| F9-54 | I campi già riconosciuti prima di questo fix continuano a combaciare (nessuna regressione) |  |  |  |  |  |  |  |
+| F9-55 | Il risultato d'esercizio riconosce un trattino come valore zero dell'anno corrente, invece di saltare all'anno successivo |  |  |  |  |  |  |  |
+| F9-56 | parse_italian_number tratta un trattino isolato come zero |  |  |  |  |  |  |  |
+| F9-57 | Il servizio cai-runts-scraper è raggiungibile via rete Docker Compose interna (verifica manuale già eseguita in sviluppo, vedi progress.txt) |  |  |  |  |  |  |  |
+| F9-58 | mapRegistration mappa una riga sugli attributi di CaiRuntsRegistration |  |  |  |  |  |  |  |
+| F9-59 | mapRegistration legge lat/lon quando presenti (fonte datapack) |  |  |  |  |  |  |  |
+| F9-60 | mapBoardMember concatena nome+cognome in full_name e interpreta le date |  |  |  |  |  |  |  |
+| F9-61 | mapBoardMember tollera nome/cognome mancanti, producendo un full_name null |  |  |  |  |  |  |  |
+| F9-62 | mapFinancialStatement mappa i 15 campi dell'analizzatore (nomi italiani) sulle colonne di CaiFinancialStatement |  |  |  |  |  |  |  |
+| F9-63 | scrapeEntity invia codice_fiscale come query parameter e restituisce il JSON decodificato |  |  |  |  |  |  |  |
+| F9-64 | analyzeBilancio invia il PDF come file multipart e restituisce il JSON decodificato |  |  |  |  |  |  |  |
+| F9-65 | checkEntityExists invia codice_fiscale come query parameter e restituisce il flag found |  |  |  |  |  |  |  |
+| F9-66 | checkEntityExists restituisce false quando il servizio riporta found:false |  |  |  |  |  |  |  |
+| F9-67 | checkEntityExists accetta un timeout esplicito, altrimenti usa quello di configurazione |  |  |  |  |  |  |  |
+| F9-68 | run restituisce un esito "non trovato" e non scrive nulla quando lo scraper riporta found:false |  |  |  |  |  |  |  |
+| F9-69 | run restituisce "non trovato" senza chiamare lo scraper quando la sezione non ha un codice fiscale |  |  |  |  |  |  |  |
+| F9-70 | run crea una nuova CaiRuntsRegistration e le sue cariche sociali, aggiornando runts_last_synced_at |  |  |  |  |  |  |  |
+| F9-71 | run aggiorna una CaiRuntsRegistration esistente, aggiornando sempre runts_last_synced_at |  |  |  |  |  |  |  |
+| F9-72 | run scarica e salva un nuovo documento, inviando all'analisi solo i bilanci di esercizio |  |  |  |  |  |  |  |
+| F9-73 | run non riscarica né rimette in coda un documento già esistente |  |  |  |  |  |  |  |
+| F9-74 | handle scarica il PDF salvato, lo analizza e crea un CaiFinancialStatement |  |  |  |  |  |  |  |
+| F9-75 | handle aggiorna un CaiFinancialStatement esistente per la stessa (registrazione, anno) |  |  |  |  |  |  |  |
+| F9-76 | handle non sovrascrive mai un campo già valorizzato con null (un secondo documento con struttura diversa non deve cancellare dati buoni) |  |  |  |  |  |  |  |
+| F9-77 | handle non fa nulla quando il CaiDocument non esiste più |  |  |  |  |  |  |  |
+| F9-78 | handle non fa nulla quando il documento non ha un anno estraibile |  |  |  |  |  |  |  |
+| F9-79 | handle marca il documento come Extracted, con estratto testo ed esito OCR, quando trova almeno un campo |  |  |  |  |  |  |  |
+| F9-80 | handle marca il documento come NoDataExtracted quando nessun campo finanziario viene estratto |  |  |  |  |  |  |  |
+| F9-81 | Il bottone è visibile solo per un cliente Sezione con una CaiSection collegata |  |  |  |  |  |  |  |
+| F9-82 | Il bottone sincronizza dal vivo la sezione del cliente tramite il servizio cai-runts-scraper |  |  |  |  |  |  |  |
+| F9-83 | Il bottone mostra una notifica informativa quando non viene trovata alcuna registrazione RUNTS |  |  |  |  |  |  |  |
+| F9-84 | Nessuna riga quando la sezione non ha una registrazione RUNTS collegata |  |  |  |  |  |  |  |
+| F9-85 | Un campo è marcato "Uguale" quando i due lati coincidono (a meno di spazi) |  |  |  |  |  |  |  |
+| F9-86 | Un campo è marcato "Diverso" quando i due lati differiscono davvero |  |  |  |  |  |  |  |
+| F9-87 | Un campo è marcato "non applicabile" quando entrambi i lati sono vuoti |  |  |  |  |  |  |  |
+| F9-88 | Un blocco di righe per ogni registrazione collegata, etichettato col nome della registrazione |  |  |  |  |  |  |  |
+| F9-89 | L'indirizzo strutturato RUNTS viene composto in un'unica stringa comparabile |  |  |  |  |  |  |  |
+| F9-90 | Il tab Differenze mostra il confronto fra CaiSection e la sua registrazione RUNTS |  |  |  |  |  |  |  |
+| F9-91 | Il tab Differenze mostra uno stato vuoto esplicito quando non c'è alcuna registrazione RUNTS collegata |  |  |  |  |  |  |  |
+| F9-92 | Il tab Anagrafica CAI collega alla scheda ufficiale su cai.it, costruita dal codice_cai, a prescindere dal campo website |  |  |  |  |  |  |  |
+| F9-93 | Lo stile inline viene rimosso mantenendo il testo di uno span |  |  |  |  |  |  |  |
+| F9-94 | Un tag script e il suo contenuto vengono rimossi interamente |  |  |  |  |  |  |  |
+| F9-95 | Gli attributi event handler vengono rimossi |  |  |  |  |  |  |  |
+| F9-96 | Orari di apertura e avvisi sono mostrati come testo formattato, mai come sorgente HTML grezzo |  |  |  |  |  |  |  |
+| F9-97 | Il tab Bilanci elenca gli anni dal più recente al più antico |  |  |  |  |  |  |  |
+| F9-98 | Il tab Allegati elenca i documenti dall'anno più recente al più antico |  |  |  |  |  |  |  |
+| F9-99 | L'opzione --timeout ha un default di 10 secondi |  |  |  |  |  |  |  |
+| F9-100 | Un --timeout personalizzato è accettato senza rompere un giro normale |  |  |  |  |  |  |  |
+| F9-101 | Il comando scrive runts_presence_status e runts_presence_checked_at per ogni sezione con codice fiscale |  |  |  |  |  |  |  |
+| F9-102 | Un timeout della verifica scrive lo stato Timeout (non null), invece di lasciarlo non scritto |  |  |  |  |  |  |  |
+| F9-103 | --dry-run non scrive nulla, nemmeno in caso di timeout |  |  |  |  |  |  |  |
+| F9-104 | Il comando prosegue oltre una sezione la cui verifica fallisce con un errore diverso dal timeout, lasciandone invariato lo stato |  |  |  |  |  |  |  |
+| F9-105 | Il comando salta le sezioni senza codice fiscale né partita IVA, senza mai chiamare il servizio per loro |  |  |  |  |  |  |  |
+| F9-106 | Il comando usa la partita IVA quando il codice fiscale manca |  |  |  |  |  |  |  |
+| F9-107 | Il comando preferisce il codice fiscale alla partita IVA quando sono presenti entrambi |  |  |  |  |  |  |  |
+| F9-108 | L'endpoint /search/runts-entity restituisce found:true quando l'ente è trovato |  |  |  |  |  |  |  |
+| F9-109 | L'endpoint /search/runts-entity restituisce found:false quando l'ente non è trovato |  |  |  |  |  |  |  |
+| F9-110 | L'endpoint /search/runts-entity restituisce 502 quando la verifica lancia un'eccezione |  |  |  |  |  |  |  |
+| F9-111 | La tabella è filtrabile per stato di presenza RUNTS |  |  |  |  |  |  |  |
+| F9-112 | Ogni caso dell'enum stato presenza RUNTS ha un'etichetta e un colore |  |  |  |  |  |  |  |
+| F9-113 | I tre casi attesi esistono con i valori stringa attesi |  |  |  |  |  |  |  |
+| F9-114 | cai_sections ha le colonne runts_presence_status e runts_presence_checked_at, entrambe nullable, mass-assignable e castate |  |  |  |  |  |  |  |
+| F9-115 | Il comando sincronizza una singola sezione per codice_cai e ne riporta il successo |  |  |  |  |  |  |  |
+| F9-116 | Il comando segnala quando non viene trovata alcuna registrazione RUNTS |  |  |  |  |  |  |  |
+| F9-117 | Il comando fallisce esplicitamente quando il codice_cai non esiste |  |  |  |  |  |  |  |
+| F9-118 | Il comando segnala esplicitamente un errore quando lo scrape fallisce, senza un'eccezione non gestita |  |  |  |  |  |  |  |
+| F9-119 | Il comando sincronizza ogni sezione con codice fiscale e riporta un riepilogo |  |  |  |  |  |  |  |
+| F9-120 | Il comando salta le sezioni senza codice fiscale, senza mai chiamare lo scraper per loro |  |  |  |  |  |  |  |
+| F9-121 | Il comando salta una sezione col codice fiscale palesemente non valido (es. "0" o "."), senza chiamare lo scraper |  |  |  |  |  |  |  |
+| F9-122 | Il comando prosegue con la sezione successiva quando una fallisce, senza fermare il giro |  |  |  |  |  |  |  |
+| F9-123 | Il comando ritenta automaticamente una sezione fallita una volta, e la conta come sincronizzata se il retry recupera |  |  |  |  |  |  |  |
+| F9-124 | Il comando conta una sezione "non trovata" separatamente da una sincronizzata |  |  |  |  |  |  |  |
+| F9-125 | L'opzione --limit elabora solo le prime N sezioni |  |  |  |  |  |  |  |
+| F9-126 | L'opzione --codes limita la sincronizzazione all'elenco di codice_cai indicato, separati da virgola |  |  |  |  |  |  |  |
+| F9-127 | Un utente senza cai-directory.review-unparsed-documents non accede alla pagina |  |  |  |  |  |  |  |
+| F9-128 | Un utente con cai-directory.review-unparsed-documents accede alla pagina |  |  |  |  |  |  |  |
+| F9-129 | La tabella elenca solo i bilanci di esercizio senza dati estratti, mostrando sezione, anno e fonte RUNTS fissa |  |  |  |  |  |  |  |
+| F9-130 | Le azioni di download e visualizzazione testo grezzo sono visibili per un documento non interpretato |  |  |  |  |  |  |  |
+| F9-131 | Un import scoped (onlyCaiSectionCode) importa solo la sezione richiesta, le sue sottosezioni e i suoi dati RUNTS |  |  |  |  |  |  |  |
+| F9-132 | skipSectionFields importa solo le tabelle di fonte RUNTS, lasciando invariata una CaiSection/CaiSubsection già importata |  |  |  |  |  |  |  |
+| F9-133 | La generazione trova una sezione nonostante differenze di prefisso/forma giuridica/spaziatura, riportando entrambi i codici |  |  |  |  |  |  |  |
+| F9-134 | Le righe senza corrispondenza sono riportate, mai scartate in silenzio |  |  |  |  |  |  |  |
+| F9-135 | Una riga senza CF né PIVA viene saltata |  |  |  |  |  |  |  |
+| F9-136 | Due sezioni che normalizzano allo stesso nome non vengono mai fatte corrispondere |  |  |  |  |  |  |  |
+| F9-137 | Il comando cai:generate-tax-code-fallback scrive le corrispondenze trovate in JSON e riporta le righe senza corrispondenza |  |  |  |  |  |  |  |
+| F9-138 | Il comando fallisce esplicitamente quando il file Excel sorgente non esiste |  |  |  |  |  |  |  |
+| F9-139 | Il riempimento completa codice fiscale e partita IVA mancanti dal fallback |  |  |  |  |  |  |  |
+| F9-140 | Il riempimento non sovrascrive mai un valore già presente, anche se il fallback riporta un valore diverso |  |  |  |  |  |  |  |
+| F9-141 | Una sezione senza dati e senza una corrispondenza nel fallback viene saltata |  |  |  |  |  |  |  |
+| F9-142 | In modalità dry-run il riempimento riporta cosa cambierebbe, senza scrivere |  |  |  |  |  |  |  |
+| F9-143 | Una sezione che ha già sia codice fiscale sia partita IVA non viene mai selezionata per il riempimento |  |  |  |  |  |  |  |
+| F9-144 | Il comando cai:fill-tax-codes-from-fallback completa i campi mancanti dal file configurato e riporta un riepilogo |  |  |  |  |  |  |  |
+| F9-145 | cai:sync-runts-all completa un codice fiscale mancante dal fallback prima di selezionare le sezioni da sincronizzare |  |  |  |  |  |  |  |
+| F9-146 | La tabella dell'Anagrafica CAI è filtrabile per "CF mancante" |  |  |  |  |  |  |  |
+| F9-147 | Ogni caso dell'enum sorgente documento ha un'etichetta e un colore |  |  |  |  |  |  |  |
+| F9-148 | I tre casi attesi (runts/manual/veryfico) esistono con i valori stringa attesi |  |  |  |  |  |  |  |
+| F9-149 | Ogni caso del vocabolario tipo documento ha un'etichetta non vuota |  |  |  |  |  |  |  |
+| F9-150 | Solo Mod A/B/D e le combinazioni che li contengono attivano l'analisi finanziaria automatica |  |  |  |  |  |  |  |
+| F9-151 | Il caso di fallback "Altro" esiste col valore atteso |  |  |  |  |  |  |  |
+| F9-152 | Un documento caricato a mano si collega sempre direttamente alla sezione, mai a una registrazione RUNTS |  |  |  |  |  |  |  |
+| F9-153 | Un tipo Mod A/B/D (o una combinazione che li contiene) invia il documento all'analisi finanziaria automatica |  |  |  |  |  |  |  |
+| F9-154 | Un tipo narrativo (relazioni, verbali, bilancio sociale, altro) non invia mai all'analisi automatica |  |  |  |  |  |  |  |
+| F9-155 | Una sezione può avere documenti e bilanci collegati direttamente, senza alcuna registrazione RUNTS |  |  |  |  |  |  |  |
+| F9-156 | L'analisi crea un CaiFinancialStatement chiave-sezione per un documento senza registrazione |  |  |  |  |  |  |  |
+| F9-157 | L'analisi aggiorna un CaiFinancialStatement chiave-sezione esistente, senza toccare uno chiave-registrazione per lo stesso anno |  |  |  |  |  |  |  |
+| F9-158 | L'azione "Carica documento" è visibile solo con il permesso cai-directory.upload-document |  |  |  |  |  |  |  |
+| F9-159 | Caricare un documento lo collega sempre direttamente alla sezione, senza un selettore di registrazione nel form |  |  |  |  |  |  |  |
+| F9-160 | Caricare un documento di tipo Mod A invia il job di analisi finanziaria |  |  |  |  |  |  |  |
+| F9-161 | Un cliente può scaricare un documento collegato direttamente alla propria sezione, senza alcuna registrazione RUNTS |  |  |  |  |  |  |  |
+| F9-162 | Un cliente non può scaricare un documento collegato direttamente a un'altra sezione |  |  |  |  |  |  |  |
+| F9-163 | I tab Bilanci/Allegati uniscono i documenti collegati direttamente alla sezione con quelli collegati via registrazione RUNTS |  |  |  |  |  |  |  |
+| F9-164 | La card "Sezioni del gruppo regionale" non compare più su questa pagina, nemmeno per un cliente Gruppo Regionale (si è spostata su una voce di navigazione propria) |  |  |  |  |  |  |  |
+| F9-165 | Il gruppo di navigazione è "GR" per un cliente Gruppo Regionale, "Area cliente" per qualunque altro tipo cliente |  |  |  |  |  |  |  |
+| F9-166 | Un cliente Gruppo Regionale può accedere alla nuova pagina "Sezioni" |  |  |  |  |  |  |  |
+| F9-167 | Un cliente Sezione non può accedere alla pagina "Sezioni" |  |  |  |  |  |  |  |
+| F9-168 | Un utente non-cliente non può accedere alla pagina "Sezioni" |  |  |  |  |  |  |  |
+| F9-169 | Il gruppo di navigazione della nuova pagina è "Sezioni" |  |  |  |  |  |  |  |
+| F9-170 | La pagina elenca solo le sezioni della stessa regione, col relativo conteggio di ticket aperti |  |  |  |  |  |  |  |
+| F9-171 | Stato vuoto esplicito quando la regione non ha ancora sezioni classificate |  |  |  |  |  |  |  |
+| F9-172 | Stato vuoto esplicito quando il Gruppo Regionale non ha una regione valorizzata |  |  |  |  |  |  |  |
+| F9-173 | La pagina "Sezioni" collega alla pagina di dettaglio sezione |  |  |  |  |  |  |  |
+| F9-174 | Il flusso completo funziona end-to-end: creazione ticket con Richiesta, sync live CAI/RUNTS di una sezione con estrazione bilancio, fallback CF/PIVA, upload manuale di un documento e menu Gruppo Regionale scoped alla propria regione |  |  |  |  |  |  |  |
+
 ## Riepilogo aggregato (da compilare a collaudo concluso)
 
 | Totale test | PASS | FAIL | BLOCKED | NOT APPLICABLE |
 |---|---|---|---|---|
-| 664 |  |  |  |  |
+| 838 |  |  |  |  |
 

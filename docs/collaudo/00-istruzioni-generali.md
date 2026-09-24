@@ -2,8 +2,8 @@
 
 ## 1. Titolo, versione, data e stato del documento
 
-- **Titolo**: Documento di collaudo — Fase 0 (Fondazioni) + Fase 1 (Ticketing core) + Fase 1A (Landing, Login, Recupero password) + Fase 2 (Importazione dal v1 — ETL) + Fase 3 (Sottosistema email) + Fase 4 (Tag/commesse, Documentation, Activity Report/Organizations) + Fase 5 (Fundraising — opportunità/bandi, griglia di valutazione, progetti e vista cliente) + Fase 6 (Portale cliente e rifinitura) + Fase 7 (Tipologia di cliente CAI) + Fase 8 (Integrazione dati RUNTS-CAI — Sezioni/Sottosezioni)
-- **Versione**: 8.0
+- **Titolo**: Documento di collaudo — Fase 0 (Fondazioni) + Fase 1 (Ticketing core) + Fase 1A (Landing, Login, Recupero password) + Fase 2 (Importazione dal v1 — ETL) + Fase 3 (Sottosistema email) + Fase 4 (Tag/commesse, Documentation, Activity Report/Organizations) + Fase 5 (Fundraising — opportunità/bandi, griglia di valutazione, progetti e vista cliente) + Fase 6 (Portale cliente e rifinitura) + Fase 7 (Tipologia di cliente CAI) + Fase 8 (Integrazione dati RUNTS-CAI — Sezioni/Sottosezioni) + Fase 9 (Sincronizzazione live CAI/RUNTS, fallback CF/PIVA, upload manuale documenti, menu Gruppo Regionale)
+- **Versione**: 9.0
 
   La versione 1 era la matrice sintetica preesistente (`docs/collaudo/fase-0-1.php`, manifest di
   tracciabilità sorgente, più il PDF generato a partire da essa dal comando `php artisan
@@ -67,9 +67,22 @@
   pacchetto passa da 612 a 664 test; §3 è aggiornato di conseguenza. §4 (Ambito escluso) resta
   vuoto: la Fase 9 del roadmap rinumerato è ancora "DA DEFINIRE" (nessuna funzionalità da
   collaudare) e la Fase 10 (Cutover) non è una fase funzionale collaudabile con questo stesso schema.
+  La versione 9.0 (23 settembre 2026) aggiunge **Fase 9 (Sincronizzazione live CAI/RUNTS, fallback
+  CF/PIVA, upload manuale documenti, menu Gruppo Regionale)**: il ramo `ralph/orchestrator-v2-fase-9`
+  raccoglie tre filoni distinti sviluppati in sequenza — rifiniture ticket/email (campo "Richiesta"
+  obbligatorio, rimozione di "Ticket padre", footer aziendale aggiornato), la sincronizzazione live
+  CAI/RUNTS (US-901…US-928 più una decina di storie non numerate: servizio Python
+  `cai-runts-scraper`, job asincrono di analisi bilanci, verifica leggera di presenza RUNTS,
+  comandi `cai:sync-runts-section`/`cai:sync-runts-all`) e infine fallback CF/PIVA da foglio Excel
+  manuale, campo "Fonte documento" (RUNTS/manuale/Veryfico) con upload manuale indipendente da una
+  registrazione RUNTS, e la separazione del menu cliente Gruppo Regionale in voci "GR"/"Sezioni" —
+  scritta da subito come fine-fase (checkpoint dedicato): manifest dedicato `docs/collaudo/fase-9.php`,
+  manuale dettagliato `16-fase-9.md`, 174 nuovi test. Il totale del pacchetto passa da 664 a 838
+  test; §3 è aggiornato di conseguenza. §4 (Ambito escluso) non elenca più la Fase 9: resta esclusa
+  solo la Fase 10 (Cutover), non collaudabile con questo stesso schema.
 - **Data di stesura**: 26 luglio 2026 (v2.0), 27 luglio 2026 (v2.1), 10 agosto 2026 (v2.2), 11 agosto
   2026 (v2.3), 24 agosto 2026 (v3.0), 27 agosto 2026 (v4.0), 27 agosto 2026 (v5.0), 28 agosto 2026
-  (v6.0), 28 agosto 2026 (v7.0), 28 agosto 2026 (v8.0)
+  (v6.0), 28 agosto 2026 (v7.0), 28 agosto 2026 (v8.0), 23 settembre 2026 (v9.0)
 - **Data di pubblicazione ufficiale**: DA VERIFICARE CON IL PRODUCT OWNER
 - **Stato**: Bozza per revisione
 
@@ -79,23 +92,24 @@ Verificare che il software realizzato in Fase 0 (Fondazioni), Fase 1 (Ticketing 
 (Landing, Login, Recupero password), Fase 2 (Importazione dal v1 — ETL), Fase 3 (Sottosistema
 email), Fase 4 (Tag/commesse, Documentation, Activity Report/Organizations), Fase 5 (Fundraising
 — opportunità/bandi, griglia di valutazione, progetti e vista cliente), Fase 6 (Portale cliente e
-rifinitura), Fase 7 (Tipologia di cliente CAI) e Fase 8 (Integrazione dati RUNTS-CAI —
-Sezioni/Sottosezioni) rispetti i requisiti funzionali e le regole di dominio descritti nel PRD di
-Orchestrator v2, attraverso un collaudo eseguibile sia da personale funzionale (che non deve
-conoscere il codice) sia da personale tecnico (che verifica anche a livello di terminale, database
-e suite di test automatica).
+rifinitura), Fase 7 (Tipologia di cliente CAI), Fase 8 (Integrazione dati RUNTS-CAI —
+Sezioni/Sottosezioni) e Fase 9 (Sincronizzazione live CAI/RUNTS, fallback CF/PIVA, upload manuale
+documenti, menu Gruppo Regionale) rispetti i requisiti funzionali e le regole di dominio descritti
+nel PRD di Orchestrator v2, attraverso un collaudo eseguibile sia da personale funzionale (che non
+deve conoscere il codice) sia da personale tecnico (che verifica anche a livello di terminale,
+database e suite di test automatica).
 
-Il collaudo copre 664 casi di test, organizzati in 111 argomenti, tracciati uno a uno nei manifest
+Il collaudo copre 838 casi di test, organizzati in 147 argomenti, tracciati uno a uno nei manifest
 `docs/collaudo/fase-0-1.php` (Fase 0/Fase 1), `docs/collaudo/fase-1a.php` (Fase 1A),
 `docs/collaudo/fase-2.php` (Fase 2), `docs/collaudo/fase-3.php` (Fase 3), `docs/collaudo/fase-4.php`
 (Fase 4), `docs/collaudo/fase-5.php` (Fase 5), `docs/collaudo/fase-6.php` (Fase 6),
-`docs/collaudo/fase-7.php` (Fase 7) e `docs/collaudo/fase-8.php` (Fase 8) verso un test automatico
-realmente esistente nel repository.
+`docs/collaudo/fase-7.php` (Fase 7), `docs/collaudo/fase-8.php` (Fase 8) e `docs/collaudo/fase-9.php`
+(Fase 9) verso un test automatico realmente esistente nel repository.
 
 ## 3. Ambito incluso
 
-Il collaudo copre esattamente i 111 argomenti seguenti (titoli letterali dai manifest di
-tracciabilità), per un totale di 664 test.
+Il collaudo copre esattamente i 147 argomenti seguenti (titoli letterali dai manifest di
+tracciabilità), per un totale di 838 test.
 
 **Fase 0 — Fondazioni** (56 test, F0-01…F0-56):
 
@@ -258,23 +272,66 @@ tracciabilità), per un totale di 664 test.
 | 110 | Dettaglio sezione dalla dashboard del Gruppo Regionale (US-807) | 9 (F8-43…F8-51) |
 | 111 | Checkpoint di fine fase — flusso end-to-end import, consultazione staff, dashboard cliente Sezione e Gruppo Regionale (US-808) | 1 (F8-52) |
 
+**Fase 9 — Sincronizzazione live CAI/RUNTS, fallback CF/PIVA, upload manuale documenti, menu Gruppo Regionale** (174 test, F9-01…F9-174):
+
+| # | Argomento | Test |
+|---|---|---|
+| 112 | Campo "Richiesta" obbligatorio alla creazione ticket, rimozione del campo "Ticket padre" | 5 (F9-01…F9-05) |
+| 113 | Email di conferma apertura ticket (E1/E2) mostra titolo e Richiesta | 2 (F9-06…F9-07) |
+| 114 | Nuovo indirizzo e telefono Montagna Servizi nel footer delle email | 1 (F9-08) |
+| 115 | `cai_last_synced_at` su sezioni/sottosezioni (US-901/US-902) | 4 (F9-09…F9-12) |
+| 116 | CaiSectionFieldMapper condiviso fra import datapack e sync live (US-903) | 4 (F9-13…F9-16) |
+| 117 | Normalizzatore JSON API CAI pubblica (US-904) | 4 (F9-17…F9-20) |
+| 118 | CaiApiClient con retry per l'API pubblica CAI (US-905) | 4 (F9-21…F9-24) |
+| 119 | SyncCaiSectionAndSubsections — sincronizzazione live condivisa sezione+sottosezioni (US-906) | 6 (F9-25…F9-30) |
+| 120 | ScrapeCaiSection — sincronizzazione live di una sola sezione (US-907) | 3 (F9-31…F9-33) |
+| 121 | Bottone "Sincronizza dati CAI" sulla dashboard cliente Sezione (US-908, Storia 4) | 2 (F9-34…F9-35) |
+| 122 | Data ultimo aggiornamento CAI/RUNTS visibile nell'Infolist condiviso (US-909/US-927) | 3 (F9-36…F9-38) |
+| 123 | `cai:sync-national` — refresh mensile schedulato dietro feature flag (US-910) | 3 (F9-39…F9-41) |
+| 124 | Servizio Python `cai-runts-scraper` — scaffold, endpoint `/health`, porting scraper/analyzer (US-912/US-913) | 4 (F9-42…F9-45) |
+| 125 | `POST /scrape/runts-entity` — ricerca completa di un ente su RUNTS (US-914/US-915/US-916) | 3 (F9-46…F9-48) |
+| 126 | `POST /analyze/bilancio` — estrazione delle cifre finanziarie da un PDF (US-917) | 2 (F9-49…F9-50) |
+| 127 | Analizzatore bilanci — correzioni dei pattern su layout reali RUNTS | 6 (F9-51…F9-56) |
+| 128 | Wiring docker-compose + verifica reale contro RUNTS (US-918) | 1 (F9-57) |
+| 129 | CaiRuntsRegistrationFieldMapper / CaiFinancialStatementFieldMapper condivisi (US-920/US-921) | 5 (F9-58…F9-62) |
+| 130 | CaiRuntsScraperClient + configurazione (US-922) | 5 (F9-63…F9-67) |
+| 131 | SyncCaiRuntsRegistration — metadati, cariche sociali e documenti di bilancio (US-923/US-924/US-925) | 6 (F9-68…F9-73) |
+| 132 | AnalyzeCaiFinancialStatementDocument — job asincrono di analisi bilanci su coda Horizon dedicata (US-924) | 7 (F9-74…F9-80) |
+| 133 | Bottone "Sincronizza dati RUNTS", separato da "Sincronizza dati CAI" (US-926, Storie 6/8) | 3 (F9-81…F9-83) |
+| 134 | Tab "Differenze" — confronto fra dati CaiSection e registrazione RUNTS (Storia 7) | 8 (F9-84…F9-91) |
+| 135 | Link diretto alla scheda ufficiale CAI, indipendente dal campo website (Storia 5) | 1 (F9-92) |
+| 136 | Orari di apertura e avvisi mostrati come testo formattato, mai HTML grezzo (fix, Storia 3) | 4 (F9-93…F9-96) |
+| 137 | Bilanci e allegati ordinati dal più recente al più antico (Storie 10/11) | 2 (F9-97…F9-98) |
+| 138 | Verifica leggera di presenza RUNTS — `cai:check-runts-presence` dietro feature flag | 12 (F9-99…F9-110) |
+| 139 | Colonna e filtro presenza RUNTS nell'Anagrafica Sezioni, stato a 3 valori | 4 (F9-111…F9-114) |
+| 140 | `cai:sync-runts-section` — sincronizzare una singola sezione da riga di comando | 4 (F9-115…F9-118) |
+| 141 | `cai:sync-runts-all` — sincronizzare tutte le sezioni con retry, `--limit` e `--codes` | 8 (F9-119…F9-126) |
+| 142 | Pagina admin "Bilanci non interpretati" per rivedere il parser | 4 (F9-127…F9-130) |
+| 143 | Import datapack — estensioni: scope su una sola sezione, skip campi RUNTS | 2 (F9-131…F9-132) |
+| 144 | Fallback CF/PIVA da foglio Excel manuale, con generazione del JSON committato | 14 (F9-133…F9-146) |
+| 145 | Sorgente documento (RUNTS/manuale/Veryfico) e caricamento manuale, senza registrazione RUNTS | 17 (F9-147…F9-163) |
+| 146 | Menu Gruppo Regionale — voci "GR"/"Sezioni" separate dalla Dashboard cliente | 10 (F9-164…F9-173) |
+| 147 | Checkpoint di fine fase — flusso end-to-end sui tre filoni della Fase 9 | 1 (F9-174) |
+
 Il dettaglio di ciascun test (descrizione, passi, esito atteso, campi di consuntivazione) è nei
 file `02-fase-0.md`, `03-fase-1.md`, `04-fase-1a.md`, `05-fase-2.md`, `06-fase-3.md`, `07-fase-4.md`,
-`10-fase-5.md`, `13-fase-6.md`, `14-fase-7.md` e `15-fase-8.md` del pacchetto.
+`10-fase-5.md`, `13-fase-6.md`, `14-fase-7.md`, `15-fase-8.md` e `16-fase-9.md` del pacchetto.
 
 ## 4. Ambito escluso
 
 Nessuna fase funzionale già costruita del roadmap PRD (§14, rinumerato il 28 agosto 2026) è esclusa
-da questo collaudo: Fase 8 (Integrazione dati RUNTS-CAI — Sezioni/Sottosezioni) è ora coperta per
+da questo collaudo: Fase 8 (Integrazione dati RUNTS-CAI — Sezioni/Sottosezioni) è coperta per
 intero (argomenti 104-111 di §3), limitatamente a Sezioni/Sottosezioni — Gruppi Regionali RUNTS,
-report PDF per singola sezione, refresh automatico del datapack e scraper Python restano
-esplicitamente fuori scope di questa fase (scope confermato col committente in fase di design).
-Resta fuori scopo **Fase 9** (riservata a nuove funzionalità, ancora "DA DEFINIRE" col committente:
-nessuna funzionalità costruita da collaudare) e **Fase 10 — Cutover** (vecchia Fase 7 prima della
-rinumerazione): prova completa su staging, confronto v1/v2 su dati reali, test di carico sulla
-vista di lavoro e sulle tabelle grandi, verifica di sicurezza, piano di cutover e finestra di
-manutenzione — un'attività operativa di rilascio, non una fase funzionale collaudabile con lo
-stesso schema di questo documento (test numerati collegati a un test automatico).
+report PDF per singola sezione e refresh automatico del datapack restano esplicitamente fuori scope
+di questa fase (scope confermato col committente in fase di design). Fase 9 (Sincronizzazione live
+CAI/RUNTS, fallback CF/PIVA, upload manuale documenti, menu Gruppo Regionale) è ora coperta per
+intero (argomenti 112-147 di §3); il refresh automatico mensile via `cai:sync-national` resta
+dietro feature flag disattivato di default (comportamento verificato, non escluso dal collaudo).
+Resta fuori scopo solo **Fase 10 — Cutover** (vecchia Fase 7 prima della rinumerazione): prova
+completa su staging, confronto v1/v2 su dati reali, test di carico sulla vista di lavoro e sulle
+tabelle grandi, verifica di sicurezza, piano di cutover e finestra di manutenzione — un'attività
+operativa di rilascio, non una fase funzionale collaudabile con lo stesso schema di questo
+documento (test numerati collegati a un test automatico).
 
 ## 5. Riferimenti tecnici e funzionali
 
@@ -292,8 +349,9 @@ stesso schema di questo documento (test numerati collegati a un test automatico)
   ammesse e delle regole di dominio associate.
 - `docs/collaudo/fase-0-1.php`, `docs/collaudo/fase-1a.php`, `docs/collaudo/fase-2.php`,
   `docs/collaudo/fase-3.php`, `docs/collaudo/fase-4.php`, `docs/collaudo/fase-5.php`,
-  `docs/collaudo/fase-6.php`, `docs/collaudo/fase-7.php` — manifest di tracciabilità sorgente:
-  collegano ogni test di questo manuale a un test automatico realmente esistente nel repository.
+  `docs/collaudo/fase-6.php`, `docs/collaudo/fase-7.php`, `docs/collaudo/fase-8.php`,
+  `docs/collaudo/fase-9.php` — manifest di tracciabilità sorgente: collegano ogni test di questo
+  manuale a un test automatico realmente esistente nel repository.
 - `CLAUDE.md` (root del repository) — note tecniche di implementazione per fase/story, utili al
   tester tecnico per capire le scelte di progettazione sottostanti (per Fase 3 in particolare, le
   sezioni sulla pipeline email inbound/outbound e sui bug reali già trovati e corretti).
@@ -397,6 +455,19 @@ stesso schema di questo documento (test numerati collegati a un test automatico)
   distinte dal cliente Sezione (Fase 7, `customer_type = Sezione` su `users`): il collegamento fra i
   due è opzionale (`user_id` nullable) e avviene per email al momento dell'import, mai automatico
   altrimenti.
+- **Registrazione RUNTS (Fase 9)**: `App\Domain\CaiDirectory\Models\CaiRuntsRegistration`, i dati
+  ottenuti dalla sincronizzazione live contro il portale RUNTS (via il servizio Python
+  `cai-runts-scraper`) per una Sezione — metadati, cariche sociali, documenti di bilancio — creata
+  esclusivamente dai comandi `cai:sync-runts-section`/`cai:sync-runts-all`, mai da un'azione
+  dell'utente in UI.
+- **Fonte documento (Fase 9)**: `App\Domain\CaiDirectory\Enums\CaiDocumentSource`, l'origine di un
+  documento collegato a una Sezione — `runts` (sincronizzazione automatica), `manual` (caricamento
+  manuale da un membro dello staff, senza richiedere una registrazione RUNTS) o `veryfico` (valore
+  riservato per una futura integrazione con l'API esterna Veryfico, non ancora implementata).
+- **Fallback CF/PIVA (Fase 9)**: il meccanismo di completamento di codice fiscale/partita IVA di una
+  Sezione priva di questi dati sul RUNTS, a partire da un foglio Excel fornito dal committente e
+  convertito in un JSON committato nel repository — usato dal comando di sincronizzazione RUNTS solo
+  quando il dato non è altrimenti disponibile.
 - **Anomalia**: uno scostamento tra il comportamento osservato durante il collaudo e quello atteso,
   da segnalare secondo la procedura del punto 19.
 - **PASS**: il test è stato eseguito e il comportamento osservato corrisponde a quello atteso.
@@ -604,7 +675,7 @@ manualmente.
 
 ## 17. Criteri generali di superamento
 
-Il collaudo nel suo complesso è considerato superato se, al termine dell'esecuzione dei 664 test:
+Il collaudo nel suo complesso è considerato superato se, al termine dell'esecuzione dei 838 test:
 
 - Non è aperta alcuna anomalia classificata come Critica.
 - Almeno il 95% dei test applicabili (esclusi quelli classificati NOT APPLICABLE) è in stato PASS.

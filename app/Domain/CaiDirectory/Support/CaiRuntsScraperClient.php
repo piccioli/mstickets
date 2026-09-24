@@ -1,0 +1,69 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Domain\CaiDirectory\Support;
+
+use Illuminate\Support\Facades\Http;
+
+/**
+ * Client verso il servizio Python `cai-runts-scraper` (Fase 9, storia 3, design doc §4.2). A differenza di
+ * {@see CaiApiClient} (Storia 1, API pubblica CAI), NON implementa retry proprio: il servizio Python già
+ * ritenta internamente lo scrape (3 tentativi, backoff esponenziale — design doc §1), un secondo livello di
+ * retry qui raddoppierebbe inutilmente il tempo di attesa in caso di fallimento reale.
+ */
+final class CaiRuntsScraperClient
+{
+    /**
+     * @return array<string, mixed>
+     */
+    public function scrapeEntity(string $codiceFiscale): array
+    {
+        $response = Http::timeout((int) config('cai_directory.runts_scraper.scrape_timeout_seconds'))
+            ->withOptions(['query' => ['codice_fiscale' => $codiceFiscale]])
+            ->post($this->baseUrl().'/scrape/runts-entity');
+
+        $response->throw();
+
+        return $response->json();
+    }
+
+    /**
+     * Verifica leggera di presenza (Fase 9): solo ricerca via codice fiscale, mai lo scrape
+     * completo di {@see self::scrapeEntity()} — usata dal comando `cai:check-runts-presence`.
+     * `$timeoutSeconds` (opzionale) sovrascrive `config('cai_directory.runts_scraper.search_timeout_seconds')`
+     * per questa singola chiamata: il comando lo espone come opzione `--timeout` regolabile a piacere
+     * (una sezione "trovata" risponde in pochi secondi, una non trovata/ambigua può richiedere fino al
+     * timeout stesso — un valore più basso scambia completezza per velocità, esplicitamente scelto
+     * dall'operatore per ogni esecuzione).
+     */
+    public function checkEntityExists(string $codiceFiscale, ?int $timeoutSeconds = null): bool
+    {
+        $response = Http::timeout($timeoutSeconds ?? (int) config('cai_directory.runts_scraper.search_timeout_seconds'))
+            ->withOptions(['query' => ['codice_fiscale' => $codiceFiscale]])
+            ->post($this->baseUrl().'/search/runts-entity');
+
+        $response->throw();
+
+        return (bool) ($response->json('found') ?? false);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function analyzeBilancio(string $pdfContent): array
+    {
+        $response = Http::timeout((int) config('cai_directory.runts_scraper.analyze_timeout_seconds'))
+            ->attach('file', $pdfContent, 'bilancio.pdf')
+            ->post($this->baseUrl().'/analyze/bilancio');
+
+        $response->throw();
+
+        return $response->json();
+    }
+
+    private function baseUrl(): string
+    {
+        return rtrim((string) config('cai_directory.runts_scraper.base_url'), '/');
+    }
+}
