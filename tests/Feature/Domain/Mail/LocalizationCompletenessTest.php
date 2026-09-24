@@ -17,7 +17,7 @@ function extractTranslationKeysFromDirectory(string $directory): array
     $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($directory, FilesystemIterator::SKIP_DOTS));
 
     foreach ($iterator as $file) {
-        if (! $file->isFile()) {
+        if (! $file->isFile() || $file->getExtension() !== 'php') {
             continue;
         }
 
