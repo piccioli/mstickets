@@ -1001,3 +1001,12 @@ PRD: docs/project/tasks/prd-menu-anagrafica-cai-bilanci-gruppi-regionali.md. Cic
 - **Browser NON verificato** (nessun Docker/Playwright avviato): verificare a mano.
 - **Learnings**: gli slug di pagina derivano dal nome classe (`cai-financial-year2025`). `assertCanSeeTableRecords(..., inOrder: true)` rispetta l'ordine reale: attenzione all'ordine alfabetico dei nomi di fixture.
 ---
+
+## [2026-10-03] - US-946
+- Comando `cai:analyze-financial-documents` (`--year` obbligatorio, `--section`, `--force`, `--dry-run`) in `app/Console/Commands/CaiAnalyzeFinancialDocumentsCommand.php`.
+  Delega a `App\Domain\CaiDirectory\Queries\CaiFinancialDocumentsToAnalyzeQuery` (`forYear`, `neverAnalyzed`, `countByRegion`): CE **o** SP dell'anno, `year` null mai incluso,
+  filtro sezione = diretto (`cai_section_id`) OR via registrazione RUNTS. Dry-run stampa il dettaglio per regione (COALESCE sezione diretta → sezione della registrazione → regione registrazione → "N/D").
+  Log `cai.analyze_financial_documents.started/finished`; saltati = totale CE/SP dell'anno − candidati.
+- Test: `tests/Feature/Console/CaiAnalyzeFinancialDocumentsCommandTest.php` (5, `Queue::fake()`). `--filter=Cai` 300 verdi, Pint e Larastan puliti.
+- **Learnings**: i raggruppamenti per regione su `cai_documents` richiedono sub-select correlate (nessuna FK diretta alla regione); `groupByRaw` con la stessa espressione del select funziona su Postgres e sqlite.
+---
