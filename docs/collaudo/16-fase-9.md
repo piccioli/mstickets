@@ -12082,3 +12082,7 @@ Nessuno: nessuno stato persistente viene modificato.
 
 ---
 
+
+## Bilanci Sezioni 2025 nel datapack CAI (F9-175 — F9-192, US-930..US-935)
+
+I bilanci 2025 raccolti dai Gruppi Regionali (campagna "Bilanci Sezioni 2026") entrano in Orchestrator come documenti caricati manualmente, collegati direttamente alla Sezione (nessuna registrazione RUNTS). Il comando `cai:build-manual-bilanci-datapack` aggiunge al datapack la tabella `bilanci_manuali` a partire dalle cartelle normalizzate e dall'Excel indice, riportando le anomalie di copertura; `cai:import-datapack` crea poi i documenti (idempotente per sezione e hash, senza toccare i documenti RUNTS) e li rende visibili nel tab "Allegati" della Sezione. Le etichette non riconosciute diventano il tipo "Altro" con il titolo originale; l'analisi automatica delle cifre è attiva solo con `--analyze-manual`. I casi F9-175 — F9-192 sono tutti AUTOMATICI (suite Pest, ruolo Sviluppatore) e sono elencati nel manifest `fase-9.php`; la verifica manuale su dati reali (402 file, 345 sezioni) è documentata in `progress.txt` (US-937). Il PDF di collaudo non è rigenerato in questa fase di sviluppo (`pdflatex` assente sull'host locale).

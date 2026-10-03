@@ -926,3 +926,9 @@ PRD: docs/project/tasks/prd-bilanci-sezioni-2026-datapack.md. Il ciclo precedent
 - Modifica temporanea a `->databaseNotifications()` ripristinata (git diff pulito); nessun file temporaneo nel repo.
 - **Learnings**: l'id di `CaiSection` nelle URL è il `codice_cai`; `cai_section_id` sui documenti è il codice stringa. `sed -i` BSD vuole `''` e non supporta `\s`.
 ---
+
+## [2026-10-03] - US-938
+- `docs/collaudo/fase-9.php`: nuovo topic "Bilanci Sezioni 2025 nel datapack CAI" (F9-175..F9-192, 18 test collegati a test Pest reali di US-930..US-935, aggiunto DOPO il checkpoint per non rinumerare F9-174); `collaudo:verify-manifest 9` passa.
+- `docs/collaudo/16-fase-9.md`: paragrafo breve in coda (nessuna rigenerazione del PDF: `pdflatex` assente sull'host). `app/Domain/CaiDirectory/CLAUDE.md`: sezione "Bilanci manuali di campagna nel datapack".
+- **Learnings**: i contatori in testa a `16-fase-9.md`/`00-istruzioni-generali.md` (174 casi) NON sono stati aggiornati: farlo se si rigenera il PDF di fase.
+---
