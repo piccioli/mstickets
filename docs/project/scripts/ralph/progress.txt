@@ -1124,3 +1124,13 @@ PRD: docs/project/tasks/prd-datapack-snapshot-runts-uat.md. Ciclo precedente (US
 - **Learnings**: nelle tabelle CAI le PK sono naturali (`cai_sections.codice_cai`, `cai_runts_registrations.id_runts`) e le FK sono già quei codici: niente `id` da mappare nei confronti.
   Nel `.env` lasciare `CAI_DOCUMENTS_ROOT=` vuoto romperebbe il disco (`env()` ritorna `""`, non il default): tenerla commentata.
 ---
+
+## [2026-10-03] - US-957
+- `docs/collaudo/fase-9.php`: nuovo argomento "Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954)" con 36 test (F9-212…F9-247) collegati ai test di US-950..US-954
+  (`CaiExportDatapackSnapshot{Command,Files}Test`, `CaiSnapshot{Import,DocumentsImport,ManualAnalysisImport}Test`); `collaudo:verify-manifest 9` passa.
+- `16-fase-9.md` (+36 blocchi, 247 test su 39 argomenti) e file cumulativi 00/01/11/12/README allineati: versione 9.2, 875 → 911 test, 149 → 150 argomenti (AUTOMATICO 527, COMPLETO 882).
+- `app/Domain/CaiDirectory/CLAUDE.md`: sezione "Snapshot CAI/RUNTS nel datapack" (tabelle `snap_*`, chiavi naturali, mai `user_id`, dedup per hash, controllo spazio, nessuna analisi accodata, ordine comandi, gotcha DB separato).
+- Verificato: `composer run lint`, `composer run analyse`, `--filter=Cai` (343 verdi, 1 skipped), `--filter=Snapshot` (36 verdi). `collaudo:generate 9` NON eseguito: `pdflatex`/`csquotes.sty` mancano sull'host (da lanciare nel container `app`).
+- **Learnings**: i blocchi di `16-fase-9.md` si generano da un blocco esistente (template F9-211) con sostituzioni mirate; attenzione a non usare un replace globale del vecchio totale sui paragrafi
+  di changelog storico di `00-istruzioni-generali.md` (i numeri "da X a Y" vanno lasciati come storia). Il conteggio dei test snapshot nel manifest deve coincidere con `--filter=Snapshot` (36).
+---

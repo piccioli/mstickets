@@ -2,7 +2,7 @@
 
 > Torna a [`README.md`](README.md) · Istruzioni generali: [`00-istruzioni-generali.md`](00-istruzioni-generali.md) · Matrice di tracciabilità: [`01-matrice-tracciabilita.md`](01-matrice-tracciabilita.md)
 
-211 casi di test (F9-01 — F9-211) su 38 argomenti. Prima di eseguire un test, leggi le convenzioni comuni in `00-istruzioni-generali.md` (in particolare le sezioni 8 "Ambiente UAT", 9 "Credenziali" e 12 "Prerequisiti generali"). Gli argomenti sono raggruppati per user story/storia del ramo `ralph/orchestrator-v2-fase-9` — che contiene tre filoni distinti: rifiniture ticket/email (Richiesta obbligatoria, rimozione "Ticket padre", footer aziendale), sincronizzazione live CAI/RUNTS (US-901..US-928 più una decina di storie non numerate), e fallback CF/PIVA + sorgente documento/upload manuale + menu Gruppo Regionale — in ordine cronologico di sviluppo, più un ultimo argomento dedicato al checkpoint di fine fase. Dopo il checkpoint (versione 9.1 del pacchetto) seguono due argomenti aggiuntivi, interamente AUTOMATICI: l'import dei bilanci 2025 delle Sezioni nel datapack CAI (F9-175 — F9-191) e il menu "Anagrafica CAI" con sotto-menu ad espansione, la lista "Bilancio 2025" e l'elenco dei Gruppi regionali (F9-192 — F9-211). I casi AUTOMATICO sono verificati eseguendo la suite Pest (PHP, ruolo Sviluppatore) o pytest (servizio Python `cai-runts-scraper`, stesso ruolo); i casi MANUALE UI sono pensati per un tester che opera realmente sull'ambiente UAT (credenziali/URL: punti 8-9 di `00-istruzioni-generali.md`) — entrambe le categorie sono sempre appoggiate a un test automatico REALMENTE esistente e verificato da `php artisan collaudo:verify-manifest 9`.
+247 casi di test (F9-01 — F9-247) su 39 argomenti. Prima di eseguire un test, leggi le convenzioni comuni in `00-istruzioni-generali.md` (in particolare le sezioni 8 "Ambiente UAT", 9 "Credenziali" e 12 "Prerequisiti generali"). Gli argomenti sono raggruppati per user story/storia del ramo `ralph/orchestrator-v2-fase-9` — che contiene tre filoni distinti: rifiniture ticket/email (Richiesta obbligatoria, rimozione "Ticket padre", footer aziendale), sincronizzazione live CAI/RUNTS (US-901..US-928 più una decina di storie non numerate), e fallback CF/PIVA + sorgente documento/upload manuale + menu Gruppo Regionale — in ordine cronologico di sviluppo, più un ultimo argomento dedicato al checkpoint di fine fase. Dopo il checkpoint (versione 9.1 del pacchetto) seguono due argomenti aggiuntivi, interamente AUTOMATICI: l'import dei bilanci 2025 delle Sezioni nel datapack CAI (F9-175 — F9-191) e il menu "Anagrafica CAI" con sotto-menu ad espansione, la lista "Bilancio 2025" e l'elenco dei Gruppi regionali (F9-192 — F9-211). Con la versione 9.2 segue un ultimo argomento, anch'esso interamente AUTOMATICO: lo snapshot CAI/RUNTS nel datapack, con export locale e import su UAT (F9-212 — F9-247). I casi AUTOMATICO sono verificati eseguendo la suite Pest (PHP, ruolo Sviluppatore) o pytest (servizio Python `cai-runts-scraper`, stesso ruolo); i casi MANUALE UI sono pensati per un tester che opera realmente sull'ambiente UAT (credenziali/URL: punti 8-9 di `00-istruzioni-generali.md`) — entrambe le categorie sono sempre appoggiate a un test automatico REALMENTE esistente e verificato da `php artisan collaudo:verify-manifest 9`.
 
 ## Campo "Richiesta" obbligatorio alla creazione ticket, rimozione del campo "Ticket padre"
 
@@ -14614,6 +14614,2492 @@ Non applicabile.
 
 **Risultato finale atteso**
 Il test Pest referenziato passa: il numero di query non cresce col numero di gruppi regionali.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+## Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954)
+
+### F9-212 — Senza datapack il comando di export fallisce con un messaggio italiano esplicito
+
+**Obiettivo**
+Verificare che: senza datapack il comando di export fallisce con un messaggio italiano esplicito.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954)".
+- Test automatico: `tests/Feature/Console/CaiExportDatapackSnapshotCommandTest.php` — `missing datapack fails with an explicit Italian message`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiExportDatapackSnapshotCommandTest.php`.
+- Test correlato: F9-213, F9-214, F9-215, F9-216, F9-217, F9-218, F9-219, F9-220, F9-221, F9-222, F9-223, F9-224, F9-225, F9-226, F9-227, F9-228, F9-229, F9-230, F9-231, F9-232, F9-233, F9-234, F9-235, F9-236, F9-237, F9-238, F9-239, F9-240, F9-241, F9-242, F9-243, F9-244, F9-245, F9-246, F9-247
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "missing datapack fails with an explicit Italian message"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: senza datapack il comando di export fallisce con un messaggio italiano esplicito.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-213 — L'export scrive tutte le sei tabelle snap_* con conteggi uguali a quelli del database
+
+**Obiettivo**
+Verificare che: l'export scrive tutte le sei tabelle snap_* con conteggi uguali a quelli del database.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954)".
+- Test automatico: `tests/Feature/Console/CaiExportDatapackSnapshotCommandTest.php` — `exports every table with counts matching the database`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiExportDatapackSnapshotCommandTest.php`.
+- Test correlato: F9-212, F9-214, F9-215, F9-216, F9-217, F9-218, F9-219, F9-220, F9-221, F9-222, F9-223, F9-224, F9-225, F9-226, F9-227, F9-228, F9-229, F9-230, F9-231, F9-232, F9-233, F9-234, F9-235, F9-236, F9-237, F9-238, F9-239, F9-240, F9-241, F9-242, F9-243, F9-244, F9-245, F9-246, F9-247
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "exports every table with counts matching the database"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: l'export scrive tutte le sei tabelle snap_* con conteggi uguali a quelli del database.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-214 — I valori sono scritti in forma grezza di colonna, senza user_id e senza id autoincrementale
+
+**Obiettivo**
+Verificare che: i valori sono scritti in forma grezza di colonna, senza user_id e senza id autoincrementale.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954)".
+- Test automatico: `tests/Feature/Console/CaiExportDatapackSnapshotCommandTest.php` — `values are raw column values, never user_id, never an autoincrement id`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiExportDatapackSnapshotCommandTest.php`.
+- Test correlato: F9-212, F9-213, F9-215, F9-216, F9-217, F9-218, F9-219, F9-220, F9-221, F9-222, F9-223, F9-224, F9-225, F9-226, F9-227, F9-228, F9-229, F9-230, F9-231, F9-232, F9-233, F9-234, F9-235, F9-236, F9-237, F9-238, F9-239, F9-240, F9-241, F9-242, F9-243, F9-244, F9-245, F9-246, F9-247
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "values are raw column values, never user_id, never an autoincrement id"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: i valori sono scritti in forma grezza di colonna, senza user_id e senza id autoincrementale.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-215 — L'export è idempotente: due esecuzioni producono lo stesso contenuto nello stesso ordine
+
+**Obiettivo**
+Verificare che: l'export è idempotente: due esecuzioni producono lo stesso contenuto nello stesso ordine.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954)".
+- Test automatico: `tests/Feature/Console/CaiExportDatapackSnapshotCommandTest.php` — `is idempotent: two runs produce the same content in the same order`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiExportDatapackSnapshotCommandTest.php`.
+- Test correlato: F9-212, F9-213, F9-214, F9-216, F9-217, F9-218, F9-219, F9-220, F9-221, F9-222, F9-223, F9-224, F9-225, F9-226, F9-227, F9-228, F9-229, F9-230, F9-231, F9-232, F9-233, F9-234, F9-235, F9-236, F9-237, F9-238, F9-239, F9-240, F9-241, F9-242, F9-243, F9-244, F9-245, F9-246, F9-247
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "is idempotent: two runs produce the same content in the same order"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: l'export è idempotente: due esecuzioni producono lo stesso contenuto nello stesso ordine.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-216 — Con --dry-run l'export non scrive nulla e il file del datapack resta invariato
+
+**Obiettivo**
+Verificare che: con --dry-run l'export non scrive nulla e il file del datapack resta invariato.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954)".
+- Test automatico: `tests/Feature/Console/CaiExportDatapackSnapshotCommandTest.php` — `--dry-run writes nothing and the datapack file is unchanged`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiExportDatapackSnapshotCommandTest.php`.
+- Test correlato: F9-212, F9-213, F9-214, F9-215, F9-217, F9-218, F9-219, F9-220, F9-221, F9-222, F9-223, F9-224, F9-225, F9-226, F9-227, F9-228, F9-229, F9-230, F9-231, F9-232, F9-233, F9-234, F9-235, F9-236, F9-237, F9-238, F9-239, F9-240, F9-241, F9-242, F9-243, F9-244, F9-245, F9-246, F9-247
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "--dry-run writes nothing and the datapack file is unchanged"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: con --dry-run l'export non scrive nulla e il file del datapack resta invariato.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-217 — Le altre tabelle del datapack (sezioni_cai, enti, bilanci, allegati...) non vengono toccate dall'export
+
+**Obiettivo**
+Verificare che: le altre tabelle del datapack (sezioni_cai, enti, bilanci, allegati...) non vengono toccate dall'export.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954)".
+- Test automatico: `tests/Feature/Console/CaiExportDatapackSnapshotCommandTest.php` — `other datapack tables are left untouched`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiExportDatapackSnapshotCommandTest.php`.
+- Test correlato: F9-212, F9-213, F9-214, F9-215, F9-216, F9-218, F9-219, F9-220, F9-221, F9-222, F9-223, F9-224, F9-225, F9-226, F9-227, F9-228, F9-229, F9-230, F9-231, F9-232, F9-233, F9-234, F9-235, F9-236, F9-237, F9-238, F9-239, F9-240, F9-241, F9-242, F9-243, F9-244, F9-245, F9-246, F9-247
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "other datapack tables are left untouched"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: le altre tabelle del datapack (sezioni_cai, enti, bilanci, allegati...) non vengono toccate dall'export.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-218 — Un contenuto identico è copiato una sola volta, col nome uguale allo sha256 ricalcolato
+
+**Obiettivo**
+Verificare che: un contenuto identico è copiato una sola volta, col nome uguale allo sha256 ricalcolato.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954)".
+- Test automatico: `tests/Feature/Console/CaiExportDatapackSnapshotFilesTest.php` — `identical content is copied once, named by recomputed sha256`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiExportDatapackSnapshotFilesTest.php`.
+- Test correlato: F9-212, F9-213, F9-214, F9-215, F9-216, F9-217, F9-219, F9-220, F9-221, F9-222, F9-223, F9-224, F9-225, F9-226, F9-227, F9-228, F9-229, F9-230, F9-231, F9-232, F9-233, F9-234, F9-235, F9-236, F9-237, F9-238, F9-239, F9-240, F9-241, F9-242, F9-243, F9-244, F9-245, F9-246, F9-247
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "identical content is copied once, named by recomputed sha256"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: un contenuto identico è copiato una sola volta, col nome uguale allo sha256 ricalcolato.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-219 — Un file mancante esporta comunque la riga con file_in_datapack 0 e un avviso
+
+**Obiettivo**
+Verificare che: un file mancante esporta comunque la riga con file_in_datapack 0 e un avviso.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954)".
+- Test automatico: `tests/Feature/Console/CaiExportDatapackSnapshotFilesTest.php` — `a missing file exports the row with file_in_datapack 0 and a warning`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiExportDatapackSnapshotFilesTest.php`.
+- Test correlato: F9-212, F9-213, F9-214, F9-215, F9-216, F9-217, F9-218, F9-220, F9-221, F9-222, F9-223, F9-224, F9-225, F9-226, F9-227, F9-228, F9-229, F9-230, F9-231, F9-232, F9-233, F9-234, F9-235, F9-236, F9-237, F9-238, F9-239, F9-240, F9-241, F9-242, F9-243, F9-244, F9-245, F9-246, F9-247
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "a missing file exports the row with file_in_datapack 0 and a warning"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: un file mancante esporta comunque la riga con file_in_datapack 0 e un avviso.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-220 — I documenti manuali non vengono mai copiati nel datapack
+
+**Obiettivo**
+Verificare che: i documenti manuali non vengono mai copiati nel datapack.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954)".
+- Test automatico: `tests/Feature/Console/CaiExportDatapackSnapshotFilesTest.php` — `manual documents are never copied`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiExportDatapackSnapshotFilesTest.php`.
+- Test correlato: F9-212, F9-213, F9-214, F9-215, F9-216, F9-217, F9-218, F9-219, F9-221, F9-222, F9-223, F9-224, F9-225, F9-226, F9-227, F9-228, F9-229, F9-230, F9-231, F9-232, F9-233, F9-234, F9-235, F9-236, F9-237, F9-238, F9-239, F9-240, F9-241, F9-242, F9-243, F9-244, F9-245, F9-246, F9-247
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "manual documents are never copied"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: i documenti manuali non vengono mai copiati nel datapack.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-221 — Una seconda esecuzione non ricopia i file già presenti
+
+**Obiettivo**
+Verificare che: una seconda esecuzione non ricopia i file già presenti.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954)".
+- Test automatico: `tests/Feature/Console/CaiExportDatapackSnapshotFilesTest.php` — `a second run does not recopy files already present`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiExportDatapackSnapshotFilesTest.php`.
+- Test correlato: F9-212, F9-213, F9-214, F9-215, F9-216, F9-217, F9-218, F9-219, F9-220, F9-222, F9-223, F9-224, F9-225, F9-226, F9-227, F9-228, F9-229, F9-230, F9-231, F9-232, F9-233, F9-234, F9-235, F9-236, F9-237, F9-238, F9-239, F9-240, F9-241, F9-242, F9-243, F9-244, F9-245, F9-246, F9-247
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "a second run does not recopy files already present"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: una seconda esecuzione non ricopia i file già presenti.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-222 — Con spazio libero insufficiente l'export si ferma con un errore italiano prima di scrivere
+
+**Obiettivo**
+Verificare che: con spazio libero insufficiente l'export si ferma con un errore italiano prima di scrivere.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954)".
+- Test automatico: `tests/Feature/Console/CaiExportDatapackSnapshotFilesTest.php` — `insufficient free space aborts with an Italian error before writing anything`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiExportDatapackSnapshotFilesTest.php`.
+- Test correlato: F9-212, F9-213, F9-214, F9-215, F9-216, F9-217, F9-218, F9-219, F9-220, F9-221, F9-223, F9-224, F9-225, F9-226, F9-227, F9-228, F9-229, F9-230, F9-231, F9-232, F9-233, F9-234, F9-235, F9-236, F9-237, F9-238, F9-239, F9-240, F9-241, F9-242, F9-243, F9-244, F9-245, F9-246, F9-247
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "insufficient free space aborts with an Italian error before writing anything"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: con spazio libero insufficiente l'export si ferma con un errore italiano prima di scrivere.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-223 — Con --dry-run nessun file viene copiato
+
+**Obiettivo**
+Verificare che: con --dry-run nessun file viene copiato.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954)".
+- Test automatico: `tests/Feature/Console/CaiExportDatapackSnapshotFilesTest.php` — `--dry-run copies no file`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiExportDatapackSnapshotFilesTest.php`.
+- Test correlato: F9-212, F9-213, F9-214, F9-215, F9-216, F9-217, F9-218, F9-219, F9-220, F9-221, F9-222, F9-224, F9-225, F9-226, F9-227, F9-228, F9-229, F9-230, F9-231, F9-232, F9-233, F9-234, F9-235, F9-236, F9-237, F9-238, F9-239, F9-240, F9-241, F9-242, F9-243, F9-244, F9-245, F9-246, F9-247
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "--dry-run copies no file"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: con --dry-run nessun file viene copiato.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-224 — L'import ripristina tutte le tabelle snapshot su un database vuoto con parità di conteggi
+
+**Obiettivo**
+Verificare che: l'import ripristina tutte le tabelle snapshot su un database vuoto con parità di conteggi.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954)".
+- Test automatico: `tests/Feature/Console/CaiSnapshotImportTest.php` — `restores every snapshot table on an empty database with count parity`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiSnapshotImportTest.php`.
+- Test correlato: F9-212, F9-213, F9-214, F9-215, F9-216, F9-217, F9-218, F9-219, F9-220, F9-221, F9-222, F9-223, F9-225, F9-226, F9-227, F9-228, F9-229, F9-230, F9-231, F9-232, F9-233, F9-234, F9-235, F9-236, F9-237, F9-238, F9-239, F9-240, F9-241, F9-242, F9-243, F9-244, F9-245, F9-246, F9-247
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "restores every snapshot table on an empty database with count parity"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: l'import ripristina tutte le tabelle snapshot su un database vuoto con parità di conteggi.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-225 — I bilanci sono ripristinati per registrazione o per sezione, con esattamente un genitore
+
+**Obiettivo**
+Verificare che: i bilanci sono ripristinati per registrazione o per sezione, con esattamente un genitore.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954)".
+- Test automatico: `tests/Feature/Console/CaiSnapshotImportTest.php` — `statements are restored by registration and by section parent, exactly one parent each`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiSnapshotImportTest.php`.
+- Test correlato: F9-212, F9-213, F9-214, F9-215, F9-216, F9-217, F9-218, F9-219, F9-220, F9-221, F9-222, F9-223, F9-224, F9-226, F9-227, F9-228, F9-229, F9-230, F9-231, F9-232, F9-233, F9-234, F9-235, F9-236, F9-237, F9-238, F9-239, F9-240, F9-241, F9-242, F9-243, F9-244, F9-245, F9-246, F9-247
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "statements are restored by registration and by section parent, exactly one parent each"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: i bilanci sono ripristinati per registrazione o per sezione, con esattamente un genitore.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-226 — Una seconda esecuzione non crea né aggiorna nulla
+
+**Obiettivo**
+Verificare che: una seconda esecuzione non crea né aggiorna nulla.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954)".
+- Test automatico: `tests/Feature/Console/CaiSnapshotImportTest.php` — `a second run creates and updates nothing`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiSnapshotImportTest.php`.
+- Test correlato: F9-212, F9-213, F9-214, F9-215, F9-216, F9-217, F9-218, F9-219, F9-220, F9-221, F9-222, F9-223, F9-224, F9-225, F9-227, F9-228, F9-229, F9-230, F9-231, F9-232, F9-233, F9-234, F9-235, F9-236, F9-237, F9-238, F9-239, F9-240, F9-241, F9-242, F9-243, F9-244, F9-245, F9-246, F9-247
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "a second run creates and updates nothing"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: una seconda esecuzione non crea né aggiorna nulla.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-227 — I valori cambiati sono aggiornati e user_id non viene mai sovrascritto
+
+**Obiettivo**
+Verificare che: i valori cambiati sono aggiornati e user_id non viene mai sovrascritto.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954)".
+- Test automatico: `tests/Feature/Console/CaiSnapshotImportTest.php` — `changed snapshot values are updated, user_id is never overwritten`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiSnapshotImportTest.php`.
+- Test correlato: F9-212, F9-213, F9-214, F9-215, F9-216, F9-217, F9-218, F9-219, F9-220, F9-221, F9-222, F9-223, F9-224, F9-225, F9-226, F9-228, F9-229, F9-230, F9-231, F9-232, F9-233, F9-234, F9-235, F9-236, F9-237, F9-238, F9-239, F9-240, F9-241, F9-242, F9-243, F9-244, F9-245, F9-246, F9-247
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "changed snapshot values are updated, user_id is never overwritten"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: i valori cambiati sono aggiornati e user_id non viene mai sovrascritto.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-228 — Le sezioni nuove ottengono user_id ricostruito per email
+
+**Obiettivo**
+Verificare che: le sezioni nuove ottengono user_id ricostruito per email.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954)".
+- Test automatico: `tests/Feature/Console/CaiSnapshotImportTest.php` — `new sections get user_id rebuilt by email`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiSnapshotImportTest.php`.
+- Test correlato: F9-212, F9-213, F9-214, F9-215, F9-216, F9-217, F9-218, F9-219, F9-220, F9-221, F9-222, F9-223, F9-224, F9-225, F9-226, F9-227, F9-229, F9-230, F9-231, F9-232, F9-233, F9-234, F9-235, F9-236, F9-237, F9-238, F9-239, F9-240, F9-241, F9-242, F9-243, F9-244, F9-245, F9-246, F9-247
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "new sections get user_id rebuilt by email"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: le sezioni nuove ottengono user_id ricostruito per email.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-229 — Le righe con genitore inesistente sono saltate con avviso, senza violare chiavi esterne
+
+**Obiettivo**
+Verificare che: le righe con genitore inesistente sono saltate con avviso, senza violare chiavi esterne.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954)".
+- Test automatico: `tests/Feature/Console/CaiSnapshotImportTest.php` — `rows whose parent does not exist are skipped with a warning and never violate a foreign key`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiSnapshotImportTest.php`.
+- Test correlato: F9-212, F9-213, F9-214, F9-215, F9-216, F9-217, F9-218, F9-219, F9-220, F9-221, F9-222, F9-223, F9-224, F9-225, F9-226, F9-227, F9-228, F9-230, F9-231, F9-232, F9-233, F9-234, F9-235, F9-236, F9-237, F9-238, F9-239, F9-240, F9-241, F9-242, F9-243, F9-244, F9-245, F9-246, F9-247
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "rows whose parent does not exist are skipped with a warning and never violate a foreign key"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: le righe con genitore inesistente sono saltate con avviso, senza violare chiavi esterne.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-230 — Con --dry-run l'import non scrive e riporta gli stessi conteggi dell'esecuzione reale
+
+**Obiettivo**
+Verificare che: con --dry-run l'import non scrive e riporta gli stessi conteggi dell'esecuzione reale.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954)".
+- Test automatico: `tests/Feature/Console/CaiSnapshotImportTest.php` — `dry-run writes nothing and reports the same counts as the real run`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiSnapshotImportTest.php`.
+- Test correlato: F9-212, F9-213, F9-214, F9-215, F9-216, F9-217, F9-218, F9-219, F9-220, F9-221, F9-222, F9-223, F9-224, F9-225, F9-226, F9-227, F9-228, F9-229, F9-231, F9-232, F9-233, F9-234, F9-235, F9-236, F9-237, F9-238, F9-239, F9-240, F9-241, F9-242, F9-243, F9-244, F9-245, F9-246, F9-247
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "dry-run writes nothing and reports the same counts as the real run"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: con --dry-run l'import non scrive e riporta gli stessi conteggi dell'esecuzione reale.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-231 — Un datapack senza tabelle snap_* non è influenzato e un import limitato a una sezione salta lo snapshot
+
+**Obiettivo**
+Verificare che: un datapack senza tabelle snap_* non è influenzato e un import limitato a una sezione salta lo snapshot.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954)".
+- Test automatico: `tests/Feature/Console/CaiSnapshotImportTest.php` — `a datapack without snap tables is unaffected and a scoped import skips the snapshot`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiSnapshotImportTest.php`.
+- Test correlato: F9-212, F9-213, F9-214, F9-215, F9-216, F9-217, F9-218, F9-219, F9-220, F9-221, F9-222, F9-223, F9-224, F9-225, F9-226, F9-227, F9-228, F9-229, F9-230, F9-232, F9-233, F9-234, F9-235, F9-236, F9-237, F9-238, F9-239, F9-240, F9-241, F9-242, F9-243, F9-244, F9-245, F9-246, F9-247
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "a datapack without snap tables is unaffected and a scoped import skips the snapshot"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: un datapack senza tabelle snap_* non è influenzato e un import limitato a una sezione salta lo snapshot.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-232 — Il comando di import stampa le righe di riepilogo dello snapshot e non accoda nulla
+
+**Obiettivo**
+Verificare che: il comando di import stampa le righe di riepilogo dello snapshot e non accoda nulla.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954)".
+- Test automatico: `tests/Feature/Console/CaiSnapshotImportTest.php` — `the import command prints the snapshot summary rows and queues nothing`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiSnapshotImportTest.php`.
+- Test correlato: F9-212, F9-213, F9-214, F9-215, F9-216, F9-217, F9-218, F9-219, F9-220, F9-221, F9-222, F9-223, F9-224, F9-225, F9-226, F9-227, F9-228, F9-229, F9-230, F9-231, F9-233, F9-234, F9-235, F9-236, F9-237, F9-238, F9-239, F9-240, F9-241, F9-242, F9-243, F9-244, F9-245, F9-246, F9-247
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "the import command prints the snapshot summary rows and queues nothing"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: il comando di import stampa le righe di riepilogo dello snapshot e non accoda nulla.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-233 — I documenti RUNTS sono creati copiando i file sul disco documenti, mai come manuali
+
+**Obiettivo**
+Verificare che: i documenti RUNTS sono creati copiando i file sul disco documenti, mai come manuali.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954)".
+- Test automatico: `tests/Feature/Console/CaiSnapshotDocumentsImportTest.php` — `creates RUNTS documents copying files into the documents disk, never as manual`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiSnapshotDocumentsImportTest.php`.
+- Test correlato: F9-212, F9-213, F9-214, F9-215, F9-216, F9-217, F9-218, F9-219, F9-220, F9-221, F9-222, F9-223, F9-224, F9-225, F9-226, F9-227, F9-228, F9-229, F9-230, F9-231, F9-232, F9-234, F9-235, F9-236, F9-237, F9-238, F9-239, F9-240, F9-241, F9-242, F9-243, F9-244, F9-245, F9-246, F9-247
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "creates RUNTS documents copying files into the documents disk, never as manual"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: i documenti RUNTS sono creati copiando i file sul disco documenti, mai come manuali.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-234 — Un documento già importato dal legacy (stesso genitore, hash e fonte) non è duplicato ma ne è allineata l'analisi
+
+**Obiettivo**
+Verificare che: un documento già importato dal legacy (stesso genitore, hash e fonte) non è duplicato ma ne è allineata l'analisi.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954)".
+- Test automatico: `tests/Feature/Console/CaiSnapshotDocumentsImportTest.php` — `does not duplicate a legacy document with same parent, hash and source but aligns the analysis`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiSnapshotDocumentsImportTest.php`.
+- Test correlato: F9-212, F9-213, F9-214, F9-215, F9-216, F9-217, F9-218, F9-219, F9-220, F9-221, F9-222, F9-223, F9-224, F9-225, F9-226, F9-227, F9-228, F9-229, F9-230, F9-231, F9-232, F9-233, F9-235, F9-236, F9-237, F9-238, F9-239, F9-240, F9-241, F9-242, F9-243, F9-244, F9-245, F9-246, F9-247
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "does not duplicate a legacy document with same parent, hash and source but aligns the analysis"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: un documento già importato dal legacy (stesso genitore, hash e fonte) non è duplicato ma ne è allineata l'analisi.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-235 — Una seconda esecuzione dell'import documenti non crea né aggiorna nulla
+
+**Obiettivo**
+Verificare che: una seconda esecuzione dell'import documenti non crea né aggiorna nulla.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954)".
+- Test automatico: `tests/Feature/Console/CaiSnapshotDocumentsImportTest.php` — `second run creates and updates nothing`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiSnapshotDocumentsImportTest.php`.
+- Test correlato: F9-212, F9-213, F9-214, F9-215, F9-216, F9-217, F9-218, F9-219, F9-220, F9-221, F9-222, F9-223, F9-224, F9-225, F9-226, F9-227, F9-228, F9-229, F9-230, F9-231, F9-232, F9-233, F9-234, F9-236, F9-237, F9-238, F9-239, F9-240, F9-241, F9-242, F9-243, F9-244, F9-245, F9-246, F9-247
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "second run creates and updates nothing"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: una seconda esecuzione dell'import documenti non crea né aggiorna nulla.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-236 — Un file sorgente mancante è saltato con avviso senza fermare gli altri
+
+**Obiettivo**
+Verificare che: un file sorgente mancante è saltato con avviso senza fermare gli altri.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954)".
+- Test automatico: `tests/Feature/Console/CaiSnapshotDocumentsImportTest.php` — `a missing source file is skipped with a warning without stopping the others`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiSnapshotDocumentsImportTest.php`.
+- Test correlato: F9-212, F9-213, F9-214, F9-215, F9-216, F9-217, F9-218, F9-219, F9-220, F9-221, F9-222, F9-223, F9-224, F9-225, F9-226, F9-227, F9-228, F9-229, F9-230, F9-231, F9-232, F9-233, F9-234, F9-235, F9-237, F9-238, F9-239, F9-240, F9-241, F9-242, F9-243, F9-244, F9-245, F9-246, F9-247
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "a missing source file is skipped with a warning without stopping the others"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: un file sorgente mancante è saltato con avviso senza fermare gli altri.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-237 — Una riga il cui genitore non esiste è saltata e conteggiata
+
+**Obiettivo**
+Verificare che: una riga il cui genitore non esiste è saltata e conteggiata.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954)".
+- Test automatico: `tests/Feature/Console/CaiSnapshotDocumentsImportTest.php` — `a row whose parent does not exist is skipped and counted`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiSnapshotDocumentsImportTest.php`.
+- Test correlato: F9-212, F9-213, F9-214, F9-215, F9-216, F9-217, F9-218, F9-219, F9-220, F9-221, F9-222, F9-223, F9-224, F9-225, F9-226, F9-227, F9-228, F9-229, F9-230, F9-231, F9-232, F9-233, F9-234, F9-235, F9-236, F9-238, F9-239, F9-240, F9-241, F9-242, F9-243, F9-244, F9-245, F9-246, F9-247
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "a row whose parent does not exist is skipped and counted"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: una riga il cui genitore non esiste è saltata e conteggiata.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-238 — Con spazio insufficiente non viene copiato nulla e l'errore italiano è esplicito
+
+**Obiettivo**
+Verificare che: con spazio insufficiente non viene copiato nulla e l'errore italiano è esplicito.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954)".
+- Test automatico: `tests/Feature/Console/CaiSnapshotDocumentsImportTest.php` — `insufficient disk space copies nothing and reports an explicit Italian error`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiSnapshotDocumentsImportTest.php`.
+- Test correlato: F9-212, F9-213, F9-214, F9-215, F9-216, F9-217, F9-218, F9-219, F9-220, F9-221, F9-222, F9-223, F9-224, F9-225, F9-226, F9-227, F9-228, F9-229, F9-230, F9-231, F9-232, F9-233, F9-234, F9-235, F9-236, F9-237, F9-239, F9-240, F9-241, F9-242, F9-243, F9-244, F9-245, F9-246, F9-247
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "insufficient disk space copies nothing and reports an explicit Italian error"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: con spazio insufficiente non viene copiato nulla e l'errore italiano è esplicito.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-239 — Con spazio insufficiente il comando di import termina con esito di fallimento
+
+**Obiettivo**
+Verificare che: con spazio insufficiente il comando di import termina con esito di fallimento.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954)".
+- Test automatico: `tests/Feature/Console/CaiSnapshotDocumentsImportTest.php` — `the command fails with the space error`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiSnapshotDocumentsImportTest.php`.
+- Test correlato: F9-212, F9-213, F9-214, F9-215, F9-216, F9-217, F9-218, F9-219, F9-220, F9-221, F9-222, F9-223, F9-224, F9-225, F9-226, F9-227, F9-228, F9-229, F9-230, F9-231, F9-232, F9-233, F9-234, F9-235, F9-236, F9-237, F9-238, F9-240, F9-241, F9-242, F9-243, F9-244, F9-245, F9-246, F9-247
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "the command fails with the space error"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: con spazio insufficiente il comando di import termina con esito di fallimento.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-240 — Con --dry-run l'import documenti non scrive né copia ma riporta conteggi e byte previsti
+
+**Obiettivo**
+Verificare che: con --dry-run l'import documenti non scrive né copia ma riporta conteggi e byte previsti.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954)".
+- Test automatico: `tests/Feature/Console/CaiSnapshotDocumentsImportTest.php` — `dry-run writes and copies nothing but reports counts and bytes`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiSnapshotDocumentsImportTest.php`.
+- Test correlato: F9-212, F9-213, F9-214, F9-215, F9-216, F9-217, F9-218, F9-219, F9-220, F9-221, F9-222, F9-223, F9-224, F9-225, F9-226, F9-227, F9-228, F9-229, F9-230, F9-231, F9-232, F9-233, F9-234, F9-235, F9-236, F9-237, F9-238, F9-239, F9-241, F9-242, F9-243, F9-244, F9-245, F9-246, F9-247
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "dry-run writes and copies nothing but reports counts and bytes"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: con --dry-run l'import documenti non scrive né copia ma riporta conteggi e byte previsti.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-241 — La riga di riepilogo riporta i megabyte copiati
+
+**Obiettivo**
+Verificare che: la riga di riepilogo riporta i megabyte copiati.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954)".
+- Test automatico: `tests/Feature/Console/CaiSnapshotDocumentsImportTest.php` — `the summary line reports the megabytes copied`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiSnapshotDocumentsImportTest.php`.
+- Test correlato: F9-212, F9-213, F9-214, F9-215, F9-216, F9-217, F9-218, F9-219, F9-220, F9-221, F9-222, F9-223, F9-224, F9-225, F9-226, F9-227, F9-228, F9-229, F9-230, F9-231, F9-232, F9-233, F9-234, F9-235, F9-236, F9-237, F9-238, F9-239, F9-240, F9-242, F9-243, F9-244, F9-245, F9-246, F9-247
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "the summary line reports the megabytes copied"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: la riga di riepilogo riporta i megabyte copiati.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-242 — Il file scaricato di un documento importato ha lo stesso sha256 del sorgente
+
+**Obiettivo**
+Verificare che: il file scaricato di un documento importato ha lo stesso sha256 del sorgente.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954)".
+- Test automatico: `tests/Feature/Console/CaiSnapshotDocumentsImportTest.php` — `the downloaded file of an imported document has the sha256 of the source`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiSnapshotDocumentsImportTest.php`.
+- Test correlato: F9-212, F9-213, F9-214, F9-215, F9-216, F9-217, F9-218, F9-219, F9-220, F9-221, F9-222, F9-223, F9-224, F9-225, F9-226, F9-227, F9-228, F9-229, F9-230, F9-231, F9-232, F9-233, F9-234, F9-235, F9-236, F9-237, F9-238, F9-239, F9-240, F9-241, F9-243, F9-244, F9-245, F9-246, F9-247
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "the downloaded file of an imported document has the sha256 of the source"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: il file scaricato di un documento importato ha lo stesso sha256 del sorgente.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-243 — L'import dei documenti non accoda alcun job di analisi
+
+**Obiettivo**
+Verificare che: l'import dei documenti non accoda alcun job di analisi.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954)".
+- Test automatico: `tests/Feature/Console/CaiSnapshotDocumentsImportTest.php` — `no analysis job is queued by the documents import`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiSnapshotDocumentsImportTest.php`.
+- Test correlato: F9-212, F9-213, F9-214, F9-215, F9-216, F9-217, F9-218, F9-219, F9-220, F9-221, F9-222, F9-223, F9-224, F9-225, F9-226, F9-227, F9-228, F9-229, F9-230, F9-231, F9-232, F9-233, F9-234, F9-235, F9-236, F9-237, F9-238, F9-239, F9-240, F9-241, F9-242, F9-244, F9-245, F9-246, F9-247
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "no analysis job is queued by the documents import"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: l'import dei documenti non accoda alcun job di analisi.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-244 — L'esito di analisi dei documenti manuali è ripristinato per sezione e hash, senza creare né accodare nulla
+
+**Obiettivo**
+Verificare che: l'esito di analisi dei documenti manuali è ripristinato per sezione e hash, senza creare né accodare nulla.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954)".
+- Test automatico: `tests/Feature/Console/CaiSnapshotManualAnalysisImportTest.php` — `restores the analysis of manual documents matched by section and hash, without creating or queuing`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiSnapshotManualAnalysisImportTest.php`.
+- Test correlato: F9-212, F9-213, F9-214, F9-215, F9-216, F9-217, F9-218, F9-219, F9-220, F9-221, F9-222, F9-223, F9-224, F9-225, F9-226, F9-227, F9-228, F9-229, F9-230, F9-231, F9-232, F9-233, F9-234, F9-235, F9-236, F9-237, F9-238, F9-239, F9-240, F9-241, F9-242, F9-243, F9-245, F9-246, F9-247
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "restores the analysis of manual documents matched by section and hash, without creating or queuing"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: l'esito di analisi dei documenti manuali è ripristinato per sezione e hash, senza creare né accodare nulla.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-245 — Una riga manuale senza documento corrispondente è saltata e conteggiata
+
+**Obiettivo**
+Verificare che: una riga manuale senza documento corrispondente è saltata e conteggiata.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954)".
+- Test automatico: `tests/Feature/Console/CaiSnapshotManualAnalysisImportTest.php` — `a snapshot manual row without a matching document is skipped and counted`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiSnapshotManualAnalysisImportTest.php`.
+- Test correlato: F9-212, F9-213, F9-214, F9-215, F9-216, F9-217, F9-218, F9-219, F9-220, F9-221, F9-222, F9-223, F9-224, F9-225, F9-226, F9-227, F9-228, F9-229, F9-230, F9-231, F9-232, F9-233, F9-234, F9-235, F9-236, F9-237, F9-238, F9-239, F9-240, F9-241, F9-242, F9-243, F9-244, F9-246, F9-247
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "a snapshot manual row without a matching document is skipped and counted"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: una riga manuale senza documento corrispondente è saltata e conteggiata.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-246 — Una seconda esecuzione non aggiorna nulla e --dry-run non scrive
+
+**Obiettivo**
+Verificare che: una seconda esecuzione non aggiorna nulla e --dry-run non scrive.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954)".
+- Test automatico: `tests/Feature/Console/CaiSnapshotManualAnalysisImportTest.php` — `second run updates nothing and dry-run writes nothing`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiSnapshotManualAnalysisImportTest.php`.
+- Test correlato: F9-212, F9-213, F9-214, F9-215, F9-216, F9-217, F9-218, F9-219, F9-220, F9-221, F9-222, F9-223, F9-224, F9-225, F9-226, F9-227, F9-228, F9-229, F9-230, F9-231, F9-232, F9-233, F9-234, F9-235, F9-236, F9-237, F9-238, F9-239, F9-240, F9-241, F9-242, F9-243, F9-244, F9-245, F9-247
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "second run updates nothing and dry-run writes nothing"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: una seconda esecuzione non aggiorna nulla e --dry-run non scrive.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-247 — Dopo l'import i flag della pagina "Bilancio 2025" sono gli stessi del database locale
+
+**Obiettivo**
+Verificare che: dopo l'import i flag della pagina "Bilancio 2025" sono gli stessi del database locale.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954)".
+- Test automatico: `tests/Feature/Console/CaiSnapshotManualAnalysisImportTest.php` — `the Bilancio 2025 flags are the same as in the local database after the import`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiSnapshotManualAnalysisImportTest.php`.
+- Test correlato: F9-212, F9-213, F9-214, F9-215, F9-216, F9-217, F9-218, F9-219, F9-220, F9-221, F9-222, F9-223, F9-224, F9-225, F9-226, F9-227, F9-228, F9-229, F9-230, F9-231, F9-232, F9-233, F9-234, F9-235, F9-236, F9-237, F9-238, F9-239, F9-240, F9-241, F9-242, F9-243, F9-244, F9-245, F9-246
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "the Bilancio 2025 flags are the same as in the local database after the import"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: dopo l'import i flag della pagina "Bilancio 2025" sono gli stessi del database locale.
 
 **Controlli negativi**
 Nessuno applicabile.

@@ -9,8 +9,8 @@ funzionalità realizzate in **Fase 0 (Fondazioni)**, **Fase 1 (Ticketing core)**
 **Fase 5 (Fundraising — opportunità/bandi, griglia di valutazione, progetti e vista cliente)**,
 **Fase 6 (Portale cliente e rifinitura)**, **Fase 7 (Tipologia di cliente CAI)**, **Fase 8
 (Integrazione dati RUNTS-CAI — Sezioni/Sottosezioni)** e **Fase 9 (Sincronizzazione live CAI/RUNTS,
-fallback CF/PIVA, upload manuale documenti, menu Gruppo Regionale)**: 875 casi di test in totale,
-organizzati in 149 argomenti, ciascuno tracciato verso un test automatico realmente esistente nel
+fallback CF/PIVA, upload manuale documenti, menu Gruppo Regionale)**: 911 casi di test in totale,
+organizzati in 150 argomenti, ciascuno tracciato verso un test automatico realmente esistente nel
 repository tramite i manifest `fase-0-1.php` (Fase 0/Fase 1), `fase-1a.php` (Fase 1A), `fase-2.php`
 (Fase 2), `fase-3.php` (Fase 3), `fase-4.php` (Fase 4), `fase-5.php` (Fase 5), `fase-6.php` (Fase 6),
 `fase-7.php` (Fase 7), `fase-8.php` (Fase 8) e `fase-9.php` (Fase 9).
@@ -52,13 +52,13 @@ descritte in `docs/ticket-lifecycle.md`.
 | [`13-fase-6.md`](./13-fase-6.md) | I 141 test di Fase 6 (Portale cliente e rifinitura), con campi di consuntivazione da compilare durante l'esecuzione. |
 | [`14-fase-7.md`](./14-fase-7.md) | I 36 test di Fase 7 (Tipologia di cliente CAI), con campi di consuntivazione da compilare durante l'esecuzione. |
 | [`15-fase-8.md`](./15-fase-8.md) | I 52 test di Fase 8 (Integrazione dati RUNTS-CAI — Sezioni/Sottosezioni), con campi di consuntivazione da compilare durante l'esecuzione. |
-| [`16-fase-9.md`](./16-fase-9.md) | I 211 test di Fase 9 (Sincronizzazione live CAI/RUNTS, fallback CF/PIVA, upload manuale documenti, menu Gruppo Regionale), con campi di consuntivazione da compilare durante l'esecuzione. |
-| [`11-registro-esiti.md`](./11-registro-esiti.md) | Registro aggregato degli esiti di tutti i 875 test e delle anomalie rilevate. |
+| [`16-fase-9.md`](./16-fase-9.md) | I 247 test di Fase 9 (Sincronizzazione live CAI/RUNTS, fallback CF/PIVA, upload manuale documenti, menu Gruppo Regionale), con campi di consuntivazione da compilare durante l'esecuzione. |
+| [`11-registro-esiti.md`](./11-registro-esiti.md) | Registro aggregato degli esiti di tutti i 911 test e delle anomalie rilevate. |
 | [`12-verbale-collaudo.md`](./12-verbale-collaudo.md) | Verbale conclusivo di collaudo, con esito complessivo e firme. |
 
 ## Riepilogo numerico
 
-- **875 test totali**
+- **911 test totali**
   - 56 test di Fase 0 (F0-01…F0-56), su 9 argomenti
   - 74 test di Fase 1 (F1-01…F1-74), su 14 argomenti
   - 16 test di Fase 1A (F1A-01…F1A-16), su 4 argomenti
@@ -69,8 +69,8 @@ descritte in `docs/ticket-lifecycle.md`.
   - 141 test di Fase 6 (F6-01…F6-141), su 17 argomenti
   - 36 test di Fase 7 (F7-01…F7-36), su 6 argomenti
   - 52 test di Fase 8 (F8-01…F8-52), su 8 argomenti
-  - 211 test di Fase 9 (F9-01…F9-211), su 38 argomenti
-- **149 argomenti** in totale (l'elenco completo, con titoli letterali e conteggio test per
+  - 247 test di Fase 9 (F9-01…F9-247), su 39 argomenti
+- **150 argomenti** in totale (l'elenco completo, con titoli letterali e conteggio test per
   argomento, è nella sezione 3 di `00-istruzioni-generali.md`)
 
 ## Come compilare il pacchetto
@@ -83,7 +83,7 @@ descritte in `docs/ticket-lifecycle.md`.
    `13-fase-6.md`, poi in `14-fase-7.md`, poi in `15-fase-8.md`, poi in `16-fase-9.md`, compilando
    per ciascun test i relativi "Campi di consuntivazione" (esito PASS/FAIL/BLOCKED/NOT APPLICABLE,
    data, tester, evidenze, eventuale anomalia collegata).
-3. Al termine di ciascuna fase (o dell'intero ciclo), riportare l'esito aggregato di tutti i 875
+3. Al termine di ciascuna fase (o dell'intero ciclo), riportare l'esito aggregato di tutti i 911
    test e l'elenco delle anomalie rilevate in `11-registro-esiti.md`.
 4. Chiudere il ciclo di collaudo compilando `12-verbale-collaudo.md`, con l'esito complessivo
    secondo i criteri di superamento del punto 17 di `00-istruzioni-generali.md`.
