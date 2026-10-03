@@ -848,3 +848,16 @@ PRD: docs/project/tasks/prd-bilanci-sezioni-2026-datapack.md. Il ciclo precedent
 - **Learnings**: i label di `CaiDocumentType::getLabel()` coprono già quasi tutti i casi del PRD; l'unico sinonimo reale necessario è la
   variante dati reali `Mod A  Mod B` (senza virgola, doppio spazio) → `CompletoABC`. La normalizzazione degli spazi collassa il doppio spazio.
 ---
+
+## [2026-10-03] - US-931
+- Aggiunti in `app/Domain/CaiDirectory/Import/ManualBilancio/`: `CampagnaSezioniIndexReader::read()` (OpenSpout, solo foglio `Sezioni`,
+  colonne per intestazione, codice normalizzato a 7 cifre, righe senza codice scartate, `InvalidArgumentException` in italiano per file/foglio
+  mancante) e DTO `CampagnaSezioniRow`.
+- Test: `tests/Unit/Domain/CaiDirectory/Import/ManualBilancio/CampagnaSezioniIndexReaderTest.php` (3 test). Pest/Pint/Larastan verdi.
+- Verificato sul file reale: 525 righe con codice (il PRD dice 526: una riga in meno, probabile duplicato di codice che collassa sulla chiave),
+  stati RICEVUTO 347 / DA VERIFICARE 137 / PROBLEMA RUNTS 41 come da PRD.
+- **Learnings**: (1) le chiavi stringa numeriche di un array PHP diventano `int` — chi itera `array_keys()` deve fare cast a `string` (anche nei
+  test). (2) Le colonne `Link al bilancio`/`Link al bilancio 2` dell'Excel reale sono array-formula `=IF(B2:B1007=...` senza valore in cache:
+  OpenSpout restituisce il testo della formula, quindi il reader scarta le celle che iniziano con `=` (i link sono solo riferimento, 344 righe
+  su 525 hanno comunque almeno un valore non-formula).
+---
