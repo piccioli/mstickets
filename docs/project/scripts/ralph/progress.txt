@@ -990,3 +990,14 @@ PRD: docs/project/tasks/prd-menu-anagrafica-cai-bilanci-gruppi-regionali.md. Cic
 - **Learnings**: i flag letti dal modello sono int 0/1 su sqlite e bool su Postgres: la UI (US-945) deve usare `(bool)`/`IconColumn` che li gestisce già. Per le sezioni
   il `codice_cai` è la chiave (stringa), la correlazione è `cai_sections.codice_cai`.
 ---
+
+## [2026-10-03] - US-945
+- `App\Filament\Pages\CaiFinancialYearPage` (astratta, `abstract static year(): int`) + `CaiFinancialYear2025` (sort 22, sotto "Bilanci"). Tabella su
+  `CaiSectionFinancialYearQuery::forYear()`: colonne Denominazione/Regione/Codice CAI + 4 `IconColumn` booleane con tooltip, default sort regione+denominazione, paginazione 25/50/100;
+  filtri Regione (`SelectFilter` da valori distinti) + 4 `TernaryFilter` che chiamano i `with*()` di US-944 con l'anno della pagina; azione "Apri scheda" → view sezione `?tab=allegati`.
+  "Bilancio 2026" = una sottoclasse con `year()` e `$navigationSort`.
+- Test: `tests/Feature/Filament/CaiDirectory/CaiFinancialYear2025Test.php` (10); `CaiNavigationTest` aggiornato (nuova voce sotto Bilanci, visibile anche con solo `CaiDirectoryView`).
+  `--filter=Cai` 295 verdi, Pint e Larastan puliti. Pagina astratta non scoperta come route (solo `admin/cai-financial-year2025`).
+- **Browser NON verificato** (nessun Docker/Playwright avviato): verificare a mano.
+- **Learnings**: gli slug di pagina derivano dal nome classe (`cai-financial-year2025`). `assertCanSeeTableRecords(..., inOrder: true)` rispetta l'ordine reale: attenzione all'ordine alfabetico dei nomi di fixture.
+---

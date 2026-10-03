@@ -51,15 +51,16 @@ test('an admin sees the Anagrafica CAI group organised in ordered sub-menus', fu
 
     expect(caiNavigationTree())->toBe([
         'Sezioni' => ['Anagrafica sezioni', 'Mappa sezioni'],
-        'Bilanci' => ['Bilanci non interpretati'],
+        'Bilanci' => ['Bilanci non interpretati', 'Bilancio 2025'],
     ]);
 });
 
-test('a user with only cai-directory.view sees Sezioni without the Bilanci sub-menu', function (): void {
+test('a user with only cai-directory.view sees Sezioni and only Bilancio 2025 under Bilanci', function (): void {
     $this->actingAs(caiStaffUser(PermissionEnum::CaiDirectoryView));
 
     expect(caiNavigationTree())->toBe([
         'Sezioni' => ['Anagrafica sezioni', 'Mappa sezioni'],
+        'Bilanci' => ['Bilancio 2025'],
     ]);
 });
 
