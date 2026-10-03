@@ -896,3 +896,13 @@ PRD: docs/project/tasks/prd-bilanci-sezioni-2026-datapack.md. Il ciclo precedent
   per dare gli stessi conteggi. Nei test, `makeCaiDatapackFixture()` contiene già un allegato RUNTS: filtrare per `source` quando si asserisce
   sui documenti manuali. `skipSectionFields=true` con sezioni non pre-create fa fallire la FK delle registrazioni: creare entrambe le sezioni.
 ---
+
+## [2026-10-03] - US-935
+- `cai:import-datapack --analyze-manual` → `CaiDatapackImporter::import(..., analyzeManual)` → `CaiManualBilanciImporter::import(..., $analyze)`:
+  per ogni documento manuale CREATO in questa run con `CaiDocumentType::tryFrom($tipo)?->triggersFinancialAnalysis()` e `year !== null`
+  dispatch di `AnalyzeCaiFinancialStatementDocument` sulla coda `cai-runts-analysis`. Senza flag, in `--dry-run` (il dry-run non crea nulla) o
+  per documenti già presenti (skipped) nessun dispatch; `tipo` non valido → ignorato (`tryFrom`). La doc in CLAUDE.md è demandata a US-938.
+- Test: 3 nuovi in `tests/Feature/Console/CaiManualBilanciImportTest.php` (Queue::fake). `--filter=Cai` 241 verdi, Pint e Larastan puliti.
+- **Learnings**: in una `$signature` di comando Laravel (stringa PHP tra apici singoli) un apostrofo nella descrizione di un'opzione ("l'estrazione")
+  rompe il parsing e `artisan` non elenca più NESSUN comando: i test falliscono con `CommandNotFoundException`, non con un errore di sintassi.
+---

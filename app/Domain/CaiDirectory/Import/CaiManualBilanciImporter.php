@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Domain\CaiDirectory\Import;
 
 use App\Domain\CaiDirectory\Enums\CaiDocumentSource;
+use App\Domain\CaiDirectory\Enums\CaiDocumentType;
+use App\Domain\CaiDirectory\Jobs\AnalyzeCaiFinancialStatementDocument;
 use App\Domain\CaiDirectory\Models\CaiDocument;
 use App\Domain\CaiDirectory\Models\CaiSection;
 use Illuminate\Database\Connection;
@@ -25,7 +27,7 @@ final class CaiManualBilanciImporter
 
     private const DOCUMENTS_DISK = 'cai-documents';
 
-    public function import(Connection $connection, string $datapackDir, bool $dryRun): CaiImportTableResult
+    public function import(Connection $connection, string $datapackDir, bool $dryRun, bool $analyze = false): CaiImportTableResult
     {
         if (! $connection->getSchemaBuilder()->hasTable(self::TABLE)) {
             return new CaiImportTableResult;
@@ -88,7 +90,7 @@ final class CaiManualBilanciImporter
 
                 $this->copyFile($sourcePath, $destinationPath);
 
-                CaiDocument::create([
+                $document = CaiDocument::create([
                     'cai_section_id' => $codiceCai,
                     'cai_runts_registration_id' => null,
                     'document_type' => $row->tipo,
@@ -102,6 +104,10 @@ final class CaiManualBilanciImporter
                     'source' => CaiDocumentSource::Manual,
                 ]);
                 $created++;
+
+                if ($analyze && $document->year !== null && CaiDocumentType::tryFrom((string) $row->tipo)?->triggersFinancialAnalysis()) {
+                    AnalyzeCaiFinancialStatementDocument::dispatch($document->id)->onQueue('cai-runts-analysis');
+                }
             } catch (Throwable $e) {
                 $skipped++;
                 $warnings[] = "documenti_manuali: errore sul file {$row->path}: {$e->getMessage()}";

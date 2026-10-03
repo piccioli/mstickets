@@ -72,6 +72,7 @@ final class CaiDatapackImporter
         bool $dryRun,
         ?string $onlyCaiSectionCode = null,
         bool $skipSectionFields = false,
+        bool $analyzeManual = false,
     ): array {
         $this->registerConnection($absolutePath);
 
@@ -110,7 +111,7 @@ final class CaiDatapackImporter
             $results['cai_documents'] = $this->importDocuments($allegatiRows, $matchedIdRunts, $datapackDir, $dryRun);
 
             if ($onlyCaiSectionCode === null && ! $skipSectionFields) {
-                $results['documenti_manuali'] = $this->manualBilanciImporter->import($connection, $datapackDir, $dryRun);
+                $results['documenti_manuali'] = $this->manualBilanciImporter->import($connection, $datapackDir, $dryRun, $analyzeManual);
             }
 
             return $results;

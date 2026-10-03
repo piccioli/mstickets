@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 use App\Domain\CaiDirectory\Enums\CaiDocumentSource;
 use App\Domain\CaiDirectory\Import\CaiDatapackImporter;
+use App\Domain\CaiDirectory\Jobs\AnalyzeCaiFinancialStatementDocument;
 use App\Domain\CaiDirectory\Models\CaiDocument;
 use App\Domain\CaiDirectory\Models\CaiSection;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 
 uses(RefreshDatabase::class);
@@ -14,7 +16,7 @@ uses(RefreshDatabase::class);
 /**
  * Aggiunge `bilanci_manuali` alla fixture del datapack, con file veri sotto `bilanci-sezioni-2026/`.
  *
- * @param  list<array{codice: string, name: string, content: string, create?: bool}>  $files
+ * @param  list<array{codice: string, name: string, content: string, create?: bool, tipo?: string}>  $files
  */
 function addManualBilanciTable(string $sqlitePath, array $files): void
 {
@@ -36,7 +38,7 @@ function addManualBilanciTable(string $sqlitePath, array $files): void
             file_put_contents("{$datapackDir}/{$relative}", $file['content']);
         }
 
-        $insert->execute([$file['codice'], 'Lombardia', 2025, 'rendiconto_cassa', 'Mod D', $file['name'], $relative, 'application/pdf', strlen($file['content']), hash('sha256', $file['content'])]);
+        $insert->execute([$file['codice'], 'Lombardia', 2025, $file['tipo'] ?? 'rendiconto_cassa', 'Mod D', $file['name'], $relative, 'application/pdf', strlen($file['content']), hash('sha256', $file['content'])]);
     }
 }
 
@@ -135,4 +137,41 @@ test('scoped import (only section code / skip section fields) does not import ma
     $results = app(CaiDatapackImporter::class)->import($fixture['sqlitePath'], false, null, true);
     expect($results)->not->toHaveKey('documenti_manuali')
         ->and(CaiDocument::query()->where('source', CaiDocumentSource::Manual)->count())->toBe(0);
+});
+
+test('without --analyze-manual nothing is queued', function (): void {
+    Queue::fake();
+    $fixture = importManualFixture([['codice' => '9216049', 'name' => 'a.pdf', 'content' => 'AAA', 'tipo' => 'mod_d']]);
+
+    $this->artisan('cai:import-datapack', ['--path' => $fixture['sqlitePath']])->assertSuccessful()->run();
+
+    Queue::assertNothingPushed();
+});
+
+test('--analyze-manual queues analysis only for newly created documents of an analyzable type, ignoring invalid types', function (): void {
+    Queue::fake();
+    $fixture = importManualFixture([
+        ['codice' => '9216049', 'name' => 'a.pdf', 'content' => 'AAA', 'tipo' => 'mod_d'],
+        ['codice' => '9216049', 'name' => 'b.pdf', 'content' => 'BBB', 'tipo' => 'verbale_assemblea'],
+        ['codice' => '9216049', 'name' => 'c.pdf', 'content' => 'CCC', 'tipo' => 'tipo_inesistente'],
+    ]);
+
+    $this->artisan('cai:import-datapack', ['--path' => $fixture['sqlitePath'], '--analyze-manual' => true])->assertSuccessful()->run();
+
+    Queue::assertPushed(AnalyzeCaiFinancialStatementDocument::class, 1);
+    Queue::assertPushedOn('cai-runts-analysis', AnalyzeCaiFinancialStatementDocument::class);
+    expect(CaiDocument::query()->where('source', CaiDocumentSource::Manual)->count())->toBe(3);
+
+    // seconda run: documenti già presenti, nessun nuovo dispatch
+    $this->artisan('cai:import-datapack', ['--path' => $fixture['sqlitePath'], '--analyze-manual' => true])->assertSuccessful()->run();
+    Queue::assertPushed(AnalyzeCaiFinancialStatementDocument::class, 1);
+});
+
+test('--dry-run with --analyze-manual queues nothing', function (): void {
+    Queue::fake();
+    $fixture = importManualFixture([['codice' => '9216049', 'name' => 'a.pdf', 'content' => 'AAA', 'tipo' => 'mod_d']]);
+
+    $this->artisan('cai:import-datapack', ['--path' => $fixture['sqlitePath'], '--dry-run' => true, '--analyze-manual' => true])->assertSuccessful()->run();
+
+    Queue::assertNothingPushed();
 });

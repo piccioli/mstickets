@@ -19,6 +19,7 @@ final class CaiImportDatapackCommand extends Command
 {
     protected $signature = 'cai:import-datapack
         {--path=cai-datapack/runts-cai.sqlite : Percorso del file SQLite del datapack RUNTS-CAI (relativo alla root del progetto, o assoluto)}
+        {--analyze-manual : Accoda estrazione automatica delle cifre di bilancio per i documenti manuali creati in questa run}
         {--dry-run : Non scrive alcuna riga né alcun file, solo conteggio di quanto verrebbe letto}';
 
     protected $description = 'Importa il datapack RUNTS-CAI (sezioni, sottosezioni, enti, bilanci, cariche sociali, allegati) in App\\Domain\\CaiDirectory.';
@@ -41,7 +42,7 @@ final class CaiImportDatapackCommand extends Command
 
         $dryRun = (bool) $this->option('dry-run');
 
-        $results = $this->importer->import($absolutePath, $dryRun);
+        $results = $this->importer->import($absolutePath, $dryRun, analyzeManual: (bool) $this->option('analyze-manual'));
 
         $this->reportSummary($results, $dryRun);
 
