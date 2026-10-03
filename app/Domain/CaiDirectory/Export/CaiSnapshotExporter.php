@@ -107,11 +107,16 @@ final class CaiSnapshotExporter
         ];
     }
 
+    public function __construct(private readonly CaiSnapshotFileExporter $files = new CaiSnapshotFileExporter) {}
+
     /**
-     * @return array<string, array{exported: int, database: int}>
+     * @return array{tables: array<string, array{exported: int, database: int}>, files: array{copied: int, present: int, missing: int, missing_paths: list<string>, bytes: int, distinct: int}}
      */
     public function export(string $datapackPath, bool $dryRun = false): array
     {
+        // Prima i file (controllo spazio incluso): se manca spazio, nulla viene scritto nel datapack.
+        $files = $this->files->export(dirname($datapackPath), $dryRun);
+
         $pdo = new PDO('sqlite:'.$datapackPath);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
@@ -121,7 +126,7 @@ final class CaiSnapshotExporter
         try {
             foreach (self::definitions() as $snapTable => $definition) {
                 $summary[$snapTable] = [
-                    'exported' => $this->exportTable($pdo, $snapTable, $definition),
+                    'exported' => $this->exportTable($pdo, $snapTable, $definition, $files['map']),
                     'database' => (int) DB::table($definition['source'])->count(),
                 ];
             }
@@ -136,13 +141,14 @@ final class CaiSnapshotExporter
             throw $e;
         }
 
-        return $summary;
+        return ['tables' => $summary, 'files' => $files['summary']];
     }
 
     /**
      * @param  array{source: string, order: string, columns: array<string, string>}  $definition
+     * @param  array<string, string>  $fileMap  file_path => percorso relativo del file copiato
      */
-    private function exportTable(PDO $pdo, string $snapTable, array $definition): int
+    private function exportTable(PDO $pdo, string $snapTable, array $definition, array $fileMap): int
     {
         $columns = array_keys($definition['columns']);
         $columnDdl = [];
@@ -159,14 +165,15 @@ final class CaiSnapshotExporter
 
         // Colonne snapshot assenti dalla sorgente (snapshot_file, file_in_datapack) hanno un valore fisso.
         $sourceColumns = array_values(array_filter($columns, static fn (string $c): bool => ! in_array($c, ['snapshot_file', 'file_in_datapack'], true)));
+        $isDocuments = $snapTable === 'snap_cai_documents';
 
         $count = 0;
         foreach (DB::table($definition['source'])->select($sourceColumns)->orderBy($definition['order'])->cursor() as $row) {
             $values = [];
             foreach ($columns as $column) {
                 $values[] = match ($column) {
-                    'snapshot_file' => null,
-                    'file_in_datapack' => 0,
+                    'snapshot_file' => $isDocuments ? ($fileMap[$row->file_path] ?? null) : null,
+                    'file_in_datapack' => $isDocuments && isset($fileMap[$row->file_path]) ? 1 : 0,
                     default => $this->raw($row->{$column}),
                 };
             }

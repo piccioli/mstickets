@@ -1056,3 +1056,15 @@ PRD: docs/project/tasks/prd-datapack-snapshot-runts-uat.md. Ciclo precedente (US
   l'importer (US-952..954) deve leggere da lì i nomi colonna. Nei test non assertare stringhe di decimali
   (sqlite `44.0775`, Postgres `44.0775000`): confrontare come float. Su macOS `sed -i ''`.
 ---
+
+## [2026-10-03] - US-951
+- Nuova `App\Domain\CaiDirectory\Export\CaiSnapshotFileExporter` (iniettata in `CaiSnapshotExporter`, closure `$freeSpace` iniettabile):
+  per i documenti `source = runts` calcola lo sha256 in streaming (`hash_update_stream`, mai `hash` di `cai_documents`), piano → controllo
+  spazio (`disk_free_space`, errore italiano "Spazio insufficiente" PRIMA di scrivere file e SQLite) → copia in
+  `<cartella datapack>/snapshot-files/<hh>/<hash>.<ext>` (via `.part` + rename). Dedup per hash, file già presente con stessa dimensione non ricopiato,
+  file mancante/non copiabile → riga con `file_in_datapack = 0` e avviso. Manuali mai copiati.
+- `CaiSnapshotExporter::export()` ora ritorna `['tables' => ..., 'files' => ...]`; il comando stampa il riepilogo file (copiati/presenti/mancanti, MB, hash distinti) e i mancanti.
+- File: `app/Domain/CaiDirectory/Export/CaiSnapshotFileExporter.php`, `CaiSnapshotExporter.php`, `app/Console/Commands/CaiExportDatapackSnapshotCommand.php`,
+  `tests/Feature/Console/CaiExportDatapackSnapshotFilesTest.php` (6 test, `Storage::fake`). Test export 12/12, Pint e Larastan puliti. Non lanciato sul DB/dati reali.
+- **Learnings**: `expectsOutputToContain` consuma una riga per asserzione: due asserzioni sulla stessa riga falliscono. La chiave di mapping riga→file è `file_path` (con uuid, univoco).
+---

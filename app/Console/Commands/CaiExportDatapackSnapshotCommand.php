@@ -35,7 +35,7 @@ final class CaiExportDatapackSnapshotCommand extends Command
         }
 
         try {
-            $summary = $exporter->export($datapackPath, $dryRun);
+            $result = $exporter->export($datapackPath, $dryRun);
         } catch (Throwable $e) {
             $this->error('Errore durante l\'esportazione dello snapshot: '.$e->getMessage());
 
@@ -46,12 +46,27 @@ final class CaiExportDatapackSnapshotCommand extends Command
 
         $mismatch = false;
         $rows = [];
-        foreach ($summary as $table => $counts) {
+        foreach ($result['tables'] as $table => $counts) {
             $match = $counts['exported'] === $counts['database'];
             $mismatch = $mismatch || ! $match;
             $rows[] = [$table, $counts['exported'], $counts['database'], $match ? 'ok' : 'DIVERSO'];
         }
         $this->table(['Tabella', 'Esportate', 'Nel database', 'Esito'], $rows);
+
+        $files = $result['files'];
+        $this->line(sprintf(
+            'File documenti RUNTS: %d %s, %d già presenti, %d mancanti; %.1f MB %s; %d hash distinti.',
+            $files['copied'],
+            $dryRun ? 'da copiare' : 'copiati',
+            $files['present'],
+            $files['missing'],
+            $files['bytes'] / 1048576,
+            $dryRun ? 'da copiare' : 'copiati',
+            $files['distinct'],
+        ));
+        foreach ($files['missing_paths'] as $path) {
+            $this->warn("File mancante sul disco cai-documents: {$path}");
+        }
 
         if ($mismatch) {
             $this->error('I conteggi esportati non coincidono con il database.');
