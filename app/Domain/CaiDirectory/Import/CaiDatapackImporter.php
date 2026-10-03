@@ -116,7 +116,7 @@ final class CaiDatapackImporter
             if ($onlyCaiSectionCode === null && ! $skipSectionFields) {
                 $results['documenti_manuali'] = $this->manualBilanciImporter->import($connection, $datapackDir, $dryRun, $analyzeManual);
                 // Snapshot completo (tabelle `snap_*`): dopo tutti gli step legacy, solo per l'import nazionale.
-                $results += $this->snapshotImporter->import($connection, $dryRun, $usersByLowerEmail);
+                $results += $this->snapshotImporter->import($connection, $dryRun, $usersByLowerEmail, $datapackDir);
             }
 
             return $results;

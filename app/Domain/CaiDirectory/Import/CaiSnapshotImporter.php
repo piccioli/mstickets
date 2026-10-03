@@ -4,16 +4,23 @@ declare(strict_types=1);
 
 namespace App\Domain\CaiDirectory\Import;
 
+use App\Domain\CaiDirectory\Enums\CaiDocumentAnalysisStatus;
+use App\Domain\CaiDirectory\Enums\CaiDocumentSource;
 use App\Domain\CaiDirectory\Enums\CaiRuntsPresenceStatus;
 use App\Domain\CaiDirectory\Export\CaiSnapshotExporter;
 use App\Domain\CaiDirectory\Import\Concerns\DiffsAttributes;
 use App\Domain\CaiDirectory\Models\CaiBoardMember;
+use App\Domain\CaiDirectory\Models\CaiDocument;
 use App\Domain\CaiDirectory\Models\CaiFinancialStatement;
 use App\Domain\CaiDirectory\Models\CaiRuntsRegistration;
 use App\Domain\CaiDirectory\Models\CaiSection;
 use App\Domain\CaiDirectory\Models\CaiSubsection;
 use Illuminate\Database\Connection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use RuntimeException;
+use Throwable;
 
 /**
  * Ripristina dal datapack le tabelle `snap_*` non-documento prodotte da {@see CaiSnapshotExporter}
@@ -33,7 +40,7 @@ final class CaiSnapshotImporter
      * @param  array<string, int>  $usersByLowerEmail
      * @return array<string, CaiImportTableResult> vuoto se il datapack non ha lo snapshot
      */
-    public function import(Connection $datapack, bool $dryRun, array $usersByLowerEmail): array
+    public function import(Connection $datapack, bool $dryRun, array $usersByLowerEmail, string $datapackDir): array
     {
         if (! $datapack->getSchemaBuilder()->hasTable('snap_cai_sections')) {
             return [];
@@ -50,6 +57,7 @@ final class CaiSnapshotImporter
             'snapshot_registrazioni' => $registrations,
             'snapshot_bilanci' => $this->importFinancialStatements($datapack, $dryRun, $sectionCodes, $registrationIds),
             'snapshot_cariche' => $this->importBoardMembers($datapack, $dryRun, $registrationIds),
+            'snapshot_documenti' => $this->importDocuments($datapack, $dryRun, $datapackDir, $sectionCodes, $registrationIds),
         ];
     }
 
@@ -218,6 +226,211 @@ final class CaiSnapshotImporter
         }
 
         return $counts->toResult('cariche');
+    }
+
+    /**
+     * Documenti RUNTS con file nel datapack. Dedup per (genitore, hash, source): un documento già presente
+     * (anche dall'import legacy `allegati`) non si duplica, se ne allinea solo l'esito di analisi. Le righe
+     * nuove si pianificano senza scrivere, si controlla lo spazio e solo allora si copiano i file.
+     *
+     * @param  array<string, true>  $sectionCodes
+     * @param  array<string, true>  $registrationIds
+     */
+    private function importDocuments(Connection $datapack, bool $dryRun, string $datapackDir, array $sectionCodes, array $registrationIds): CaiImportTableResult
+    {
+        $counts = new SnapshotCounts;
+        $warnings = [];
+        /** @var list<array{attributes: array<string, mixed>, source: string, destination: string}> $plan */
+        $plan = [];
+        $planned = [];
+        $bytes = 0;
+
+        $rows = $datapack->table('snap_cai_documents')
+            ->where('source', CaiDocumentSource::Runts->value)
+            ->where('file_in_datapack', 1)
+            ->orderBy('rowid')
+            ->cursor();
+
+        foreach ($rows as $row) {
+            $counts->read++;
+
+            $registration = $this->nullable($row->cai_runts_registration_id);
+            $section = $this->nullable($row->cai_section_id);
+
+            $parent = match (true) {
+                $registration !== null && $section === null && isset($registrationIds[(string) $registration]) => ['cai_runts_registration_id', (string) $registration],
+                $section !== null && $registration === null && isset($sectionCodes[(string) $section]) => ['cai_section_id', (string) $section],
+                default => null,
+            };
+
+            if ($parent === null) {
+                $counts->orphans++;
+                $counts->skipped++;
+
+                continue;
+            }
+
+            $analysis = [
+                'financial_analysis_status' => CaiDocumentAnalysisStatus::tryFrom((string) $this->nullable($row->financial_analysis_status)),
+                'raw_text_excerpt' => $this->nullable($row->raw_text_excerpt),
+                'extracted_via_ocr' => (bool) $row->extracted_via_ocr,
+            ];
+
+            $hash = $this->nullable($row->hash);
+            $fileName = basename((string) $row->file_name);
+
+            $existing = CaiDocument::query()
+                ->where($parent[0], $parent[1])
+                ->where('source', CaiDocumentSource::Runts)
+                ->when(
+                    $hash !== null,
+                    fn ($query) => $query->where('hash', $hash),
+                    fn ($query) => $query->whereNull('hash')->where('file_name', $fileName),
+                )
+                ->first();
+
+            if ($existing !== null) {
+                if ($this->attributesDiffer($existing, $analysis)) {
+                    if (! $dryRun) {
+                        $existing->update($analysis);
+                    }
+                    $counts->updated++;
+                } else {
+                    $counts->skipped++;
+                }
+
+                continue;
+            }
+
+            $key = $parent[0].'|'.$parent[1].'|'.($hash ?? $fileName);
+            if (isset($planned[$key])) {
+                $counts->skipped++;
+
+                continue;
+            }
+
+            $source = $datapackDir.'/'.ltrim((string) $row->snapshot_file, '/');
+            $size = is_file($source) ? filesize($source) : false;
+
+            if ($size === false) {
+                $counts->skipped++;
+                $warnings[] = "File mancante nel datapack: {$row->snapshot_file}";
+
+                continue;
+            }
+
+            $planned[$key] = true;
+            $bytes += $size;
+            $plan[] = [
+                'attributes' => [
+                    $parent[0] => $parent[1],
+                    'document_type' => $this->nullable($row->document_type),
+                    'year' => CaiSectionFieldMapper::toInt($this->nullable($row->year)),
+                    'title' => $this->nullable($row->title),
+                    'file_name' => $fileName,
+                    'mime_type' => $this->nullable($row->mime_type),
+                    'size' => CaiSectionFieldMapper::toInt($this->nullable($row->size)),
+                    'hash' => $hash,
+                    'source' => CaiDocumentSource::Runts,
+                    ...$analysis,
+                ],
+                'source' => $source,
+                'destination' => $parent[1].'/'.Str::uuid().'-'.$fileName,
+            ];
+        }
+
+        if ($dryRun) {
+            $counts->created = count($plan);
+
+            return $this->documentsResult($counts, $warnings, $bytes);
+        }
+
+        $error = $this->spaceError($bytes);
+        if ($error !== null) {
+            $counts->skipped += count($plan);
+
+            return $this->documentsResult($counts, $warnings, 0, $error);
+        }
+
+        $copied = 0;
+        foreach ($plan as $item) {
+            try {
+                $this->copyFile($item['source'], $item['destination']);
+                CaiDocument::create([...$item['attributes'], 'file_path' => $item['destination']]);
+                $counts->created++;
+                $copied += (int) filesize($item['source']);
+            } catch (Throwable $e) {
+                $counts->skipped++;
+                $warnings[] = "Documento non importato ({$item['destination']}): {$e->getMessage()}";
+            }
+        }
+
+        return $this->documentsResult($counts, $warnings, $copied);
+    }
+
+    /**
+     * @param  list<string>  $warnings
+     */
+    private function documentsResult(SnapshotCounts $counts, array $warnings, int $bytes, ?string $error = null): CaiImportTableResult
+    {
+        $result = $counts->toResult('documenti');
+
+        return new CaiImportTableResult(
+            read: $result->read,
+            created: $result->created,
+            updated: $result->updated,
+            skipped: $result->skipped,
+            warnings: [...$result->warnings, ...$warnings],
+            bytes: $bytes,
+            error: $error,
+        );
+    }
+
+    /**
+     * Messaggio d'errore se lo spazio libero dello storage non copre i byte da copiare più il margine.
+     */
+    private function spaceError(int $bytes): ?string
+    {
+        if ($bytes === 0) {
+            return null;
+        }
+
+        $root = Storage::disk('cai-documents')->path('');
+        while (! is_dir($root) && dirname($root) !== $root) {
+            $root = dirname($root);
+        }
+
+        $free = @disk_free_space($root);
+        $margin = (float) config('cai_directory.snapshot.disk_margin_percent', 10);
+        $required = $bytes * (1 + $margin / 100);
+
+        if ($free === false || $free >= $required) {
+            return null;
+        }
+
+        return sprintf(
+            'Spazio insufficiente per importare i documenti: servono %s MB (compreso il margine del %s%%), disponibili %s MB. Nessun file è stato copiato.',
+            number_format($required / 1048576, 1, ',', '.'),
+            rtrim(rtrim(number_format($margin, 1, ',', ''), '0'), ','),
+            number_format($free / 1048576, 1, ',', '.'),
+        );
+    }
+
+    private function copyFile(string $source, string $destination): void
+    {
+        $stream = fopen($source, 'rb');
+
+        if ($stream === false) {
+            throw new RuntimeException('File sorgente non leggibile.');
+        }
+
+        try {
+            if (! Storage::disk('cai-documents')->put($destination, $stream)) {
+                throw new RuntimeException('Scrittura su disco non riuscita.');
+            }
+        } finally {
+            fclose($stream);
+        }
     }
 
     /**

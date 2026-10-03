@@ -1079,3 +1079,16 @@ PRD: docs/project/tasks/prd-datapack-snapshot-runts-uat.md. Ciclo precedente (US
 - Verificato: `--filter=Cai` 328 verdi (1 skipped), Pint e Larastan puliti.
 - **Learnings**: le chiavi genitore dello snapshot sono già naturali (`codice_cai`/`id_runts`), nessuna mappatura di id. I timestamp `created_at/updated_at` dello snapshot NON sono importati (restano quelli di scrittura). Su macOS `sed -i` senza `''` fallisce: usare python per le sostituzioni.
 ---
+
+## [2026-10-03] - US-953
+- `CaiSnapshotImporter::importDocuments()` (riga `snapshot_documenti`): per le righe `snap_cai_documents` con `source = runts` e `file_in_datapack = 1`.
+  Dedup per (genitore, hash, source) — anche contro documenti dell'import legacy `allegati` — con solo allineamento di `financial_analysis_status`/`raw_text_excerpt`/`extracted_via_ocr`;
+  altrimenti file copiato in streaming su `cai-documents` come `<id_runts|codice_cai>/<uuid>-<file_name>` e documento creato con `source = Runts`. Genitore assente/non esclusivo → saltato + warning.
+- Due fasi: pianificazione senza scritture (righe, dedup, file sorgente mancante → warning) → controllo spazio (`disk_free_space` ≥ byte × (1 + `config('cai_directory.snapshot.disk_margin_percent')`/100), default 10) → copia con try/catch per riga.
+  Spazio insufficiente: nessuna copia, esito con `error` in italiano (le fasi precedenti restano), `cai:import-datapack` esce con FAILURE. Dry-run: conteggi e byte previsti, nessuna scrittura.
+- `CaiImportTableResult` ha ora `bytes` e `error` (riepilogo mostra "N MB copiati/da copiare"); `CaiSnapshotImporter::import()` riceve la cartella del datapack.
+- File: `app/Domain/CaiDirectory/Import/{CaiSnapshotImporter,CaiImportTableResult,CaiDatapackImporter}.php`, `app/Console/Commands/CaiImportDatapackCommand.php`, `config/cai_directory.php`,
+  `tests/Feature/Console/CaiSnapshotDocumentsImportTest.php` (10 test, incl. download con sha256 uguale al sorgente).
+- Verificato: `--filter=Cai` 339 verdi (1 skipped), Pint e Larastan puliti.
+- **Learnings**: l'opzione di `cai:import-datapack` è `--path` (non `--datapack`, che è di `cai:export-datapack-snapshot`). `CaiSection` richiede `region` (NOT NULL) nei test.
+---
