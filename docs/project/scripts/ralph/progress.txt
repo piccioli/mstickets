@@ -906,3 +906,13 @@ PRD: docs/project/tasks/prd-bilanci-sezioni-2026-datapack.md. Il ciclo precedent
 - **Learnings**: in una `$signature` di comando Laravel (stringa PHP tra apici singoli) un apostrofo nella descrizione di un'opzione ("l'estrazione")
   rompe il parsing e `artisan` non elenca più NESSUN comando: i test falliscono con `CommandNotFoundException`, non con un errore di sintassi.
 ---
+
+## [2026-10-03] - US-936
+- `bin/push-cai-datapack`: rsync con `--exclude` per `bilanci-sezioni-2026/originals/` e `bilanci-sezioni-2026/2026_Campagna_Sezioni.xlsx`
+  (array `EXCLUDES`), il messaggio di sync stampa cosa è escluso; `--delete`, host e percorso di default invariati.
+- `deploy/CLAUDE.md`: nota su ordine operativo (`cai:build-manual-bilanci-datapack` → push → deploy) e bind-mount `:ro`.
+- Verificato: `bash -n` ok; `rsync -avn --delete --exclude=...` su cartelle temporanee mostra `normalized/` e `runts-cai.sqlite` inclusi,
+  `originals/` e l'xlsx esclusi; `git ls-files cai-datapack` vuoto. `make setup` non toccato.
+- **Learnings**: con `--delete` gli exclude sono anche protetti dalla cancellazione lato remoto (no `--delete-excluded`): un eventuale
+  `originals/` già presente su UAT resterebbe lì finché non rimosso a mano.
+---

@@ -31,3 +31,7 @@ per la pipeline ETL che gira ad ogni deploy.
   `LEGACY_MEDIA_HOST_PATH` ma in sola lettura, `:ro`) popolato in anticipo da un umano con
   `bin/push-cai-datapack` — se manca lì è un errore di processo (datapack non sincronizzato prima del
   deploy), non un caso normale da silenziare.
+  Ordine operativo quando cambiano i bilanci manuali delle sezioni: `cai:build-manual-bilanci-datapack`
+  → `bin/push-cai-datapack` → deploy. Il push esclude `bilanci-sezioni-2026/originals/` e
+  `2026_Campagna_Sezioni.xlsx` (restano `normalized/` e `runts-cai.sqlite`). Il bind-mount è `:ro`:
+  l'import non scrive mai nella cartella datapack, copia **da** lì verso `storage/app/private/cai-documents`.
