@@ -916,3 +916,13 @@ PRD: docs/project/tasks/prd-bilanci-sezioni-2026-datapack.md. Il ciclo precedent
 - **Learnings**: con `--delete` gli exclude sono anche protetti dalla cancellazione lato remoto (no `--delete-excluded`): un eventuale
   `originals/` già presente su UAT resterebbe lì finché non rimosso a mano.
 ---
+
+## [2026-10-03] - US-937
+- Run reale locale: `migrate --pretend` (nulla da migrare), backup `runts-cai.sqlite` in /tmp/bk, `cai:build-manual-bilanci-datapack` (402 file, 345 sezioni, anomalie 3/1/2),
+  `cai:import-datapack` → `documenti_manuali` letti 402, creati 401, saltati 1; seconda run: creati 0, saltati 402.
+- Il totale `source=manual` è 403: nel DB di sviluppo c'erano già 2 upload manuali identici (sezione 9226003, id 2001/2003) e l'import ne ha riconosciuto uno come duplicato.
+- Spot-check: 9226001 → mod_a, mod_b, relazione_attivita, relazione_missione; 9226005 → mod_d; file presenti sul disco `cai-documents` e hash = sha256 del sorgente.
+- Browser (Playwright): scheda `/admin/cai-sections/9226001` tab "Allegati" mostra i 4 documenti "Caricamento manuale"; il download di Mod A ha sha256 identico al sorgente.
+- Modifica temporanea a `->databaseNotifications()` ripristinata (git diff pulito); nessun file temporaneo nel repo.
+- **Learnings**: l'id di `CaiSection` nelle URL è il `codice_cai`; `cai_section_id` sui documenti è il codice stringa. `sed -i` BSD vuole `''` e non supporta `\s`.
+---

@@ -148,8 +148,8 @@
         "Typecheck passes"
       ],
       "priority": 8,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Build reale: 402 file/345 sezioni, anomalie 3/1/2. Import: 401 created + 1 skipped (duplicato identico di un upload manuale pre-esistente in 9226003, id 2001/2003); totale source=manual 403. Seconda run: 0 created. Backup sqlite in /tmp/bk/runts-cai.sqlite. manager@oc.test pre-esistente (collaudo:ensure-manager-account), non rimosso."
     },
     {
       "id": "US-938",
