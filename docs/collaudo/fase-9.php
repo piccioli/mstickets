@@ -403,10 +403,10 @@ return [
             ],
         ],
         [
-            'titolo' => 'Menu Anagrafica CAI, Bilancio 2025 e Gruppi regionali (US-940..US-947)',
+            'titolo' => 'Menu Anagrafica CAI (sotto-menu ad espansione, Bilanci annidato in Sezioni), Bilancio 2025 e Gruppi regionali (US-940..US-947)',
             'test' => [
-                ['id' => 'F9-192', 'descrizione' => 'Un admin vede il gruppo Anagrafica CAI organizzato in sotto-menu ordinati (Sezioni, Bilanci, Gruppi regionali)', 'test_automatico' => 'tests/Feature/Filament/CaiDirectory/CaiNavigationTest.php::an admin sees the Anagrafica CAI group organised in ordered sub-menus'],
-                ['id' => 'F9-193', 'descrizione' => 'Un utente con solo cai-directory.view vede Sezioni e solo Bilancio 2025 sotto Bilanci', 'test_automatico' => 'tests/Feature/Filament/CaiDirectory/CaiNavigationTest.php::a user with only cai-directory.view sees Sezioni and only Bilancio 2025 under Bilanci'],
+                ['id' => 'F9-192', 'descrizione' => 'Un admin vede il gruppo Anagrafica CAI organizzato in sotto-menu ordinati: Sezioni (con Anagrafica sezioni, Mappa sezioni e il sotto-menu annidato Bilanci con Bilanci non interpretati e Bilancio 2025) e Gruppi regionali', 'test_automatico' => 'tests/Feature/Filament/CaiDirectory/CaiNavigationTest.php::an admin sees the Anagrafica CAI group organised in ordered sub-menus'],
+                ['id' => 'F9-193', 'descrizione' => 'Un utente con solo cai-directory.view vede Sezioni e, nel sotto-menu annidato Bilanci, solo Bilancio 2025', 'test_automatico' => 'tests/Feature/Filament/CaiDirectory/CaiNavigationTest.php::a user with only cai-directory.view sees Sezioni and only Bilancio 2025 under the nested Bilanci'],
                 ['id' => 'F9-194', 'descrizione' => 'Un utente senza permessi cai-directory non vede il gruppo Anagrafica CAI', 'test_automatico' => 'tests/Feature/Filament/CaiDirectory/CaiNavigationTest.php::a user without cai-directory permissions does not see the Anagrafica CAI group'],
                 ['id' => 'F9-195', 'descrizione' => 'I documenti sono classificati come conto economico/stato patrimoniale per tipo e titolo', 'test_automatico' => 'tests/Unit/Domain/CaiDirectory/Support/CaiFinancialDocumentKindTest.php::instance methods classify a document'],
                 ['id' => 'F9-196', 'descrizione' => 'Gli scope SQL concordano coi metodi d\'istanza sulle stesse righe', 'test_automatico' => 'tests/Unit/Domain/CaiDirectory/Support/CaiFinancialDocumentKindTest.php::scopes agree with the instance methods on the same rows'],

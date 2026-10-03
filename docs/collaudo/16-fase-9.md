@@ -2,7 +2,7 @@
 
 > Torna a [`README.md`](README.md) · Istruzioni generali: [`00-istruzioni-generali.md`](00-istruzioni-generali.md) · Matrice di tracciabilità: [`01-matrice-tracciabilita.md`](01-matrice-tracciabilita.md)
 
-174 casi di test (F9-01 — F9-174) su 36 argomenti. Prima di eseguire un test, leggi le convenzioni comuni in `00-istruzioni-generali.md` (in particolare le sezioni 8 "Ambiente UAT", 9 "Credenziali" e 12 "Prerequisiti generali"). Gli argomenti sono raggruppati per user story/storia del ramo `ralph/orchestrator-v2-fase-9` — che contiene tre filoni distinti: rifiniture ticket/email (Richiesta obbligatoria, rimozione "Ticket padre", footer aziendale), sincronizzazione live CAI/RUNTS (US-901..US-928 più una decina di storie non numerate), e fallback CF/PIVA + sorgente documento/upload manuale + menu Gruppo Regionale — in ordine cronologico di sviluppo, più un ultimo argomento dedicato al checkpoint di fine fase. I casi AUTOMATICO sono verificati eseguendo la suite Pest (PHP, ruolo Sviluppatore) o pytest (servizio Python `cai-runts-scraper`, stesso ruolo); i casi MANUALE UI sono pensati per un tester che opera realmente sull'ambiente UAT (credenziali/URL: punti 8-9 di `00-istruzioni-generali.md`) — entrambe le categorie sono sempre appoggiate a un test automatico REALMENTE esistente e verificato da `php artisan collaudo:verify-manifest 9`.
+211 casi di test (F9-01 — F9-211) su 38 argomenti. Prima di eseguire un test, leggi le convenzioni comuni in `00-istruzioni-generali.md` (in particolare le sezioni 8 "Ambiente UAT", 9 "Credenziali" e 12 "Prerequisiti generali"). Gli argomenti sono raggruppati per user story/storia del ramo `ralph/orchestrator-v2-fase-9` — che contiene tre filoni distinti: rifiniture ticket/email (Richiesta obbligatoria, rimozione "Ticket padre", footer aziendale), sincronizzazione live CAI/RUNTS (US-901..US-928 più una decina di storie non numerate), e fallback CF/PIVA + sorgente documento/upload manuale + menu Gruppo Regionale — in ordine cronologico di sviluppo, più un ultimo argomento dedicato al checkpoint di fine fase. Dopo il checkpoint (versione 9.1 del pacchetto) seguono due argomenti aggiuntivi, interamente AUTOMATICI: l'import dei bilanci 2025 delle Sezioni nel datapack CAI (F9-175 — F9-191) e il menu "Anagrafica CAI" con sotto-menu ad espansione, la lista "Bilancio 2025" e l'elenco dei Gruppi regionali (F9-192 — F9-211). I casi AUTOMATICO sono verificati eseguendo la suite Pest (PHP, ruolo Sviluppatore) o pytest (servizio Python `cai-runts-scraper`, stesso ruolo); i casi MANUALE UI sono pensati per un tester che opera realmente sull'ambiente UAT (credenziali/URL: punti 8-9 di `00-istruzioni-generali.md`) — entrambe le categorie sono sempre appoggiate a un test automatico REALMENTE esistente e verificato da `php artisan collaudo:verify-manifest 9`.
 
 ## Campo "Richiesta" obbligatorio alla creazione ticket, rimozione del campo "Ticket padre"
 
@@ -12083,10 +12083,2563 @@ Nessuno: nessuno stato persistente viene modificato.
 ---
 
 
-## Bilanci Sezioni 2025 nel datapack CAI (F9-175 — F9-191, US-930..US-935)
+## Bilanci Sezioni 2025 nel datapack CAI — documenti manuali importati da cai:import-datapack
 
-I bilanci 2025 raccolti dai Gruppi Regionali (campagna "Bilanci Sezioni 2026") entrano in Orchestrator come documenti caricati manualmente, collegati direttamente alla Sezione (nessuna registrazione RUNTS). Il comando `cai:build-manual-bilanci-datapack` aggiunge al datapack la tabella `bilanci_manuali` a partire dalle cartelle normalizzate e dall'Excel indice, riportando le anomalie di copertura; `cai:import-datapack` crea poi i documenti (idempotente per sezione e hash, senza toccare i documenti RUNTS) e li rende visibili nel tab "Allegati" della Sezione. Le etichette non riconosciute diventano il tipo "Altro" con il titolo originale; l'analisi automatica delle cifre è attiva solo con `--analyze-manual`. I casi F9-175 — F9-191 sono tutti AUTOMATICI (suite Pest, ruolo Sviluppatore) e sono elencati nel manifest `fase-9.php`; la verifica manuale su dati reali (402 file, 345 sezioni) è documentata in `progress.txt` (US-937). Il PDF di collaudo non è rigenerato in questa fase di sviluppo (`pdflatex` assente sull'host locale).
+I bilanci 2025 raccolti dai Gruppi Regionali (campagna "Bilanci Sezioni 2026") entrano in Orchestrator come documenti caricati manualmente, collegati direttamente alla Sezione (nessuna registrazione RUNTS). Il comando `cai:build-manual-bilanci-datapack` aggiunge al datapack la tabella `bilanci_manuali` a partire dalle cartelle normalizzate e dall'Excel indice, riportando le anomalie di copertura; `cai:import-datapack` crea poi i documenti (idempotente per sezione e hash, senza toccare i documenti RUNTS) e li rende visibili nel tab "Allegati" della Sezione. Le etichette non riconosciute diventano il tipo "Altro" con il titolo originale; l'analisi automatica delle cifre è attiva solo con `--analyze-manual`. Verifica su dati reali (US-937): 402 file, 345 sezioni. I casi F9-175 — F9-191 sono elencati nel manifest `fase-9.php`.
 
-## Menu Anagrafica CAI, Bilancio 2025 e Gruppi regionali (F9-192 — F9-211, US-940..US-947)
+### F9-175 — Il nome di un file normalizzato (codice - sezione - etichetta.estensione) viene scomposto nei suoi campi
 
-Il menu "Anagrafica CAI" è riorganizzato in tre sotto-menu: "Sezioni" (Anagrafica sezioni, Mappa sezioni), "Bilanci" (Bilanci non interpretati, Bilancio 2025) e "Gruppi regionali" (Elenco gruppi regionali). "Bilancio 2025" elenca tutte le sezioni con quattro indicatori (file di conto economico/stato patrimoniale presente, conto economico/stato patrimoniale interpretato) e filtri per regione e per ciascun indicatore; "Elenco gruppi regionali" riassume per ogni Gruppo Regionale sezioni, sezioni con bilancio e copertura del conto economico interpretato. Il comando `cai:analyze-financial-documents --year=2025` accoda l'analisi dei documenti dell'anno (verifica su dati reali: 348 documenti accodati, 145 `Extracted` e 205 `NoDataExtracted`; 97 sezioni su 529 con conto economico interpretato, 44 con stato patrimoniale interpretato). I casi F9-192 — F9-211 sono AUTOMATICI (suite Pest, e pytest per il servizio di analisi) e sono elencati nel manifest `fase-9.php`. Il PDF di collaudo non è rigenerato (`pdflatex` assente sull'host locale): quando lo si rigenera, allineare i contatori in testa al manuale (casi e argomenti) e il dettaglio dei casi F9-192 — F9-211, generato dallo script del `docs/collaudo/CLAUDE.md`.
+**Obiettivo**
+Verificare che: il nome di un file normalizzato (codice - sezione - etichetta.estensione) viene scomposto nei suoi campi.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Bilanci Sezioni 2025 nel datapack CAI — documenti manuali importati da cai:import-datapack".
+- Test automatico: `tests/Unit/Domain/CaiDirectory/Import/ManualBilancio/ManualBilancioParsingTest.php` — `ManualBilancioFilenameParser parses a normalized file name`.
+- File/componente applicativo rilevante: `tests/Unit/Domain/CaiDirectory/Import/ManualBilancio/ManualBilancioParsingTest.php`.
+- Test correlato: F9-176, F9-177, F9-178, F9-179, F9-180, F9-181, F9-182, F9-183, F9-184, F9-185, F9-186, F9-187, F9-188, F9-189, F9-190, F9-191
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "ManualBilancioFilenameParser parses a normalized file name"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: il nome di un file normalizzato (codice - sezione - etichetta.estensione) viene scomposto nei suoi campi.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-176 — Un nome file non conforme (.DS_Store, codice non a 7 cifre, etichetta mancante) restituisce null, mai un'eccezione
+
+**Obiettivo**
+Verificare che: un nome file non conforme (.DS_Store, codice non a 7 cifre, etichetta mancante) restituisce null, mai un'eccezione.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Bilanci Sezioni 2025 nel datapack CAI — documenti manuali importati da cai:import-datapack".
+- Test automatico: `tests/Unit/Domain/CaiDirectory/Import/ManualBilancio/ManualBilancioParsingTest.php` — `ManualBilancioFilenameParser returns null for non conforming names`.
+- File/componente applicativo rilevante: `tests/Unit/Domain/CaiDirectory/Import/ManualBilancio/ManualBilancioParsingTest.php`.
+- Test correlato: F9-175, F9-177, F9-178, F9-179, F9-180, F9-181, F9-182, F9-183, F9-184, F9-185, F9-186, F9-187, F9-188, F9-189, F9-190, F9-191
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "ManualBilancioFilenameParser returns null for non conforming names"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: un nome file non conforme (.DS_Store, codice non a 7 cifre, etichetta mancante) restituisce null, mai un'eccezione.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-177 — Un'etichetta nota viene mappata sul tipo documento corretto; il titolo resta quello originale e l'anno è 2025 (2026 se l'etichetta lo contiene); ogni etichetta sconosciuta ricade su "Altro"
+
+**Obiettivo**
+Verificare che: un'etichetta nota viene mappata sul tipo documento corretto; il titolo resta quello originale e l'anno è 2025 (2026 se l'etichetta lo contiene); ogni etichetta sconosciuta ricade su "Altro".
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Bilanci Sezioni 2025 nel datapack CAI — documenti manuali importati da cai:import-datapack".
+- Test automatico: `tests/Unit/Domain/CaiDirectory/Import/ManualBilancio/ManualBilancioParsingTest.php` — `ManualBilancioTypeMapper maps labels to type, title and year`.
+- File/componente applicativo rilevante: `tests/Unit/Domain/CaiDirectory/Import/ManualBilancio/ManualBilancioParsingTest.php`.
+- Test correlato: F9-175, F9-176, F9-178, F9-179, F9-180, F9-181, F9-182, F9-183, F9-184, F9-185, F9-186, F9-187, F9-188, F9-189, F9-190, F9-191
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "ManualBilancioTypeMapper maps labels to type, title and year"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: un'etichetta nota viene mappata sul tipo documento corretto; il titolo resta quello originale e l'anno è 2025 (2026 se l'etichetta lo contiene); ogni etichetta sconosciuta ricade su "Altro".
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-178 — L'indice Excel della campagna è letto per intestazione di colonna e il codice CAI numerico (9216157.0) è normalizzato a 7 cifre
+
+**Obiettivo**
+Verificare che: l'indice Excel della campagna è letto per intestazione di colonna e il codice CAI numerico (9216157.0) è normalizzato a 7 cifre.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Bilanci Sezioni 2025 nel datapack CAI — documenti manuali importati da cai:import-datapack".
+- Test automatico: `tests/Unit/Domain/CaiDirectory/Import/ManualBilancio/CampagnaSezioniIndexReaderTest.php` — `CampagnaSezioniIndexReader reads columns by header and normalizes the code`.
+- File/componente applicativo rilevante: `tests/Unit/Domain/CaiDirectory/Import/ManualBilancio/CampagnaSezioniIndexReaderTest.php`.
+- Test correlato: F9-175, F9-176, F9-177, F9-179, F9-180, F9-181, F9-182, F9-183, F9-184, F9-185, F9-186, F9-187, F9-188, F9-189, F9-190, F9-191
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "CampagnaSezioniIndexReader reads columns by header and normalizes the code"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: l'indice Excel della campagna è letto per intestazione di colonna e il codice CAI numerico (9216157.0) è normalizzato a 7 cifre.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-179 — Un file Excel senza il foglio "Sezioni" produce un errore esplicito
+
+**Obiettivo**
+Verificare che: un file Excel senza il foglio "Sezioni" produce un errore esplicito.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Bilanci Sezioni 2025 nel datapack CAI — documenti manuali importati da cai:import-datapack".
+- Test automatico: `tests/Unit/Domain/CaiDirectory/Import/ManualBilancio/CampagnaSezioniIndexReaderTest.php` — `CampagnaSezioniIndexReader throws when the Sezioni sheet is missing`.
+- File/componente applicativo rilevante: `tests/Unit/Domain/CaiDirectory/Import/ManualBilancio/CampagnaSezioniIndexReaderTest.php`.
+- Test correlato: F9-175, F9-176, F9-177, F9-178, F9-180, F9-181, F9-182, F9-183, F9-184, F9-185, F9-186, F9-187, F9-188, F9-189, F9-190, F9-191
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "CampagnaSezioniIndexReader throws when the Sezioni sheet is missing"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: un file Excel senza il foglio "Sezioni" produce un errore esplicito.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-180 — Un file Excel indice mancante produce un errore esplicito
+
+**Obiettivo**
+Verificare che: un file Excel indice mancante produce un errore esplicito.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Bilanci Sezioni 2025 nel datapack CAI — documenti manuali importati da cai:import-datapack".
+- Test automatico: `tests/Unit/Domain/CaiDirectory/Import/ManualBilancio/CampagnaSezioniIndexReaderTest.php` — `CampagnaSezioniIndexReader throws when the file is missing`.
+- File/componente applicativo rilevante: `tests/Unit/Domain/CaiDirectory/Import/ManualBilancio/CampagnaSezioniIndexReaderTest.php`.
+- Test correlato: F9-175, F9-176, F9-177, F9-178, F9-179, F9-181, F9-182, F9-183, F9-184, F9-185, F9-186, F9-187, F9-188, F9-189, F9-190, F9-191
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "CampagnaSezioniIndexReader throws when the file is missing"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: un file Excel indice mancante produce un errore esplicito.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-181 — La scansione delle cartelle normalizzate produce le righe attese (con hash sha256) e riporta ogni codice di anomalia di copertura
+
+**Obiettivo**
+Verificare che: la scansione delle cartelle normalizzate produce le righe attese (con hash sha256) e riporta ogni codice di anomalia di copertura.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Bilanci Sezioni 2025 nel datapack CAI — documenti manuali importati da cai:import-datapack".
+- Test automatico: `tests/Unit/Domain/CaiDirectory/Import/ManualBilancio/ManualBilancioDatapackBuilderTest.php` — `ManualBilancioDatapackBuilder builds rows and reports every anomaly code`.
+- File/componente applicativo rilevante: `tests/Unit/Domain/CaiDirectory/Import/ManualBilancio/ManualBilancioDatapackBuilderTest.php`.
+- Test correlato: F9-175, F9-176, F9-177, F9-178, F9-179, F9-180, F9-182, F9-183, F9-184, F9-185, F9-186, F9-187, F9-188, F9-189, F9-190, F9-191
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "ManualBilancioDatapackBuilder builds rows and reports every anomaly code"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: la scansione delle cartelle normalizzate produce le righe attese (con hash sha256) e riporta ogni codice di anomalia di copertura.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-182 — Senza elenco di sezioni del datapack il controllo di presenza è saltato; una cartella staging mancante è rifiutata
+
+**Obiettivo**
+Verificare che: senza elenco di sezioni del datapack il controllo di presenza è saltato; una cartella staging mancante è rifiutata.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Bilanci Sezioni 2025 nel datapack CAI — documenti manuali importati da cai:import-datapack".
+- Test automatico: `tests/Unit/Domain/CaiDirectory/Import/ManualBilancio/ManualBilancioDatapackBuilderTest.php` — `ManualBilancioDatapackBuilder skips the datapack check when codes are null and rejects a missing staging`.
+- File/componente applicativo rilevante: `tests/Unit/Domain/CaiDirectory/Import/ManualBilancio/ManualBilancioDatapackBuilderTest.php`.
+- Test correlato: F9-175, F9-176, F9-177, F9-178, F9-179, F9-180, F9-181, F9-183, F9-184, F9-185, F9-186, F9-187, F9-188, F9-189, F9-190, F9-191
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "ManualBilancioDatapackBuilder skips the datapack check when codes are null and rejects a missing staging"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: senza elenco di sezioni del datapack il controllo di presenza è saltato; una cartella staging mancante è rifiutata.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-183 — cai:build-manual-bilanci-datapack con datapack o cartella staging mancanti fallisce con un messaggio italiano esplicito
+
+**Obiettivo**
+Verificare che: cai:build-manual-bilanci-datapack con datapack o cartella staging mancanti fallisce con un messaggio italiano esplicito.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Bilanci Sezioni 2025 nel datapack CAI — documenti manuali importati da cai:import-datapack".
+- Test automatico: `tests/Feature/Console/CaiBuildManualBilanciDatapackCommandTest.php` — `missing datapack or staging folder fail with an explicit Italian message`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiBuildManualBilanciDatapackCommandTest.php`.
+- Test correlato: F9-175, F9-176, F9-177, F9-178, F9-179, F9-180, F9-181, F9-182, F9-184, F9-185, F9-186, F9-187, F9-188, F9-189, F9-190, F9-191
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "missing datapack or staging folder fail with an explicit Italian message"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: cai:build-manual-bilanci-datapack con datapack o cartella staging mancanti fallisce con un messaggio italiano esplicito.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-184 — Il comando scrive la tabella bilanci_manuali nel datapack, è idempotente e non tocca le altre tabelle
+
+**Obiettivo**
+Verificare che: il comando scrive la tabella bilanci_manuali nel datapack, è idempotente e non tocca le altre tabelle.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Bilanci Sezioni 2025 nel datapack CAI — documenti manuali importati da cai:import-datapack".
+- Test automatico: `tests/Feature/Console/CaiBuildManualBilanciDatapackCommandTest.php` — `build writes bilanci_manuali, is idempotent and leaves other tables untouched`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiBuildManualBilanciDatapackCommandTest.php`.
+- Test correlato: F9-175, F9-176, F9-177, F9-178, F9-179, F9-180, F9-181, F9-182, F9-183, F9-185, F9-186, F9-187, F9-188, F9-189, F9-190, F9-191
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "build writes bilanci_manuali, is idempotent and leaves other tables untouched"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: il comando scrive la tabella bilanci_manuali nel datapack, è idempotente e non tocca le altre tabelle.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-185 — Con --dry-run il file del datapack non viene modificato
+
+**Obiettivo**
+Verificare che: con --dry-run il file del datapack non viene modificato.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Bilanci Sezioni 2025 nel datapack CAI — documenti manuali importati da cai:import-datapack".
+- Test automatico: `tests/Feature/Console/CaiBuildManualBilanciDatapackCommandTest.php` — `--dry-run does not modify the datapack file`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiBuildManualBilanciDatapackCommandTest.php`.
+- Test correlato: F9-175, F9-176, F9-177, F9-178, F9-179, F9-180, F9-181, F9-182, F9-183, F9-184, F9-186, F9-187, F9-188, F9-189, F9-190, F9-191
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "--dry-run does not modify the datapack file"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: con --dry-run il file del datapack non viene modificato.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-186 — cai:import-datapack crea i documenti manuali collegati alla sezione e una seconda esecuzione non crea duplicati
+
+**Obiettivo**
+Verificare che: cai:import-datapack crea i documenti manuali collegati alla sezione e una seconda esecuzione non crea duplicati.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Bilanci Sezioni 2025 nel datapack CAI — documenti manuali importati da cai:import-datapack".
+- Test automatico: `tests/Feature/Console/CaiManualBilanciImportTest.php` — `creates manual documents linked to the section, idempotent on the second run`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiManualBilanciImportTest.php`.
+- Test correlato: F9-175, F9-176, F9-177, F9-178, F9-179, F9-180, F9-181, F9-182, F9-183, F9-184, F9-185, F9-187, F9-188, F9-189, F9-190, F9-191
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "creates manual documents linked to the section, idempotent on the second run"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: cai:import-datapack crea i documenti manuali collegati alla sezione e una seconda esecuzione non crea duplicati.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-187 — Una sezione sconosciuta o un file mancante sono saltati (con avviso) senza fermare gli altri documenti
+
+**Obiettivo**
+Verificare che: una sezione sconosciuta o un file mancante sono saltati (con avviso) senza fermare gli altri documenti.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Bilanci Sezioni 2025 nel datapack CAI — documenti manuali importati da cai:import-datapack".
+- Test automatico: `tests/Feature/Console/CaiManualBilanciImportTest.php` — `unknown section is skipped and a missing file is skipped with a warning without stopping the others`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiManualBilanciImportTest.php`.
+- Test correlato: F9-175, F9-176, F9-177, F9-178, F9-179, F9-180, F9-181, F9-182, F9-183, F9-184, F9-185, F9-186, F9-188, F9-189, F9-190, F9-191
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "unknown section is skipped and a missing file is skipped with a warning without stopping the others"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: una sezione sconosciuta o un file mancante sono saltati (con avviso) senza fermare gli altri documenti.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-188 — In --dry-run l'import non scrive nulla ma riporta gli stessi conteggi
+
+**Obiettivo**
+Verificare che: in --dry-run l'import non scrive nulla ma riporta gli stessi conteggi.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Bilanci Sezioni 2025 nel datapack CAI — documenti manuali importati da cai:import-datapack".
+- Test automatico: `tests/Feature/Console/CaiManualBilanciImportTest.php` — `dry-run writes nothing but reports the same counts`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiManualBilanciImportTest.php`.
+- Test correlato: F9-175, F9-176, F9-177, F9-178, F9-179, F9-180, F9-181, F9-182, F9-183, F9-184, F9-185, F9-186, F9-187, F9-189, F9-190, F9-191
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "dry-run writes nothing but reports the same counts"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: in --dry-run l'import non scrive nulla ma riporta gli stessi conteggi.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-189 — I documenti RUNTS già presenti non vengono toccati dall'import dei documenti manuali
+
+**Obiettivo**
+Verificare che: i documenti RUNTS già presenti non vengono toccati dall'import dei documenti manuali.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Bilanci Sezioni 2025 nel datapack CAI — documenti manuali importati da cai:import-datapack".
+- Test automatico: `tests/Feature/Console/CaiManualBilanciImportTest.php` — `pre-existing RUNTS documents are left intact`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiManualBilanciImportTest.php`.
+- Test correlato: F9-175, F9-176, F9-177, F9-178, F9-179, F9-180, F9-181, F9-182, F9-183, F9-184, F9-185, F9-186, F9-187, F9-188, F9-190, F9-191
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "pre-existing RUNTS documents are left intact"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: i documenti RUNTS già presenti non vengono toccati dall'import dei documenti manuali.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-190 — Senza --analyze-manual nessuna analisi dei bilanci viene accodata
+
+**Obiettivo**
+Verificare che: senza --analyze-manual nessuna analisi dei bilanci viene accodata.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Bilanci Sezioni 2025 nel datapack CAI — documenti manuali importati da cai:import-datapack".
+- Test automatico: `tests/Feature/Console/CaiManualBilanciImportTest.php` — `without --analyze-manual nothing is queued`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiManualBilanciImportTest.php`.
+- Test correlato: F9-175, F9-176, F9-177, F9-178, F9-179, F9-180, F9-181, F9-182, F9-183, F9-184, F9-185, F9-186, F9-187, F9-188, F9-189, F9-191
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "without --analyze-manual nothing is queued"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: senza --analyze-manual nessuna analisi dei bilanci viene accodata.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-191 — Con --analyze-manual l'analisi è accodata solo per i documenti appena creati di un tipo analizzabile
+
+**Obiettivo**
+Verificare che: con --analyze-manual l'analisi è accodata solo per i documenti appena creati di un tipo analizzabile.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Bilanci Sezioni 2025 nel datapack CAI — documenti manuali importati da cai:import-datapack".
+- Test automatico: `tests/Feature/Console/CaiManualBilanciImportTest.php` — `--analyze-manual queues analysis only for newly created documents of an analyzable type, ignoring invalid types`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiManualBilanciImportTest.php`.
+- Test correlato: F9-175, F9-176, F9-177, F9-178, F9-179, F9-180, F9-181, F9-182, F9-183, F9-184, F9-185, F9-186, F9-187, F9-188, F9-189, F9-190
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "--analyze-manual queues analysis only for newly created documents of an analyzable type, ignoring invalid types"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: con --analyze-manual l'analisi è accodata solo per i documenti appena creati di un tipo analizzabile.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+## Menu Anagrafica CAI (sotto-menu ad espansione, Bilanci annidato in Sezioni), Bilancio 2025 e Gruppi regionali (US-940..US-947)
+
+Il menu "Anagrafica CAI" è organizzato in sotto-menu ad espansione (si aprono e chiudono con un click; si aprono da soli sul ramo della pagina corrente): "Sezioni" contiene "Anagrafica sezioni", "Mappa sezioni" e il sotto-menu annidato "Bilanci" ("Bilanci non interpretati", "Bilancio 2025"); "Gruppi regionali" contiene "Elenco gruppi regionali". "Bilancio 2025" elenca tutte le sezioni con quattro indicatori (file di conto economico/stato patrimoniale presente, conto economico/stato patrimoniale interpretato) e filtri per regione e per ciascun indicatore; "Elenco gruppi regionali" riassume per ogni Gruppo Regionale sezioni, sezioni con bilancio e copertura del conto economico interpretato. Il comando `cai:analyze-financial-documents --year=2025` accoda l'analisi dei documenti dell'anno (verifica su dati reali: 348 documenti accodati, 145 `Extracted` e 205 `NoDataExtracted`; 97 sezioni su 529 con conto economico interpretato, 44 con stato patrimoniale interpretato). I casi sono AUTOMATICI (suite Pest, e pytest per il servizio di analisi). I casi F9-192 — F9-211 sono elencati nel manifest `fase-9.php`.
+
+### F9-192 — Un admin vede il gruppo Anagrafica CAI organizzato in sotto-menu ordinati: Sezioni (con Anagrafica sezioni, Mappa sezioni e il sotto-menu annidato Bilanci con Bilanci non interpretati e Bilancio 2025) e Gruppi regionali
+
+**Obiettivo**
+Verificare che: un admin vede il gruppo Anagrafica CAI organizzato in sotto-menu ordinati: Sezioni (con Anagrafica sezioni, Mappa sezioni e il sotto-menu annidato Bilanci con Bilanci non interpretati e Bilancio 2025) e Gruppi regionali.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Menu Anagrafica CAI (sotto-menu ad espansione, Bilanci annidato in Sezioni), Bilancio 2025 e Gruppi regionali (US-940..US-947)".
+- Test automatico: `tests/Feature/Filament/CaiDirectory/CaiNavigationTest.php` — `an admin sees the Anagrafica CAI group organised in ordered sub-menus`.
+- File/componente applicativo rilevante: `tests/Feature/Filament/CaiDirectory/CaiNavigationTest.php`.
+- Test correlato: F9-193, F9-194, F9-195, F9-196, F9-197, F9-198, F9-199, F9-200, F9-201, F9-202, F9-203, F9-204, F9-205, F9-206, F9-207, F9-208, F9-209, F9-210, F9-211
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "an admin sees the Anagrafica CAI group organised in ordered sub-menus"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: un admin vede il gruppo Anagrafica CAI organizzato in sotto-menu ordinati: Sezioni (con Anagrafica sezioni, Mappa sezioni e il sotto-menu annidato Bilanci con Bilanci non interpretati e Bilancio 2025) e Gruppi regionali.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-193 — Un utente con solo cai-directory.view vede Sezioni e, nel sotto-menu annidato Bilanci, solo Bilancio 2025
+
+**Obiettivo**
+Verificare che: un utente con solo cai-directory.view vede Sezioni e, nel sotto-menu annidato Bilanci, solo Bilancio 2025.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Menu Anagrafica CAI (sotto-menu ad espansione, Bilanci annidato in Sezioni), Bilancio 2025 e Gruppi regionali (US-940..US-947)".
+- Test automatico: `tests/Feature/Filament/CaiDirectory/CaiNavigationTest.php` — `a user with only cai-directory.view sees Sezioni and only Bilancio 2025 under the nested Bilanci`.
+- File/componente applicativo rilevante: `tests/Feature/Filament/CaiDirectory/CaiNavigationTest.php`.
+- Test correlato: F9-192, F9-194, F9-195, F9-196, F9-197, F9-198, F9-199, F9-200, F9-201, F9-202, F9-203, F9-204, F9-205, F9-206, F9-207, F9-208, F9-209, F9-210, F9-211
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "a user with only cai-directory.view sees Sezioni and only Bilancio 2025 under the nested Bilanci"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: un utente con solo cai-directory.view vede Sezioni e, nel sotto-menu annidato Bilanci, solo Bilancio 2025.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-194 — Un utente senza permessi cai-directory non vede il gruppo Anagrafica CAI
+
+**Obiettivo**
+Verificare che: un utente senza permessi cai-directory non vede il gruppo Anagrafica CAI.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Menu Anagrafica CAI (sotto-menu ad espansione, Bilanci annidato in Sezioni), Bilancio 2025 e Gruppi regionali (US-940..US-947)".
+- Test automatico: `tests/Feature/Filament/CaiDirectory/CaiNavigationTest.php` — `a user without cai-directory permissions does not see the Anagrafica CAI group`.
+- File/componente applicativo rilevante: `tests/Feature/Filament/CaiDirectory/CaiNavigationTest.php`.
+- Test correlato: F9-192, F9-193, F9-195, F9-196, F9-197, F9-198, F9-199, F9-200, F9-201, F9-202, F9-203, F9-204, F9-205, F9-206, F9-207, F9-208, F9-209, F9-210, F9-211
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "a user without cai-directory permissions does not see the Anagrafica CAI group"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: un utente senza permessi cai-directory non vede il gruppo Anagrafica CAI.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-195 — I documenti sono classificati come conto economico/stato patrimoniale per tipo e titolo
+
+**Obiettivo**
+Verificare che: i documenti sono classificati come conto economico/stato patrimoniale per tipo e titolo.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Menu Anagrafica CAI (sotto-menu ad espansione, Bilanci annidato in Sezioni), Bilancio 2025 e Gruppi regionali (US-940..US-947)".
+- Test automatico: `tests/Unit/Domain/CaiDirectory/Support/CaiFinancialDocumentKindTest.php` — `instance methods classify a document`.
+- File/componente applicativo rilevante: `tests/Unit/Domain/CaiDirectory/Support/CaiFinancialDocumentKindTest.php`.
+- Test correlato: F9-192, F9-193, F9-194, F9-196, F9-197, F9-198, F9-199, F9-200, F9-201, F9-202, F9-203, F9-204, F9-205, F9-206, F9-207, F9-208, F9-209, F9-210, F9-211
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "instance methods classify a document"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: i documenti sono classificati come conto economico/stato patrimoniale per tipo e titolo.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-196 — Gli scope SQL concordano coi metodi d'istanza sulle stesse righe
+
+**Obiettivo**
+Verificare che: gli scope SQL concordano coi metodi d'istanza sulle stesse righe.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Menu Anagrafica CAI (sotto-menu ad espansione, Bilanci annidato in Sezioni), Bilancio 2025 e Gruppi regionali (US-940..US-947)".
+- Test automatico: `tests/Unit/Domain/CaiDirectory/Support/CaiFinancialDocumentKindTest.php` — `scopes agree with the instance methods on the same rows`.
+- File/componente applicativo rilevante: `tests/Unit/Domain/CaiDirectory/Support/CaiFinancialDocumentKindTest.php`.
+- Test correlato: F9-192, F9-193, F9-194, F9-195, F9-197, F9-198, F9-199, F9-200, F9-201, F9-202, F9-203, F9-204, F9-205, F9-206, F9-207, F9-208, F9-209, F9-210, F9-211
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "scopes agree with the instance methods on the same rows"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: gli scope SQL concordano coi metodi d'istanza sulle stesse righe.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-197 — Il filtro per anno agisce sulla colonna year
+
+**Obiettivo**
+Verificare che: il filtro per anno agisce sulla colonna year.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Menu Anagrafica CAI (sotto-menu ad espansione, Bilanci annidato in Sezioni), Bilancio 2025 e Gruppi regionali (US-940..US-947)".
+- Test automatico: `tests/Unit/Domain/CaiDirectory/Support/CaiFinancialDocumentKindTest.php` — `forYear filters on the year column`.
+- File/componente applicativo rilevante: `tests/Unit/Domain/CaiDirectory/Support/CaiFinancialDocumentKindTest.php`.
+- Test correlato: F9-192, F9-193, F9-194, F9-195, F9-196, F9-198, F9-199, F9-200, F9-201, F9-202, F9-203, F9-204, F9-205, F9-206, F9-207, F9-208, F9-209, F9-210, F9-211
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "forYear filters on the year column"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: il filtro per anno agisce sulla colonna year.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-198 — I flag per sezione riflettono documenti diretti, via registrazione e bilanci interpretati
+
+**Obiettivo**
+Verificare che: i flag per sezione riflettono documenti diretti, via registrazione e bilanci interpretati.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Menu Anagrafica CAI (sotto-menu ad espansione, Bilanci annidato in Sezioni), Bilancio 2025 e Gruppi regionali (US-940..US-947)".
+- Test automatico: `tests/Feature/Domain/CaiDirectory/Queries/CaiSectionFinancialYearQueryTest.php` — `flags reflect direct documents, registration documents and parsed statements`.
+- File/componente applicativo rilevante: `tests/Feature/Domain/CaiDirectory/Queries/CaiSectionFinancialYearQueryTest.php`.
+- Test correlato: F9-192, F9-193, F9-194, F9-195, F9-196, F9-197, F9-199, F9-200, F9-201, F9-202, F9-203, F9-204, F9-205, F9-206, F9-207, F9-208, F9-209, F9-210, F9-211
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "flags reflect direct documents, registration documents and parsed statements"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: i flag per sezione riflettono documenti diretti, via registrazione e bilanci interpretati.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-199 — L'elenco sezioni per anno è una singola query
+
+**Obiettivo**
+Verificare che: l'elenco sezioni per anno è una singola query.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Menu Anagrafica CAI (sotto-menu ad espansione, Bilanci annidato in Sezioni), Bilancio 2025 e Gruppi regionali (US-940..US-947)".
+- Test automatico: `tests/Feature/Domain/CaiDirectory/Queries/CaiSectionFinancialYearQueryTest.php` — `the list is a single query`.
+- File/componente applicativo rilevante: `tests/Feature/Domain/CaiDirectory/Queries/CaiSectionFinancialYearQueryTest.php`.
+- Test correlato: F9-192, F9-193, F9-194, F9-195, F9-196, F9-197, F9-198, F9-200, F9-201, F9-202, F9-203, F9-204, F9-205, F9-206, F9-207, F9-208, F9-209, F9-210, F9-211
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "the list is a single query"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: l'elenco sezioni per anno è una singola query.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-200 — Un utente senza cai-directory.view non accede a "Bilancio 2025" (403)
+
+**Obiettivo**
+Verificare che: un utente senza cai-directory.view non accede a "Bilancio 2025" (403).
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Menu Anagrafica CAI (sotto-menu ad espansione, Bilanci annidato in Sezioni), Bilancio 2025 e Gruppi regionali (US-940..US-947)".
+- Test automatico: `tests/Feature/Filament/CaiDirectory/CaiFinancialYear2025Test.php` — `a user without cai-directory.view is denied (403)`.
+- File/componente applicativo rilevante: `tests/Feature/Filament/CaiDirectory/CaiFinancialYear2025Test.php`.
+- Test correlato: F9-192, F9-193, F9-194, F9-195, F9-196, F9-197, F9-198, F9-199, F9-201, F9-202, F9-203, F9-204, F9-205, F9-206, F9-207, F9-208, F9-209, F9-210, F9-211
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "a user without cai-directory.view is denied (403)"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: un utente senza cai-directory.view non accede a "Bilancio 2025" (403).
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-201 — La pagina "Bilancio 2025" elenca tutte le sezioni ordinate per regione e nome
+
+**Obiettivo**
+Verificare che: la pagina "Bilancio 2025" elenca tutte le sezioni ordinate per regione e nome.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Menu Anagrafica CAI (sotto-menu ad espansione, Bilanci annidato in Sezioni), Bilancio 2025 e Gruppi regionali (US-940..US-947)".
+- Test automatico: `tests/Feature/Filament/CaiDirectory/CaiFinancialYear2025Test.php` — `a user with cai-directory.view sees all sections ordered by region then name`.
+- File/componente applicativo rilevante: `tests/Feature/Filament/CaiDirectory/CaiFinancialYear2025Test.php`.
+- Test correlato: F9-192, F9-193, F9-194, F9-195, F9-196, F9-197, F9-198, F9-199, F9-200, F9-202, F9-203, F9-204, F9-205, F9-206, F9-207, F9-208, F9-209, F9-210, F9-211
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "a user with cai-directory.view sees all sections ordered by region then name"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: la pagina "Bilancio 2025" elenca tutte le sezioni ordinate per regione e nome.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-202 — Ogni filtro ternario restringe l'elenco
+
+**Obiettivo**
+Verificare che: ogni filtro ternario restringe l'elenco.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Menu Anagrafica CAI (sotto-menu ad espansione, Bilanci annidato in Sezioni), Bilancio 2025 e Gruppi regionali (US-940..US-947)".
+- Test automatico: `tests/Feature/Filament/CaiDirectory/CaiFinancialYear2025Test.php` — `each ternary filter narrows the list`.
+- File/componente applicativo rilevante: `tests/Feature/Filament/CaiDirectory/CaiFinancialYear2025Test.php`.
+- Test correlato: F9-192, F9-193, F9-194, F9-195, F9-196, F9-197, F9-198, F9-199, F9-200, F9-201, F9-203, F9-204, F9-205, F9-206, F9-207, F9-208, F9-209, F9-210, F9-211
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "each ternary filter narrows the list"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: ogni filtro ternario restringe l'elenco.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-203 — I filtri Regione e "conto economico interpretato" si combinano in AND
+
+**Obiettivo**
+Verificare che: i filtri Regione e "conto economico interpretato" si combinano in AND.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Menu Anagrafica CAI (sotto-menu ad espansione, Bilanci annidato in Sezioni), Bilancio 2025 e Gruppi regionali (US-940..US-947)".
+- Test automatico: `tests/Feature/Filament/CaiDirectory/CaiFinancialYear2025Test.php` — `region and income-parsed filters combine with AND`.
+- File/componente applicativo rilevante: `tests/Feature/Filament/CaiDirectory/CaiFinancialYear2025Test.php`.
+- Test correlato: F9-192, F9-193, F9-194, F9-195, F9-196, F9-197, F9-198, F9-199, F9-200, F9-201, F9-202, F9-204, F9-205, F9-206, F9-207, F9-208, F9-209, F9-210, F9-211
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "region and income-parsed filters combine with AND"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: i filtri Regione e "conto economico interpretato" si combinano in AND.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-204 — Il comando accoda solo i documenti CE/SP dell'anno mai analizzati
+
+**Obiettivo**
+Verificare che: il comando accoda solo i documenti CE/SP dell'anno mai analizzati.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Menu Anagrafica CAI (sotto-menu ad espansione, Bilanci annidato in Sezioni), Bilancio 2025 e Gruppi regionali (US-940..US-947)".
+- Test automatico: `tests/Feature/Console/CaiAnalyzeFinancialDocumentsCommandTest.php` — `queues only never-analyzed income statement and balance sheet documents of the year`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiAnalyzeFinancialDocumentsCommandTest.php`.
+- Test correlato: F9-192, F9-193, F9-194, F9-195, F9-196, F9-197, F9-198, F9-199, F9-200, F9-201, F9-202, F9-203, F9-205, F9-206, F9-207, F9-208, F9-209, F9-210, F9-211
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "queues only never-analyzed income statement and balance sheet documents of the year"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: il comando accoda solo i documenti CE/SP dell'anno mai analizzati.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-205 — Con --dry-run il comando non accoda nulla e stampa il dettaglio per regione
+
+**Obiettivo**
+Verificare che: con --dry-run il comando non accoda nulla e stampa il dettaglio per regione.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Menu Anagrafica CAI (sotto-menu ad espansione, Bilanci annidato in Sezioni), Bilancio 2025 e Gruppi regionali (US-940..US-947)".
+- Test automatico: `tests/Feature/Console/CaiAnalyzeFinancialDocumentsCommandTest.php` — `dry run queues nothing and prints the per-region breakdown`.
+- File/componente applicativo rilevante: `tests/Feature/Console/CaiAnalyzeFinancialDocumentsCommandTest.php`.
+- Test correlato: F9-192, F9-193, F9-194, F9-195, F9-196, F9-197, F9-198, F9-199, F9-200, F9-201, F9-202, F9-203, F9-204, F9-206, F9-207, F9-208, F9-209, F9-210, F9-211
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "dry run queues nothing and prints the per-region breakdown"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: con --dry-run il comando non accoda nulla e stampa il dettaglio per regione.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-206 — Un documento col solo stato patrimoniale è Extracted e valorizza le colonne dello stato patrimoniale
+
+**Obiettivo**
+Verificare che: un documento col solo stato patrimoniale è Extracted e valorizza le colonne dello stato patrimoniale.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Menu Anagrafica CAI (sotto-menu ad espansione, Bilanci annidato in Sezioni), Bilancio 2025 e Gruppi regionali (US-940..US-947)".
+- Test automatico: `tests/Feature/Domain/CaiDirectory/Jobs/AnalyzeCaiFinancialStatementDocumentTest.php` — `a document with only balance sheet data is Extracted and fills the balance sheet columns`.
+- File/componente applicativo rilevante: `tests/Feature/Domain/CaiDirectory/Jobs/AnalyzeCaiFinancialStatementDocumentTest.php`.
+- Test correlato: F9-192, F9-193, F9-194, F9-195, F9-196, F9-197, F9-198, F9-199, F9-200, F9-201, F9-202, F9-203, F9-204, F9-205, F9-207, F9-208, F9-209, F9-210, F9-211
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "a document with only balance sheet data is Extracted and fills the balance sheet columns"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: un documento col solo stato patrimoniale è Extracted e valorizza le colonne dello stato patrimoniale.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-207 — Il mapper riporta i totali dello stato patrimoniale quando presenti
+
+**Obiettivo**
+Verificare che: il mapper riporta i totali dello stato patrimoniale quando presenti.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Menu Anagrafica CAI (sotto-menu ad espansione, Bilanci annidato in Sezioni), Bilancio 2025 e Gruppi regionali (US-940..US-947)".
+- Test automatico: `tests/Unit/Domain/CaiDirectory/Import/CaiFinancialStatementFieldMapperTest.php` — `mapFinancialStatement maps the balance sheet totals when present`.
+- File/componente applicativo rilevante: `tests/Unit/Domain/CaiDirectory/Import/CaiFinancialStatementFieldMapperTest.php`.
+- Test correlato: F9-192, F9-193, F9-194, F9-195, F9-196, F9-197, F9-198, F9-199, F9-200, F9-201, F9-202, F9-203, F9-204, F9-205, F9-206, F9-208, F9-209, F9-210, F9-211
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "mapFinancialStatement maps the balance sheet totals when present"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: il mapper riporta i totali dello stato patrimoniale quando presenti.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-208 — Il servizio di analisi restituisce i campi finanziari
+
+**Obiettivo**
+Verificare che: il servizio di analisi restituisce i campi finanziari.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Menu Anagrafica CAI (sotto-menu ad espansione, Bilanci annidato in Sezioni), Bilancio 2025 e Gruppi regionali (US-940..US-947)".
+- Test automatico: `cai-runts-scraper/tests/test_analyze_bilancio.py` — `def test_analyze_bilancio_returns_financial_fields`.
+- File/componente applicativo rilevante: `cai-runts-scraper/tests/test_analyze_bilancio.py`.
+- Test correlato: F9-192, F9-193, F9-194, F9-195, F9-196, F9-197, F9-198, F9-199, F9-200, F9-201, F9-202, F9-203, F9-204, F9-205, F9-206, F9-207, F9-209, F9-210, F9-211
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con `cai-runts-scraper/.venv` installato (`pip install -r requirements.txt`) e suite pytest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella directory del servizio | `cd cai-runts-scraper` | Directory corrente = cai-runts-scraper/ |
+| 2 | Eseguire il test automatico mirato | `.venv/bin/python -m pytest tests/test_analyze_bilancio.py -k "test_analyze_bilancio_returns_financial_fields"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test referenziato passa: il servizio di analisi restituisce i campi finanziari.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-209 — Gli utenti senza cai-directory.view non accedono a "Elenco gruppi regionali" (403)
+
+**Obiettivo**
+Verificare che: gli utenti senza cai-directory.view non accedono a "Elenco gruppi regionali" (403).
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Menu Anagrafica CAI (sotto-menu ad espansione, Bilanci annidato in Sezioni), Bilancio 2025 e Gruppi regionali (US-940..US-947)".
+- Test automatico: `tests/Feature/Filament/CaiDirectory/CaiRegionalGroupsTest.php` — `a user without cai-directory.view is denied (403)`.
+- File/componente applicativo rilevante: `tests/Feature/Filament/CaiDirectory/CaiRegionalGroupsTest.php`.
+- Test correlato: F9-192, F9-193, F9-194, F9-195, F9-196, F9-197, F9-198, F9-199, F9-200, F9-201, F9-202, F9-203, F9-204, F9-205, F9-206, F9-207, F9-208, F9-210, F9-211
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "a user without cai-directory.view is denied (403)"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: gli utenti senza cai-directory.view non accedono a "Elenco gruppi regionali" (403).
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-210 — I conteggi per gruppo regionale sono calcolati per regione; le sezioni extra-regione non appartengono a nessun gruppo
+
+**Obiettivo**
+Verificare che: i conteggi per gruppo regionale sono calcolati per regione; le sezioni extra-regione non appartengono a nessun gruppo.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Menu Anagrafica CAI (sotto-menu ad espansione, Bilanci annidato in Sezioni), Bilancio 2025 e Gruppi regionali (US-940..US-947)".
+- Test automatico: `tests/Feature/Filament/CaiDirectory/CaiRegionalGroupsTest.php` — `counts are computed per region and extra-region sections belong to no group`.
+- File/componente applicativo rilevante: `tests/Feature/Filament/CaiDirectory/CaiRegionalGroupsTest.php`.
+- Test correlato: F9-192, F9-193, F9-194, F9-195, F9-196, F9-197, F9-198, F9-199, F9-200, F9-201, F9-202, F9-203, F9-204, F9-205, F9-206, F9-207, F9-208, F9-209, F9-211
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "counts are computed per region and extra-region sections belong to no group"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: i conteggi per gruppo regionale sono calcolati per regione; le sezioni extra-regione non appartengono a nessun gruppo.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
+
+### F9-211 — Il numero di query non cresce col numero di gruppi regionali
+
+**Obiettivo**
+Verificare che: il numero di query non cresce col numero di gruppi regionali.
+
+**Riferimenti**
+- Requisito/regola di dominio: ramo `ralph/orchestrator-v2-fase-9`, argomento "Menu Anagrafica CAI (sotto-menu ad espansione, Bilanci annidato in Sezioni), Bilancio 2025 e Gruppi regionali (US-940..US-947)".
+- Test automatico: `tests/Feature/Filament/CaiDirectory/CaiRegionalGroupsTest.php` — `the number of queries does not grow with the number of groups`.
+- File/componente applicativo rilevante: `tests/Feature/Filament/CaiDirectory/CaiRegionalGroupsTest.php`.
+- Test correlato: F9-192, F9-193, F9-194, F9-195, F9-196, F9-197, F9-198, F9-199, F9-200, F9-201, F9-202, F9-203, F9-204, F9-205, F9-206, F9-207, F9-208, F9-209, F9-210
+
+**Modalità di esecuzione**
+AUTOMATICO
+
+**Priorità**
+Media
+
+**Ruolo del tester**
+Sviluppatore
+
+**Prerequisiti**
+- Ambiente locale/CI con dipendenze installate e suite Pest funzionante.
+- Nessun dato UAT reale richiesto: il test costruisce i propri dati/fixture.
+
+**Dati di test**
+Non applicabile: il test costruisce i propri dati/fixture.
+
+**Stato iniziale**
+Non applicabile.
+
+**Procedura di esecuzione**
+
+| Passo | Azione del tester | Dato da utilizzare | Risultato atteso |
+|------:|-------------------|--------------------|------------------|
+| 1 | Posizionarsi nella root del repository | `cd` alla directory del progetto | Directory corrente = root del progetto |
+| 2 | Eseguire il test automatico mirato | `vendor/bin/pest --filter "the number of queries does not grow with the number of groups"` | Il comando termina con exit code 0, test passed |
+
+**Risultato finale atteso**
+Il test Pest referenziato passa: il numero di query non cresce col numero di gruppi regionali.
+
+**Controlli negativi**
+Nessuno applicabile.
+
+**Evidenze da acquisire**
+- Output completo del comando Pest eseguito.
+
+**Criterio di superamento**
+
+PASS: il comando Pest termina con exit code 0 e il test indicato risulta passed.
+FAIL: il test fallisce o il comando termina con errore.
+BLOCKED: l'ambiente locale/CI non è disponibile.
+NOT APPLICABLE: Non previsto per questo test.
+
+**Ripristino**
+Nessuno: nessuno stato persistente viene modificato.
+
+**Campi di consuntivazione**
+
+- Esito: [PASS / FAIL / BLOCKED / NOT APPLICABLE]
+- Data:
+- Tester:
+- Ambiente/versione:
+- Risultato effettivo:
+- Evidenze:
+- ID anomalia:
+- Note:
+
+---
