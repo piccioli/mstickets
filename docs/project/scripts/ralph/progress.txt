@@ -977,3 +977,16 @@ PRD: docs/project/tasks/prd-menu-anagrafica-cai-bilanci-gruppi-regionali.md. Cic
 - Test: mapper (con/senza campi nuovi), job (solo SP / solo CE / merge CE+SP stesso anno, helper `has*Data()`). `--filter=Cai` 280 verdi, Pint e Larastan puliti.
 - **Learnings**: aggiungere una colonna al mapper non richiede toccare il job; ricordarsi di aggiornare le asserzioni `toBe([...])` del test del mapper.
 ---
+
+## [2026-10-03] - US-944
+- `App\Domain\CaiDirectory\Queries\CaiSectionFinancialYearQuery` (statica): `forYear($year)` = `CaiSection` con 4 colonne `EXISTS` (`has_income_statement_file`,
+  `has_balance_sheet_file`, `income_statement_parsed`, `balance_sheet_parsed`); filtri `withIncomeStatementFile/withBalanceSheetFile/withIncomeStatementParsed/
+  withBalanceSheetParsed(Builder, int $year, bool $value = true)`. Un solo punto di verità: i metodi privati `*Exists($year)` costruiscono la sub-query e sono
+  usati sia per la colonna (`selectRaw('EXISTS (...) as alias')`) sia per il filtro (`whereRaw('[NOT ]EXISTS (...)')`). "Collegato alla sezione" = diretto
+  (`cai_section_id`) OR `cai_runts_registration_id IN (registrazioni della sezione)`.
+- I filtri prendono l'anno come parametro esplicito (non solo `bool`) perché sono statici su un `Builder` qualunque, utilizzabili anche senza `forYear()`.
+- Test: `tests/Feature/Domain/CaiDirectory/Queries/CaiSectionFinancialYearQueryTest.php` (5: fixture 6 sezioni, anno parametrico, parità colonne/filtri, AND, singola query
+  con `DB::enableQueryLog()`). `--filter=Cai` 285 verdi, Pint e Larastan puliti. Eseguiti su host (sqlite); nessuna UI quindi niente verifica browser.
+- **Learnings**: i flag letti dal modello sono int 0/1 su sqlite e bool su Postgres: la UI (US-945) deve usare `(bool)`/`IconColumn` che li gestisce già. Per le sezioni
+  il `codice_cai` è la chiave (stringa), la correlazione è `cai_sections.codice_cai`.
+---
