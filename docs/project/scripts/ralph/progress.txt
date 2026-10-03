@@ -1102,3 +1102,11 @@ PRD: docs/project/tasks/prd-datapack-snapshot-runts-uat.md. Ciclo precedente (US
 - **Learnings**: in dry-run lo step `documenti_manuali` non crea documenti, quindi `snapshot_manuali` in dry-run su un DB vuoto conta tutto come senza match (comportamento atteso). I flag "parsed" del Bilancio 2025
   dipendono da `cai_financial_statements` (già ripristinati da `snapshot_bilanci`), i flag "file" dai documenti.
 ---
+
+## [2026-10-03] - US-955
+- `bin/push-cai-datapack`: opzione `--force`; prima del rsync calcola con `rsync --dry-run --stats --no-human-readable` la dimensione dei file (al netto delle esclusioni) e i byte da trasferire,
+  legge lo spazio libero remoto (`ssh df -B1 --output=avail`), li stampa e si ferma se `avail < 2.2 × file`. Host speciale `local` per prove a secco senza ssh (usa `df -Pk`).
+- File: `bin/push-cai-datapack`, `deploy/CLAUDE.md` (sezione "Snapshot CAI/RUNTS").
+- Verificato: `bash -n` ok; prova con destinazione locale temporanea (500.9 MB, richiesti 1.10 GB, libero 139 GB) trasferisce correttamente; `git ls-files cai-datapack` vuoto. Il ramo "spazio insufficiente" non provato con host reale.
+- **Learnings**: macOS ha rsync/df non-GNU: `--output=avail` esiste solo sull'host Linux remoto, per questo il ramo `local` usa `df -Pk`. `Total file size` di rsync è già al netto delle esclusioni.
+---
