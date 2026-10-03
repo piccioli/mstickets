@@ -947,3 +947,13 @@ PRD: docs/project/tasks/prd-menu-anagrafica-cai-bilanci-gruppi-regionali.md. Cic
   `databaseNotifications` ripristinato): sidebar con Sezioni/Bilanci annidati, click sulle 3 voci apre la pagina giusta.
 - **Learnings**: il titolo pagina del Resource deriva da `$pluralModelLabel` (reso "Anagrafica Sezioni" in Title Case).
 ---
+
+## [2026-10-03] - US-941
+- `App\Domain\CaiDirectory\Support\CaiFinancialDocumentKind`: costanti `*_TYPES`/`*_KEYWORDS` per conto economico e stato patrimoniale, applicate sia in PHP
+  (`isIncomeStatement()`/`isBalanceSheet()`) sia in SQL (`applyIncomeStatement()`/`applyBalanceSheet()`: `whereIn(document_type) OR LOWER(title) LIKE`).
+  `CaiDocument` espone `scopeIncomeStatement/scopeBalanceSheet/scopeForYear` e i metodi d'istanza che delegano alla classe.
+- Divergenza dalla lista di partenza: aggiunta la keyword `patrimoniale ed economico` ai conti economici (titolo reale "Bilancio patrimoniale ed economico").
+- Test: `tests/Unit/Domain/CaiDirectory/Support/CaiFinancialDocumentKindTest.php` (29 titoli reali, metodi + scope + parità). `--filter=Cai` 276 verdi, Pint e Larastan puliti.
+- **Learnings**: i documenti RUNTS `bilancio_esercizio` con titolo "BILANCIO D'ESERCIZIO" non sono classificati (solo titolo): è voluto dal PRD.
+  Una run di phpstan senza `--no-progress` può stampare "Result is incomplete" spurio: rilanciare con `--no-progress`.
+---

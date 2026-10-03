@@ -38,8 +38,8 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Aggiunta keyword 'patrimoniale ed economico' (evidenza reale: 'Bilancio patrimoniale ed economico') ai conti economici."
     },
     {
       "id": "US-942",
