@@ -1010,3 +1010,16 @@ PRD: docs/project/tasks/prd-menu-anagrafica-cai-bilanci-gruppi-regionali.md. Cic
 - Test: `tests/Feature/Console/CaiAnalyzeFinancialDocumentsCommandTest.php` (5, `Queue::fake()`). `--filter=Cai` 300 verdi, Pint e Larastan puliti.
 - **Learnings**: i raggruppamenti per regione su `cai_documents` richiedono sub-select correlate (nessuna FK diretta alla regione); `groupByRaw` con la stessa espressione del select funziona su Postgres e sqlite.
 ---
+
+## [2026-10-03] - US-947
+- Pagina `App\Filament\Pages\CaiRegionalGroups` ("Elenco gruppi regionali", sort 31, figlia di "Gruppi regionali", gate `CaiDirectoryView`) su
+  `App\Domain\CaiDirectory\Queries\CaiRegionalGroupsQuery::forYear(2025)`: utenti `GruppoRegionale` + LEFT JOIN su UNA aggregazione per regione
+  (da `CaiSectionFinancialYearQuery::forYear()`) con `sections_count`, `with_financials_count` (file CE o SP), `income_parsed_count`, `coverage_percent` (ROUND, null se 0 sezioni).
+  Filtro regione (solo GR presenti), colonne numeriche ordinabili, "Apri utente" solo con `UserView`, stato vuoto, paginazione 25.
+- **Divergenza dalla story**: "Sezioni" conta `cai_sections` per regione, non `SectionsInRegionQuery` (quella conta utenti `Sezione`, non le sezioni CAI: Toscana darebbe 0 invece di 27).
+- Test: `tests/Feature/Filament/CaiDirectory/CaiRegionalGroupsTest.php` (7, incl. EXTRA REGIONE, query count = 1 al crescere dei GR); `CaiNavigationTest` aggiornato. `--filter=Cai` verde, Pint e Larastan puliti.
+- Browser verificato (Playwright su Postgres reale, 21 GR, Toscana 27 sezioni, sidebar annidata); utente temporaneo rimosso con `forceDelete()`.
+- **Learnings**: `cai_sections.region` è `mb_strtoupper(Region::label())` ("EMILIA-ROMAGNA"). **Su Postgres una `CASE` con binding nel SELECT e di nuovo nel GROUP BY NON è la stessa
+  espressione** (binding posizionali → "must appear in the GROUP BY"; sqlite non lo rileva): calcolare la chiave in una sub-query interna e raggruppare sull'alias. Per il login Playwright
+  un utente di prova deve avere un ruolo di `UserRole` (`canAccessPanel`) e la password va assegnata in chiaro (cast `hashed`), non con `bcrypt()`.
+---

@@ -52,6 +52,7 @@ test('an admin sees the Anagrafica CAI group organised in ordered sub-menus', fu
     expect(caiNavigationTree())->toBe([
         'Sezioni' => ['Anagrafica sezioni', 'Mappa sezioni'],
         'Bilanci' => ['Bilanci non interpretati', 'Bilancio 2025'],
+        'Gruppi regionali' => ['Elenco gruppi regionali'],
     ]);
 });
 
@@ -61,6 +62,7 @@ test('a user with only cai-directory.view sees Sezioni and only Bilancio 2025 un
     expect(caiNavigationTree())->toBe([
         'Sezioni' => ['Anagrafica sezioni', 'Mappa sezioni'],
         'Bilanci' => ['Bilancio 2025'],
+        'Gruppi regionali' => ['Elenco gruppi regionali'],
     ]);
 });
 

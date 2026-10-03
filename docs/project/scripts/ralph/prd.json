@@ -152,8 +152,8 @@
         "Verify in browser using dev-browser skill: la lista mostra i 21 GR locali con conteggi plausibili (es. Toscana 27 sezioni), screenshot letto con Read."
       ],
       "priority": 8,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Sezioni = conteggio su cai_sections.region (non SectionsInRegionQuery, che conta utenti Sezione: Toscana darebbe 0, non 27)."
     },
     {
       "id": "US-948",
