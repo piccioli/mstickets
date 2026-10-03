@@ -1110,3 +1110,17 @@ PRD: docs/project/tasks/prd-datapack-snapshot-runts-uat.md. Ciclo precedente (US
 - Verificato: `bash -n` ok; prova con destinazione locale temporanea (500.9 MB, richiesti 1.10 GB, libero 139 GB) trasferisce correttamente; `git ls-files cai-datapack` vuoto. Il ramo "spazio insufficiente" non provato con host reale.
 - **Learnings**: macOS ha rsync/df non-GNU: `--output=avail` esiste solo sull'host Linux remoto, per questo il ramo `local` usa `df -Pk`. `Total file size` di rsync è già al netto delle esclusioni.
 ---
+
+## [2026-10-03] - US-956
+- Round-trip verificato su DB Postgres separato `orchestrator_roundtrip` (servizio `db`) con `DB_DATABASE=orchestrator_roundtrip` e disco documenti separato `CAI_DOCUMENTS_ROOT=/tmp/rt-docs`
+  (nuova env in `config/filesystems.php`, default invariato). Backup del datapack in `/tmp/rt/`, nuovo export dal DB di sviluppo (solo lettura), poi `migrate:fresh` → `RolePermissionSeeder` → `cai:import-datapack`.
+- Conteggi IDENTICI al dev, nessuna tolleranza necessaria: sezioni 529, sottosezioni 224, registrazioni 222, bilanci 718, cariche 0, documenti RUNTS 1985, manuali 402
+  (i numeri del PRD §1.1 — 719/1999/403 — erano dello stato precedente; il dev attuale ha 718/1985/402 e l'export li ha riportati tutti, 2387 righe = 2387).
+- Parità campo-per-campo: 20 righe casuali per tabella (sezioni, sottosezioni, registrazioni, bilanci, documenti) + coincidenza dell'intero insieme di chiavi naturali, esclusi id/timestamp/`user_id`/`file_path` (uuid): 0 differenze.
+- 5 file RUNTS + 5 manuali dal disco di prova: sha256 uguale al file sorgente (sul disco dev). Seconda esecuzione di `cai:import-datapack`: tutte le righe `snapshot_*` `created = 0` e `aggiornati = 0`.
+- Prima run: `snapshot_documenti` creati 1784 / aggiornati 81 / saltati 120 (dedup contro i 201 allegati legacy e duplicati hash), 1.684,6 MB copiati.
+- Pulizia: DB di prova eliminato, `/tmp/rt-docs` rimosso; conteggi dev prima/dopo identici.
+- File: `config/filesystems.php` (env `CAI_DOCUMENTS_ROOT`), `.env.example`. Pint e Larastan puliti.
+- **Learnings**: nelle tabelle CAI le PK sono naturali (`cai_sections.codice_cai`, `cai_runts_registrations.id_runts`) e le FK sono già quei codici: niente `id` da mappare nei confronti.
+  Nel `.env` lasciare `CAI_DOCUMENTS_ROOT=` vuoto romperebbe il disco (`env()` ritorna `""`, non il default): tenerla commentata.
+---
