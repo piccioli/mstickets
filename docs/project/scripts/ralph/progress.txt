@@ -861,3 +861,14 @@ PRD: docs/project/tasks/prd-bilanci-sezioni-2026-datapack.md. Il ciclo precedent
   OpenSpout restituisce il testo della formula, quindi il reader scarta le celle che iniziano con `=` (i link sono solo riferimento, 344 righe
   su 525 hanno comunque almeno un valore non-formula).
 ---
+
+## [2026-10-03] - US-932
+- Aggiunti in `app/Domain/CaiDirectory/Import/ManualBilancio/`: `ManualBilancioDatapackBuilder::build()` (statico, come parser/reader),
+  DTO `ManualBilancioRow`, `ManualBilancioAnomaly` (costanti per i codici stabili) e `ManualBilancioBuildResult` (rows, anomalies,
+  `filesCount()/sectionsCount()/totalSize()/anomalyCounts()/anomaliesOf()`).
+- Test: `tests/Unit/Domain/CaiDirectory/Import/ManualBilancio/ManualBilancioDatapackBuilderTest.php` (2 test, fixture in tmp). Pest/Pint/Larastan verdi.
+- Verificato sui dati reali: 402 file, 345 sezioni, anomalie `ricevuto_senza_file`=3, `file_senza_ricevuto`=1, `codice_excel_non_nel_datapack`=2.
+- **Learnings**: `sezione_non_nel_datapack` è registrata UNA volta per sezione (non per file); `codice_excel_non_nel_datapack` ha precedenza su
+  `ricevuto_senza_file` per lo stesso codice. `$sectionCodesInDatapack = null` salta ogni controllo di presenza nel datapack. `path` è relativo
+  alla cartella del datapack (prefisso = basename dello staging). Nessun hash duplicato nei dati reali.
+---
