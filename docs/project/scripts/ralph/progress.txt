@@ -1092,3 +1092,13 @@ PRD: docs/project/tasks/prd-datapack-snapshot-runts-uat.md. Ciclo precedente (US
 - Verificato: `--filter=Cai` 339 verdi (1 skipped), Pint e Larastan puliti.
 - **Learnings**: l'opzione di `cai:import-datapack` è `--path` (non `--datapack`, che è di `cai:export-datapack-snapshot`). `CaiSection` richiede `region` (NOT NULL) nei test.
 ---
+
+## [2026-10-03] - US-954
+- `CaiSnapshotImporter::importManualAnalysis()` (riga `snapshot_manuali`): per le righe `snap_cai_documents` con `source = manual` abbina il `CaiDocument` manuale per (`cai_section_id`, `hash`)
+  e allinea solo `financial_analysis_status`/`raw_text_excerpt`/`extracted_via_ocr`. Mai crea documenti, mai copia file, mai accoda job. Nessun match → saltata, con warning `snapshot_manuali_senza_match: N ...`.
+- File: `app/Domain/CaiDirectory/Import/CaiSnapshotImporter.php`, `tests/Feature/Console/CaiSnapshotManualAnalysisImportTest.php` (4 test: ripristino + `Queue::fake()`/`assertNothingPushed`, senza match,
+  idempotenza + dry-run, flag "Bilancio 2025" via `CaiSectionFinancialYearQuery::forYear(2025)`).
+- Verificato: `--filter=Cai` 343 verdi (1 skipped), Pint e Larastan puliti.
+- **Learnings**: in dry-run lo step `documenti_manuali` non crea documenti, quindi `snapshot_manuali` in dry-run su un DB vuoto conta tutto come senza match (comportamento atteso). I flag "parsed" del Bilancio 2025
+  dipendono da `cai_financial_statements` (già ripristinati da `snapshot_bilanci`), i flag "file" dai documenti.
+---

@@ -58,6 +58,7 @@ final class CaiSnapshotImporter
             'snapshot_bilanci' => $this->importFinancialStatements($datapack, $dryRun, $sectionCodes, $registrationIds),
             'snapshot_cariche' => $this->importBoardMembers($datapack, $dryRun, $registrationIds),
             'snapshot_documenti' => $this->importDocuments($datapack, $dryRun, $datapackDir, $sectionCodes, $registrationIds),
+            'snapshot_manuali' => $this->importManualAnalysis($datapack, $dryRun),
         ];
     }
 
@@ -366,6 +367,67 @@ final class CaiSnapshotImporter
         }
 
         return $this->documentsResult($counts, $warnings, $copied);
+    }
+
+    /**
+     * Esito di analisi dei documenti manuali già creati dallo step `documenti_manuali`: abbina per
+     * (sezione, hash) e allinea solo `financial_analysis_status`/`raw_text_excerpt`/`extracted_via_ocr`.
+     * Non crea documenti, non copia file, non accoda job. Senza abbinamento → saltata (`senza match`).
+     */
+    private function importManualAnalysis(Connection $datapack, bool $dryRun): CaiImportTableResult
+    {
+        $counts = new SnapshotCounts;
+        $unmatched = 0;
+
+        $rows = $datapack->table('snap_cai_documents')
+            ->where('source', CaiDocumentSource::Manual->value)
+            ->orderBy('rowid')
+            ->cursor();
+
+        foreach ($rows as $row) {
+            $counts->read++;
+
+            $section = $this->nullable($row->cai_section_id);
+            $hash = $this->nullable($row->hash);
+
+            $document = $section === null || $hash === null
+                ? null
+                : CaiDocument::query()
+                    ->where('source', CaiDocumentSource::Manual)
+                    ->where('cai_section_id', (string) $section)
+                    ->where('hash', $hash)
+                    ->first();
+
+            if ($document === null) {
+                $unmatched++;
+                $counts->skipped++;
+
+                continue;
+            }
+
+            $analysis = [
+                'financial_analysis_status' => CaiDocumentAnalysisStatus::tryFrom((string) $this->nullable($row->financial_analysis_status)),
+                'raw_text_excerpt' => $this->nullable($row->raw_text_excerpt),
+                'extracted_via_ocr' => (bool) $row->extracted_via_ocr,
+            ];
+
+            if ($this->attributesDiffer($document, $analysis)) {
+                if (! $dryRun) {
+                    $document->update($analysis);
+                }
+                $counts->updated++;
+            } else {
+                $counts->skipped++;
+            }
+        }
+
+        return new CaiImportTableResult(
+            read: $counts->read,
+            created: 0,
+            updated: $counts->updated,
+            skipped: $counts->skipped,
+            warnings: $unmatched > 0 ? ["snapshot_manuali_senza_match: {$unmatched} documenti manuali senza corrispondenza (sezione + hash)"] : [],
+        );
     }
 
     /**
