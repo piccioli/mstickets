@@ -236,3 +236,18 @@ parametro di rotta) e `docs/collaudo/CLAUDE.md` per il metodo di generazione del
   singoli) rompe il parsing e `artisan` smette di elencare TUTTI i comandi (i test falliscono con
   `CommandNotFoundException`). Il test `CaiBuildManualBilanci...` non è incluso da `--filter=ManualBilancio`:
   usare `--filter=CaiBuildManualBilanci` o il path.
+
+## Bilanci per anno: `CaiFinancialDocumentKind`, `has*Data()` e `cai:analyze-financial-documents` (US-941..US-946)
+
+- `Support\CaiFinancialDocumentKind` è l'UNICO elenco di cosa conta come conto economico / stato patrimoniale (costanti `*_TYPES` + `*_KEYWORDS` sul
+  titolo): usato sia in PHP (`isIncomeStatement()`/`isBalanceSheet()`) sia in SQL (`applyIncomeStatement()`/`applyBalanceSheet()`). `CaiDocument`
+  espone `scopeIncomeStatement/scopeBalanceSheet/scopeForYear` che delegano lì: per cambiare la classificazione si tocca solo quella classe. I
+  `bilancio_esercizio` con titolo "BILANCIO D'ESERCIZIO" non sono classificati (voluto).
+- `CaiFinancialStatement::hasIncomeStatementData()` / `hasBalanceSheetData()` dicono se il record ha cifre di CE / SP (SP: `total_assets`,
+  `total_liabilities`, `net_equity`). Le pagine "Bilancio 2025"/"Gruppi regionali" non rileggono i bilanci: usano `Queries\CaiSectionFinancialYearQuery`
+  (colonne `EXISTS`, "collegato" = `cai_section_id` diretto OR via registrazione RUNTS).
+- `php artisan cai:analyze-financial-documents --year=YYYY [--section=] [--force] [--dry-run]` accoda `AnalyzeCaiFinancialStatementDocument` (coda
+  `cai-runts-analysis`) per i documenti CE/SP dell'anno non ancora analizzati. Serve `queue` in esecuzione; il worker ha `memory_limit` 128M e un PDF
+  grande può dare OOM (il job viene ritentato: sulla run 2025 tutti i 348 sono comunque arrivati a fine, 0 `failed_jobs`). Controllare l'avanzamento
+  con `redis-cli llen laravel-database-queues:cai-runts-analysis` (la chiave ha il prefisso `laravel-database-`).
+

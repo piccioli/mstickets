@@ -1023,3 +1023,17 @@ PRD: docs/project/tasks/prd-menu-anagrafica-cai-bilanci-gruppi-regionali.md. Cic
   espressione** (binding posizionali → "must appear in the GROUP BY"; sqlite non lo rileva): calcolare la chiave in una sub-query interna e raggruppare sull'alias. Per il login Playwright
   un utente di prova deve avere un ruolo di `UserRole` (`canAccessPanel`) e la password va assegnata in chiaro (cast `hashed`), non con `bcrypt()`.
 ---
+
+## [2026-10-03] - US-948
+- Run reale `cai:analyze-financial-documents --year=2025`: dry-run 348 documenti (2 già analizzati), run reale 348 accodati; coda svuotata, 0 `failed_jobs`.
+  Esito sui 350 documenti CE/SP 2025: **145 `Extracted`, 205 `NoDataExtracted`** (seconda dry-run: 0 da accodare). Pagina "Bilancio 2025" (529 sezioni): file CE 306, file SP 123,
+  **CE interpretato 97 sezioni, SP interpretato 44 sezioni**.
+- Browser (Playwright su Postgres reale, utente admin temporaneo `forceDelete()`, `databaseNotifications` ripristinato, `git diff` vuoto): sidebar con i tre sotto-menu, "Bilancio 2025"
+  con filtro "Conto economico interpretato: Sì" attivo, "Elenco gruppi regionali". Screenshot in `/tmp/pw948/` (non nel repo).
+- Doc: `docs/collaudo/fase-9.php` (topic F9-192..F9-211, `collaudo:verify-manifest 9` ok), paragrafo in `16-fase-9.md` (PDF non rigenerato: da allineare contatori in testa e dettaglio casi
+  F9-192..F9-211 alla rigenerazione), `app/Filament/CLAUDE.md` (sotto-menu), `app/Domain/CaiDirectory/CLAUDE.md` (`CaiFinancialDocumentKind`, `has*Data()`, comando).
+- Fix collaterali: F9-62 puntava a un test del mapper rinominato in US-943 (aggiornato nel manifest); `MailpitNavigationItemTest` assumeva Mailpit primo in assoluto tra le voci
+  (rotto da US-940: ora "Sezioni" è a sort 10) → asserisce il primo del gruppo Email.
+- Verificato: `composer run lint`, `composer run analyse` puliti; `--filter=Cai` 307 verdi (1 skipped); `--filter=Filament` 349 verdi.
+- **Learnings**: il worker `queue` ha `memory_limit` 128M: alcuni PDF grandi danno OOM e il job viene ritentato, ma la run completa lo stesso. Chiavi Redis con prefisso `laravel-database-`.
+---

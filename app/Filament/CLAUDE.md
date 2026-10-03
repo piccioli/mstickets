@@ -183,3 +183,15 @@ trasversali di test Filament (`fillForm()` rotto, notifiche Postgres `text ->> u
 - `App\Filament\Pages\Dashboard` (root `/`, landing per ruolo) va tenuta fuori da qualunque voce di
   navigazione (`protected static bool $shouldRegisterNavigation = false;`) da quando OGNI ruolo autenticato
   viene reindirizzato altrove nel suo `mount()` — vedi `app/Domain/Ticketing/CLAUDE.md` §US-113.
+
+## Sotto-menu di navigazione — voci genitore senza URL (US-940)
+
+Per annidare voci sotto un "sotto-menu" dentro un gruppo (es. `Anagrafica CAI` → Sezioni / Bilanci / Gruppi regionali) NON servono più
+`NavigationGroup`: si usa la funzione nativa Filament 4. Il genitore è un `NavigationItem::make('Etichetta')->group(...)->sort(...)` senza URL,
+registrato in `AdminPanelProvider::navigationItems()`; i figli dichiarano `$navigationParentItem = 'Etichetta'` (stessa stringa) e `$navigationSort`.
+Filament scarta un genitore senza figli visibili, quindi chi non ha i permessi dei figli non vede un sotto-menu vuoto; un genitore senza URL mostra
+sempre i figli espansi. Gotcha: "Sezioni" è anche il nome del `NavigationGroup` della pagina cliente `CustomerRegionalSectionsDashboard` — il genitore
+`Sezioni` di Anagrafica CAI è una VOCE dentro un altro gruppo, quindi non collide; non trasformarlo in gruppo (le due etichette si fonderebbero) e non
+rinominare la stringa del genitore senza aggiornare i `$navigationParentItem` dei figli (il legame è per etichetta, nessun errore se non combacia: il figlio
+non viene annidato).
+
