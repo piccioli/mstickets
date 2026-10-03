@@ -49,6 +49,10 @@ class CaiUnparsedFinancialStatements extends Page implements HasTable
 
     protected static string|UnitEnum|null $navigationGroup = 'Anagrafica CAI';
 
+    protected static ?string $navigationParentItem = 'Bilanci';
+
+    protected static ?int $navigationSort = 21;
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentMagnifyingGlass;
 
     public static function canAccess(): bool

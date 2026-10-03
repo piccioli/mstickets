@@ -36,11 +36,15 @@ class CaiSectionResource extends Resource
 
     protected static ?string $modelLabel = 'sezione CAI';
 
-    protected static ?string $pluralModelLabel = 'anagrafica CAI';
+    protected static ?string $pluralModelLabel = 'anagrafica sezioni';
 
-    protected static ?string $navigationLabel = 'Anagrafica CAI';
+    protected static ?string $navigationLabel = 'Anagrafica sezioni';
 
     protected static UnitEnum|string|null $navigationGroup = 'Anagrafica CAI';
+
+    protected static ?string $navigationParentItem = 'Sezioni';
+
+    protected static ?int $navigationSort = 11;
 
     protected static ?string $recordTitleAttribute = 'name';
 

@@ -65,6 +65,20 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->databaseNotifications()
             ->navigationItems([
+                // Genitori senza URL del gruppo "Anagrafica CAI": Filament scarta un genitore senza figli
+                // visibili, quindi un sotto-menu vuoto per l'utente non compare (US-940).
+                NavigationItem::make('Sezioni')
+                    ->group('Anagrafica CAI')
+                    ->icon(Heroicon::OutlinedBuildingLibrary)
+                    ->sort(10),
+                NavigationItem::make('Bilanci')
+                    ->group('Anagrafica CAI')
+                    ->icon(Heroicon::OutlinedDocumentChartBar)
+                    ->sort(20),
+                NavigationItem::make('Gruppi regionali')
+                    ->group('Anagrafica CAI')
+                    ->icon(Heroicon::OutlinedUserGroup)
+                    ->sort(30),
                 NavigationItem::make('Mailpit')
                     ->group('Email')
                     ->icon(Heroicon::OutlinedPaperAirplane)

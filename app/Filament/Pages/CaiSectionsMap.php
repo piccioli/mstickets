@@ -32,6 +32,10 @@ class CaiSectionsMap extends Page
 
     protected static UnitEnum|string|null $navigationGroup = 'Anagrafica CAI';
 
+    protected static ?string $navigationParentItem = 'Sezioni';
+
+    protected static ?int $navigationSort = 12;
+
     public static function canAccess(): bool
     {
         return (bool) Auth::user()?->can(Permission::CaiDirectoryView);
