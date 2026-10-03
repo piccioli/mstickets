@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'fundraising_expenses', 'financial_expenses', 'overhead_expenses', 'total_expenses',
     'general_interest_revenues', 'other_activities_revenues', 'fundraising_revenues',
     'financial_revenues', 'overhead_revenues', 'total_revenues', 'pre_tax_result', 'taxes', 'net_result',
+    'total_assets', 'total_liabilities', 'net_equity',
 ])]
 class CaiFinancialStatement extends Model
 {
@@ -38,7 +39,26 @@ class CaiFinancialStatement extends Model
             'pre_tax_result' => 'decimal:2',
             'taxes' => 'decimal:2',
             'net_result' => 'decimal:2',
+            'total_assets' => 'decimal:2',
+            'total_liabilities' => 'decimal:2',
+            'net_equity' => 'decimal:2',
         ];
+    }
+
+    /**
+     * Conto economico "interpretato": almeno uno fra oneri totali, proventi totali e risultato d'esercizio.
+     */
+    public function hasIncomeStatementData(): bool
+    {
+        return $this->total_expenses !== null || $this->total_revenues !== null || $this->net_result !== null;
+    }
+
+    /**
+     * Stato patrimoniale "interpretato": almeno uno fra totale attivo e patrimonio netto.
+     */
+    public function hasBalanceSheetData(): bool
+    {
+        return $this->total_assets !== null || $this->net_equity !== null;
     }
 
     /**

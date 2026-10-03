@@ -264,3 +264,83 @@ test('handle marks the document as NoDataExtracted when every financial field co
     expect($document->raw_text_excerpt)->toBe('STATO PATRIMONIALE (layout non riconosciuto dai pattern attuali)');
     expect($document->extracted_via_ocr)->toBeTrue();
 });
+
+/**
+ * @param  array<string, float|null>  $overrides
+ * @return array<string, mixed>
+ */
+function analyzerResponse(array $overrides = []): array
+{
+    return [
+        'oneri_a_interesse_generale' => null, 'oneri_b_attivita_diverse' => null,
+        'oneri_c_raccolta_fondi' => null, 'oneri_d_finanziarie_patrimoniali' => null,
+        'oneri_e_supporto_generale' => null, 'totale_oneri' => null,
+        'proventi_a_interesse_generale' => null, 'proventi_b_attivita_diverse' => null,
+        'proventi_c_raccolta_fondi' => null, 'proventi_d_finanziarie_patrimoniali' => null,
+        'proventi_e_supporto_generale' => null, 'totale_proventi' => null,
+        'risultato_ante_imposte' => null, 'imposte' => null, 'risultato_esercizio' => null,
+        'totale_attivo' => null, 'totale_passivo' => null, 'patrimonio_netto' => null,
+        ...$overrides,
+    ];
+}
+
+test('a document with only balance sheet data is Extracted and fills the balance sheet columns', function (): void {
+    Storage::fake('cai-documents');
+    Storage::disk('cai-documents')->put('12345/sp.pdf', '%PDF-1.4 fixture');
+    $document = caiDocument(['file_path' => '12345/sp.pdf', 'year' => 2025]);
+
+    Http::fake(['http://cai-runts-scraper:8000/analyze/bilancio' => Http::response(analyzerResponse([
+        'totale_attivo' => 50000.0, 'totale_passivo' => 50000.0, 'patrimonio_netto' => 30000.0,
+    ]))]);
+
+    (new AnalyzeCaiFinancialStatementDocument($document->id))->handle(app(CaiRuntsScraperClient::class));
+
+    $statement = CaiFinancialStatement::query()->where('year', 2025)->sole();
+    expect($document->fresh()->financial_analysis_status)->toBe(CaiDocumentAnalysisStatus::Extracted)
+        ->and($statement->total_assets)->toEqual(50000.0)
+        ->and($statement->total_liabilities)->toEqual(50000.0)
+        ->and($statement->net_equity)->toEqual(30000.0)
+        ->and($statement->hasBalanceSheetData())->toBeTrue()
+        ->and($statement->hasIncomeStatementData())->toBeFalse();
+});
+
+test('a document with only income statement data leaves the balance sheet columns null', function (): void {
+    Storage::fake('cai-documents');
+    Storage::disk('cai-documents')->put('12345/ce.pdf', '%PDF-1.4 fixture');
+    $document = caiDocument(['file_path' => '12345/ce.pdf', 'year' => 2025]);
+
+    Http::fake(['http://cai-runts-scraper:8000/analyze/bilancio' => Http::response(analyzerResponse(['totale_oneri' => 100.0]))]);
+
+    (new AnalyzeCaiFinancialStatementDocument($document->id))->handle(app(CaiRuntsScraperClient::class));
+
+    $statement = CaiFinancialStatement::query()->where('year', 2025)->sole();
+    expect($statement->total_assets)->toBeNull()
+        ->and($statement->hasIncomeStatementData())->toBeTrue()
+        ->and($statement->hasBalanceSheetData())->toBeFalse();
+});
+
+test('an income statement document and a balance sheet document for the same year merge into one record', function (): void {
+    Storage::fake('cai-documents');
+    Storage::disk('cai-documents')->put('12345/ce.pdf', '%PDF-1.4 fixture');
+    Storage::disk('cai-documents')->put('12345/sp.pdf', '%PDF-1.4 fixture');
+    $income = caiDocument(['file_path' => '12345/ce.pdf', 'year' => 2025]);
+    $balance = caiDocument([
+        'file_path' => '12345/sp.pdf', 'year' => 2025,
+        'cai_runts_registration_id' => $income->cai_runts_registration_id,
+    ]);
+
+    Http::fake(['http://cai-runts-scraper:8000/analyze/bilancio' => Http::sequence()
+        ->push(analyzerResponse(['totale_oneri' => 100.0, 'totale_proventi' => 150.0, 'risultato_esercizio' => 50.0]))
+        ->push(analyzerResponse(['totale_attivo' => 9000.0, 'patrimonio_netto' => 4000.0]))]);
+
+    (new AnalyzeCaiFinancialStatementDocument($income->id))->handle(app(CaiRuntsScraperClient::class));
+    (new AnalyzeCaiFinancialStatementDocument($balance->id))->handle(app(CaiRuntsScraperClient::class));
+
+    $statement = CaiFinancialStatement::query()->where('year', 2025)->sole();
+    expect($statement->total_expenses)->toEqual(100.0)
+        ->and($statement->net_result)->toEqual(50.0)
+        ->and($statement->total_assets)->toEqual(9000.0)
+        ->and($statement->net_equity)->toEqual(4000.0)
+        ->and($statement->hasIncomeStatementData())->toBeTrue()
+        ->and($statement->hasBalanceSheetData())->toBeTrue();
+});

@@ -75,8 +75,8 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Il job non ha richiesto modifiche: merge e $hasAnyData iterano già su tutti gli attributi del mapper. Il mapper usa `?? null` per i 3 campi nuovi (le righe datapack sono stdClass senza quelle proprietà)."
     },
     {
       "id": "US-944",

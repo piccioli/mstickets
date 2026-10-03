@@ -968,3 +968,12 @@ PRD: docs/project/tasks/prd-menu-anagrafica-cai-bilanci-gruppi-regionali.md. Cic
   Mancanti (testo con layout diverso): Inveruno, Mortara, Rho, Oderzo, Pieve di Soligo, Modena, Forte dei Marmi, Maniago.
 - **Learnings**: `patrimonio_netto` è più fragile (spesso solo la riga "A) Patrimonio netto" senza numero sulla stessa riga); `totale_passivo` va letto come "totale passivo e patrimonio netto" quando c'è.
 ---
+
+## [2026-10-03] - US-943
+- Migrazione additiva `2026_10_03_120000_add_balance_sheet_columns_to_cai_financial_statements_table` (`total_assets`, `total_liabilities`, `net_equity` decimal(15,2) nullable);
+  `--pretend` verificato, poi applicata al Postgres di sviluppo. `CaiFinancialStatement`: Fillable/cast + `hasIncomeStatementData()` / `hasBalanceSheetData()`.
+- `CaiFinancialStatementFieldMapper` mappa i 3 campi con `?? null` (le righe del datapack sono `stdClass` senza quelle proprietà: senza `??` sarebbe un errore).
+- `AnalyzeCaiFinancialStatementDocument` invariato: merge "non-null vince" e `$hasAnyData` iterano già su tutti gli attributi del mapper, quindi un documento con solo SP è `Extracted`.
+- Test: mapper (con/senza campi nuovi), job (solo SP / solo CE / merge CE+SP stesso anno, helper `has*Data()`). `--filter=Cai` 280 verdi, Pint e Larastan puliti.
+- **Learnings**: aggiungere una colonna al mapper non richiede toccare il job; ricordarsi di aggiornare le asserzioni `toBe([...])` del test del mapper.
+---
