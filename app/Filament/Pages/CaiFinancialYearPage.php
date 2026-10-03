@@ -39,7 +39,8 @@ abstract class CaiFinancialYearPage extends Page implements HasTable
 
     protected static string|UnitEnum|null $navigationGroup = 'Anagrafica CAI';
 
-    protected static ?string $navigationParentItem = 'Bilanci';
+    // La voce di menu è costruita da CaiBilanciNavigationItem (sotto-menu annidato in "Sezioni").
+    protected static bool $shouldRegisterNavigation = false;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentCheck;
 

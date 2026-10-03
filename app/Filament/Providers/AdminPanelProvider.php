@@ -8,6 +8,7 @@ use App\Filament\Auth\Middleware\EnsureRoleRequiresMultiFactorAuthentication;
 use App\Filament\Auth\Pages\Login;
 use App\Filament\Auth\Pages\RequestPasswordReset;
 use App\Filament\Auth\Pages\ResetPassword;
+use App\Filament\Navigation\CaiBilanciNavigationItem;
 use App\Filament\Navigation\MailpitNavigationItem;
 use App\Filament\Pages\CustomerDashboard;
 use App\Filament\Pages\Dashboard;
@@ -71,10 +72,7 @@ class AdminPanelProvider extends PanelProvider
                     ->group('Anagrafica CAI')
                     ->icon(Heroicon::OutlinedBuildingLibrary)
                     ->sort(10),
-                NavigationItem::make('Bilanci')
-                    ->group('Anagrafica CAI')
-                    ->icon(Heroicon::OutlinedDocumentChartBar)
-                    ->sort(20),
+                CaiBilanciNavigationItem::make(),
                 NavigationItem::make('Gruppi regionali')
                     ->group('Anagrafica CAI')
                     ->icon(Heroicon::OutlinedUserGroup)

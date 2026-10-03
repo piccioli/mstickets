@@ -36,6 +36,24 @@ function caiNavigationTree(): array
         ->all();
 }
 
+/**
+ * @return list<string> etichette delle voci figlie del sotto-menu "Bilanci", annidato dentro "Sezioni"
+ */
+function caiBilanciChildren(): array
+{
+    /** @var NavigationGroup|null $group */
+    $group = collect(Filament::getNavigation())->first(fn (NavigationGroup $g): bool => $g->getLabel() === 'Anagrafica CAI');
+    $sezioni = collect($group?->getItems())->first(fn ($item): bool => $item->getLabel() === 'Sezioni');
+    $bilanci = collect($sezioni?->getChildItems())->first(fn ($item): bool => $item->getLabel() === 'Bilanci');
+
+    // I figli annidati non passano dal filtro di visibilità di Filament: li salta la vista sidebar (isVisible()).
+    return collect($bilanci?->getChildItems())
+        ->filter(fn ($child): bool => $child->isVisible())
+        ->map(fn ($child) => $child->getLabel())
+        ->values()
+        ->all();
+}
+
 function caiStaffUser(PermissionEnum ...$permissions): User
 {
     $user = userWithPermissions(...$permissions);
@@ -50,20 +68,20 @@ test('an admin sees the Anagrafica CAI group organised in ordered sub-menus', fu
     $this->actingAs(withRole(User::factory()->create(), UserRole::Admin));
 
     expect(caiNavigationTree())->toBe([
-        'Sezioni' => ['Anagrafica sezioni', 'Mappa sezioni'],
-        'Bilanci' => ['Bilanci non interpretati', 'Bilancio 2025'],
+        'Sezioni' => ['Anagrafica sezioni', 'Mappa sezioni', 'Bilanci'],
         'Gruppi regionali' => ['Elenco gruppi regionali'],
     ]);
+    expect(caiBilanciChildren())->toBe(['Bilanci non interpretati', 'Bilancio 2025']);
 });
 
-test('a user with only cai-directory.view sees Sezioni and only Bilancio 2025 under Bilanci', function (): void {
+test('a user with only cai-directory.view sees Sezioni and only Bilancio 2025 under the nested Bilanci', function (): void {
     $this->actingAs(caiStaffUser(PermissionEnum::CaiDirectoryView));
 
     expect(caiNavigationTree())->toBe([
-        'Sezioni' => ['Anagrafica sezioni', 'Mappa sezioni'],
-        'Bilanci' => ['Bilancio 2025'],
+        'Sezioni' => ['Anagrafica sezioni', 'Mappa sezioni', 'Bilanci'],
         'Gruppi regionali' => ['Elenco gruppi regionali'],
     ]);
+    expect(caiBilanciChildren())->toBe(['Bilancio 2025']);
 });
 
 test('a user without cai-directory permissions does not see the Anagrafica CAI group', function (): void {

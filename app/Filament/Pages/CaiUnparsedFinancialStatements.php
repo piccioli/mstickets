@@ -49,7 +49,8 @@ class CaiUnparsedFinancialStatements extends Page implements HasTable
 
     protected static string|UnitEnum|null $navigationGroup = 'Anagrafica CAI';
 
-    protected static ?string $navigationParentItem = 'Bilanci';
+    // La voce di menu è costruita da CaiBilanciNavigationItem (sotto-menu annidato in "Sezioni").
+    protected static bool $shouldRegisterNavigation = false;
 
     protected static ?int $navigationSort = 21;
 

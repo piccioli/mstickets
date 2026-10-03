@@ -184,14 +184,20 @@ trasversali di test Filament (`fillForm()` rotto, notifiche Postgres `text ->> u
   navigazione (`protected static bool $shouldRegisterNavigation = false;`) da quando OGNI ruolo autenticato
   viene reindirizzato altrove nel suo `mount()` — vedi `app/Domain/Ticketing/CLAUDE.md` §US-113.
 
-## Sotto-menu di navigazione — voci genitore senza URL (US-940)
+## Sotto-menu di navigazione — voci genitore senza URL, ad espansione, anche annidate (US-940 + revisione)
 
-Per annidare voci sotto un "sotto-menu" dentro un gruppo (es. `Anagrafica CAI` → Sezioni / Bilanci / Gruppi regionali) NON servono più
-`NavigationGroup`: si usa la funzione nativa Filament 4. Il genitore è un `NavigationItem::make('Etichetta')->group(...)->sort(...)` senza URL,
-registrato in `AdminPanelProvider::navigationItems()`; i figli dichiarano `$navigationParentItem = 'Etichetta'` (stessa stringa) e `$navigationSort`.
-Filament scarta un genitore senza figli visibili, quindi chi non ha i permessi dei figli non vede un sotto-menu vuoto; un genitore senza URL mostra
-sempre i figli espansi. Gotcha: "Sezioni" è anche il nome del `NavigationGroup` della pagina cliente `CustomerRegionalSectionsDashboard` — il genitore
-`Sezioni` di Anagrafica CAI è una VOCE dentro un altro gruppo, quindi non collide; non trasformarlo in gruppo (le due etichette si fonderebbero) e non
-rinominare la stringa del genitore senza aggiornare i `$navigationParentItem` dei figli (il legame è per etichetta, nessun errore se non combacia: il figlio
-non viene annidato).
-
+Filament 4 annida nativamente UN solo livello (`$navigationParentItem`) e mostra sempre i figli espansi. Per `Anagrafica CAI` → Sezioni →
+Bilanci → voci servono due livelli e l'espansione, quindi:
+- il genitore è un `NavigationItem::make('Etichetta')->group(...)->sort(...)` senza URL in `AdminPanelProvider::navigationItems()`; i figli di primo
+  livello dichiarano `$navigationParentItem = 'Etichetta'` (legame per etichetta: se non combacia il figlio non viene annidato, senza errore);
+- il secondo livello ("Bilanci" dentro "Sezioni") è un albero costruito a mano in `App\Filament\Navigation\CaiBilanciNavigationItem`
+  (`parentItem('Sezioni')` + `childItems([...])`); le pagine figlie hanno `$shouldRegisterNavigation = false` e le loro voci sono create lì con
+  `url()`/`isActiveWhen()`/`visible()` come closure. "Bilancio 2026" = una sottoclasse di `CaiFinancialYearPage` + una riga in `pages()`;
+- la vista `resources/views/vendor/filament-panels/components/sidebar/item.blade.php` è una copia modificata di quella di Filament (v4.12): ogni voce
+  senza URL con figli visibili è un accordion Alpine (`x-collapse`, chevron, aperto se un discendente è attivo) e il rendering è ricorsivo. Dopo un
+  upgrade di `filament/filament` confrontarla con l'originale in `vendor/`;
+- Filament scarta un genitore di primo livello senza figli visibili (nessun sotto-menu vuoto per chi non ha i permessi); i figli annidati nei
+  `childItems` NON passano da quel filtro: la vista salta le voci con `isVisible()` falso e `CaiBilanciNavigationItem` nasconde "Bilanci" se nessuna
+  pagina è accessibile.
+Gotcha: "Sezioni" è anche il nome del `NavigationGroup` della pagina cliente `CustomerRegionalSectionsDashboard` — il genitore `Sezioni` di
+Anagrafica CAI è una VOCE dentro un altro gruppo, quindi non collide; non trasformarlo in gruppo (le due etichette si fonderebbero).
