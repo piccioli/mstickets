@@ -883,3 +883,16 @@ PRD: docs/project/tasks/prd-bilanci-sezioni-2026-datapack.md. Il ciclo precedent
 - **Learnings**: il filtro `--filter=ManualBilancio` NON include questo test (il file si chiama `...ManualBilanci...`): lanciarlo per path o con
   `--filter=CaiBuildManualBilanci`. I percorsi di default stanno nella signature (come `cai:import-datapack`), non in `config()`.
 ---
+
+## [2026-10-03] - US-934
+- Aggiunto `app/Domain/CaiDirectory/Import/CaiManualBilanciImporter.php` (riceve la connessione `cai_datapack`, `$datapackDir`, `$dryRun`),
+  iniettato nel costruttore di `CaiDatapackImporter` e richiamato in coda a `import()` SOLO se `$onlyCaiSectionCode === null` e
+  `!$skipSectionFields`; il risultato è la chiave `documenti_manuali` (stampata dal comando come le altre tabelle, warning inclusi).
+- Tabella `bilanci_manuali` assente → `CaiImportTableResult` vuoto (riga a zero, nessun errore). Sezione sconosciuta o già importata (stesso
+  `source=Manual` + sezione + hash) → `skipped`; file mancante → `skipped` + warning; eccezione per-riga catturata dentro il loop.
+- Test: `tests/Feature/Console/CaiManualBilanciImportTest.php` (6 test) + `CaiImportDatapackCommandTest` invariato e verde. `--filter=Cai` 238 verdi,
+  Pint e Larastan puliti.
+- **Learnings**: in `--dry-run` le sezioni non sono scritte, quindi l'importer legge i codici da `sezioni_cai` del datapack (non da `cai_sections`)
+  per dare gli stessi conteggi. Nei test, `makeCaiDatapackFixture()` contiene già un allegato RUNTS: filtrare per `source` quando si asserisce
+  sui documenti manuali. `skipSectionFields=true` con sezioni non pre-create fa fallire la FK delle registrazioni: creare entrambe le sezioni.
+---
