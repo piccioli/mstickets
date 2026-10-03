@@ -1068,3 +1068,14 @@ PRD: docs/project/tasks/prd-datapack-snapshot-runts-uat.md. Ciclo precedente (US
   `tests/Feature/Console/CaiExportDatapackSnapshotFilesTest.php` (6 test, `Storage::fake`). Test export 12/12, Pint e Larastan puliti. Non lanciato sul DB/dati reali.
 - **Learnings**: `expectsOutputToContain` consuma una riga per asserzione: due asserzioni sulla stessa riga falliscono. La chiave di mapping riga→file è `file_path` (con uuid, univoco).
 ---
+
+## [2026-10-03] - US-952
+- Nuova `App\Domain\CaiDirectory\Import\CaiSnapshotImporter` (+ `SnapshotCounts`), chiamata da `CaiDatapackImporter::import()` dopo `documenti_manuali`, solo per import completo e solo se esiste
+  `snap_cai_sections`. Upsert per chiave naturale (sezione `codice_cai`, sottosezione `cai_codice`, registrazione `id_runts`, bilancio (genitore, anno), carica (registrazione, ruolo, nome, valid_from)).
+  `user_id` mai sovrascritto; sulle righe nuove ricostruito per email con `CaiSectionFieldMapper::matchUserId` (stessa mappa utenti dell'import legacy). Genitore assente o genitori non esclusivi → saltata + warning.
+- Riepilogo: `snapshot_sezioni` (sezioni+sottosezioni insieme), `snapshot_registrazioni`, `snapshot_bilanci`, `snapshot_cariche`. Dry-run conta created/updated senza scrivere (un genitore che verrebbe creato conta come presente).
+- `DiffsAttributes` ora confronta anche i BackedEnum (prima `(string)` su un enum andava in errore).
+- File: `app/Domain/CaiDirectory/Import/{CaiSnapshotImporter,SnapshotCounts,CaiDatapackImporter,Concerns/DiffsAttributes}.php`, `tests/Feature/Console/CaiSnapshotImportTest.php` (9 test: parità, bilancio per registrazione e sezione, idempotenza, user_id, orfani, dry-run, senza snap_*, scoped, nessun job).
+- Verificato: `--filter=Cai` 328 verdi (1 skipped), Pint e Larastan puliti.
+- **Learnings**: le chiavi genitore dello snapshot sono già naturali (`codice_cai`/`id_runts`), nessuna mappatura di id. I timestamp `created_at/updated_at` dello snapshot NON sono importati (restano quelli di scrittura). Su macOS `sed -i` senza `''` fallisce: usare python per le sostituzioni.
+---

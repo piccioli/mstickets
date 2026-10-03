@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\CaiDirectory\Import\Concerns;
 
+use BackedEnum;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -29,8 +30,8 @@ trait DiffsAttributes
         $candidate = $existing->newInstance($attributes, false);
 
         foreach (array_keys($attributes) as $key) {
-            $existingValue = (string) ($existing->getAttribute($key) ?? '');
-            $candidateValue = (string) ($candidate->getAttribute($key) ?? '');
+            $existingValue = $this->comparable($existing->getAttribute($key));
+            $candidateValue = $this->comparable($candidate->getAttribute($key));
 
             if ($existingValue !== $candidateValue) {
                 return true;
@@ -38,5 +39,10 @@ trait DiffsAttributes
         }
 
         return false;
+    }
+
+    private function comparable(mixed $value): string
+    {
+        return $value instanceof BackedEnum ? (string) $value->value : (string) ($value ?? '');
     }
 }

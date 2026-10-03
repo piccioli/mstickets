@@ -59,8 +59,8 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Sezioni e sottosezioni sono in un unico riepilogo `snapshot_sezioni` (conteggi sommati). Righe orfane: contate in `skipped` + warning."
     },
     {
       "id": "US-953",
