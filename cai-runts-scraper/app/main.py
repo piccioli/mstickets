@@ -18,6 +18,7 @@ _BILANCIO_FIELDS = (
     "proventi_a_interesse_generale", "proventi_b_attivita_diverse", "proventi_c_raccolta_fondi",
     "proventi_d_finanziarie_patrimoniali", "proventi_e_supporto_generale", "totale_proventi",
     "risultato_ante_imposte", "imposte", "risultato_esercizio",
+    "totale_attivo", "totale_passivo", "patrimonio_netto",
 )
 
 

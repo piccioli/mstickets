@@ -56,8 +56,8 @@
         "Typecheck passes"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Verifica su 40 PDF 'stato patrimoniale' reali (32 con testo): totale_attivo estratto in 24/32 (75%). Corretto anche parse_italian_number per '7.282.830' (più separatori migliaia senza virgola, prima None)."
     },
     {
       "id": "US-943",

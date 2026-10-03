@@ -112,6 +112,27 @@ _PATTERNS: dict[str, list[str]] = {
         r"[Aa]vanzo/disavanzo d.esercizio\s+\(\+/-\)[^\d\n\-]{0,10}(-|[\d\.,']+)",
         r"(?:[Dd]isavanzo|[Aa]vanzo)\s+(?:dopo|netto)\s+(?:le\s+)?imposte[\s\S]{0,200}?([\d\.\s]+,\d{2})",
     ],
+    # Stato patrimoniale (Mod. A). I pattern richiedono il numero SUBITO dopo l'etichetta
+    # (stessa riga, solo spazi/"€"), così "Totale attivo circolante 283.949" o
+    # "TOTALE ATTIVITA' FINANZIARIE" non vengono scambiati per il totale attivo.
+    "totale_attivo": [
+        # Variante con parentesi ("TOTALE ATTIVO (A+B+C+D) 21.055") e con ":" ("TOTALE ATTIVITA: 193.532,30").
+        r"[Tt]otale\s+(?:attivo|attivit[àa'’])[ \t]*(?:\([^)\n]*\))?[ \t€:]+(\d[\d\.,']*)",
+        # "TOTALE STATO PATRIMONIALE - ATTIVO 7.282.830" (Mod. A in formato gestionale).
+        r"[Tt]otale\s+stato\s+patrimoniale\s*-\s*attivo[ \t€]+(\d[\d\.,']*)",
+        # Etichetta con descrizione prima del numero ("TOTALE ATTIVO Somma complessiva ... 43.681,00").
+        r"[Tt]otale\s+attivo[ \t]+[A-Za-z][^\d\n]{0,80}[ \t€]+(\d[\d\.,']*)",
+    ],
+    "totale_passivo": [
+        r"[Tt]otale\s+(?:passivo|passivit[àa'’])[ \t]*(?:\([^)\n]*\))?[ \t€:]+(\d[\d\.,']*)",
+        r"[Tt]otale\s+stato\s+patrimoniale\s*-\s*passivo[ \t€]+(\d[\d\.,']*)",
+        # "TOTALE PASSIVO E PATRIMONIO NETTO Totale delle fonti ... 43.681,00".
+        r"[Tt]otale\s+passivo\s+e\s+patrimonio\s+netto[ \t]+[A-Za-z][^\d\n]{0,80}[ \t€]+(\d[\d\.,']*)",
+    ],
+    "patrimonio_netto": [
+        r"[Tt]otale\s+patrimonio\s+netto[ \t]*(?:\([^)\n]*\))?[ \t€:]+(\d[\d\.,']*)",
+        r"\bPatrimonio\s+netto[ \t€]+(\d[\d\.,']*)",
+    ],
 }
 
 _ONERI_SUBTOTALS = [
@@ -149,8 +170,9 @@ def parse_italian_number(s: str) -> float | None:
     else:
         # No comma: dot could be thousands sep (e.g. '122.929') or decimal ('122.9')
         parts = s.split(".")
-        if len(parts) == 2 and len(parts[1]) == 3:
-            # '122.929' → thousands sep, no decimals
+        if len(parts) >= 2 and all(len(g) == 3 for g in parts[1:]):
+            # '122.929' / '7.282.830' → thousands sep, no decimals (prima solo il caso a un
+            # separatore: '7.282.830' non era parsabile e restituiva None)
             s = s.replace(".", "")
         # else leave as-is (plain float like '122929')
     try:

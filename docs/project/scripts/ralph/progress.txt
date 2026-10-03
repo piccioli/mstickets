@@ -957,3 +957,14 @@ PRD: docs/project/tasks/prd-menu-anagrafica-cai-bilanci-gruppi-regionali.md. Cic
 - **Learnings**: i documenti RUNTS `bilancio_esercizio` con titolo "BILANCIO D'ESERCIZIO" non sono classificati (solo titolo): è voluto dal PRD.
   Una run di phpstan senza `--no-progress` può stampare "Result is incomplete" spurio: rilanciare con `--no-progress`.
 ---
+
+## [2026-10-03] - US-942
+- `analyzer.py`: tre nuovi campi in `_PATTERNS` (`totale_attivo`, `totale_passivo`, `patrimonio_netto`), esposti da `POST /analyze/bilancio` (`_BILANCIO_FIELDS` in `main.py`).
+  I pattern richiedono il numero subito dopo l'etichetta, così "Totale attivo circolante" non viene scambiato per il totale attivo; coperte varianti
+  "TOTALE ATTIVITA:", "TOTALE ATTIVO (A+B+C+D)", "TOTALE STATO PATRIMONIALE - ATTIVO", layout a due colonne, apostrofo.
+- `parse_italian_number`: "7.282.830" (più gruppi da 3 senza virgola) ora è parsato (prima `ValueError` → None); comportamento invariato sugli altri casi.
+- Test pytest: 27 verdi (5 nuovi in `test_analyzer_patterns.py`, `test_analyze_bilancio.py` esteso). Immagine ricostruita, `GET /health` ok.
+- Verifica reale: 40 PDF "Stato Patrimoniale"/"Mod A"/"Mod A e B" da `normalized/` (32 con testo, 8 scansioni → null senza OCR): `totale_attivo` estratto in 24/32 = 75% (≥ 60%).
+  Mancanti (testo con layout diverso): Inveruno, Mortara, Rho, Oderzo, Pieve di Soligo, Modena, Forte dei Marmi, Maniago.
+- **Learnings**: `patrimonio_netto` è più fragile (spesso solo la riga "A) Patrimonio netto" senza numero sulla stessa riga); `totale_passivo` va letto come "totale passivo e patrimonio netto" quando c'è.
+---
