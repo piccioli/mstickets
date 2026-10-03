@@ -18,7 +18,7 @@ Modello da compilare al termine dell'esecuzione di tutti i test di [`02-fase-0.m
 | Versione sottoposta a collaudo | |
 | Ambiente | UAT — `https://ticket-uat.montagnaservizi.com` |
 | Periodo di esecuzione | dal _______ al _______ |
-| Numero totale dei test | 838 (56 Fase 0 + 74 Fase 1 + 16 Fase 1A + 74 Fase 2 + 113 Fase 3 + 42 Fase 4 + 60 Fase 5 + 141 Fase 6 + 36 Fase 7 + 52 Fase 8 + 174 Fase 9) |
+| Numero totale dei test | 875 (56 Fase 0 + 74 Fase 1 + 16 Fase 1A + 74 Fase 2 + 113 Fase 3 + 42 Fase 4 + 60 Fase 5 + 141 Fase 6 + 36 Fase 7 + 52 Fase 8 + 211 Fase 9) |
 
 ## Esiti aggregati
 
@@ -28,7 +28,7 @@ Modello da compilare al termine dell'esecuzione di tutti i test di [`02-fase-0.m
 | FAIL | | |
 | BLOCKED | | |
 | NOT APPLICABLE | | |
-| **Totale** | **838** | **100%** |
+| **Totale** | **875** | **100%** |
 
 ## Elenco delle anomalie aperte
 

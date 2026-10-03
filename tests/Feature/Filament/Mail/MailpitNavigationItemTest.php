@@ -57,7 +57,7 @@ test('the Mailpit item is registered in the Email group as the first navigation 
     expect($mailpit)->not->toBeNull();
     expect($mailpit->getGroup())->toBe('Email');
     expect($mailpit->shouldOpenUrlInNewTab())->toBeTrue();
-    expect($items[0]->getLabel())->toBe('Mailpit');
+    expect(collect($items)->first(fn (NavigationItem $item): bool => $item->getGroup() === 'Email')->getLabel())->toBe('Mailpit');
 });
 
 test('the Mailpit item is hidden from a customer even in local with the URL configured', function (): void {

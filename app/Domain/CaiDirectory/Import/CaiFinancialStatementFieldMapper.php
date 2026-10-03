@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\CaiDirectory\Import;
 
 /**
- * Mappatura pura dei 15 campi finanziari (Fase 9, storia 3): stessi nomi italiani già usati dalla tabella
+ * Mappatura pura dei 18 campi finanziari (Fase 9, storia 3): stessi nomi italiani già usati dalla tabella
  * `bilanci` del datapack statico E dalla risposta di `POST /analyze/bilancio` del servizio live
  * (`extract_bilancio_pdf()` nel prototipo Python restituisce esattamente queste chiavi, verificato — design
  * doc §3.4/§4.4: nessuna traduzione lato Python, il mapper condiviso vive solo qui). Non include mai
@@ -36,6 +36,10 @@ final class CaiFinancialStatementFieldMapper
             'pre_tax_result' => $row->risultato_ante_imposte,
             'taxes' => $row->imposte,
             'net_result' => $row->risultato_esercizio,
+            // Assenti nelle righe del datapack (solo il servizio live li restituisce): mai un errore.
+            'total_assets' => $row->totale_attivo ?? null,
+            'total_liabilities' => $row->totale_passivo ?? null,
+            'net_equity' => $row->patrimonio_netto ?? null,
         ];
     }
 }

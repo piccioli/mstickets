@@ -8,6 +8,7 @@ use App\Filament\Auth\Middleware\EnsureRoleRequiresMultiFactorAuthentication;
 use App\Filament\Auth\Pages\Login;
 use App\Filament\Auth\Pages\RequestPasswordReset;
 use App\Filament\Auth\Pages\ResetPassword;
+use App\Filament\Navigation\CaiBilanciNavigationItem;
 use App\Filament\Navigation\MailpitNavigationItem;
 use App\Filament\Pages\CustomerDashboard;
 use App\Filament\Pages\Dashboard;
@@ -65,6 +66,17 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->databaseNotifications()
             ->navigationItems([
+                // Genitori senza URL del gruppo "Anagrafica CAI": Filament scarta un genitore senza figli
+                // visibili, quindi un sotto-menu vuoto per l'utente non compare (US-940).
+                NavigationItem::make('Sezioni')
+                    ->group('Anagrafica CAI')
+                    ->icon(Heroicon::OutlinedBuildingLibrary)
+                    ->sort(10),
+                CaiBilanciNavigationItem::make(),
+                NavigationItem::make('Gruppi regionali')
+                    ->group('Anagrafica CAI')
+                    ->icon(Heroicon::OutlinedUserGroup)
+                    ->sort(30),
                 NavigationItem::make('Mailpit')
                     ->group('Email')
                     ->icon(Heroicon::OutlinedPaperAirplane)

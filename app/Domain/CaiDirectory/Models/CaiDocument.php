@@ -8,7 +8,9 @@ use App\Domain\CaiDirectory\Enums\CaiDocumentAnalysisStatus;
 use App\Domain\CaiDirectory\Enums\CaiDocumentSource;
 use App\Domain\CaiDirectory\Enums\CaiDocumentType;
 use App\Domain\CaiDirectory\Jobs\AnalyzeCaiFinancialStatementDocument;
+use App\Domain\CaiDirectory\Support\CaiFinancialDocumentKind;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -65,5 +67,42 @@ class CaiDocument extends Model
     public function section(): BelongsTo
     {
         return $this->belongsTo(CaiSection::class, 'cai_section_id', 'codice_cai');
+    }
+
+    /**
+     * @param  Builder<CaiDocument>  $query
+     * @return Builder<CaiDocument>
+     */
+    public function scopeIncomeStatement(Builder $query): Builder
+    {
+        return CaiFinancialDocumentKind::applyIncomeStatement($query);
+    }
+
+    /**
+     * @param  Builder<CaiDocument>  $query
+     * @return Builder<CaiDocument>
+     */
+    public function scopeBalanceSheet(Builder $query): Builder
+    {
+        return CaiFinancialDocumentKind::applyBalanceSheet($query);
+    }
+
+    /**
+     * @param  Builder<CaiDocument>  $query
+     * @return Builder<CaiDocument>
+     */
+    public function scopeForYear(Builder $query, int $year): Builder
+    {
+        return $query->where('year', $year);
+    }
+
+    public function isIncomeStatement(): bool
+    {
+        return CaiFinancialDocumentKind::isIncomeStatement($this->document_type, $this->title);
+    }
+
+    public function isBalanceSheet(): bool
+    {
+        return CaiFinancialDocumentKind::isBalanceSheet($this->document_type, $this->title);
     }
 }

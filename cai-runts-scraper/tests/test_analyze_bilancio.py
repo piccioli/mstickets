@@ -24,6 +24,9 @@ def _fake_analysis_result():
         "risultato_ante_imposte": 300.0,
         "imposte": 50.0,
         "risultato_esercizio": 250.0,
+        "totale_attivo": 5000.0,
+        "totale_passivo": 5000.0,
+        "patrimonio_netto": 3000.0,
         "_raw_text": "Rendiconto Gestionale...",
         "_ocr": False,
     }
@@ -42,6 +45,9 @@ def test_analyze_bilancio_returns_financial_fields():
     assert body["totale_oneri"] == 1200.0
     assert body["totale_proventi"] == 1500.0
     assert body["risultato_esercizio"] == 250.0
+    assert body["totale_attivo"] == 5000.0
+    assert body["totale_passivo"] == 5000.0
+    assert body["patrimonio_netto"] == 3000.0
     assert body["ocr"] is False
     assert "Rendiconto Gestionale" in body["raw_text"]
 

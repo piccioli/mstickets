@@ -204,3 +204,50 @@ parametro di rotta) e `docs/collaudo/CLAUDE.md` per il metodo di generazione del
   stesso motivo del blocco DB_CONNECTION già documentato lì) — un file assente è trattato come dataset vuoto,
   mai un errore. Qualunque futuro dataset "di fallback" statico committato nel repo dovrebbe seguire lo
   stesso pattern (percorso via config, mai un default che punta silenziosamente al file reale nei test).
+
+## Bilanci manuali di campagna nel datapack (`cai:build-manual-bilanci-datapack`, US-930..US-935)
+
+- **Layout** (gitignored, mai nel repo): `cai-datapack/bilanci-sezioni-2026/` contiene `2026_Campagna_Sezioni.xlsx`
+  (indice, foglio `Sezioni`), `normalized/<Regione>/<codice - CAI Nome>/<codice - CAI Nome - Etichetta.ext>` (402 file,
+  345 sezioni, usati a runtime) e `originals/` (grezzi Typeform, solo audit: **non** spediti su UAT da
+  `bin/push-cai-datapack`, che esclude anche l'xlsx).
+- **Ordine operativo**: `cai:build-manual-bilanci-datapack` (riscrive `bilanci_manuali` in `runts-cai.sqlite` con
+  `DROP`+`CREATE`+insert in una transazione, tocca solo quella tabella; `--dry-run` per il solo report) →
+  `bin/push-cai-datapack` → deploy/`cai:import-datapack`. L'import crea `CaiDocument` con `source=Manual`,
+  `cai_section_id` valorizzato e registrazione null (stessa forma di `UploadCaiDocumentManually`); gira solo
+  nell'import completo (non con codice sezione singolo né `--skip-section-fields`).
+- **Etichetta sconosciuta → `Altro`**: `ManualBilancioTypeMapper` mappa solo etichette esatte (o sinonimi
+  espliciti) su `CaiDocumentType`; `Bilancio consuntivo`, `Conto economico`, `Stato Patrimoniale…` NON si
+  indovinano. Il titolo resta l'etichetta originale; anno 2025 (2026 se l'etichetta lo contiene).
+- **Idempotenza**: un documento è considerato già presente per (sezione, `source=Manual`, hash sha256) → `skipped`;
+  due run consecutive creano 0 documenti. Un duplicato byte-identico nella stessa sezione (o un upload manuale
+  già fatto da UI) produce quindi un documento in meno dei file.
+- **Niente analisi di default**: `--analyze-manual` accoda `AnalyzeCaiFinancialStatementDocument` (coda
+  `cai-runts-analysis`) solo per i documenti CREATI in quella run di tipo `triggersFinancialAnalysis()` con anno;
+  mai in `--dry-run`.
+- **Anomalie attese sul dataset reale** (avvisi, mai bloccanti): `ricevuto_senza_file` = 3 (9216157, 9216158,
+  9248005), `file_senza_ricevuto` = 1 (9216031), `codice_excel_non_nel_datapack` = 2 (9212045, 9219008).
+  `sezione_non_nel_datapack` è registrata una volta per sezione; `codice_excel_non_nel_datapack` ha precedenza su
+  `ricevuto_senza_file` per lo stesso codice.
+- **Gotcha codici Excel**: la colonna A del foglio (senza intestazione) è `codice_cai`, ma talvolta è un numero
+  (`9216157.0`): normalizzare sempre a stringa di 7 cifre (`CampagnaSezioniIndexReader`). Le colonne si leggono per
+  intestazione, mai per indice.
+- **Gotcha comando**: un apostrofo nella descrizione di un'opzione dentro `$signature` (stringa PHP tra apici
+  singoli) rompe il parsing e `artisan` smette di elencare TUTTI i comandi (i test falliscono con
+  `CommandNotFoundException`). Il test `CaiBuildManualBilanci...` non è incluso da `--filter=ManualBilancio`:
+  usare `--filter=CaiBuildManualBilanci` o il path.
+
+## Bilanci per anno: `CaiFinancialDocumentKind`, `has*Data()` e `cai:analyze-financial-documents` (US-941..US-946)
+
+- `Support\CaiFinancialDocumentKind` è l'UNICO elenco di cosa conta come conto economico / stato patrimoniale (costanti `*_TYPES` + `*_KEYWORDS` sul
+  titolo): usato sia in PHP (`isIncomeStatement()`/`isBalanceSheet()`) sia in SQL (`applyIncomeStatement()`/`applyBalanceSheet()`). `CaiDocument`
+  espone `scopeIncomeStatement/scopeBalanceSheet/scopeForYear` che delegano lì: per cambiare la classificazione si tocca solo quella classe. I
+  `bilancio_esercizio` con titolo "BILANCIO D'ESERCIZIO" non sono classificati (voluto).
+- `CaiFinancialStatement::hasIncomeStatementData()` / `hasBalanceSheetData()` dicono se il record ha cifre di CE / SP (SP: `total_assets`,
+  `total_liabilities`, `net_equity`). Le pagine "Bilancio 2025"/"Gruppi regionali" non rileggono i bilanci: usano `Queries\CaiSectionFinancialYearQuery`
+  (colonne `EXISTS`, "collegato" = `cai_section_id` diretto OR via registrazione RUNTS).
+- `php artisan cai:analyze-financial-documents --year=YYYY [--section=] [--force] [--dry-run]` accoda `AnalyzeCaiFinancialStatementDocument` (coda
+  `cai-runts-analysis`) per i documenti CE/SP dell'anno non ancora analizzati. Serve `queue` in esecuzione; il worker ha `memory_limit` 128M e un PDF
+  grande può dare OOM (il job viene ritentato: sulla run 2025 tutti i 348 sono comunque arrivati a fine, 0 `failed_jobs`). Controllare l'avanzamento
+  con `redis-cli llen laravel-database-queues:cai-runts-analysis` (la chiave ha il prefisso `laravel-database-`).
+

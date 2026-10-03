@@ -723,7 +723,7 @@ quel test.
 | F8-50 | La pagina di dettaglio mostra uno stato vuoto esplicito per una sezione senza dati CAI collegati |  |  |  |  |  |  |  |
 | F8-51 | La card "Sezioni del gruppo regionale" collega alla pagina di dettaglio sezione |  |  |  |  |  |  |  |
 | F8-52 | Il flusso completo RUNTS-CAI funziona end-to-end: import, matching per email, consultazione staff, dashboard cliente Sezione e dettaglio scoped del cliente Gruppo Regionale |  |  |  |  |  |  |  |
-## Fase 9 (Sincronizzazione live CAI/RUNTS, fallback CF/PIVA, upload manuale documenti, menu Gruppo Regionale) — 174 test
+## Fase 9 (Sincronizzazione live CAI/RUNTS, fallback CF/PIVA, upload manuale documenti, menu Gruppo Regionale) — 211 test
 
 | ID | Titolo | Esito | Tester | Data | Versione | Evidenza | Anomalia | Note |
 |---|---|---|---|---|---|---|---|---|
@@ -901,10 +901,47 @@ quel test.
 | F9-172 | Stato vuoto esplicito quando il Gruppo Regionale non ha una regione valorizzata |  |  |  |  |  |  |  |
 | F9-173 | La pagina "Sezioni" collega alla pagina di dettaglio sezione |  |  |  |  |  |  |  |
 | F9-174 | Il flusso completo funziona end-to-end: creazione ticket con Richiesta, sync live CAI/RUNTS di una sezione con estrazione bilancio, fallback CF/PIVA, upload manuale di un documento e menu Gruppo Regionale scoped alla propria regione |  |  |  |  |  |  |  |
+| F9-175 | Il nome di un file normalizzato (codice - sezione - etichetta.estensione) viene scomposto nei suoi campi |  |  |  |  |  |  |  |
+| F9-176 | Un nome file non conforme (.DS_Store, codice non a 7 cifre, etichetta mancante) restituisce null, mai un'eccezione |  |  |  |  |  |  |  |
+| F9-177 | Un'etichetta nota viene mappata sul tipo documento corretto; il titolo resta quello originale e l'anno è 2025 (2026 se l'etichetta lo contiene); ogni etichetta sconosciuta ricade su "Altro" |  |  |  |  |  |  |  |
+| F9-178 | L'indice Excel della campagna è letto per intestazione di colonna e il codice CAI numerico (9216157.0) è normalizzato a 7 cifre |  |  |  |  |  |  |  |
+| F9-179 | Un file Excel senza il foglio "Sezioni" produce un errore esplicito |  |  |  |  |  |  |  |
+| F9-180 | Un file Excel indice mancante produce un errore esplicito |  |  |  |  |  |  |  |
+| F9-181 | La scansione delle cartelle normalizzate produce le righe attese (con hash sha256) e riporta ogni codice di anomalia di copertura |  |  |  |  |  |  |  |
+| F9-182 | Senza elenco di sezioni del datapack il controllo di presenza è saltato; una cartella staging mancante è rifiutata |  |  |  |  |  |  |  |
+| F9-183 | cai:build-manual-bilanci-datapack con datapack o cartella staging mancanti fallisce con un messaggio italiano esplicito |  |  |  |  |  |  |  |
+| F9-184 | Il comando scrive la tabella bilanci_manuali nel datapack, è idempotente e non tocca le altre tabelle |  |  |  |  |  |  |  |
+| F9-185 | Con --dry-run il file del datapack non viene modificato |  |  |  |  |  |  |  |
+| F9-186 | cai:import-datapack crea i documenti manuali collegati alla sezione e una seconda esecuzione non crea duplicati |  |  |  |  |  |  |  |
+| F9-187 | Una sezione sconosciuta o un file mancante sono saltati (con avviso) senza fermare gli altri documenti |  |  |  |  |  |  |  |
+| F9-188 | In --dry-run l'import non scrive nulla ma riporta gli stessi conteggi |  |  |  |  |  |  |  |
+| F9-189 | I documenti RUNTS già presenti non vengono toccati dall'import dei documenti manuali |  |  |  |  |  |  |  |
+| F9-190 | Senza --analyze-manual nessuna analisi dei bilanci viene accodata |  |  |  |  |  |  |  |
+| F9-191 | Con --analyze-manual l'analisi è accodata solo per i documenti appena creati di un tipo analizzabile |  |  |  |  |  |  |  |
+| F9-192 | Un admin vede il gruppo Anagrafica CAI organizzato in sotto-menu ordinati: Sezioni (con Anagrafica sezioni, Mappa sezioni e il sotto-menu annidato Bilanci con Bilanci non interpretati e Bilancio 2025) e Gruppi regionali |  |  |  |  |  |  |  |
+| F9-193 | Un utente con solo cai-directory.view vede Sezioni e, nel sotto-menu annidato Bilanci, solo Bilancio 2025 |  |  |  |  |  |  |  |
+| F9-194 | Un utente senza permessi cai-directory non vede il gruppo Anagrafica CAI |  |  |  |  |  |  |  |
+| F9-195 | I documenti sono classificati come conto economico/stato patrimoniale per tipo e titolo |  |  |  |  |  |  |  |
+| F9-196 | Gli scope SQL concordano coi metodi d'istanza sulle stesse righe |  |  |  |  |  |  |  |
+| F9-197 | Il filtro per anno agisce sulla colonna year |  |  |  |  |  |  |  |
+| F9-198 | I flag per sezione riflettono documenti diretti, via registrazione e bilanci interpretati |  |  |  |  |  |  |  |
+| F9-199 | L'elenco sezioni per anno è una singola query |  |  |  |  |  |  |  |
+| F9-200 | Un utente senza cai-directory.view non accede a "Bilancio 2025" (403) |  |  |  |  |  |  |  |
+| F9-201 | La pagina "Bilancio 2025" elenca tutte le sezioni ordinate per regione e nome |  |  |  |  |  |  |  |
+| F9-202 | Ogni filtro ternario restringe l'elenco |  |  |  |  |  |  |  |
+| F9-203 | I filtri Regione e "conto economico interpretato" si combinano in AND |  |  |  |  |  |  |  |
+| F9-204 | Il comando accoda solo i documenti CE/SP dell'anno mai analizzati |  |  |  |  |  |  |  |
+| F9-205 | Con --dry-run il comando non accoda nulla e stampa il dettaglio per regione |  |  |  |  |  |  |  |
+| F9-206 | Un documento col solo stato patrimoniale è Extracted e valorizza le colonne dello stato patrimoniale |  |  |  |  |  |  |  |
+| F9-207 | Il mapper riporta i totali dello stato patrimoniale quando presenti |  |  |  |  |  |  |  |
+| F9-208 | Il servizio di analisi restituisce i campi finanziari |  |  |  |  |  |  |  |
+| F9-209 | Gli utenti senza cai-directory.view non accedono a "Elenco gruppi regionali" (403) |  |  |  |  |  |  |  |
+| F9-210 | I conteggi per gruppo regionale sono calcolati per regione; le sezioni extra-regione non appartengono a nessun gruppo |  |  |  |  |  |  |  |
+| F9-211 | Il numero di query non cresce col numero di gruppi regionali |  |  |  |  |  |  |  |
 
 ## Riepilogo aggregato (da compilare a collaudo concluso)
 
 | Totale test | PASS | FAIL | BLOCKED | NOT APPLICABLE |
 |---|---|---|---|---|
-| 838 |  |  |  |  |
+| 875 |  |  |  |  |
 

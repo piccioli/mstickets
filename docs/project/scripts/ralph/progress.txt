@@ -835,3 +835,205 @@ Started: Lun  7 Set 2026 15:44:39 CEST
     compose exec -T app php -d memory_limit=512M artisan tinker --execute="..."` per qualunque verifica
     manuale che invochi `CaiRuntsScraperClient::scrapeEntity()`/uno smoke test simile con payload grandi.
 ---
+
+## [2026-10-03] Nuovo ciclo Ralph: US-930..US-938 (bilanci Sezioni 2026 nel datapack)
+PRD: docs/project/tasks/prd-bilanci-sezioni-2026-datapack.md. Il ciclo precedente (US-901..US-928) è archiviato in archive/2026-10-03-orchestrator-v2-fase-9-storie-2-3/. I Codebase Patterns sopra restano validi.
+---
+
+## [2026-10-03] - US-930
+- Aggiunti in `app/Domain/CaiDirectory/Import/ManualBilancio/`: `ManualBilancioFilenameParser` (regex del PRD, `null` se non combacia),
+  DTO `ParsedManualBilancioFilename`/`ManualBilancioClassification`, `ManualBilancioTypeMapper` (match esatto case-insensitive con
+  `CaiDocumentType::getLabel()` + tabella sinonimi; resto → `Altro`; anno 2026 se l'etichetta contiene `2026`, altrimenti 2025).
+- Test: `tests/Unit/Domain/CaiDirectory/Import/ManualBilancio/ManualBilancioParsingTest.php` (30 test). Pest/Pint/Larastan verdi.
+- **Learnings**: i label di `CaiDocumentType::getLabel()` coprono già quasi tutti i casi del PRD; l'unico sinonimo reale necessario è la
+  variante dati reali `Mod A  Mod B` (senza virgola, doppio spazio) → `CompletoABC`. La normalizzazione degli spazi collassa il doppio spazio.
+---
+
+## [2026-10-03] - US-931
+- Aggiunti in `app/Domain/CaiDirectory/Import/ManualBilancio/`: `CampagnaSezioniIndexReader::read()` (OpenSpout, solo foglio `Sezioni`,
+  colonne per intestazione, codice normalizzato a 7 cifre, righe senza codice scartate, `InvalidArgumentException` in italiano per file/foglio
+  mancante) e DTO `CampagnaSezioniRow`.
+- Test: `tests/Unit/Domain/CaiDirectory/Import/ManualBilancio/CampagnaSezioniIndexReaderTest.php` (3 test). Pest/Pint/Larastan verdi.
+- Verificato sul file reale: 525 righe con codice (il PRD dice 526: una riga in meno, probabile duplicato di codice che collassa sulla chiave),
+  stati RICEVUTO 347 / DA VERIFICARE 137 / PROBLEMA RUNTS 41 come da PRD.
+- **Learnings**: (1) le chiavi stringa numeriche di un array PHP diventano `int` — chi itera `array_keys()` deve fare cast a `string` (anche nei
+  test). (2) Le colonne `Link al bilancio`/`Link al bilancio 2` dell'Excel reale sono array-formula `=IF(B2:B1007=...` senza valore in cache:
+  OpenSpout restituisce il testo della formula, quindi il reader scarta le celle che iniziano con `=` (i link sono solo riferimento, 344 righe
+  su 525 hanno comunque almeno un valore non-formula).
+---
+
+## [2026-10-03] - US-932
+- Aggiunti in `app/Domain/CaiDirectory/Import/ManualBilancio/`: `ManualBilancioDatapackBuilder::build()` (statico, come parser/reader),
+  DTO `ManualBilancioRow`, `ManualBilancioAnomaly` (costanti per i codici stabili) e `ManualBilancioBuildResult` (rows, anomalies,
+  `filesCount()/sectionsCount()/totalSize()/anomalyCounts()/anomaliesOf()`).
+- Test: `tests/Unit/Domain/CaiDirectory/Import/ManualBilancio/ManualBilancioDatapackBuilderTest.php` (2 test, fixture in tmp). Pest/Pint/Larastan verdi.
+- Verificato sui dati reali: 402 file, 345 sezioni, anomalie `ricevuto_senza_file`=3, `file_senza_ricevuto`=1, `codice_excel_non_nel_datapack`=2.
+- **Learnings**: `sezione_non_nel_datapack` è registrata UNA volta per sezione (non per file); `codice_excel_non_nel_datapack` ha precedenza su
+  `ricevuto_senza_file` per lo stesso codice. `$sectionCodesInDatapack = null` salta ogni controllo di presenza nel datapack. `path` è relativo
+  alla cartella del datapack (prefisso = basename dello staging). Nessun hash duplicato nei dati reali.
+---
+
+## [2026-10-03] - US-933
+- Aggiunto `app/Console/Commands/CaiBuildManualBilanciDatapackCommand.php` (`cai:build-manual-bilanci-datapack`, opzioni `--datapack`,
+  `--staging`, `--dry-run`): PDO sqlite dedicato, legge `sezioni_cai.codice_cai`, delega a `ManualBilancioDatapackBuilder`, scrive
+  `DROP`+`CREATE`+insert di `bilanci_manuali` in una sola transazione, stampa riepilogo per regione, totali e anomalie raggruppate.
+  File datapack/cartella staging mancanti → errore italiano + FAILURE (prima di toccare PDO).
+- Test: `tests/Feature/Console/CaiBuildManualBilanciDatapackCommandTest.php` (3 test: errori, scrittura+idempotenza+tabelle intatte, dry-run).
+  Pest/Pint/Larastan verdi. Dry-run reale: 402 file, 345 sezioni, 291,1 MB, anomalie 3/1/2 come da PRD (datapack reale NON modificato: build vera in US-937).
+- **Learnings**: il filtro `--filter=ManualBilancio` NON include questo test (il file si chiama `...ManualBilanci...`): lanciarlo per path o con
+  `--filter=CaiBuildManualBilanci`. I percorsi di default stanno nella signature (come `cai:import-datapack`), non in `config()`.
+---
+
+## [2026-10-03] - US-934
+- Aggiunto `app/Domain/CaiDirectory/Import/CaiManualBilanciImporter.php` (riceve la connessione `cai_datapack`, `$datapackDir`, `$dryRun`),
+  iniettato nel costruttore di `CaiDatapackImporter` e richiamato in coda a `import()` SOLO se `$onlyCaiSectionCode === null` e
+  `!$skipSectionFields`; il risultato è la chiave `documenti_manuali` (stampata dal comando come le altre tabelle, warning inclusi).
+- Tabella `bilanci_manuali` assente → `CaiImportTableResult` vuoto (riga a zero, nessun errore). Sezione sconosciuta o già importata (stesso
+  `source=Manual` + sezione + hash) → `skipped`; file mancante → `skipped` + warning; eccezione per-riga catturata dentro il loop.
+- Test: `tests/Feature/Console/CaiManualBilanciImportTest.php` (6 test) + `CaiImportDatapackCommandTest` invariato e verde. `--filter=Cai` 238 verdi,
+  Pint e Larastan puliti.
+- **Learnings**: in `--dry-run` le sezioni non sono scritte, quindi l'importer legge i codici da `sezioni_cai` del datapack (non da `cai_sections`)
+  per dare gli stessi conteggi. Nei test, `makeCaiDatapackFixture()` contiene già un allegato RUNTS: filtrare per `source` quando si asserisce
+  sui documenti manuali. `skipSectionFields=true` con sezioni non pre-create fa fallire la FK delle registrazioni: creare entrambe le sezioni.
+---
+
+## [2026-10-03] - US-935
+- `cai:import-datapack --analyze-manual` → `CaiDatapackImporter::import(..., analyzeManual)` → `CaiManualBilanciImporter::import(..., $analyze)`:
+  per ogni documento manuale CREATO in questa run con `CaiDocumentType::tryFrom($tipo)?->triggersFinancialAnalysis()` e `year !== null`
+  dispatch di `AnalyzeCaiFinancialStatementDocument` sulla coda `cai-runts-analysis`. Senza flag, in `--dry-run` (il dry-run non crea nulla) o
+  per documenti già presenti (skipped) nessun dispatch; `tipo` non valido → ignorato (`tryFrom`). La doc in CLAUDE.md è demandata a US-938.
+- Test: 3 nuovi in `tests/Feature/Console/CaiManualBilanciImportTest.php` (Queue::fake). `--filter=Cai` 241 verdi, Pint e Larastan puliti.
+- **Learnings**: in una `$signature` di comando Laravel (stringa PHP tra apici singoli) un apostrofo nella descrizione di un'opzione ("l'estrazione")
+  rompe il parsing e `artisan` non elenca più NESSUN comando: i test falliscono con `CommandNotFoundException`, non con un errore di sintassi.
+---
+
+## [2026-10-03] - US-936
+- `bin/push-cai-datapack`: rsync con `--exclude` per `bilanci-sezioni-2026/originals/` e `bilanci-sezioni-2026/2026_Campagna_Sezioni.xlsx`
+  (array `EXCLUDES`), il messaggio di sync stampa cosa è escluso; `--delete`, host e percorso di default invariati.
+- `deploy/CLAUDE.md`: nota su ordine operativo (`cai:build-manual-bilanci-datapack` → push → deploy) e bind-mount `:ro`.
+- Verificato: `bash -n` ok; `rsync -avn --delete --exclude=...` su cartelle temporanee mostra `normalized/` e `runts-cai.sqlite` inclusi,
+  `originals/` e l'xlsx esclusi; `git ls-files cai-datapack` vuoto. `make setup` non toccato.
+- **Learnings**: con `--delete` gli exclude sono anche protetti dalla cancellazione lato remoto (no `--delete-excluded`): un eventuale
+  `originals/` già presente su UAT resterebbe lì finché non rimosso a mano.
+---
+
+## [2026-10-03] - US-937
+- Run reale locale: `migrate --pretend` (nulla da migrare), backup `runts-cai.sqlite` in /tmp/bk, `cai:build-manual-bilanci-datapack` (402 file, 345 sezioni, anomalie 3/1/2),
+  `cai:import-datapack` → `documenti_manuali` letti 402, creati 401, saltati 1; seconda run: creati 0, saltati 402.
+- Il totale `source=manual` è 403: nel DB di sviluppo c'erano già 2 upload manuali identici (sezione 9226003, id 2001/2003) e l'import ne ha riconosciuto uno come duplicato.
+- Spot-check: 9226001 → mod_a, mod_b, relazione_attivita, relazione_missione; 9226005 → mod_d; file presenti sul disco `cai-documents` e hash = sha256 del sorgente.
+- Browser (Playwright): scheda `/admin/cai-sections/9226001` tab "Allegati" mostra i 4 documenti "Caricamento manuale"; il download di Mod A ha sha256 identico al sorgente.
+- Modifica temporanea a `->databaseNotifications()` ripristinata (git diff pulito); nessun file temporaneo nel repo.
+- **Learnings**: l'id di `CaiSection` nelle URL è il `codice_cai`; `cai_section_id` sui documenti è il codice stringa. `sed -i` BSD vuole `''` e non supporta `\s`.
+---
+
+## [2026-10-03] - US-938
+- `docs/collaudo/fase-9.php`: nuovo topic "Bilanci Sezioni 2025 nel datapack CAI" (F9-175..F9-192, 18 test collegati a test Pest reali di US-930..US-935, aggiunto DOPO il checkpoint per non rinumerare F9-174); `collaudo:verify-manifest 9` passa.
+- `docs/collaudo/16-fase-9.md`: paragrafo breve in coda (nessuna rigenerazione del PDF: `pdflatex` assente sull'host). `app/Domain/CaiDirectory/CLAUDE.md`: sezione "Bilanci manuali di campagna nel datapack".
+- **Learnings**: i contatori in testa a `16-fase-9.md`/`00-istruzioni-generali.md` (174 casi) NON sono stati aggiornati: farlo se si rigenera il PDF di fase.
+---
+
+## [2026-10-03] Nuovo ciclo Ralph: US-940..US-948 (menu Anagrafica CAI, Bilancio 2025, Gruppi regionali)
+PRD: docs/project/tasks/prd-menu-anagrafica-cai-bilanci-gruppi-regionali.md. Ciclo precedente (US-930..US-938) archiviato in archive/2026-10-03-bilanci-sezioni-2026-datapack/.
+---
+
+## [2026-10-03] - US-940
+- Via scelta: **voci figlie native Filament 4** (verificata in browser, il fallback con tre `NavigationGroup` non serve). Genitori "Sezioni"/"Bilanci"/"Gruppi regionali"
+  = `NavigationItem` senza URL in `AdminPanelProvider::navigationItems()` (sort 10/20/30, gruppo `Anagrafica CAI`); figli con `$navigationParentItem` + `$navigationSort`
+  (Anagrafica sezioni 11, Mappa sezioni 12, Bilanci non interpretati 21). `CaiSectionResource`: label "Anagrafica sezioni" (slug/classe invariati).
+- Un genitore senza URL e senza figli visibili viene scartato da `NavigationManager` → nessun sotto-menu/gruppo vuoto per chi non ha il permesso; "Gruppi regionali" resta
+  nascosto finché US-947 non aggiunge un figlio (parent = etichetta `'Gruppi regionali'`, sort 31). Un genitore senza URL mostra sempre i figli espansi.
+- Test: `tests/Feature/Filament/CaiDirectory/CaiNavigationTest.php` (3). `--filter=Cai` 244 verdi, Pint e Larastan puliti. Browser (Playwright, utente admin temporaneo poi rimosso,
+  `databaseNotifications` ripristinato): sidebar con Sezioni/Bilanci annidati, click sulle 3 voci apre la pagina giusta.
+- **Learnings**: il titolo pagina del Resource deriva da `$pluralModelLabel` (reso "Anagrafica Sezioni" in Title Case).
+---
+
+## [2026-10-03] - US-941
+- `App\Domain\CaiDirectory\Support\CaiFinancialDocumentKind`: costanti `*_TYPES`/`*_KEYWORDS` per conto economico e stato patrimoniale, applicate sia in PHP
+  (`isIncomeStatement()`/`isBalanceSheet()`) sia in SQL (`applyIncomeStatement()`/`applyBalanceSheet()`: `whereIn(document_type) OR LOWER(title) LIKE`).
+  `CaiDocument` espone `scopeIncomeStatement/scopeBalanceSheet/scopeForYear` e i metodi d'istanza che delegano alla classe.
+- Divergenza dalla lista di partenza: aggiunta la keyword `patrimoniale ed economico` ai conti economici (titolo reale "Bilancio patrimoniale ed economico").
+- Test: `tests/Unit/Domain/CaiDirectory/Support/CaiFinancialDocumentKindTest.php` (29 titoli reali, metodi + scope + parità). `--filter=Cai` 276 verdi, Pint e Larastan puliti.
+- **Learnings**: i documenti RUNTS `bilancio_esercizio` con titolo "BILANCIO D'ESERCIZIO" non sono classificati (solo titolo): è voluto dal PRD.
+  Una run di phpstan senza `--no-progress` può stampare "Result is incomplete" spurio: rilanciare con `--no-progress`.
+---
+
+## [2026-10-03] - US-942
+- `analyzer.py`: tre nuovi campi in `_PATTERNS` (`totale_attivo`, `totale_passivo`, `patrimonio_netto`), esposti da `POST /analyze/bilancio` (`_BILANCIO_FIELDS` in `main.py`).
+  I pattern richiedono il numero subito dopo l'etichetta, così "Totale attivo circolante" non viene scambiato per il totale attivo; coperte varianti
+  "TOTALE ATTIVITA:", "TOTALE ATTIVO (A+B+C+D)", "TOTALE STATO PATRIMONIALE - ATTIVO", layout a due colonne, apostrofo.
+- `parse_italian_number`: "7.282.830" (più gruppi da 3 senza virgola) ora è parsato (prima `ValueError` → None); comportamento invariato sugli altri casi.
+- Test pytest: 27 verdi (5 nuovi in `test_analyzer_patterns.py`, `test_analyze_bilancio.py` esteso). Immagine ricostruita, `GET /health` ok.
+- Verifica reale: 40 PDF "Stato Patrimoniale"/"Mod A"/"Mod A e B" da `normalized/` (32 con testo, 8 scansioni → null senza OCR): `totale_attivo` estratto in 24/32 = 75% (≥ 60%).
+  Mancanti (testo con layout diverso): Inveruno, Mortara, Rho, Oderzo, Pieve di Soligo, Modena, Forte dei Marmi, Maniago.
+- **Learnings**: `patrimonio_netto` è più fragile (spesso solo la riga "A) Patrimonio netto" senza numero sulla stessa riga); `totale_passivo` va letto come "totale passivo e patrimonio netto" quando c'è.
+---
+
+## [2026-10-03] - US-943
+- Migrazione additiva `2026_10_03_120000_add_balance_sheet_columns_to_cai_financial_statements_table` (`total_assets`, `total_liabilities`, `net_equity` decimal(15,2) nullable);
+  `--pretend` verificato, poi applicata al Postgres di sviluppo. `CaiFinancialStatement`: Fillable/cast + `hasIncomeStatementData()` / `hasBalanceSheetData()`.
+- `CaiFinancialStatementFieldMapper` mappa i 3 campi con `?? null` (le righe del datapack sono `stdClass` senza quelle proprietà: senza `??` sarebbe un errore).
+- `AnalyzeCaiFinancialStatementDocument` invariato: merge "non-null vince" e `$hasAnyData` iterano già su tutti gli attributi del mapper, quindi un documento con solo SP è `Extracted`.
+- Test: mapper (con/senza campi nuovi), job (solo SP / solo CE / merge CE+SP stesso anno, helper `has*Data()`). `--filter=Cai` 280 verdi, Pint e Larastan puliti.
+- **Learnings**: aggiungere una colonna al mapper non richiede toccare il job; ricordarsi di aggiornare le asserzioni `toBe([...])` del test del mapper.
+---
+
+## [2026-10-03] - US-944
+- `App\Domain\CaiDirectory\Queries\CaiSectionFinancialYearQuery` (statica): `forYear($year)` = `CaiSection` con 4 colonne `EXISTS` (`has_income_statement_file`,
+  `has_balance_sheet_file`, `income_statement_parsed`, `balance_sheet_parsed`); filtri `withIncomeStatementFile/withBalanceSheetFile/withIncomeStatementParsed/
+  withBalanceSheetParsed(Builder, int $year, bool $value = true)`. Un solo punto di verità: i metodi privati `*Exists($year)` costruiscono la sub-query e sono
+  usati sia per la colonna (`selectRaw('EXISTS (...) as alias')`) sia per il filtro (`whereRaw('[NOT ]EXISTS (...)')`). "Collegato alla sezione" = diretto
+  (`cai_section_id`) OR `cai_runts_registration_id IN (registrazioni della sezione)`.
+- I filtri prendono l'anno come parametro esplicito (non solo `bool`) perché sono statici su un `Builder` qualunque, utilizzabili anche senza `forYear()`.
+- Test: `tests/Feature/Domain/CaiDirectory/Queries/CaiSectionFinancialYearQueryTest.php` (5: fixture 6 sezioni, anno parametrico, parità colonne/filtri, AND, singola query
+  con `DB::enableQueryLog()`). `--filter=Cai` 285 verdi, Pint e Larastan puliti. Eseguiti su host (sqlite); nessuna UI quindi niente verifica browser.
+- **Learnings**: i flag letti dal modello sono int 0/1 su sqlite e bool su Postgres: la UI (US-945) deve usare `(bool)`/`IconColumn` che li gestisce già. Per le sezioni
+  il `codice_cai` è la chiave (stringa), la correlazione è `cai_sections.codice_cai`.
+---
+
+## [2026-10-03] - US-945
+- `App\Filament\Pages\CaiFinancialYearPage` (astratta, `abstract static year(): int`) + `CaiFinancialYear2025` (sort 22, sotto "Bilanci"). Tabella su
+  `CaiSectionFinancialYearQuery::forYear()`: colonne Denominazione/Regione/Codice CAI + 4 `IconColumn` booleane con tooltip, default sort regione+denominazione, paginazione 25/50/100;
+  filtri Regione (`SelectFilter` da valori distinti) + 4 `TernaryFilter` che chiamano i `with*()` di US-944 con l'anno della pagina; azione "Apri scheda" → view sezione `?tab=allegati`.
+  "Bilancio 2026" = una sottoclasse con `year()` e `$navigationSort`.
+- Test: `tests/Feature/Filament/CaiDirectory/CaiFinancialYear2025Test.php` (10); `CaiNavigationTest` aggiornato (nuova voce sotto Bilanci, visibile anche con solo `CaiDirectoryView`).
+  `--filter=Cai` 295 verdi, Pint e Larastan puliti. Pagina astratta non scoperta come route (solo `admin/cai-financial-year2025`).
+- **Browser NON verificato** (nessun Docker/Playwright avviato): verificare a mano.
+- **Learnings**: gli slug di pagina derivano dal nome classe (`cai-financial-year2025`). `assertCanSeeTableRecords(..., inOrder: true)` rispetta l'ordine reale: attenzione all'ordine alfabetico dei nomi di fixture.
+---
+
+## [2026-10-03] - US-946
+- Comando `cai:analyze-financial-documents` (`--year` obbligatorio, `--section`, `--force`, `--dry-run`) in `app/Console/Commands/CaiAnalyzeFinancialDocumentsCommand.php`.
+  Delega a `App\Domain\CaiDirectory\Queries\CaiFinancialDocumentsToAnalyzeQuery` (`forYear`, `neverAnalyzed`, `countByRegion`): CE **o** SP dell'anno, `year` null mai incluso,
+  filtro sezione = diretto (`cai_section_id`) OR via registrazione RUNTS. Dry-run stampa il dettaglio per regione (COALESCE sezione diretta → sezione della registrazione → regione registrazione → "N/D").
+  Log `cai.analyze_financial_documents.started/finished`; saltati = totale CE/SP dell'anno − candidati.
+- Test: `tests/Feature/Console/CaiAnalyzeFinancialDocumentsCommandTest.php` (5, `Queue::fake()`). `--filter=Cai` 300 verdi, Pint e Larastan puliti.
+- **Learnings**: i raggruppamenti per regione su `cai_documents` richiedono sub-select correlate (nessuna FK diretta alla regione); `groupByRaw` con la stessa espressione del select funziona su Postgres e sqlite.
+---
+
+## [2026-10-03] - US-947
+- Pagina `App\Filament\Pages\CaiRegionalGroups` ("Elenco gruppi regionali", sort 31, figlia di "Gruppi regionali", gate `CaiDirectoryView`) su
+  `App\Domain\CaiDirectory\Queries\CaiRegionalGroupsQuery::forYear(2025)`: utenti `GruppoRegionale` + LEFT JOIN su UNA aggregazione per regione
+  (da `CaiSectionFinancialYearQuery::forYear()`) con `sections_count`, `with_financials_count` (file CE o SP), `income_parsed_count`, `coverage_percent` (ROUND, null se 0 sezioni).
+  Filtro regione (solo GR presenti), colonne numeriche ordinabili, "Apri utente" solo con `UserView`, stato vuoto, paginazione 25.
+- **Divergenza dalla story**: "Sezioni" conta `cai_sections` per regione, non `SectionsInRegionQuery` (quella conta utenti `Sezione`, non le sezioni CAI: Toscana darebbe 0 invece di 27).
+- Test: `tests/Feature/Filament/CaiDirectory/CaiRegionalGroupsTest.php` (7, incl. EXTRA REGIONE, query count = 1 al crescere dei GR); `CaiNavigationTest` aggiornato. `--filter=Cai` verde, Pint e Larastan puliti.
+- Browser verificato (Playwright su Postgres reale, 21 GR, Toscana 27 sezioni, sidebar annidata); utente temporaneo rimosso con `forceDelete()`.
+- **Learnings**: `cai_sections.region` è `mb_strtoupper(Region::label())` ("EMILIA-ROMAGNA"). **Su Postgres una `CASE` con binding nel SELECT e di nuovo nel GROUP BY NON è la stessa
+  espressione** (binding posizionali → "must appear in the GROUP BY"; sqlite non lo rileva): calcolare la chiave in una sub-query interna e raggruppare sull'alias. Per il login Playwright
+  un utente di prova deve avere un ruolo di `UserRole` (`canAccessPanel`) e la password va assegnata in chiaro (cast `hashed`), non con `bcrypt()`.
+---
+
+## [2026-10-03] - US-948
+- Run reale `cai:analyze-financial-documents --year=2025`: dry-run 348 documenti (2 già analizzati), run reale 348 accodati; coda svuotata, 0 `failed_jobs`.
+  Esito sui 350 documenti CE/SP 2025: **145 `Extracted`, 205 `NoDataExtracted`** (seconda dry-run: 0 da accodare). Pagina "Bilancio 2025" (529 sezioni): file CE 306, file SP 123,
+  **CE interpretato 97 sezioni, SP interpretato 44 sezioni**.
+- Browser (Playwright su Postgres reale, utente admin temporaneo `forceDelete()`, `databaseNotifications` ripristinato, `git diff` vuoto): sidebar con i tre sotto-menu, "Bilancio 2025"
+  con filtro "Conto economico interpretato: Sì" attivo, "Elenco gruppi regionali". Screenshot in `/tmp/pw948/` (non nel repo).
+- Doc: `docs/collaudo/fase-9.php` (topic F9-192..F9-211, `collaudo:verify-manifest 9` ok), paragrafo in `16-fase-9.md` (PDF non rigenerato: da allineare contatori in testa e dettaglio casi
+  F9-192..F9-211 alla rigenerazione), `app/Filament/CLAUDE.md` (sotto-menu), `app/Domain/CaiDirectory/CLAUDE.md` (`CaiFinancialDocumentKind`, `has*Data()`, comando).
+- Fix collaterali: F9-62 puntava a un test del mapper rinominato in US-943 (aggiornato nel manifest); `MailpitNavigationItemTest` assumeva Mailpit primo in assoluto tra le voci
+  (rotto da US-940: ora "Sezioni" è a sort 10) → asserisce il primo del gruppo Email.
+- Verificato: `composer run lint`, `composer run analyse` puliti; `--filter=Cai` 307 verdi (1 skipped); `--filter=Filament` 349 verdi.
+- **Learnings**: il worker `queue` ha `memory_limit` 128M: alcuni PDF grandi danno OOM e il job viene ritentato, ma la run completa lo stesso. Chiavi Redis con prefisso `laravel-database-`.
+---

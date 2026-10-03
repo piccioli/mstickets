@@ -41,6 +41,8 @@ final class CaiDatapackImporter
 {
     use DiffsAttributes;
 
+    public function __construct(private readonly CaiManualBilanciImporter $manualBilanciImporter) {}
+
     private const CONNECTION_NAME = 'cai_datapack';
 
     private const DOCUMENTS_DISK = 'cai-documents';
@@ -70,6 +72,7 @@ final class CaiDatapackImporter
         bool $dryRun,
         ?string $onlyCaiSectionCode = null,
         bool $skipSectionFields = false,
+        bool $analyzeManual = false,
     ): array {
         $this->registerConnection($absolutePath);
 
@@ -106,6 +109,10 @@ final class CaiDatapackImporter
             $results['cai_financial_statements'] = $this->importFinancialStatements($bilanciRows, $matchedIdRunts, $dryRun);
             $results['cai_board_members'] = $this->importBoardMembers($carichiSocialiRows, $matchedIdRunts, $dryRun);
             $results['cai_documents'] = $this->importDocuments($allegatiRows, $matchedIdRunts, $datapackDir, $dryRun);
+
+            if ($onlyCaiSectionCode === null && ! $skipSectionFields) {
+                $results['documenti_manuali'] = $this->manualBilanciImporter->import($connection, $datapackDir, $dryRun, $analyzeManual);
+            }
 
             return $results;
         } finally {
