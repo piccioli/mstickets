@@ -1,0 +1,177 @@
+{
+  "project": "Orchestrator v2 — Fase 9 (estensione): menu Anagrafica CAI con sotto-menu Sezioni/Bilanci/Gruppi regionali, lista Bilancio 2025, estrazione stato patrimoniale",
+  "branchName": "ralph/orchestrator-v2-fase-9",
+  "description": "Riorganizza il menu staff \"Anagrafica CAI\" in tre sotto-menu, aggiunge la lista filtrabile \"Bilancio 2025\" (file e interpretazione di conto economico/stato patrimoniale), l'estrazione dello stato patrimoniale nel parser e l'elenco dei gruppi regionali. PRD completo: docs/project/tasks/prd-menu-anagrafica-cai-bilanci-gruppi-regionali.md (US-940..US-948).",
+  "userStories": [
+    {
+      "id": "US-940",
+      "title": "Riorganizzazione del menu \"Anagrafica CAI\" in tre sotto-menu",
+      "description": "As an admin, voglio vedere nel menu \"Anagrafica CAI\" tre sotto-menu (Sezioni, Bilanci, Gruppi regionali) così da ritrovare le voci per argomento.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: `docs/project/tasks/prd-menu-anagrafica-cai-bilanci-gruppi-regionali.md` (§1.2).",
+        "Gruppo di navigazione unico `Anagrafica CAI` (come oggi), con questa struttura visibile nella sidebar: **Sezioni** → { *Anagrafica sezioni*, *Mappa sezioni* }; **Bilanci** → { *Bilanci non interpretati* }; **Gruppi regionali** → (vuoto fino a US-947). L'ordine delle voci è fisso via `$navigationSort`.",
+        "Tecnica: provare **prima** le voci figlie native di Filament 4 (`protected static ?string $navigationParentItem` sulle pagine/Resource figli, con voci genitore \"Sezioni\"/\"Bilanci\"/\"Gruppi regionali\" registrate come `NavigationItem` in `AdminPanelProvider::navigationItems()` o come pagine hub). Se, **dopo verifica reale in browser**, il rendering annidato non è utilizzabile (genitore non cliccabile, voce non espandibile, ecc.), usare il **fallback**: tre `NavigationGroup` con etichette `CAI · Sezioni`, `CAI · Bilanci`, `CAI · Gruppi regionali`, dichiarati in `->navigationGroups([...])` nel provider con l'ordine desiderato. Documentare in `progress.txt` quale via è stata scelta e perché.",
+        "`CaiSectionResource`: `$navigationLabel = 'Anagrafica sezioni'` e titolo della lista/breadcrumb \"Anagrafica sezioni\" (non cambiare lo slug/URL né il nome della classe: link e test esistenti restano validi).",
+        "Nessun cambio di permessi: ogni voce mantiene il proprio `canAccess()`/`canViewAny()` attuale (Sezioni e Mappa → `CaiDirectoryView`, Bilanci non interpretati → `CaiDirectoryReviewUnparsedDocuments`). Un sotto-menu senza voci visibili per l'utente non deve comparire (nessun gruppo/voce vuota per ruoli senza permesso).",
+        "Il menu cliente (gruppi \"GR\", \"Sezioni\", \"Area cliente\") e gli altri gruppi staff restano invariati.",
+        "Test Pest su `Filament::getNavigation()` (o equivalente) con utente Admin: etichette, ordine e raggruppamento attesi; con utente senza `CaiDirectoryView` il gruppo non compare.",
+        "Tests pass (`php -d memory_limit=1G vendor/bin/pest --filter=Cai` e il nuovo file), Pint, Larastan verdi.",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill (Playwright come da `CLAUDE.md`): login come `info@montagnaservizi.com`, screenshot della sidebar con i sotto-menu, click su ogni voce esistente apre la pagina giusta."
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Via nativa: genitori NavigationItem senza URL in AdminPanelProvider + $navigationParentItem sui figli; fallback NavigationGroup non necessario."
+    },
+    {
+      "id": "US-941",
+      "title": "Riconoscimento dei documenti \"conto economico\" e \"stato patrimoniale\"",
+      "description": "As a developer, voglio un unico punto di verità che dica se un `CaiDocument` è (o contiene) un conto economico e/o uno stato patrimoniale, perché le liste e i filtri dipendono da questo.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: docs/project/tasks/prd-menu-anagrafica-cai-bilanci-gruppi-regionali.md (§1.2 stato attuale verificato, §4 requisiti funzionali, §7 note tecniche) — leggerlo PRIMA di implementare, non rifare l'esplorazione",
+        "Nuova classe `App\\Domain\\CaiDirectory\\Support\\CaiFinancialDocumentKind` con due elenchi costanti: tipi `CaiDocumentType` e parole chiave del titolo, per ciascun \"tipo\" (conto economico / stato patrimoniale). Regole di partenza (da affinare solo con evidenza dai dati reali): - **Conto economico**: tipi `ModB`, `ModAB`, `CompletoABC`, `BilancioEconomicoFinanziario`, `ModD` (rendiconto per cassa: equivalente per le sezioni piccole); parole chiave nel titolo (lowercase, accenti ignorati): `conto economico`, `rendiconto gestionale`, `rendiconto per cassa`, `rendiconto finanziario`, `bilancio consuntivo`, `bilancio economico`, `situazione economica`, `rendiconto economico`. - **Stato patrimoniale**: tipi `ModA`, `ModAB`, `CompletoABC`; parole chiave: `stato patrimoniale`, `situazione patrimoniale`, `bilancio patrimoniale`, `patrimoniale`. - Un documento può essere **entrambi** (es. \"Stato Patrimoniale e Rendiconto gestionale\"). - Per i documenti RUNTS (`document_type = bilancio_esercizio`) valgono le sole parole chiave del titolo (es. \"Mod. B - Rendiconto Gestionale\", \"Mod. A - Stato Patrimoniale\").",
+        "Scope Eloquent su `CaiDocument`: `scopeIncomeStatement()` e `scopeBalanceSheet()` (SQL portabile sqlite+Postgres: `whereIn('document_type', [...]) OR LOWER(title) LIKE '%…%'`, mai ILIKE) più i metodi d'istanza `isIncomeStatement(): bool` / `isBalanceSheet(): bool` che usano **le stesse** costanti (un solo elenco, due modi di applicarlo; test di parità sui titoli reali).",
+        "Scope `forYear(int $year)` (`where('year', $year)`).",
+        "Test Pest con un dataset di almeno 25 titoli reali (dall'import: `Bilancio consuntivo`, `Mod D - Rendiconto per cassa`, `Conto economico`, `Stato Patrimoniale e conto economico`, `Stato Patrimoniale`, `Rendiconto per cassa`, `Mod A e B - Stato Patrimoniale e Rendiconto gestionale`, `Relazione di missione` (→ nessuno dei due), `Verbale assemblea` (→ nessuno), `Quote associative 2026` (→ nessuno), …) che asserisce sia gli scope (su DB sqlite) sia i metodi d'istanza.",
+        "Nessuna colonna nuova, nessuna business logic in hook Eloquent.",
+        "Tests pass, Pint, Larastan verdi.",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Aggiunta keyword 'patrimoniale ed economico' (evidenza reale: 'Bilancio patrimoniale ed economico') ai conti economici."
+    },
+    {
+      "id": "US-942",
+      "title": "Estrazione dello stato patrimoniale nel servizio Python `cai-runts-scraper`",
+      "description": "As a developer, voglio che l'analyzer Python estragga dai PDF Mod A i totali dello stato patrimoniale, così \"stato patrimoniale interpretato\" diventa un dato reale.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: docs/project/tasks/prd-menu-anagrafica-cai-bilanci-gruppi-regionali.md (§1.2 stato attuale verificato, §4 requisiti funzionali, §7 note tecniche) — leggerlo PRIMA di implementare, non rifare l'esplorazione",
+        "`cai-runts-scraper/app/analyzer.py` estrae tre campi aggiuntivi, restituiti nella stessa risposta di `POST /analyze/bilancio` accanto ai campi esistenti: `totale_attivo`, `totale_passivo`, `patrimonio_netto` (float o `null`). Pattern (da affinare sui testi reali): \"TOTALE ATTIVO\", \"Totale attività\", \"TOTALE PASSIVO\", \"Totale passivo\", \"Totale patrimonio netto\", \"Patrimonio netto\", con la stessa gestione dei numeri italiani (`1.234,56`, `1.234`, apostrofo) già usata per oneri/proventi.",
+        "I campi esistenti e il comportamento su tutti i test pytest esistenti **non cambiano** (nessuna regressione).",
+        "Test pytest con testi sintetici (stringhe inline, mai PDF reali committati) per: Mod A standard ETS, layout a due colonne attivo/passivo, numeri con apostrofo, testo senza stato patrimoniale (→ tutti `null`).",
+        "Verifica manuale su **almeno 8 PDF reali** di \"Mod A - Stato Patrimoniale\" / \"Stato Patrimoniale\" / \"Mod A e B …\" presi da `cai-datapack/bilanci-sezioni-2026/normalized/` (gitignored, non committare nulla), eseguendo `analyze` localmente: riportare in `progress.txt` quanti restituiscono almeno `totale_attivo`. Obiettivo ≥ 60% dei file testuali (i PDF scansione/OCR possono restare `null`); sotto il 60% annotare i pattern mancanti ma non bloccare la story.",
+        "Immagine Docker del servizio ricostruita (`docker compose build cai-runts-scraper`) e `GET /health` ok.",
+        "Tests pass (pytest)",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Verifica su 40 PDF 'stato patrimoniale' reali (32 con testo): totale_attivo estratto in 24/32 (75%). Corretto anche parse_italian_number per '7.282.830' (più separatori migliaia senza virgola, prima None)."
+    },
+    {
+      "id": "US-943",
+      "title": "Persistenza dello stato patrimoniale in `cai_financial_statements`",
+      "description": "As a developer, voglio salvare i totali dello stato patrimoniale estratti, con merge campo-per-campo come già avviene per il conto economico.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: docs/project/tasks/prd-menu-anagrafica-cai-bilanci-gruppi-regionali.md (§1.2 stato attuale verificato, §4 requisiti funzionali, §7 note tecniche) — leggerlo PRIMA di implementare, non rifare l'esplorazione",
+        "Nuova migrazione **additiva** (mai modificare quelle già committate) che aggiunge a `cai_financial_statements` tre colonne `decimal(15,2)` nullable: `total_assets`, `total_liabilities`, `net_equity`. `CaiFinancialStatement`: `#[Fillable]` e cast aggiornati.",
+        "`CaiFinancialStatementFieldMapper::mapFinancialStatement()` mappa `totale_attivo`→`total_assets`, `totale_passivo`→`total_liabilities`, `patrimonio_netto`→`net_equity` (assenti/`null` → `null`; il mapper resta usato anche dall'import del datapack, dove quei campi non esistono: nessun errore).",
+        "`AnalyzeCaiFinancialStatementDocument::upsertMerging()` include le tre colonne nel merge \"il valore non-null vince\" già esistente, con lo stesso `lockForUpdate` (nessuna nuova race). Aggiornare `recordDocumentAnalysisOutcome()`/`$hasAnyData` perché un documento con **solo** stato patrimoniale estratto conti come `Extracted` (non `NoDataExtracted`).",
+        "Helper sul modello: `CaiFinancialStatement::hasIncomeStatementData(): bool` (`total_expenses`, `total_revenues` o `net_result` non null) e `hasBalanceSheetData(): bool` (`total_assets` o `net_equity` non null) — un solo punto di verità per \"interpretato\".",
+        "Test Pest aggiornati/aggiunti: mapper (con e senza campi nuovi), job con risposta del client mockata che contiene solo stato patrimoniale / solo conto economico / entrambi, merge fra due documenti dello stesso anno (uno CE, uno SP → record con entrambi), helper `has*Data()`. I test esistenti di `AnalyzeCaiFinancialStatementDocumentTest` e `CaiImportDatapackCommandTest` restano verdi.",
+        "Migrazione verificata con `php artisan migrate --pretend` prima di applicarla al Postgres di sviluppo (gotcha in `app/Domain/CaiDirectory/CLAUDE.md`); applicarla con `--force` solo dopo.",
+        "Tests pass, Pint, Larastan verdi.",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Il job non ha richiesto modifiche: merge e $hasAnyData iterano già su tutti gli attributi del mapper. Il mapper usa `?? null` per i 3 campi nuovi (le righe datapack sono stdClass senza quelle proprietà)."
+    },
+    {
+      "id": "US-944",
+      "title": "Query \"stato bilancio per sezione e anno\"",
+      "description": "As a developer, voglio un unico query object che arricchisca le sezioni con i quattro flag dell'anno, usato dalla lista \"Bilancio 2025\" e dalla lista Gruppi regionali.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: docs/project/tasks/prd-menu-anagrafica-cai-bilanci-gruppi-regionali.md (§1.2 stato attuale verificato, §4 requisiti funzionali, §7 note tecniche) — leggerlo PRIMA di implementare, non rifare l'esplorazione",
+        "Nuovo `App\\Domain\\CaiDirectory\\Queries\\CaiSectionFinancialYearQuery::forYear(int $year): Builder` (sulla `CaiSection`), che aggiunge via sub-query `EXISTS` (niente `having` su alias) i flag booleani: `has_income_statement_file`, `has_balance_sheet_file`, `income_statement_parsed`, `balance_sheet_parsed`. - `has_*_file`: esiste un `CaiDocument` dell'anno (`forYear`) che soddisfa `scopeIncomeStatement()` / `scopeBalanceSheet()` (US-941) **collegato alla sezione sia direttamente (`cai_section_id`) sia tramite una sua `CaiRuntsRegistration`**. - `*_parsed`: esiste un `CaiFinancialStatement` dell'anno collegato alla sezione (direttamente o via registrazione) con `hasIncomeStatementData()`/`hasBalanceSheetData()` logicamente veri (stesse colonne non null, espresse in SQL).",
+        "Scope di filtro riusabili sulla stessa classe (`withIncomeStatementFile(bool)`, `withBalanceSheetFile(bool)`, `withIncomeStatementParsed(bool)`, `withBalanceSheetParsed(bool)`) con un solo punto di verità per le condizioni (la colonna booleana e il filtro non devono divergere).",
+        "Nessuna N+1: una sola query per pagina di lista (verificato con `DB::enableQueryLog()` in un test).",
+        "Test Pest su sqlite con fixture: sezione con documento diretto 2025 CE (flag file vero, parsed falso); sezione con documento via registrazione RUNTS; sezione con financial statement 2025 con solo CE; sezione con solo SP; sezione con documenti di un altro anno (tutti falsi per 2025); sezione senza nulla.",
+        "Tests pass, Pint, Larastan verdi.",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-945",
+      "title": "Pagina \"Bilancio 2025\" nel sotto-menu Bilanci",
+      "description": "As an admin, voglio una lista delle sezioni con lo stato dei bilanci 2025 filtrabile, per sapere chi ha consegnato cosa e cosa è stato interpretato.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: docs/project/tasks/prd-menu-anagrafica-cai-bilanci-gruppi-regionali.md (§1.2 stato attuale verificato, §4 requisiti funzionali, §7 note tecniche) — leggerlo PRIMA di implementare, non rifare l'esplorazione",
+        "Nuova pagina Filament `App\\Filament\\Pages\\CaiFinancialYear2025` (classe tabella generica parametrica sull'anno, es. base astratta `CaiFinancialYearPage` con `abstract static function year(): int`, così \"Bilancio 2026\" richiede una sola sottoclasse di poche righe), voce di menu **\"Bilancio 2025\"** sotto **Bilanci** (dopo \"Bilanci non interpretati\" nell'ordine; usare la tecnica scelta in US-940), titolo pagina \"Bilancio 2025\", gate `Permission::CaiDirectoryView`.",
+        "Tabella (pattern `InteractsWithTable` + `EmbeddedTable` come `CaiUnparsedFinancialStatements`) sulla query di US-944, con colonne: **Denominazione** (searchable, sortable), **Regione** (sortable), **Codice CAI**, **Conto economico (file)**, **Stato patrimoniale (file)**, **Conto economico interpretato**, **Stato patrimoniale interpretato** — le quattro booleane come `IconColumn` (sì/no) con tooltip. Ordinamento predefinito: regione, poi denominazione. Paginazione 25/50/100.",
+        "Filtri: **Regione** (`SelectFilter` con i valori distinti di `cai_sections.region`, mai l'enum, come in `CaiSectionsTable`), e quattro `TernaryFilter` (Tutte / Sì / No): *Ha file conto economico*, *Ha file stato patrimoniale*, *Conto economico interpretato*, *Stato patrimoniale interpretato*, ciascuno collegato allo scope corrispondente di US-944. I filtri sono combinabili (AND).",
+        "La ricerca per testo copre denominazione e codice CAI.",
+        "Azione di riga \"Apri scheda\" che porta alla vista della sezione (`CaiSectionResource` view) sul tab Allegati se già esiste l'helper (vedi `CaiSectionInfolist`, ricarica su `?tab=allegati`).",
+        "Stato vuoto esplicito quando i filtri non danno risultati.",
+        "Test Pest Livewire (`Livewire::test(...)`, `->filterTable(...)`, **non** `fillForm` — gotcha in `CLAUDE.md`): con fixture di 4 sezioni verificare ogni filtro singolarmente e una combinazione (regione + CE interpretato); accesso negato (403) a un utente senza `CaiDirectoryView`.",
+        "Tests pass, Pint, Larastan verdi.",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill: la pagina elenca le sezioni reali, il filtro \"Ha file conto economico = Sì\" riduce l'elenco, screenshot letto con Read."
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "Verifica in browser NON eseguita (nessun ambiente Docker/Playwright avviato in questa iterazione): da fare a mano su /admin/cai-financial-year2025."
+    },
+    {
+      "id": "US-946",
+      "title": "Comando di analisi dei documenti dell'anno (conto economico e stato patrimoniale)",
+      "description": "As a data manager, voglio far interpretare i bilanci 2025 già importati, perché l'import non accoda mai l'analisi da solo.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: docs/project/tasks/prd-menu-anagrafica-cai-bilanci-gruppi-regionali.md (§1.2 stato attuale verificato, §4 requisiti funzionali, §7 note tecniche) — leggerlo PRIMA di implementare, non rifare l'esplorazione",
+        "Comando `cai:analyze-financial-documents` in `app/Console/Commands/` (`--year=2025` obbligatorio, `--section=<codice_cai>` opzionale, `--force`, `--dry-run`). Seleziona i `CaiDocument` dell'anno che soddisfano `scopeIncomeStatement()` **o** `scopeBalanceSheet()` (US-941) e `financial_analysis_status IS NULL` (mai analizzati; con `--force` anche gli altri); per ognuno `AnalyzeCaiFinancialStatementDocument::dispatch($id)->onQueue('cai-runts-analysis')`.",
+        "`--dry-run` non accoda nulla ma stampa quanti documenti verrebbero accodati e il dettaglio per regione.",
+        "Output finale: conteggio accodati, saltati (già analizzati), e promemoria di guardare Horizon/coda `cai-runts-analysis`. Comando sottile (opzioni + delega a una query già esistente + stampa), log strutturato `started`/`finished`, idempotente per costruzione (stato non più `null` dopo l'analisi).",
+        "Un documento con `year = null` non viene mai accodato (il job lo ignorerebbe comunque).",
+        "Test Pest con `Queue::fake()`: accodamento selettivo (solo CE/SP, solo anno richiesto, solo mai analizzati), `--force`, `--section`, `--dry-run`, anno mancante → errore esplicito.",
+        "Tests pass, Pint, Larastan verdi.",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-947",
+      "title": "Voce \"Gruppi regionali\" → lista dei gruppi regionali",
+      "description": "As an admin, voglio una lista dei Gruppi Regionali con le informazioni utili a colpo d'occhio, come prima voce del sotto-menu Gruppi regionali.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: docs/project/tasks/prd-menu-anagrafica-cai-bilanci-gruppi-regionali.md (§1.2 stato attuale verificato, §4 requisiti funzionali, §7 note tecniche) — leggerlo PRIMA di implementare, non rifare l'esplorazione",
+        "Nuova pagina Filament `App\\Filament\\Pages\\CaiRegionalGroups`, voce **\"Elenco gruppi regionali\"** come **prima** (e per ora unica) voce sotto il sotto-menu **Gruppi regionali** (tecnica come US-940), gate `Permission::CaiDirectoryView`.",
+        "Sorgente: utenti con `customer_type = CustomerType::GruppoRegionale` (confronto con l'enum, mai stringhe grezze). Colonne: **Gruppo** (nome utente, searchable), **Regione** (`Region::label()`), **Email** (searchable), **Sezioni** (numero di sezioni della regione, via `SectionsInRegionQuery`), **Con bilancio 2025** (sezioni con almeno un documento dell'anno), **Conto economico interpretato 2025** (n° sezioni), **Copertura %** ((con bilancio 2025 / sezioni), una cifra intera, \"—\" se 0 sezioni), **Utente attivo** (stato account, come mostrato altrove nel repo per gli utenti disattivati).",
+        "I conteggi si calcolano con **una query aggregata per regione** (mai una query per riga): riusare `CaiSectionFinancialYearQuery::forYear(2025)` (US-944) raggruppata per regione + mappatura `Region` ↔ `cai_sections.region`; verifica con `DB::enableQueryLog()` che il numero di query non cresca con il numero di gruppi.",
+        "Filtro **Regione** (SelectFilter sulle regioni dei GR presenti) e ordinamento per ogni colonna numerica.",
+        "Azione di riga \"Apri utente\" verso la scheda dell'utente nella Resource Utenti, **solo** se l'utente corrente ha `Permission::UserView`; altrimenti l'azione non compare.",
+        "Stato vuoto esplicito se non esiste nessun GR.",
+        "Test Pest Livewire: 3 GR + sezioni di prova in regioni diverse (inclusa una sezione \"EXTRA REGIONE\" che non appartiene a nessun GR), conteggi corretti, filtro regione, azione \"Apri utente\" presente/assente per permesso, 403 senza `CaiDirectoryView`.",
+        "Tests pass, Pint, Larastan verdi.",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill: la lista mostra i 21 GR locali con conteggi plausibili (es. Toscana 27 sezioni), screenshot letto con Read."
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": "Sezioni = conteggio su cai_sections.region (non SectionsInRegionQuery, che conta utenti Sezione: Toscana darebbe 0, non 27)."
+    },
+    {
+      "id": "US-948",
+      "title": "Verifica su dati reali, collaudo e note per gli agenti",
+      "description": "As a maintainer, voglio la prova su dati reali che menu e liste funzionano, e la documentazione allineata.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: docs/project/tasks/prd-menu-anagrafica-cai-bilanci-gruppi-regionali.md (§1.2 stato attuale verificato, §4 requisiti funzionali, §7 note tecniche) — leggerlo PRIMA di implementare, non rifare l'esplorazione",
+        "`docker compose exec -T app php artisan cai:analyze-financial-documents --year=2025 --dry-run`, poi la run reale (con il servizio `cai-runts-scraper` attivo e la coda `queue` in esecuzione); attendere la fine dei job e riportare in `progress.txt`: documenti accodati, quanti `Extracted`/`NoDataExtracted`, quante sezioni con CE interpretato e con SP interpretato nella pagina \"Bilancio 2025\".",
+        "Verifica in browser (Playwright, script in `/tmp`, mai nel repo; utente `info@montagnaservizi.com` o account creato con `collaudo:ensure-manager-account`, ricordando il gotcha `->databaseNotifications()` su Postgres in `CLAUDE.md`): screenshot di (1) sidebar con i tre sotto-menu, (2) \"Bilancio 2025\" con un filtro attivo, (3) \"Elenco gruppi regionali\". Utenti di verifica creati → `forceDelete()` a fine prova.",
+        "`docs/collaudo/fase-9.php`: topic \"Menu Anagrafica CAI e bilanci 2025\" con test numerati collegati a test automatici realmente esistenti (US-940..US-947); `php artisan collaudo:verify-manifest 9` passa. Paragrafo breve nel manuale `docs/collaudo/16-fase-9.md` (non rigenerare il PDF: `pdflatex` assente in locale; i contatori in testa al manuale vanno allineati quando si rigenera il PDF — annotarlo).",
+        "`app/Filament/CLAUDE.md`: sezione breve \"Sotto-menu di navigazione\" con la tecnica scelta in US-940, il motivo e il gotcha della collisione col gruppo cliente \"Sezioni\". `app/Domain/CaiDirectory/CLAUDE.md`: nota su `CaiFinancialDocumentKind` (un elenco, scope + metodi), su `hasIncomeStatementData()`/ `hasBalanceSheetData()` e su `cai:analyze-financial-documents`.",
+        "`progress.txt` aggiornato nel formato esistente.",
+        "`composer run lint`, `composer run analyse` e i test mirati (`--filter=Cai`, `--filter=Filament`) verdi; la suite intera NON è un criterio (crash preesistente documentato).",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": ""
+    }
+  ]
+}

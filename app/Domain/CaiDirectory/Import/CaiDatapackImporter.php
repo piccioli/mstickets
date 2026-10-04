@@ -41,7 +41,10 @@ final class CaiDatapackImporter
 {
     use DiffsAttributes;
 
-    public function __construct(private readonly CaiManualBilanciImporter $manualBilanciImporter) {}
+    public function __construct(
+        private readonly CaiManualBilanciImporter $manualBilanciImporter,
+        private readonly CaiSnapshotImporter $snapshotImporter,
+    ) {}
 
     private const CONNECTION_NAME = 'cai_datapack';
 
@@ -112,6 +115,8 @@ final class CaiDatapackImporter
 
             if ($onlyCaiSectionCode === null && ! $skipSectionFields) {
                 $results['documenti_manuali'] = $this->manualBilanciImporter->import($connection, $datapackDir, $dryRun, $analyzeManual);
+                // Snapshot completo (tabelle `snap_*`): dopo tutti gli step legacy, solo per l'import nazionale.
+                $results += $this->snapshotImporter->import($connection, $dryRun, $usersByLowerEmail, $datapackDir);
             }
 
             return $results;

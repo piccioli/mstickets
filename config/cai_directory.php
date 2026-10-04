@@ -71,4 +71,12 @@ return [
     'runts_presence_check' => [
         'schedule_cron' => env('CAI_CHECK_RUNTS_PRESENCE_SCHEDULE_CRON', '0 5 1 * *'),
     ],
+
+    /*
+     * Import dello snapshot nel datapack (`cai:import-datapack`): margine di spazio libero richiesto sullo storage
+     * dei documenti, in percentuale dei byte da copiare, prima di copiare i file dei documenti RUNTS.
+     */
+    'snapshot' => [
+        'disk_margin_percent' => (float) env('CAI_SNAPSHOT_DISK_MARGIN_PERCENT', 10),
+    ],
 ];

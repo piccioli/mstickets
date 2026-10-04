@@ -11,13 +11,29 @@
 # non fa parte della pipeline CI (il datapack non è mai nel repository che CI
 # vede).
 #
-# Uso: bin/push-cai-datapack [ssh-host] [percorso remoto]
+# Prima del rsync stampa la dimensione dei file del datapack (al netto delle
+# esclusioni), quanto verrà effettivamente trasferito e lo spazio libero
+# remoto; si ferma se lo spazio libero è < 2.2 × la dimensione dei file (l'import
+# li copia una seconda volta nello storage del container). `--force` prosegue
+# comunque.
+#
+# Uso: bin/push-cai-datapack [--force] [ssh-host] [percorso remoto]
 #   bin/push-cai-datapack msuat /opt/mstickets-uat/cai-datapack
+#   bin/push-cai-datapack local /tmp/prova   # prova a secco: destinazione locale, nessun ssh
 
 set -euo pipefail
 
-SSH_HOST="${1:-msuat}"
-REMOTE_PATH="${2:-/opt/mstickets-uat/cai-datapack}"
+FORCE=0
+ARGS=()
+for arg in "$@"; do
+    case "$arg" in
+        --force) FORCE=1 ;;
+        *) ARGS+=("$arg") ;;
+    esac
+done
+
+SSH_HOST="${ARGS[0]:-msuat}"
+REMOTE_PATH="${ARGS[1]:-/opt/mstickets-uat/cai-datapack}"
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LOCAL_DATAPACK="$REPO_ROOT/cai-datapack"
@@ -32,8 +48,19 @@ if [ ! -f "$LOCAL_DATAPACK/runts-cai.sqlite" ]; then
     exit 1
 fi
 
+# Host speciale `local`: destinazione su filesystem locale, senza ssh (per le prove a secco).
+if [ "$SSH_HOST" = "local" ]; then
+    DEST="$REMOTE_PATH"
+    remote() { bash -c "$1"; }
+    DF_CMD="df -Pk '$REMOTE_PATH' | awk 'NR==2 {print \$4 * 1024}'"
+else
+    DEST="$SSH_HOST:$REMOTE_PATH"
+    remote() { ssh "$SSH_HOST" "$1"; }
+    DF_CMD="df -B1 --output=avail '$REMOTE_PATH' | tail -n 1"
+fi
+
 echo "Creo (se assente) $REMOTE_PATH su $SSH_HOST..."
-ssh "$SSH_HOST" "mkdir -p '$REMOTE_PATH'"
+remote "mkdir -p '$REMOTE_PATH'"
 
 # Bilanci manuali delle sezioni: su UAT servono solo `normalized/` e il sqlite;
 # i file grezzi (`originals/`) e l'Excel indice della campagna restano in locale.
@@ -42,8 +69,39 @@ EXCLUDES=(
     --exclude='bilanci-sezioni-2026/2026_Campagna_Sezioni.xlsx'
 )
 
-echo "Sincronizzo $LOCAL_DATAPACK -> $SSH_HOST:$REMOTE_PATH ..."
 echo "Esclusi: bilanci-sezioni-2026/originals/, bilanci-sezioni-2026/2026_Campagna_Sezioni.xlsx"
-rsync -avz --delete "${EXCLUDES[@]}" "$LOCAL_DATAPACK/" "$SSH_HOST:$REMOTE_PATH/"
+
+# Legge un contatore (es. "Total file size") dall'output di `rsync --stats`.
+stat_bytes() {
+    printf '%s\n' "$1" | grep -E "^$2:" | head -n 1 | sed -E 's/^[^:]*:[[:space:]]*//' | sed -E 's/[^0-9].*$//' | tr -d ','
+}
+
+STATS="$(LC_ALL=C rsync -a --dry-run --stats --no-human-readable --delete "${EXCLUDES[@]}" "$LOCAL_DATAPACK/" "$DEST/")"
+TOTAL_BYTES="$(stat_bytes "$STATS" 'Total file size')"
+TRANSFER_BYTES="$(stat_bytes "$STATS" 'Total transferred file size')"
+AVAIL_BYTES="$(remote "$DF_CMD" | tr -d '[:space:]')"
+
+if ! [[ "${TOTAL_BYTES:-}" =~ ^[0-9]+$ && "${TRANSFER_BYTES:-}" =~ ^[0-9]+$ && "${AVAIL_BYTES:-}" =~ ^[0-9]+$ ]]; then
+    echo "Errore: impossibile determinare dimensioni/spazio libero (totale='${TOTAL_BYTES:-}', da trasferire='${TRANSFER_BYTES:-}', libero='${AVAIL_BYTES:-}')." >&2
+    exit 1
+fi
+
+REQUIRED_BYTES=$(( (TOTAL_BYTES * 22 + 9) / 10 ))
+echo "File del datapack:        $TOTAL_BYTES byte"
+echo "Da trasferire ora:        $TRANSFER_BYTES byte"
+echo "Spazio libero remoto:     $AVAIL_BYTES byte"
+echo "Richiesto (2.2 × file):   $REQUIRED_BYTES byte"
+
+if [ "$AVAIL_BYTES" -lt "$REQUIRED_BYTES" ]; then
+    if [ "$FORCE" -eq 1 ]; then
+        echo "ATTENZIONE: spazio insufficiente, proseguo per via di --force." >&2
+    else
+        echo "Errore: spazio libero su $SSH_HOST insufficiente (l'import copia i file una seconda volta). Libera spazio o usa --force." >&2
+        exit 1
+    fi
+fi
+
+echo "Sincronizzo $LOCAL_DATAPACK -> $DEST ..."
+rsync -avz --delete "${EXCLUDES[@]}" "$LOCAL_DATAPACK/" "$DEST/"
 
 echo "Fatto. Il prossimo deploy su develop leggerà questo datapack (deploy/remote-deploy.sh)."

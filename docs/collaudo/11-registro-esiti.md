@@ -723,7 +723,7 @@ quel test.
 | F8-50 | La pagina di dettaglio mostra uno stato vuoto esplicito per una sezione senza dati CAI collegati |  |  |  |  |  |  |  |
 | F8-51 | La card "Sezioni del gruppo regionale" collega alla pagina di dettaglio sezione |  |  |  |  |  |  |  |
 | F8-52 | Il flusso completo RUNTS-CAI funziona end-to-end: import, matching per email, consultazione staff, dashboard cliente Sezione e dettaglio scoped del cliente Gruppo Regionale |  |  |  |  |  |  |  |
-## Fase 9 (Sincronizzazione live CAI/RUNTS, fallback CF/PIVA, upload manuale documenti, menu Gruppo Regionale) — 211 test
+## Fase 9 (Sincronizzazione live CAI/RUNTS, fallback CF/PIVA, upload manuale documenti, menu Gruppo Regionale) — 247 test
 
 | ID | Titolo | Esito | Tester | Data | Versione | Evidenza | Anomalia | Note |
 |---|---|---|---|---|---|---|---|---|
@@ -938,10 +938,46 @@ quel test.
 | F9-209 | Gli utenti senza cai-directory.view non accedono a "Elenco gruppi regionali" (403) |  |  |  |  |  |  |  |
 | F9-210 | I conteggi per gruppo regionale sono calcolati per regione; le sezioni extra-regione non appartengono a nessun gruppo |  |  |  |  |  |  |  |
 | F9-211 | Il numero di query non cresce col numero di gruppi regionali |  |  |  |  |  |  |  |
+| F9-212 | Senza datapack il comando di export fallisce con un messaggio italiano esplicito |  |  |  |  |  |  |  |
+| F9-213 | L'export scrive tutte le sei tabelle snap_* con conteggi uguali a quelli del database |  |  |  |  |  |  |  |
+| F9-214 | I valori sono scritti in forma grezza di colonna, senza user_id e senza id autoincrementale |  |  |  |  |  |  |  |
+| F9-215 | L'export è idempotente: due esecuzioni producono lo stesso contenuto nello stesso ordine |  |  |  |  |  |  |  |
+| F9-216 | Con --dry-run l'export non scrive nulla e il file del datapack resta invariato |  |  |  |  |  |  |  |
+| F9-217 | Le altre tabelle del datapack (sezioni_cai, enti, bilanci, allegati...) non vengono toccate dall'export |  |  |  |  |  |  |  |
+| F9-218 | Un contenuto identico è copiato una sola volta, col nome uguale allo sha256 ricalcolato |  |  |  |  |  |  |  |
+| F9-219 | Un file mancante esporta comunque la riga con file_in_datapack 0 e un avviso |  |  |  |  |  |  |  |
+| F9-220 | I documenti manuali non vengono mai copiati nel datapack |  |  |  |  |  |  |  |
+| F9-221 | Una seconda esecuzione non ricopia i file già presenti |  |  |  |  |  |  |  |
+| F9-222 | Con spazio libero insufficiente l'export si ferma con un errore italiano prima di scrivere |  |  |  |  |  |  |  |
+| F9-223 | Con --dry-run nessun file viene copiato |  |  |  |  |  |  |  |
+| F9-224 | L'import ripristina tutte le tabelle snapshot su un database vuoto con parità di conteggi |  |  |  |  |  |  |  |
+| F9-225 | I bilanci sono ripristinati per registrazione o per sezione, con esattamente un genitore |  |  |  |  |  |  |  |
+| F9-226 | Una seconda esecuzione non crea né aggiorna nulla |  |  |  |  |  |  |  |
+| F9-227 | I valori cambiati sono aggiornati e user_id non viene mai sovrascritto |  |  |  |  |  |  |  |
+| F9-228 | Le sezioni nuove ottengono user_id ricostruito per email |  |  |  |  |  |  |  |
+| F9-229 | Le righe con genitore inesistente sono saltate con avviso, senza violare chiavi esterne |  |  |  |  |  |  |  |
+| F9-230 | Con --dry-run l'import non scrive e riporta gli stessi conteggi dell'esecuzione reale |  |  |  |  |  |  |  |
+| F9-231 | Un datapack senza tabelle snap_* non è influenzato e un import limitato a una sezione salta lo snapshot |  |  |  |  |  |  |  |
+| F9-232 | Il comando di import stampa le righe di riepilogo dello snapshot e non accoda nulla |  |  |  |  |  |  |  |
+| F9-233 | I documenti RUNTS sono creati copiando i file sul disco documenti, mai come manuali |  |  |  |  |  |  |  |
+| F9-234 | Un documento già importato dal legacy (stesso genitore, hash e fonte) non è duplicato ma ne è allineata l'analisi |  |  |  |  |  |  |  |
+| F9-235 | Una seconda esecuzione dell'import documenti non crea né aggiorna nulla |  |  |  |  |  |  |  |
+| F9-236 | Un file sorgente mancante è saltato con avviso senza fermare gli altri |  |  |  |  |  |  |  |
+| F9-237 | Una riga il cui genitore non esiste è saltata e conteggiata |  |  |  |  |  |  |  |
+| F9-238 | Con spazio insufficiente non viene copiato nulla e l'errore italiano è esplicito |  |  |  |  |  |  |  |
+| F9-239 | Con spazio insufficiente il comando di import termina con esito di fallimento |  |  |  |  |  |  |  |
+| F9-240 | Con --dry-run l'import documenti non scrive né copia ma riporta conteggi e byte previsti |  |  |  |  |  |  |  |
+| F9-241 | La riga di riepilogo riporta i megabyte copiati |  |  |  |  |  |  |  |
+| F9-242 | Il file scaricato di un documento importato ha lo stesso sha256 del sorgente |  |  |  |  |  |  |  |
+| F9-243 | L'import dei documenti non accoda alcun job di analisi |  |  |  |  |  |  |  |
+| F9-244 | L'esito di analisi dei documenti manuali è ripristinato per sezione e hash, senza creare né accodare nulla |  |  |  |  |  |  |  |
+| F9-245 | Una riga manuale senza documento corrispondente è saltata e conteggiata |  |  |  |  |  |  |  |
+| F9-246 | Una seconda esecuzione non aggiorna nulla e --dry-run non scrive |  |  |  |  |  |  |  |
+| F9-247 | Dopo l'import i flag della pagina "Bilancio 2025" sono gli stessi del database locale |  |  |  |  |  |  |  |
 
 ## Riepilogo aggregato (da compilare a collaudo concluso)
 
 | Totale test | PASS | FAIL | BLOCKED | NOT APPLICABLE |
 |---|---|---|---|---|
-| 875 |  |  |  |  |
+| 911 |  |  |  |  |
 

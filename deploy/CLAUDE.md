@@ -35,3 +35,16 @@ per la pipeline ETL che gira ad ogni deploy.
   → `bin/push-cai-datapack` → deploy. Il push esclude `bilanci-sezioni-2026/originals/` e
   `2026_Campagna_Sezioni.xlsx` (restano `normalized/` e `runts-cai.sqlite`). Il bind-mount è `:ro`:
   l'import non scrive mai nella cartella datapack, copia **da** lì verso `storage/app/private/cai-documents`.
+
+## Snapshot CAI/RUNTS (datapack → UAT)
+
+- Ordine operativo: `cai:build-manual-bilanci-datapack` → `cai:export-datapack-snapshot` → pulizia spazio su
+  msuat se serve (`docker image prune -a -f`, `docker builder prune -f` — **azione manuale**, mai automatica)
+  → `bin/push-cai-datapack` → deploy.
+- **Vincolo di spazio**: l'import copia i file dei documenti una seconda volta nello storage del container,
+  quindi servono ~2× la dimensione dei file. `bin/push-cai-datapack` stampa dimensione dei file, byte da
+  trasferire e spazio libero remoto (`rsync --dry-run --stats` + `ssh df -B1`) e si ferma se
+  `avail < 2.2 × file`; `--force` prosegue comunque. Host speciale `local` = destinazione locale senza ssh
+  (prova a secco: `bin/push-cai-datapack local /tmp/prova`).
+- UAT **non** esegue scraper né analisi dei documenti: importa solo ciò che il datapack contiene.
+- `cai-datapack/` non è mai tracciato da git (`git ls-files cai-datapack` deve restare vuoto).

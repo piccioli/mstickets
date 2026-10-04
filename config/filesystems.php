@@ -150,7 +150,7 @@ return [
         // `Permission::CaiDirectoryView`, mai un URL diretto sul disco.
         'cai-documents' => [
             'driver' => 'local',
-            'root' => storage_path('app/private/cai-documents'),
+            'root' => env('CAI_DOCUMENTS_ROOT', storage_path('app/private/cai-documents')),
             'serve' => false,
             'throw' => false,
             'report' => false,

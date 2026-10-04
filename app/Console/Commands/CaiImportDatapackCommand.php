@@ -46,7 +46,9 @@ final class CaiImportDatapackCommand extends Command
 
         $this->reportSummary($results, $dryRun);
 
-        return self::SUCCESS;
+        return collect($results)->contains(fn (CaiImportTableResult $result): bool => $result->error !== null)
+            ? self::FAILURE
+            : self::SUCCESS;
     }
 
     private function resolveAbsolutePath(string $rawPath): string
@@ -62,7 +64,11 @@ final class CaiImportDatapackCommand extends Command
         $this->info($dryRun ? 'Import (dry-run) completato.' : 'Import completato.');
 
         foreach ($results as $table => $result) {
-            $this->line("- {$table}: letti {$result->read}, creati {$result->created}, aggiornati {$result->updated}, saltati {$result->skipped}");
+            $this->line("- {$table}: letti {$result->read}, creati {$result->created}, aggiornati {$result->updated}, saltati {$result->skipped}".($result->bytes > 0 ? ', '.number_format($result->bytes / 1048576, 1, ',', '.').' MB '.($dryRun ? 'da copiare' : 'copiati') : ''));
+
+            if ($result->error !== null) {
+                $this->error("  {$result->error}");
+            }
 
             foreach ($result->warnings as $warning) {
                 $this->warn("  {$warning}");

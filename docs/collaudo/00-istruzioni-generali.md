@@ -3,7 +3,7 @@
 ## 1. Titolo, versione, data e stato del documento
 
 - **Titolo**: Documento di collaudo — Fase 0 (Fondazioni) + Fase 1 (Ticketing core) + Fase 1A (Landing, Login, Recupero password) + Fase 2 (Importazione dal v1 — ETL) + Fase 3 (Sottosistema email) + Fase 4 (Tag/commesse, Documentation, Activity Report/Organizations) + Fase 5 (Fundraising — opportunità/bandi, griglia di valutazione, progetti e vista cliente) + Fase 6 (Portale cliente e rifinitura) + Fase 7 (Tipologia di cliente CAI) + Fase 8 (Integrazione dati RUNTS-CAI — Sezioni/Sottosezioni) + Fase 9 (Sincronizzazione live CAI/RUNTS, fallback CF/PIVA, upload manuale documenti, menu Gruppo Regionale)
-- **Versione**: 9.1
+- **Versione**: 9.2
 
   La versione 1 era la matrice sintetica preesistente (`docs/collaudo/fase-0-1.php`, manifest di
   tracciabilità sorgente, più il PDF generato a partire da essa dal comando `php artisan
@@ -91,9 +91,18 @@
   patrimoniale nel parser, comando `cai:analyze-financial-documents`) e l'"Elenco gruppi regionali".
   Il totale del pacchetto passa da 838 a 875 test e da 147 a 149 argomenti; §3, §4 e §17 sono
   aggiornati di conseguenza.
+
+  La versione 9.2 (3 ottobre 2026) estende ulteriormente la **Fase 9** con un argomento interamente
+  AUTOMATICO (36 nuovi test, F9-212…F9-247, manifest `docs/collaudo/fase-9.php` e manuale
+  `16-fase-9.md`): lo **snapshot CAI/RUNTS nel datapack** (US-950..US-954). Il comando locale
+  `cai:export-datapack-snapshot` fotografa nelle tabelle `snap_*` del datapack tutte le righe CAI e,
+  con deduplica per hash, i file dei documenti RUNTS; `cai:import-datapack` le ripristina su un database
+  vuoto (UAT dopo `migrate:fresh`) con idempotenza, controllo dello spazio disco, senza mai toccare
+  `user_id` e senza accodare analisi. Il totale del pacchetto passa da 875 a 911 test e da 149 a 150
+  argomenti; §3, §4 e §17 sono aggiornati di conseguenza.
 - **Data di stesura**: 26 luglio 2026 (v2.0), 27 luglio 2026 (v2.1), 10 agosto 2026 (v2.2), 11 agosto
   2026 (v2.3), 24 agosto 2026 (v3.0), 27 agosto 2026 (v4.0), 27 agosto 2026 (v5.0), 28 agosto 2026
-  (v6.0), 28 agosto 2026 (v7.0), 28 agosto 2026 (v8.0), 23 settembre 2026 (v9.0), 3 ottobre 2026 (v9.1)
+  (v6.0), 28 agosto 2026 (v7.0), 28 agosto 2026 (v8.0), 23 settembre 2026 (v9.0), 3 ottobre 2026 (v9.1), 3 ottobre 2026 (v9.2)
 - **Data di pubblicazione ufficiale**: DA VERIFICARE CON IL PRODUCT OWNER
 - **Stato**: Bozza per revisione
 
@@ -110,7 +119,7 @@ nel PRD di Orchestrator v2, attraverso un collaudo eseguibile sia da personale f
 deve conoscere il codice) sia da personale tecnico (che verifica anche a livello di terminale,
 database e suite di test automatica).
 
-Il collaudo copre 875 casi di test, organizzati in 149 argomenti, tracciati uno a uno nei manifest
+Il collaudo copre 911 casi di test, organizzati in 150 argomenti, tracciati uno a uno nei manifest
 `docs/collaudo/fase-0-1.php` (Fase 0/Fase 1), `docs/collaudo/fase-1a.php` (Fase 1A),
 `docs/collaudo/fase-2.php` (Fase 2), `docs/collaudo/fase-3.php` (Fase 3), `docs/collaudo/fase-4.php`
 (Fase 4), `docs/collaudo/fase-5.php` (Fase 5), `docs/collaudo/fase-6.php` (Fase 6),
@@ -119,8 +128,8 @@ Il collaudo copre 875 casi di test, organizzati in 149 argomenti, tracciati uno 
 
 ## 3. Ambito incluso
 
-Il collaudo copre esattamente i 149 argomenti seguenti (titoli letterali dai manifest di
-tracciabilità), per un totale di 875 test.
+Il collaudo copre esattamente i 150 argomenti seguenti (titoli letterali dai manifest di
+tracciabilità), per un totale di 911 test.
 
 **Fase 0 — Fondazioni** (56 test, F0-01…F0-56):
 
@@ -283,7 +292,7 @@ tracciabilità), per un totale di 875 test.
 | 110 | Dettaglio sezione dalla dashboard del Gruppo Regionale (US-807) | 9 (F8-43…F8-51) |
 | 111 | Checkpoint di fine fase — flusso end-to-end import, consultazione staff, dashboard cliente Sezione e Gruppo Regionale (US-808) | 1 (F8-52) |
 
-**Fase 9 — Sincronizzazione live CAI/RUNTS, fallback CF/PIVA, upload manuale documenti, menu Gruppo Regionale** (211 test, F9-01…F9-211):
+**Fase 9 — Sincronizzazione live CAI/RUNTS, fallback CF/PIVA, upload manuale documenti, menu Gruppo Regionale** (247 test, F9-01…F9-247):
 
 | # | Argomento | Test |
 |---|---|---|
@@ -325,6 +334,7 @@ tracciabilità), per un totale di 875 test.
 | 147 | Checkpoint di fine fase — flusso end-to-end sui tre filoni della Fase 9 | 1 (F9-174) |
 | 148 | Bilanci Sezioni 2025 nel datapack CAI — documenti manuali importati da cai:import-datapack | 17 (F9-175…F9-191) |
 | 149 | Menu Anagrafica CAI (sotto-menu ad espansione, Bilanci annidato in Sezioni), Bilancio 2025 e Gruppi regionali (US-940..US-947) | 20 (F9-192…F9-211) |
+| 150 | Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954) | 36 (F9-212…F9-247) |
 
 Il dettaglio di ciascun test (descrizione, passi, esito atteso, campi di consuntivazione) è nei
 file `02-fase-0.md`, `03-fase-1.md`, `04-fase-1a.md`, `05-fase-2.md`, `06-fase-3.md`, `07-fase-4.md`,
@@ -338,7 +348,7 @@ intero (argomenti 104-111 di §3), limitatamente a Sezioni/Sottosezioni — Grup
 report PDF per singola sezione e refresh automatico del datapack restano esplicitamente fuori scope
 di questa fase (scope confermato col committente in fase di design). Fase 9 (Sincronizzazione live
 CAI/RUNTS, fallback CF/PIVA, upload manuale documenti, menu Gruppo Regionale) è ora coperta per
-intero (argomenti 112-149 di §3); il refresh automatico mensile via `cai:sync-national` resta
+intero (argomenti 112-150 di §3); il refresh automatico mensile via `cai:sync-national` resta
 dietro feature flag disattivato di default (comportamento verificato, non escluso dal collaudo).
 Resta fuori scopo solo **Fase 10 — Cutover** (vecchia Fase 7 prima della rinumerazione): prova
 completa su staging, confronto v1/v2 su dati reali, test di carico sulla vista di lavoro e sulle
@@ -688,7 +698,7 @@ manualmente.
 
 ## 17. Criteri generali di superamento
 
-Il collaudo nel suo complesso è considerato superato se, al termine dell'esecuzione dei 875 test:
+Il collaudo nel suo complesso è considerato superato se, al termine dell'esecuzione dei 911 test:
 
 - Non è aperta alcuna anomalia classificata come Critica.
 - Almeno il 95% dei test applicabili (esclusi quelli classificati NOT APPLICABLE) è in stato PASS.

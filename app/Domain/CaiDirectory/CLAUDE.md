@@ -251,3 +251,48 @@ parametro di rotta) e `docs/collaudo/CLAUDE.md` per il metodo di generazione del
   grande può dare OOM (il job viene ritentato: sulla run 2025 tutti i 348 sono comunque arrivati a fine, 0 `failed_jobs`). Controllare l'avanzamento
   con `redis-cli llen laravel-database-queues:cai-runts-analysis` (la chiave ha il prefisso `laravel-database-`).
 
+
+## Snapshot CAI/RUNTS nel datapack (`cai:export-datapack-snapshot`, US-950..US-956)
+
+Lo snapshot porta su UAT (dove non gira né scraper né analisi) **tutto** il dominio CAI del DB locale.
+Operativo (ordine dei comandi e vincolo di spazio remoto): `deploy/CLAUDE.md` § "Snapshot CAI/RUNTS".
+
+- **Ordine dei comandi**: `cai:build-manual-bilanci-datapack` → `cai:export-datapack-snapshot` →
+  `bin/push-cai-datapack` → (deploy) `cai:import-datapack`. L'export va rilanciato dopo ogni modifica dei
+  dati locali: il datapack non si aggiorna da solo.
+- **Export** (`Export\CaiSnapshotExporter` + `CaiSnapshotFileExporter`, comando sottile): DROP+CREATE+INSERT
+  delle sei tabelle `snap_cai_{sections,subsections,runts_registrations,financial_statements,board_members,
+  documents}` in **una transazione** sul file SQLite; le tabelle legacy del datapack (`sezioni_cai`, `enti`,
+  `bilanci`, `allegati`, `bilanci_manuali`...) non si toccano mai. Valori scritti in forma grezza di colonna
+  (mai il formato di presentazione di enum/date), senza `id` autoincrementale e **mai `user_id`**: il
+  collegamento utente si ricostruisce per email in import. Idempotente (stesso contenuto, stesso ordine).
+- **File**: solo i documenti `source = Runts`, content-addressed in `snapshot-files/<hash[0..1]>/<hash>.<ext>`;
+  l'hash è **ricalcolato** con `hash_file` (non ci si fida di `cai_documents.hash`) e righe con lo stesso hash
+  condividono un solo file. I documenti manuali non si copiano (esistono già in `bilanci-sezioni-2026/`):
+  le loro righe servono solo a riportare l'esito di analisi (`file_in_datapack = 0`). File mancante →
+  `file_in_datapack = 0` + avviso, mai eccezione. Copia a stream; controllo `disk_free_space` **prima** di scrivere.
+- **Import** (`Import\CaiSnapshotImporter`, chiamato da `CaiDatapackImporter::import()` dopo `documenti_manuali`,
+  solo per import completo e solo se esiste `snap_cai_sections`): upsert per **chiave naturale** — sezione
+  `codice_cai`, sottosezione `cai_codice`, registrazione `id_runts`, bilancio (genitore, anno) con
+  **esattamente un** genitore fra registrazione/sezione, carica (registrazione, ruolo, nome, `valid_from`).
+  `user_id` non è mai sovrascritto; sulle righe nuove si ricostruisce per email con `CaiSectionFieldMapper::
+  matchUserId`. I timestamp dello snapshot non sono importati. Genitore assente → riga saltata + warning.
+- **Documenti RUNTS**: dedup per (genitore, `hash`, `source`) anche contro i documenti dell'import legacy
+  `allegati` (allinea solo `financial_analysis_status`/`raw_text_excerpt`/`extracted_via_ocr`), altrimenti
+  copia in `cai-documents` come `<id_runts|codice_cai>/<uuid>-<file_name>` con `source = Runts`. Due fasi:
+  pianificazione senza scritture → controllo spazio (`disk_free_space` ≥ byte × (1 + `config('cai_directory.
+  snapshot.disk_margin_percent')`/100), default 10) → copia. Spazio insufficiente: **nessuna copia**, errore
+  italiano, comando in FAILURE, fasi precedenti non annullate.
+- **Documenti manuali**: `importManualAnalysis()` abbina per (`cai_section_id`, `hash`) il documento creato da
+  `documenti_manuali` e ne ripristina l'esito di analisi; non crea documenti né copia file.
+- **Nessuna analisi accodata**: l'import non esegue mai `AnalyzeCaiFinancialStatementDocument::dispatch`
+  (UAT riceve risultati già calcolati); i test lo verificano con `Queue::fake()` + `assertNothingPushed`.
+- Righe di riepilogo di `cai:import-datapack`: `snapshot_sezioni` (sezioni+sottosezioni), `snapshot_registrazioni`,
+  `snapshot_bilanci`, `snapshot_cariche`, `snapshot_documenti` (MB copiati), `snapshot_manuali`. In `--dry-run`
+  `snapshot_manuali` su DB vuoto conta tutto come senza match (lo step `documenti_manuali` non crea nulla).
+- **Gotcha della verifica su DB separato (US-956)**: mai `migrate:fresh` sul DB di sviluppo (è la sorgente).
+  Usare un database Postgres a parte (`DB_DATABASE=orchestrator_roundtrip`) e un disco documenti separato con
+  `CAI_DOCUMENTS_ROOT=/tmp/...` (`config/filesystems.php`; nel `.env` tenerla **commentata**: valore vuoto
+  → `env()` ritorna `""`, non il default, e rompe il disco). Confrontare i conteggi prima/dopo sul DB dev.
+  I conteggi del PRD erano di uno stato precedente: confrontare sempre con il DB attuale, non con il documento.
+- L'opzione di `cai:import-datapack` è `--path`; quella di `cai:export-datapack-snapshot` è `--datapack`.

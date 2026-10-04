@@ -2,8 +2,8 @@
 
 > Torna a [`README.md`](README.md) · Istruzioni generali: [`00-istruzioni-generali.md`](00-istruzioni-generali.md)
 
-Riepilogo dei 875 casi di test (56 di Fase 0, 74 di Fase 1, 16 di Fase 1A, 74 di Fase 2, 113 di
-Fase 3, 42 di Fase 4, 60 di Fase 5, 141 di Fase 6, 36 di Fase 7, 52 di Fase 8, 211 di Fase 9). Ogni
+Riepilogo dei 911 casi di test (56 di Fase 0, 74 di Fase 1, 16 di Fase 1A, 74 di Fase 2, 113 di
+Fase 3, 42 di Fase 4, 60 di Fase 5, 141 di Fase 6, 36 di Fase 7, 52 di Fase 8, 247 di Fase 9). Ogni
 riga rimanda al caso di test dettagliato in [`02-fase-0.md`](02-fase-0.md), [`03-fase-1.md`](03-fase-1.md),
 [`04-fase-1a.md`](04-fase-1a.md), [`05-fase-2.md`](05-fase-2.md), [`06-fase-3.md`](06-fase-3.md),
 [`07-fase-4.md`](07-fase-4.md), [`10-fase-5.md`](10-fase-5.md), [`13-fase-6.md`](13-fase-6.md),
@@ -14,22 +14,22 @@ riga rimanda al caso di test dettagliato in [`02-fase-0.md`](02-fase-0.md), [`03
 
 | Modalità | Numero di test |
 |---|---|
-| AUTOMATICO | 491 |
+| AUTOMATICO | 527 |
 | MANUALE UI | 236 |
 | MANUALE UI + MAILPIT | 24 |
 | MISTO | 80 |
 | TECNICO CLI | 31 |
 | TECNICO DATABASE | 13 |
-| **Totale** | **875** |
+| **Totale** | **911** |
 
 ## Riepilogo per stato di redazione
 
 | Stato | Numero di test |
 |---|---|
-| COMPLETO | 846 |
+| COMPLETO | 882 |
 | DA VERIFICARE CON IL PRODUCT OWNER | 16 |
 | NON RIPRODUCIBILE IN UAT | 13 |
-| **Totale** | **875** |
+| **Totale** | **911** |
 
 ## Tabella completa
 
@@ -910,3 +910,39 @@ riga rimanda al caso di test dettagliato in [`02-fase-0.md`](02-fase-0.md), [`03
 | F9-209 | Menu Anagrafica CAI (sotto-menu ad espansione, Bilanci annidato in Sezioni), Bilancio 2025 e Gruppi regionali (US-940..US-947) | Gli utenti senza cai-directory.view non accedono a "Elenco gruppi regionali" (403) | AUTOMATICO | Media | Sviluppatore | `tests/Feature/Filament/CaiDirectory/CaiRegionalGroupsTest.php` — `a user without cai-directory.view is denied (403)` | COMPLETO |
 | F9-210 | Menu Anagrafica CAI (sotto-menu ad espansione, Bilanci annidato in Sezioni), Bilancio 2025 e Gruppi regionali (US-940..US-947) | I conteggi per gruppo regionale sono calcolati per regione; le sezioni extra-regione non appartengono a nessun gruppo | AUTOMATICO | Media | Sviluppatore | `tests/Feature/Filament/CaiDirectory/CaiRegionalGroupsTest.php` — `counts are computed per region and extra-region sections belong to no group` | COMPLETO |
 | F9-211 | Menu Anagrafica CAI (sotto-menu ad espansione, Bilanci annidato in Sezioni), Bilancio 2025 e Gruppi regionali (US-940..US-947) | Il numero di query non cresce col numero di gruppi regionali | AUTOMATICO | Media | Sviluppatore | `tests/Feature/Filament/CaiDirectory/CaiRegionalGroupsTest.php` — `the number of queries does not grow with the number of groups` | COMPLETO |
+| F9-212 | Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954) | Senza datapack il comando di export fallisce con un messaggio italiano esplicito | AUTOMATICO | Media | Sviluppatore | `tests/Feature/Console/CaiExportDatapackSnapshotCommandTest.php` — `missing datapack fails with an explicit Italian message` | COMPLETO |
+| F9-213 | Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954) | L'export scrive tutte le sei tabelle snap_* con conteggi uguali a quelli del database | AUTOMATICO | Media | Sviluppatore | `tests/Feature/Console/CaiExportDatapackSnapshotCommandTest.php` — `exports every table with counts matching the database` | COMPLETO |
+| F9-214 | Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954) | I valori sono scritti in forma grezza di colonna, senza user_id e senza id autoincrementale | AUTOMATICO | Media | Sviluppatore | `tests/Feature/Console/CaiExportDatapackSnapshotCommandTest.php` — `values are raw column values, never user_id, never an autoincrement id` | COMPLETO |
+| F9-215 | Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954) | L'export è idempotente: due esecuzioni producono lo stesso contenuto nello stesso ordine | AUTOMATICO | Media | Sviluppatore | `tests/Feature/Console/CaiExportDatapackSnapshotCommandTest.php` — `is idempotent: two runs produce the same content in the same order` | COMPLETO |
+| F9-216 | Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954) | Con --dry-run l'export non scrive nulla e il file del datapack resta invariato | AUTOMATICO | Media | Sviluppatore | `tests/Feature/Console/CaiExportDatapackSnapshotCommandTest.php` — `--dry-run writes nothing and the datapack file is unchanged` | COMPLETO |
+| F9-217 | Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954) | Le altre tabelle del datapack (sezioni_cai, enti, bilanci, allegati...) non vengono toccate dall'export | AUTOMATICO | Media | Sviluppatore | `tests/Feature/Console/CaiExportDatapackSnapshotCommandTest.php` — `other datapack tables are left untouched` | COMPLETO |
+| F9-218 | Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954) | Un contenuto identico è copiato una sola volta, col nome uguale allo sha256 ricalcolato | AUTOMATICO | Media | Sviluppatore | `tests/Feature/Console/CaiExportDatapackSnapshotFilesTest.php` — `identical content is copied once, named by recomputed sha256` | COMPLETO |
+| F9-219 | Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954) | Un file mancante esporta comunque la riga con file_in_datapack 0 e un avviso | AUTOMATICO | Media | Sviluppatore | `tests/Feature/Console/CaiExportDatapackSnapshotFilesTest.php` — `a missing file exports the row with file_in_datapack 0 and a warning` | COMPLETO |
+| F9-220 | Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954) | I documenti manuali non vengono mai copiati nel datapack | AUTOMATICO | Media | Sviluppatore | `tests/Feature/Console/CaiExportDatapackSnapshotFilesTest.php` — `manual documents are never copied` | COMPLETO |
+| F9-221 | Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954) | Una seconda esecuzione non ricopia i file già presenti | AUTOMATICO | Media | Sviluppatore | `tests/Feature/Console/CaiExportDatapackSnapshotFilesTest.php` — `a second run does not recopy files already present` | COMPLETO |
+| F9-222 | Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954) | Con spazio libero insufficiente l'export si ferma con un errore italiano prima di scrivere | AUTOMATICO | Media | Sviluppatore | `tests/Feature/Console/CaiExportDatapackSnapshotFilesTest.php` — `insufficient free space aborts with an Italian error before writing anything` | COMPLETO |
+| F9-223 | Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954) | Con --dry-run nessun file viene copiato | AUTOMATICO | Media | Sviluppatore | `tests/Feature/Console/CaiExportDatapackSnapshotFilesTest.php` — `--dry-run copies no file` | COMPLETO |
+| F9-224 | Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954) | L'import ripristina tutte le tabelle snapshot su un database vuoto con parità di conteggi | AUTOMATICO | Media | Sviluppatore | `tests/Feature/Console/CaiSnapshotImportTest.php` — `restores every snapshot table on an empty database with count parity` | COMPLETO |
+| F9-225 | Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954) | I bilanci sono ripristinati per registrazione o per sezione, con esattamente un genitore | AUTOMATICO | Media | Sviluppatore | `tests/Feature/Console/CaiSnapshotImportTest.php` — `statements are restored by registration and by section parent, exactly one parent each` | COMPLETO |
+| F9-226 | Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954) | Una seconda esecuzione non crea né aggiorna nulla | AUTOMATICO | Media | Sviluppatore | `tests/Feature/Console/CaiSnapshotImportTest.php` — `a second run creates and updates nothing` | COMPLETO |
+| F9-227 | Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954) | I valori cambiati sono aggiornati e user_id non viene mai sovrascritto | AUTOMATICO | Media | Sviluppatore | `tests/Feature/Console/CaiSnapshotImportTest.php` — `changed snapshot values are updated, user_id is never overwritten` | COMPLETO |
+| F9-228 | Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954) | Le sezioni nuove ottengono user_id ricostruito per email | AUTOMATICO | Media | Sviluppatore | `tests/Feature/Console/CaiSnapshotImportTest.php` — `new sections get user_id rebuilt by email` | COMPLETO |
+| F9-229 | Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954) | Le righe con genitore inesistente sono saltate con avviso, senza violare chiavi esterne | AUTOMATICO | Media | Sviluppatore | `tests/Feature/Console/CaiSnapshotImportTest.php` — `rows whose parent does not exist are skipped with a warning and never violate a foreign key` | COMPLETO |
+| F9-230 | Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954) | Con --dry-run l'import non scrive e riporta gli stessi conteggi dell'esecuzione reale | AUTOMATICO | Media | Sviluppatore | `tests/Feature/Console/CaiSnapshotImportTest.php` — `dry-run writes nothing and reports the same counts as the real run` | COMPLETO |
+| F9-231 | Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954) | Un datapack senza tabelle snap_* non è influenzato e un import limitato a una sezione salta lo snapshot | AUTOMATICO | Media | Sviluppatore | `tests/Feature/Console/CaiSnapshotImportTest.php` — `a datapack without snap tables is unaffected and a scoped import skips the snapshot` | COMPLETO |
+| F9-232 | Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954) | Il comando di import stampa le righe di riepilogo dello snapshot e non accoda nulla | AUTOMATICO | Media | Sviluppatore | `tests/Feature/Console/CaiSnapshotImportTest.php` — `the import command prints the snapshot summary rows and queues nothing` | COMPLETO |
+| F9-233 | Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954) | I documenti RUNTS sono creati copiando i file sul disco documenti, mai come manuali | AUTOMATICO | Media | Sviluppatore | `tests/Feature/Console/CaiSnapshotDocumentsImportTest.php` — `creates RUNTS documents copying files into the documents disk, never as manual` | COMPLETO |
+| F9-234 | Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954) | Un documento già importato dal legacy (stesso genitore, hash e fonte) non è duplicato ma ne è allineata l'analisi | AUTOMATICO | Media | Sviluppatore | `tests/Feature/Console/CaiSnapshotDocumentsImportTest.php` — `does not duplicate a legacy document with same parent, hash and source but aligns the analysis` | COMPLETO |
+| F9-235 | Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954) | Una seconda esecuzione dell'import documenti non crea né aggiorna nulla | AUTOMATICO | Media | Sviluppatore | `tests/Feature/Console/CaiSnapshotDocumentsImportTest.php` — `second run creates and updates nothing` | COMPLETO |
+| F9-236 | Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954) | Un file sorgente mancante è saltato con avviso senza fermare gli altri | AUTOMATICO | Media | Sviluppatore | `tests/Feature/Console/CaiSnapshotDocumentsImportTest.php` — `a missing source file is skipped with a warning without stopping the others` | COMPLETO |
+| F9-237 | Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954) | Una riga il cui genitore non esiste è saltata e conteggiata | AUTOMATICO | Media | Sviluppatore | `tests/Feature/Console/CaiSnapshotDocumentsImportTest.php` — `a row whose parent does not exist is skipped and counted` | COMPLETO |
+| F9-238 | Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954) | Con spazio insufficiente non viene copiato nulla e l'errore italiano è esplicito | AUTOMATICO | Media | Sviluppatore | `tests/Feature/Console/CaiSnapshotDocumentsImportTest.php` — `insufficient disk space copies nothing and reports an explicit Italian error` | COMPLETO |
+| F9-239 | Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954) | Con spazio insufficiente il comando di import termina con esito di fallimento | AUTOMATICO | Media | Sviluppatore | `tests/Feature/Console/CaiSnapshotDocumentsImportTest.php` — `the command fails with the space error` | COMPLETO |
+| F9-240 | Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954) | Con --dry-run l'import documenti non scrive né copia ma riporta conteggi e byte previsti | AUTOMATICO | Media | Sviluppatore | `tests/Feature/Console/CaiSnapshotDocumentsImportTest.php` — `dry-run writes and copies nothing but reports counts and bytes` | COMPLETO |
+| F9-241 | Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954) | La riga di riepilogo riporta i megabyte copiati | AUTOMATICO | Media | Sviluppatore | `tests/Feature/Console/CaiSnapshotDocumentsImportTest.php` — `the summary line reports the megabytes copied` | COMPLETO |
+| F9-242 | Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954) | Il file scaricato di un documento importato ha lo stesso sha256 del sorgente | AUTOMATICO | Media | Sviluppatore | `tests/Feature/Console/CaiSnapshotDocumentsImportTest.php` — `the downloaded file of an imported document has the sha256 of the source` | COMPLETO |
+| F9-243 | Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954) | L'import dei documenti non accoda alcun job di analisi | AUTOMATICO | Media | Sviluppatore | `tests/Feature/Console/CaiSnapshotDocumentsImportTest.php` — `no analysis job is queued by the documents import` | COMPLETO |
+| F9-244 | Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954) | L'esito di analisi dei documenti manuali è ripristinato per sezione e hash, senza creare né accodare nulla | AUTOMATICO | Media | Sviluppatore | `tests/Feature/Console/CaiSnapshotManualAnalysisImportTest.php` — `restores the analysis of manual documents matched by section and hash, without creating or queuing` | COMPLETO |
+| F9-245 | Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954) | Una riga manuale senza documento corrispondente è saltata e conteggiata | AUTOMATICO | Media | Sviluppatore | `tests/Feature/Console/CaiSnapshotManualAnalysisImportTest.php` — `a snapshot manual row without a matching document is skipped and counted` | COMPLETO |
+| F9-246 | Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954) | Una seconda esecuzione non aggiorna nulla e --dry-run non scrive | AUTOMATICO | Media | Sviluppatore | `tests/Feature/Console/CaiSnapshotManualAnalysisImportTest.php` — `second run updates nothing and dry-run writes nothing` | COMPLETO |
+| F9-247 | Snapshot CAI/RUNTS nel datapack (export e import) (US-950..US-954) | Dopo l'import i flag della pagina "Bilancio 2025" sono gli stessi del database locale | AUTOMATICO | Media | Sviluppatore | `tests/Feature/Console/CaiSnapshotManualAnalysisImportTest.php` — `the Bilancio 2025 flags are the same as in the local database after the import` | COMPLETO |
