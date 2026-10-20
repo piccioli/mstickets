@@ -208,14 +208,19 @@ parametro di rotta) e `docs/collaudo/CLAUDE.md` per il metodo di generazione del
 ## Bilanci manuali di campagna nel datapack (`cai:build-manual-bilanci-datapack`, US-930..US-935)
 
 - **Layout** (gitignored, mai nel repo): `cai-datapack/bilanci-sezioni-2026/` contiene `2026_Campagna_Sezioni.xlsx`
-  (indice, foglio `Sezioni`), `normalized/<Regione>/<codice - CAI Nome>/<codice - CAI Nome - Etichetta.ext>` (402 file,
-  345 sezioni, usati a runtime) e `originals/` (grezzi Typeform, solo audit: **non** spediti su UAT da
+  (indice, foglio `Sezioni`), `normalized/<Regione>/<codice - CAI Nome>/<codice - CAI Nome - Etichetta.ext>` (409 file,
+  352 sezioni al 2026-10-20, usati a runtime) e `originals/` (grezzi Typeform, solo audit: **non** spediti su UAT da
   `bin/push-cai-datapack`, che esclude anche l'xlsx).
 - **Ordine operativo**: `cai:build-manual-bilanci-datapack` (riscrive `bilanci_manuali` in `runts-cai.sqlite` con
   `DROP`+`CREATE`+insert in una transazione, tocca solo quella tabella; `--dry-run` per il solo report) →
   `bin/push-cai-datapack` → deploy/`cai:import-datapack`. L'import crea `CaiDocument` con `source=Manual`,
   `cai_section_id` valorizzato e registrazione null (stessa forma di `UploadCaiDocumentManually`); gira solo
   nell'import completo (non con codice sezione singolo né `--skip-section-fields`).
+- **Riallineamento dalla cartella di lavoro iCloud** (`MS/BILANCI SEZIONI 2025/GR TOSCANA/`, nonostante il nome
+  copre tutte le regioni): `<Regione>/BILANCI 2025 GR <Regione>/` → `normalized/<Regione>/` (`rsync -rc --delete
+  --exclude=.DS_Store`), `202609_CampagnaSezioni/` → `originals/`, xlsx copiato. Le cartelle `BILANCI 2025 mancanti/`
+  (vuote) ed `EMAIL_GR_*.txt` non entrano nel datapack. Poi: export snapshot (salva lo stato DB) →
+  `cai:import-datapack --analyze-manual` → `cai:analyze-financial-documents --year=2025` → riesportare lo snapshot.
 - **Etichetta sconosciuta → `Altro`**: `ManualBilancioTypeMapper` mappa solo etichette esatte (o sinonimi
   espliciti) su `CaiDocumentType`; `Bilancio consuntivo`, `Conto economico`, `Stato Patrimoniale…` NON si
   indovinano. Il titolo resta l'etichetta originale; anno 2025 (2026 se l'etichetta lo contiene).
@@ -225,8 +230,8 @@ parametro di rotta) e `docs/collaudo/CLAUDE.md` per il metodo di generazione del
 - **Niente analisi di default**: `--analyze-manual` accoda `AnalyzeCaiFinancialStatementDocument` (coda
   `cai-runts-analysis`) solo per i documenti CREATI in quella run di tipo `triggersFinancialAnalysis()` con anno;
   mai in `--dry-run`.
-- **Anomalie attese sul dataset reale** (avvisi, mai bloccanti): `ricevuto_senza_file` = 3 (9216157, 9216158,
-  9248005), `file_senza_ricevuto` = 1 (9216031), `codice_excel_non_nel_datapack` = 2 (9212045, 9219008).
+- **Anomalie attese sul dataset reale** (avvisi, mai bloccanti): `ricevuto_senza_file` = 4 (9216083, 9216157,
+  9216158, 9248005), `file_senza_ricevuto` = 1 (9216038), `codice_excel_non_nel_datapack` = 2 (9212045, 9219008).
   `sezione_non_nel_datapack` è registrata una volta per sezione; `codice_excel_non_nel_datapack` ha precedenza su
   `ricevuto_senza_file` per lo stesso codice.
 - **Gotcha codici Excel**: la colonna A del foglio (senza intestazione) è `codice_cai`, ma talvolta è un numero
