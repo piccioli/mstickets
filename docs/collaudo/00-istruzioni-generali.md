@@ -350,7 +350,7 @@ di questa fase (scope confermato col committente in fase di design). Fase 9 (Sin
 CAI/RUNTS, fallback CF/PIVA, upload manuale documenti, menu Gruppo Regionale) è ora coperta per
 intero (argomenti 112-150 di §3); il refresh automatico mensile via `cai:sync-national` resta
 dietro feature flag disattivato di default (comportamento verificato, non escluso dal collaudo).
-Resta fuori scopo solo **Fase 10 — Cutover** (vecchia Fase 7 prima della rinumerazione): prova
+Resta fuori scopo solo **Fase 11 — Cutover** (vecchia Fase 7, poi Fase 10, prima delle rinumerazioni): prova
 completa su staging, confronto v1/v2 su dati reali, test di carico sulla vista di lavoro e sulle
 tabelle grandi, verifica di sicurezza, piano di cutover e finestra di manutenzione — un'attività
 operativa di rilascio, non una fase funzionale collaudabile con lo stesso schema di questo
