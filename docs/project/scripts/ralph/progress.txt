@@ -111,3 +111,23 @@ Fase 10 — una sessione Ralph per feature, vedi docs/project/tasks/fase-10-road
   - Playwright in `/tmp/<dir>`: dopo `npm i playwright@latest` serve `npx playwright install chromium` (la
     revisione del browser cambia con la versione del pacchetto).
 ---
+
+## 2026-10-22 - US-1005
+- `Dashboard::mount()`: customer con `customer_type = Sezione` → `SectionDashboard`; ogni altro customer →
+  `CustomerDashboard` come prima. `CustomerDashboard` per la Sezione: `getNavigationLabel()`/`getTitle()` =
+  "Ticket e documenti", `getNavigationIcon()` = `OutlinedClipboardDocumentList`; sort -2 invariato (subito dopo
+  `SectionDashboard` -3), gruppo e `canAccess()` invariati. Per GR/Organo Tecnico/nessun tipo nulla cambia.
+- Files: app/Filament/Pages/{Dashboard,CustomerDashboard}.php, tests/Feature/Filament/Pages/{DashboardTest,
+  CustomerDashboardTest}.php, app/Filament/CLAUDE.md
+- Test: atterraggio Sezione → V2, GR/Organo Tecnico → `CustomerDashboard`; etichetta/titolo/icona/gruppo/sort per
+  Sezione vs GR/Organo Tecnico/nessun tipo. Nessun test esistente si aspettava il vecchio atterraggio della Sezione
+  (nessuna modifica ai checkpoint Fasi 6-9). `tests/Feature/Filament` + `EndToEnd` verdi (400); Pint/Larastan puliti.
+- Verifica in browser Playwright come `pisa@cai.it`: login → `/admin/sezione/dashboard`; sidebar intera = Area
+  cliente: Dashboard, Ticket e documenti, Preferenze di notifica, Report Attività, Opportunità, Progetti,
+  Documentazione, Ticket; "Ticket e documenti" → `/admin/customer-dashboard` con tutti i blocchi e i pulsanti di
+  sincronizzazione. Hash password originale ripristinato (verificato).
+- **Learnings for future iterations:**
+  - Il `<title>` HTML di Filament è su più righe: testare il titolo con `->instance()->getTitle()`.
+  - US-1006: ID collaudo per US-1005 → `DashboardTest` (landing Sezione/non-Sezione) e `CustomerDashboardTest`
+    ("Ticket e documenti" solo per la Sezione).
+---
