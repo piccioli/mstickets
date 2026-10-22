@@ -1,0 +1,324 @@
+/*
+ * Bilancio consolidato delle Sezioni del GR (Fase 10.3) —
+ * resources/views/filament/pages/regional-group-financial-statements.blade.php.
+ * Misure dal design "Bilancio consolidato Sezioni.dc.html" (PRD fase 10.3 §6); colori solo da token --ms-*.
+ * Le card consolidate sono `x-cai.metric-badge` statiche (metric-badge.css, modificatore --static).
+ */
+.ms-consolidated {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-12); /* 24px */
+  font-family: var(--ms-font-sans);
+}
+
+/* ---- Intestazione ---- */
+.ms-consolidated__top {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-7); /* 14px */
+}
+
+.ms-consolidated__back {
+  align-self: flex-start;
+  font-size: var(--ms-text-sm);
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-brand);
+  text-decoration: none;
+}
+
+.ms-consolidated__back:hover {
+  color: var(--ms-brand-link-hover);
+  text-decoration: underline;
+}
+
+.ms-consolidated__heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--ms-space-8);
+}
+
+.ms-consolidated__title-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-2); /* 4px */
+}
+
+.ms-consolidated__title {
+  margin: 0;
+  font-size: var(--ms-text-3xl); /* 28px */
+  font-weight: var(--ms-fw-extrabold);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  color: var(--ms-text-strong);
+}
+
+.ms-consolidated__subtitle {
+  margin: 0;
+  font-size: var(--ms-text-base); /* 13.5px */
+  color: var(--ms-text-muted);
+}
+
+/* ---- Selettore dell'esercizio ---- */
+.ms-consolidated__years {
+  display: flex;
+  align-items: center;
+  gap: var(--ms-space-5); /* 10px */
+}
+
+.ms-consolidated__years-label {
+  font-size: var(--ms-text-sm);
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-text-muted);
+}
+
+.ms-consolidated__years-group {
+  display: flex;
+  gap: var(--ms-space-1); /* 2px */
+  padding: 3px;
+  background: var(--ms-surface-card);
+  border: var(--ms-border-width) solid var(--ms-border-subtle);
+  border-radius: var(--ms-radius-lg); /* 8px */
+}
+
+.ms-consolidated__year {
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font-family: inherit;
+  font-size: var(--ms-text-base); /* 13.5px */
+  font-weight: var(--ms-fw-bold);
+  font-variant-numeric: tabular-nums;
+  color: var(--ms-text-label);
+  cursor: pointer;
+  transition: background-color var(--ms-dur-fast) var(--ms-ease-standard);
+}
+
+.ms-consolidated__year:hover {
+  background: var(--ms-surface-page);
+}
+
+.ms-consolidated__year--active,
+.ms-consolidated__year--active:hover {
+  background: var(--ms-brand);
+  font-weight: var(--ms-fw-extrabold);
+  color: var(--ms-surface-card);
+}
+
+.ms-consolidated__year:focus-visible {
+  outline: 2px solid var(--ms-brand-focus-ring);
+  outline-offset: 1px;
+}
+
+/* ---- Card consolidate ---- */
+.ms-consolidated__cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ms-space-10); /* 20px */
+}
+
+.ms-consolidated__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-4);
+}
+
+.ms-consolidated__card .ms-metric-badge {
+  flex: 1;
+}
+
+.ms-consolidated__card-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  margin: 0;
+  padding: 0 4px;
+  font-size: var(--ms-text-sm);
+  color: var(--ms-text-secondary);
+}
+
+.ms-consolidated__flagged {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-review-text);
+}
+
+.ms-consolidated__flagged svg {
+  width: 14px;
+  height: 14px;
+  stroke: var(--ms-review-icon);
+}
+
+/* ---- Copertura ---- */
+.ms-consolidated__coverage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-7); /* 14px */
+  padding: 20px 24px;
+  background: var(--ms-surface-card);
+  border: var(--ms-border-width) solid var(--ms-border-subtle);
+  border-radius: var(--ms-radius-card);
+  box-shadow: var(--ms-shadow-card);
+}
+
+.ms-consolidated__coverage-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--ms-space-4) var(--ms-space-8);
+}
+
+.ms-consolidated__coverage-title {
+  margin: 0;
+  font-size: var(--ms-text-lg);
+  font-weight: var(--ms-fw-extrabold);
+  color: var(--ms-text-strong);
+}
+
+.ms-consolidated__coverage-count {
+  margin: 0;
+  font-size: var(--ms-text-base);
+  color: var(--ms-text-secondary);
+}
+
+.ms-consolidated__coverage-count strong {
+  font-size: 1.375rem; /* 22px */
+  font-weight: var(--ms-fw-extrabold);
+  font-variant-numeric: tabular-nums;
+  color: var(--ms-text-strong);
+}
+
+.ms-consolidated__coverage-note {
+  margin: 0 0 0 auto;
+  font-size: var(--ms-text-sm);
+  color: var(--ms-text-secondary);
+}
+
+.ms-consolidated__bar {
+  display: flex;
+  gap: var(--ms-space-1); /* 2px */
+  height: 10px;
+  overflow: hidden;
+  border-radius: var(--ms-radius-pill);
+  background: var(--ms-border-muted);
+}
+
+.ms-consolidated__bar-segment {
+  flex-basis: 0;
+  min-width: 0;
+}
+
+.ms-consolidated__bar-segment--dati {
+  background: var(--ms-brand);
+}
+
+.ms-consolidated__bar-segment--solo-pdf {
+  background: var(--ms-review-bar);
+}
+
+.ms-consolidated__bar-segment--nessuno {
+  background: var(--ms-border-muted);
+}
+
+.ms-consolidated__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ms-space-4) var(--ms-space-14); /* 8px 28px */
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--ms-text-sm);
+  color: var(--ms-text-label);
+}
+
+.ms-consolidated__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ms-space-3);
+}
+
+.ms-consolidated__legend-item strong {
+  font-weight: var(--ms-fw-extrabold);
+  color: var(--ms-text-strong);
+}
+
+.ms-consolidated__legend-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+/* ---- Mobile (< 640px) ---- */
+@media (max-width: 639.98px) {
+  .ms-consolidated {
+    gap: var(--ms-space-8); /* 16px */
+  }
+
+  .ms-consolidated__title {
+    font-size: 1.375rem; /* 22px */
+  }
+
+  .ms-consolidated__heading {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ms-consolidated__years {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--ms-space-3);
+  }
+
+  .ms-consolidated__years-group {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .ms-consolidated__year {
+    height: 40px;
+    padding: 0;
+    font-size: var(--ms-text-md); /* 14px */
+  }
+
+  .ms-consolidated__cards {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--ms-space-8);
+  }
+
+  .ms-consolidated__card .ms-metric-badge {
+    padding: 18px;
+  }
+
+  .ms-consolidated__card .ms-metric-badge__main-value {
+    font-size: 2rem; /* 32px */
+  }
+
+  .ms-consolidated__card .ms-metric-badge__secondary-value {
+    font-size: var(--ms-text-xl); /* 16px */
+  }
+
+  .ms-consolidated__coverage {
+    padding: 18px;
+  }
+
+  .ms-consolidated__legend {
+    flex-direction: column;
+  }
+
+  .ms-consolidated__coverage-note {
+    order: 1;
+    width: 100%;
+    margin: 0;
+    padding-top: var(--ms-space-6);
+    border-top: var(--ms-border-width) solid var(--ms-border-subtle-alt);
+  }
+
+  .ms-consolidated__coverage-head {
+    display: contents;
+  }
+}

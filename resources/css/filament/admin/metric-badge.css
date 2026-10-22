@@ -232,3 +232,26 @@
 .ms-metric-badge--unavailable:hover .ms-metric-badge__arrow {
   transform: none;
 }
+
+/* ---- Card statica (senza `href`, bilancio consolidato GR 10.3): nessun link, nessun effetto hover ---- */
+.ms-metric-badge--static.ms-metric-badge--balance {
+  min-height: 0;
+}
+
+.ms-metric-badge--static:hover,
+.ms-metric-badge--static:active {
+  border-color: var(--ms-border-subtle);
+  background: var(--ms-surface-card);
+  box-shadow: var(--ms-shadow-card);
+  transform: none;
+}
+
+.ms-metric-badge--static.ms-metric-badge--unavailable {
+  min-height: 206px;
+}
+
+.ms-metric-badge--static.ms-metric-badge--unavailable:hover,
+.ms-metric-badge--static.ms-metric-badge--unavailable:active {
+  background: var(--ms-surface-unavailable);
+  box-shadow: none;
+}

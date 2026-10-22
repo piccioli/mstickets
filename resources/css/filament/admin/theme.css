@@ -20,3 +20,6 @@
 
 /* Dashboard V2 del Gruppo Regionale (Fase 10.2). */
 @import './regional-group-dashboard.css';
+
+/* Bilancio consolidato delle Sezioni del Gruppo Regionale (Fase 10.3). */
+@import './regional-group-financial-statements.css';
