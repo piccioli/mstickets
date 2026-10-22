@@ -109,6 +109,12 @@ trasversali di test Filament (`fillForm()` rotto, notifiche Postgres `text ->> u
   leggono solo token `--ms-*`), non in utility Tailwind con valori arbitrari. Formattazione dei numeri
   all'italiana: `App\Support\Formatting\ItalianNumberFormatter`, mai `number_format()` nella vista.
   Test di rendering di un componente: `test()->blade('<x-...>', [...])->assertSee(...)`.
+- **Pagine "in arrivo" della Dashboard V2 Sezione** (US-1003): `SectionComingSoonPage` (astratta, vista
+  `section-coming-soon`, fuori navigazione, gate customer + `customer_type = Sezione`) con cinque sottoclassi
+  di sole `$title`/`$slug` (`sezione/soci`, `sezione/bilancio`, `sezione/rifugi`, `sezione/sentieri`,
+  `sezione/tappe-sicai`). Quando una feature della Fase 10 porta il contenuto reale, sostituire la sottoclasse
+  con una pagina vera mantenendo nome di classe e slug (i badge e i test di link puntano a quelli).
+  `discoverPages()` ignora le classi astratte, quindi una base astratta in `app/Filament/Pages` è sicura.
 
 ## Pixel-perfect login/recupero password (ciclo `ralph/login-design-pixel-fixes`)
 
