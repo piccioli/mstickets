@@ -124,3 +124,21 @@ Fase 10.3 — Bilancio consolidato delle Sezioni del GR, vedi docs/project/tasks
   - In `x-cai.metric-badge` variante bilancio il `link-label` è reso DOPO "Esercizio {anno}": tenerne conto in
     `assertSeeTextInOrder`.
 ---
+
+## 2026-10-22 - US-1026
+- Nuovo test end-to-end `tests/Feature/EndToEnd/Fase10BilancioConsolidatoEndToEndTest.php`: login GR → Dashboard → href del
+  badge CE consolidato (`?esercizio=2024`, diverso dal default 2025 della pagina) → pagina sul 2024 → `filterStatus('solo-pdf')`
+  → link PDF → download 200 → PDF di una Sezione ligure 403.
+- `docs/collaudo/fase-10.php`: sei argomenti "Bilancio consolidato Sezioni del GR (10.3)" (US-1021..US-1026), F10-87..F10-133;
+  corretta la descrizione di F10-71 (Bilancio non è più "in arrivo"). `collaudo:verify-manifest 10` verde.
+- `app/Domain/CaiDirectory/CLAUDE.md`: regole del consolidato per esercizio (esercizi disponibili/default, stati, "da verificare",
+  download per prefisso). Roadmap già aggiornata (riga 10.3 "in sviluppo" col link al PRD), nessuna modifica.
+- Lint, analyse, 100 test toccati verdi (isolati dal DB di sviluppo).
+- **Learnings for future iterations:**
+  - Per un E2E che deve provare "l'esercizio giusto", costruire i dati in modo che l'anno della card della Dashboard (CE 2024)
+    differisca dal default della pagina (SP 2025 → default 2025): altrimenti il test passa anche se il parametro è ignorato.
+  - Le funzioni helper nei file Pest sono globali: prefissarle col nome del file (`fase10Consolidated…`) per non collidere con
+    quelle di `RegionalGroupFinancialStatementsTest.php` (`consolidatedTableNames`).
+  - A fine feature: archiviare `prd.json`/`progress.txt` in `archive/<data>-fase-10-<slug>/`, datapack + PR verso `develop`
+    (passi del committente, roadmap §Processo).
+---
