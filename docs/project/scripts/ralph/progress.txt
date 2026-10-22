@@ -117,3 +117,22 @@ Fase 10.2 — Dashboard V2 del Gruppo Regionale, vedi docs/project/tasks/prd-fas
   - Nel gruppo "Sezioni" la voce di `CustomerRegionalSectionsDashboard` si chiama ancora "Dashboard" (preesistente,
     fuori scope: il PRD §5 esclude modifiche a quella pagina).
 ---
+
+## 2026-10-22 - US-1016
+- Nuovo checkpoint `tests/Feature/EndToEnd/Fase10DashboardGruppoRegionaleEndToEndTest.php`: utente GR Toscana → login →
+  V2 (codice 9226000, consolidato 2025 su 2 Sezioni con Pisa via RUNTS e Lucca diretto, Siena 2024 esclusa, Perugia/Umbria
+  esclusa, SP "1 Sezione su 3", soci 1.475, 5 badge "Non disponibile") → link del badge "Sezioni" → elenco
+  `CustomerRegionalSectionsDashboard` (solo utenti Sezione Toscana) → "Ticket e documenti"; V2 Sezione 403.
+- `docs/collaudo/fase-10.php`: sei argomenti "Dashboard V2 del Gruppo Regionale (10.2) — …" (US-1011..US-1016), F10-52…F10-86;
+  `collaudo:verify-manifest 10` ok. F10-44 (GR → V2) resta nell'argomento end-to-end della 10.1.
+- `app/Domain/CaiDirectory/CLAUDE.md`: regole del GR (prefisso, Sezioni per prefisso, codice derivato, consolidato su un
+  esercizio, soli valori non nulli, differenza con "Sezioni del gruppo regionale", qualità dato Sicilia) da riusare nella 10.3.
+- Roadmap: riga 10.2 già presente con link al PRD e stato "in sviluppo" (nessuna modifica necessaria).
+- Lint, analyse, 123 test toccati verdi (isolati dal dev DB). Nessuna UI nuova: verifica browser già fatta in US-1014/US-1015.
+- Files: tests/Feature/EndToEnd/Fase10DashboardGruppoRegionaleEndToEndTest.php, docs/collaudo/fase-10.php,
+  app/Domain/CaiDirectory/CLAUDE.md.
+- **Learnings for future iterations:**
+  - Manifest generati da script: le descrizioni con apostrofo vanno escapate (`\'`) dentro le stringhe PHP a singolo apice;
+    `php -l` + `collaudo:verify-manifest` prima del commit.
+  - A fine feature restano i passi umani della roadmap: archiviare prd.json/progress.txt, datapack, PR verso `develop`.
+---
