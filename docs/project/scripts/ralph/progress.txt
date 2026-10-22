@@ -36,6 +36,9 @@ Fase 10.3 — Bilancio consolidato delle Sezioni del GR, vedi docs/project/tasks
   `regional-group-financial-statements.css`, classi `ms-consolidated__*`), dati da `consolidated()` (memo per esercizio),
   esercizio in `#[Url(as: 'esercizio')] public int|string|null $year`. Token ambra `--ms-review-*` e `--ms-total-border`
   già in `resources/css/theme.css`: usarli per tabella/pillole "Solo PDF"/riga Totale (US-1024).
+- Tabella Sezioni del consolidato GR (10.3): ordinamento in `Enums\CaiConsolidatedSortColumn::sort()` (mancanti in fondo,
+  parità per nome), stato in `#[Url]` `stato`/`ordina`/`verso` (solo ciò che differisce dal default); valori con
+  `x-cai.consolidated-value` (`signed`, `flagged`). Tabella desktop ed elenco mobile resi entrambi, il CSS ne nasconde uno.
 - Fase 10.2 (Dashboard GR) è su `develop`: `CaiRegionalGroupDashboardMetrics` (prefisso del GR, Sezioni per prefisso), `CaiSectionStatementsQuery`, `RegionalGroupDashboard`, base `CustomerComingSoonPage`/`RegionalGroupComingSoonPage` — riusarli.
 
 ## 2026-10-22 - US-1021
@@ -87,4 +90,22 @@ Fase 10.3 — Bilancio consolidato delle Sezioni del GR, vedi docs/project/tasks
   - Blade: `parola@if (...)` non viene compilato (sembra un'email) ma `@endif` sì → syntax error. Vedi app/Filament/CLAUDE.md.
   - Card della pagina: `Livewire::withQueryParams(['esercizio' => 2024])->test(...)` per l'URL; `->get(url.'?esercizio=abc')`
     per l'anno non valido (la proprietà `int|string|null` evita il TypeError di Livewire su un valore non numerico).
+---
+
+## 2026-10-22 - US-1024
+- Card "Sezioni del GR" in `RegionalGroupFinancialStatements`: conteggio ("27 Sezioni" / "{n} di 27 Sezioni"), filtri a
+  pillola con conteggi (`filterStatus()`), tabella desktop a griglia con intestazioni ordinabili (`sortBy()`, frecce
+  ↑/↓/↕, `aria-sort`), celle "da verificare", icona PDF (`target="_blank"`), riga Totale ("Somma di N Sezioni con dati");
+  mobile: elenco di card, menu "Ordina per" (`applySortOption('colonna:verso')`), card Totale.
+- Nuovi: `app/Domain/CaiDirectory/Enums/CaiConsolidatedSortColumn.php`, `resources/views/components/cai/consolidated-value.blade.php`.
+  Modificati: pagina, vista, CSS `regional-group-financial-statements.css`, test (+11), `app/Filament/CLAUDE.md` (gotcha @php).
+- Verifica browser (Playwright, utenti GR di prova Toscana/Sicilia creati e cancellati): Toscana 2025 desktop/mobile, 2026
+  (27 "Nessun bilancio"), ordinamento/filtro nell'URL (`?esercizio=2025&ordina=ricavi&stato=solo-pdf`), PDF 200
+  application/pdf, Sicilia 2025 SEZ. RAGUSA ricavi e costi "valore da verificare".
+- **Learnings for future iterations:**
+  - `@php($x = ...)` inline + un blocco `@php ... @endphp` nella stessa vista → syntax error: usare solo la forma a blocco.
+  - Testo con apostrofo da verificare con `assertSeeText`: renderlo con `{{ }}` (metodo statico), non statico nel Blade.
+  - Per verificare l'ordine delle righe: regex sui nomi `ms-consolidated__name">…<` della tabella desktop (`->html()`).
+  - La riga Totale dice "Somma di N Sezioni con dati" con N = Sezioni in "Dati presenti" (14 per Toscana 2025), che può
+    differire dalle 11 sommate nella card del conto economico (alcune hanno solo SP).
 ---
