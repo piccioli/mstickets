@@ -10,6 +10,7 @@ use App\Domain\CaiDirectory\Support\CaiConsolidatedBalanceSheetSummary;
 use App\Domain\CaiDirectory\Support\CaiConsolidatedIncomeStatementSummary;
 use App\Domain\CaiDirectory\Support\CaiRegionalGroupDashboardData;
 use App\Domain\Identity\Enums\Region;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 /**
@@ -43,9 +44,7 @@ final class CaiRegionalGroupDashboardMetrics
             );
         }
 
-        $sections = CaiSection::query()
-            ->where('codice_cai', 'like', $prefix.'%')
-            ->get(['codice_cai', 'members_count']);
+        $sections = self::sectionsOf($prefix)->get(['codice_cai', 'members_count']);
 
         $withMembers = $sections->filter(fn (CaiSection $s): bool => $s->members_count !== null);
 
@@ -63,7 +62,20 @@ final class CaiRegionalGroupDashboardMetrics
         );
     }
 
-    private static function prefixOf(Region $region): ?string
+    /**
+     * Le Sezioni del GR con quel prefisso, qualunque sia la loro `region` (regola condivisa con il consolidato 10.3).
+     *
+     * @return Builder<CaiSection>
+     */
+    public static function sectionsOf(string $prefix): Builder
+    {
+        return CaiSection::query()->where('codice_cai', 'like', $prefix.'%');
+    }
+
+    /**
+     * Il prefisso di 4 caratteri del GR della regione, `null` se la regione non ha Sezioni.
+     */
+    public static function prefixOf(Region $region): ?string
     {
         $codes = CaiSection::query()
             ->whereRaw('UPPER(region) = ?', [mb_strtoupper($region->label())])
