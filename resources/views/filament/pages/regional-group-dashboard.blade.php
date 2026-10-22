@@ -2,7 +2,6 @@
      (intestazione e griglie riusate dalla 10.1) + regional-group-dashboard.css (griglie del GR). --}}
 @use('App\Filament\Pages\CustomerRegionalSectionsDashboard')
 @use('App\Filament\Pages\RegionalGroupDashboard')
-@use('App\Filament\Pages\RegionalGroupFinancialStatements')
 @use('App\Filament\Pages\RegionalGroupHuts')
 @use('App\Filament\Pages\RegionalGroupMembers')
 @use('App\Filament\Pages\RegionalGroupSicaiStages')
@@ -14,7 +13,7 @@
     $balance = $data?->balanceSheet;
     $consolidatedIncome = $data?->consolidatedIncomeStatement;
     $consolidatedBalance = $data?->consolidatedBalanceSheet;
-    $financialStatementsUrl = RegionalGroupFinancialStatements::getUrl();
+    $financialStatementsUrl = RegionalGroupDashboard::financialStatementsUrl();
 @endphp
 <x-filament-panels::page>
     <div class="ms-section-dashboard ms-regional-group-dashboard">
@@ -66,7 +65,7 @@
         <div class="ms-section-dashboard__balance-grid">
             <x-cai.metric-badge
                 variant="bilancio"
-                :href="$financialStatementsUrl"
+                :href="RegionalGroupDashboard::financialStatementsUrl($consolidatedIncome?->year)"
                 link-label="Bilancio"
                 title="Conto economico consolidato Sezioni"
                 main-label="Risultato netto"
@@ -82,7 +81,7 @@
 
             <x-cai.metric-badge
                 variant="bilancio"
-                :href="$financialStatementsUrl"
+                :href="RegionalGroupDashboard::financialStatementsUrl($consolidatedBalance?->year)"
                 link-label="Bilancio"
                 title="Stato patrimoniale consolidato Sezioni"
                 main-label="Patrimonio netto"

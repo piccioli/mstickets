@@ -21,7 +21,8 @@ use UnitEnum;
  * regione, poi tre righe di badge metrica (`x-cai.metric-badge`) — bilancio proprio del GR (sempre "Non
  * disponibile" in questa feature), bilancio consolidato delle Sezioni, e Sezioni/Soci/Rifugi/Sentieri/Tappe SICAI —
  * ciascuno col link alla propria pagina ({@see RegionalGroupComingSoonPage}, "Sezioni" →
- * {@see CustomerRegionalSectionsDashboard}).
+ * {@see CustomerRegionalSectionsDashboard}). I quattro badge di bilancio aprono {@see RegionalGroupFinancialStatements}:
+ * quelli consolidati sull'esercizio della card (US-1025), quelli del bilancio proprio senza esercizio.
  *
  * Nessuna logica sui dati qui: le metriche arrivano da {@see CaiRegionalGroupDashboardMetrics} per la `region`
  * dell'utente. Senza regione la pagina mostra il nome, un avviso e tutti i badge "Non disponibile".
@@ -97,6 +98,12 @@ class RegionalGroupDashboard extends Page
         return collect([$data->codiceCai === null ? null : 'Codice CAI '.$data->codiceCai, $region->label()])
             ->filter()
             ->implode(' · ');
+    }
+
+    /** Pagina del consolidato Sezioni sull'esercizio indicato (`?esercizio=`), senza parametro se la card non ne ha. */
+    public static function financialStatementsUrl(?int $year = null): string
+    {
+        return RegionalGroupFinancialStatements::getUrl($year === null ? [] : ['esercizio' => $year]);
     }
 
     /** "Somma di {N} Sezioni" (o "Sezione" al singolare), con " su {M}" se indicato. */
