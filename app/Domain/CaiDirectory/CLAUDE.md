@@ -261,6 +261,9 @@ parametro di rotta) e `docs/collaudo/CLAUDE.md` per il metodo di generazione del
   resta `null` (il risultato netto non si ricalcola da ricavi/costi) e la vista lo mostra "Non disponibile", mai 0; una
   Sottosezione non ha mai bilanci (le iscrizioni RUNTS sono solo delle Sezioni). La resa usa `x-cai.metric-badge` +
   `App\Support\Formatting\ItalianNumberFormatter` (vedi `app/Filament/CLAUDE.md`): riusarli, non duplicarli.
+  Pillola "Terzo Settore" (`CaiSectionDashboardData::$thirdSectorRegistered`): iscritta = `CaiRuntsRegistration` collegata
+  OPPURE `runts_presence_status = Registered`; ogni altro caso (null, `Timeout`, `NotRegistered`) = "non iscritta", per scelta
+  del committente anche se il dato è incerto (oggi ~300 Sezioni in timeout o mai verificate). Sottosezione = `null`, nessuna pillola.
 - `php artisan cai:analyze-financial-documents --year=YYYY [--section=] [--force] [--dry-run]` accoda `AnalyzeCaiFinancialStatementDocument` (coda
   `cai-runts-analysis`) per i documenti CE/SP dell'anno non ancora analizzati. Serve `queue` in esecuzione; il worker ha `memory_limit` 128M e un PDF
   grande può dare OOM (il job viene ritentato: sulla run 2025 tutti i 348 sono comunque arrivati a fine, 0 `failed_jobs`). Controllare l'avanzamento

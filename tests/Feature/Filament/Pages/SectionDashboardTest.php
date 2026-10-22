@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\CaiDirectory\Enums\CaiRuntsPresenceStatus;
 use App\Domain\CaiDirectory\Models\CaiFinancialStatement;
 use App\Domain\CaiDirectory\Models\CaiSubsection;
 use App\Domain\Identity\Enums\CustomerType;
@@ -173,3 +174,42 @@ test('a customer of another type cannot access the section dashboard', function 
     'Organo Tecnico' => [CustomerType::OrganoTecnicoStrutturaOperativa],
     'nessun tipo' => [null],
 ]);
+
+test('the subtitle shows the third sector registration pill', function (?CaiRuntsPresenceStatus $status, string $pill, string $absent): void {
+    $user = sectionDashboardCustomer();
+    caiSection(['user_id' => $user->id, 'runts_presence_status' => $status]);
+
+    $this->actingAs($user);
+
+    Livewire::test(SectionDashboard::class)
+        ->assertSeeText($pill)
+        ->assertDontSeeText($absent);
+})->with([
+    'iscritto' => [CaiRuntsPresenceStatus::Registered, 'Terzo Settore: iscritto', 'Terzo Settore: non iscritto'],
+    'non iscritto' => [CaiRuntsPresenceStatus::Timeout, 'Terzo Settore: non iscritto', 'Terzo Settore: iscritto'],
+]);
+
+test('a subsection user and a user without a section see no third sector pill', function (bool $withSubsection): void {
+    $user = sectionDashboardCustomer();
+    if ($withSubsection) {
+        $section = caiSection(['runts_presence_status' => CaiRuntsPresenceStatus::Registered]);
+        CaiSubsection::create(['cai_codice' => 'SUB-PILL', 'cai_section_id' => $section->codice_cai,
+            'name' => 'Sub', 'user_id' => $user->id]);
+    }
+
+    $this->actingAs($user);
+
+    Livewire::test(SectionDashboard::class)->assertDontSeeText('Terzo Settore');
+})->with(['sottosezione' => [true], 'nessuna sezione' => [false]]);
+
+test('each badge link is labelled with the name of its detail page', function (): void {
+    $user = sectionDashboardCustomer();
+    caiSection(['user_id' => $user->id]);
+
+    $this->actingAs($user);
+
+    Livewire::test(SectionDashboard::class)
+        ->assertSeeTextInOrder(['Conto economico', 'Bilancio', 'Stato patrimoniale', 'Bilancio',
+            'Soci', 'Soci', 'Rifugi', 'Rifugi di Sezione', 'Sentieri', 'Sentieri di Sezione', 'Tappe SICAI', 'Tappe SICAI'])
+        ->assertDontSeeText('Vedi dettaglio');
+});

@@ -100,6 +100,12 @@ mia Sezione.
       home, gruppo "Area cliente", in testa al gruppo.
 - [ ] `canAccess()`: solo utenti con ruolo customer e `customer_type = Sezione`.
 - [ ] Intestazione: nome della Sezione (28 px, extra-bold) e, sotto, "Codice CAI {codice} · {regione}".
+- [ ] *(Aggiunta del 2026-10-22, design aggiornato.)* Nel sottotitolo, dopo codice e regione, una pillola "Terzo Settore:
+      iscritto" (verde) se la Sezione ha un'iscrizione RUNTS collegata o `runts_presence_status = Registered`, altrimenti
+      "Terzo Settore: non iscritto" (grigia), anche quando la verifica è in timeout o mai eseguita (scelta del committente).
+      Nessuna pillola per Sottosezioni e utenti senza Sezione.
+- [ ] Il link di ogni badge riporta il nome della pagina di destinazione ("Bilancio", "Soci", "Rifugi di Sezione",
+      "Sentieri di Sezione", "Tappe SICAI"), come nel design.
 - [ ] Riga 1: due badge `bilancio` affiancati (Conto economico, Stato patrimoniale), link alla pagina "Bilancio".
       Il conto economico mostra il risultato netto come valore principale e Ricavi/Costi come secondari. Lo
       stato patrimoniale mostra il patrimonio netto come principale e il totale attivo come secondario. Sotto il
@@ -193,6 +199,10 @@ sfondo pagina `#f4f6f8`, card `#ffffff`. Se un colore sotto non esiste come toke
 20 px, card alte almeno 248 px. Griglia semplici 4 colonne, gap 20 px, card alte almeno 164 px.
 **Mobile (390 px):** padding 24 px 16 px 32 px, gap 16 px; nome 22 px; badge di bilancio in colonna; badge
 semplici su 2 colonne, gap 12 px.
+
+**Pillola Terzo Settore (sottotitolo):** sottotitolo in flex con gap 10 px (mobile 8 px, 13 px). Pillola 11,5 px / 800 / raggio
+99 px / padding 1 px 9 px. Iscritto: sfondo `#eef7f3`, testo `#128a6c`, bordo `#cfe8de`. Non iscritto: sfondo `#f1f3f5`,
+testo `#6b7486`, bordo `#e4e7eb`.
 
 **Badge semplice — con valore:** sfondo `#ffffff`, bordo 1 px `#eceef1`, raggio 10 px, ombra `0 1px 2px
 rgba(30,50,40,.05)`, padding 20 px 22 px. Etichetta 14 px / 700 / `#5a6375`. Numero 38 px / 800 / line-height

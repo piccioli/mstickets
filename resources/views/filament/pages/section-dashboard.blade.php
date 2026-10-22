@@ -15,7 +15,14 @@
         <header class="ms-section-dashboard__header">
             <h1 class="ms-section-dashboard__name">{{ $data?->name ?? $this->userName() }}</h1>
             @if ($data !== null)
-                <p class="ms-section-dashboard__subtitle">{{ $this->subtitle($data) }}</p>
+                <p class="ms-section-dashboard__subtitle">
+                    <span>{{ $this->subtitle($data) }}</span>
+                    @if ($data->thirdSectorRegistered === true)
+                        <span class="ms-section-dashboard__ets-pill">Terzo Settore: iscritto</span>
+                    @elseif ($data->thirdSectorRegistered === false)
+                        <span class="ms-section-dashboard__ets-pill ms-section-dashboard__ets-pill--no">Terzo Settore: non iscritto</span>
+                    @endif
+                </p>
             @endif
         </header>
 
@@ -29,6 +36,7 @@
             <x-cai.metric-badge
                 variant="bilancio"
                 :href="$financialStatementsUrl"
+                link-label="Bilancio"
                 title="Conto economico"
                 main-label="Risultato netto"
                 :main-value="$income?->netResult"
@@ -43,6 +51,7 @@
             <x-cai.metric-badge
                 variant="bilancio"
                 :href="$financialStatementsUrl"
+                link-label="Bilancio"
                 title="Stato patrimoniale"
                 main-label="Patrimonio netto"
                 :main-value="$balance?->netEquity"
@@ -54,16 +63,17 @@
         </div>
 
         <div class="ms-section-dashboard__simple-grid">
-            <x-cai.metric-badge label="Soci" :value="$data?->members" :href="SectionMembers::getUrl()" />
-            <x-cai.metric-badge label="Rifugi" :value="$data?->huts" :href="SectionHuts::getUrl()" />
+            <x-cai.metric-badge label="Soci" :value="$data?->members" :href="SectionMembers::getUrl()" link-label="Soci" />
+            <x-cai.metric-badge label="Rifugi" :value="$data?->huts" :href="SectionHuts::getUrl()" link-label="Rifugi di Sezione" />
             <x-cai.metric-badge
                 label="Sentieri"
                 :value="$data?->trailsKm"
                 unit="km"
                 :decimals="1"
                 :href="SectionTrails::getUrl()"
+                link-label="Sentieri di Sezione"
             />
-            <x-cai.metric-badge label="Tappe SICAI" :value="$data?->sicaiStages" :href="SectionSicaiStages::getUrl()" />
+            <x-cai.metric-badge label="Tappe SICAI" :value="$data?->sicaiStages" :href="SectionSicaiStages::getUrl()" link-label="Tappe SICAI" />
         </div>
     </div>
 </x-filament-panels::page>

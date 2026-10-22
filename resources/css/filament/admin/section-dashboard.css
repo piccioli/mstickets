@@ -26,9 +26,30 @@
 }
 
 .ms-section-dashboard__subtitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ms-space-5); /* 10px */
   margin: 0;
   font-size: var(--ms-text-base); /* 13.5px */
   color: var(--ms-text-muted);
+}
+
+/* Pillola "Terzo Settore" accanto a codice e regione. */
+.ms-section-dashboard__ets-pill {
+  padding: 1px 9px;
+  border: var(--ms-border-width) solid var(--ms-brand-border-tint);
+  border-radius: var(--ms-radius-pill);
+  background: var(--ms-brand-surface-tint);
+  color: var(--ms-brand-hover);
+  font-size: var(--ms-text-xs); /* 11.5px */
+  font-weight: var(--ms-fw-extrabold);
+}
+
+.ms-section-dashboard__ets-pill--no {
+  border-color: var(--ms-border-muted);
+  background: var(--ms-surface-muted);
+  color: var(--ms-text-secondary);
 }
 
 .ms-section-dashboard__notice {
@@ -64,6 +85,11 @@
 
   .ms-section-dashboard__name {
     font-size: 1.375rem; /* 22px */
+  }
+
+  .ms-section-dashboard__subtitle {
+    gap: var(--ms-space-4); /* 8px */
+    font-size: var(--ms-text-sm); /* 13px */
   }
 
   .ms-section-dashboard__balance-grid {

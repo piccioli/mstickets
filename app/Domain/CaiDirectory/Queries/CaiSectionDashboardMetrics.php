@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\CaiDirectory\Queries;
 
+use App\Domain\CaiDirectory\Enums\CaiRuntsPresenceStatus;
 use App\Domain\CaiDirectory\Models\CaiFinancialStatement;
 use App\Domain\CaiDirectory\Models\CaiSection;
 use App\Domain\CaiDirectory\Models\CaiSubsection;
@@ -21,6 +22,9 @@ use Illuminate\Database\Query\Builder as QueryBuilder;
  * {@see CaiSectionFinancialYearQuery}. Una sola query sui bilanci per Sezione.
  *
  * Soci = `members_count` della Sezione così com'è: i soci delle Sottosezioni non vengono mai sommati.
+ *
+ * Terzo Settore: iscritta se ha una `CaiRuntsRegistration` collegata o se la verifica di presenza l'ha trovata
+ * (`Registered`); in ogni altro caso (mai verificata, timeout, non presente) "non iscritta" — scelta del committente.
  */
 final class CaiSectionDashboardMetrics
 {
@@ -47,6 +51,8 @@ final class CaiSectionDashboardMetrics
                 netEquity: self::amount($balance->net_equity),
                 totalAssets: self::amount($balance->total_assets),
             ),
+            thirdSectorRegistered: $section->runts_presence_status === CaiRuntsPresenceStatus::Registered
+                || $section->runtsRegistrations()->exists(),
         );
     }
 

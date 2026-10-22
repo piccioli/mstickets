@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\CaiDirectory\Enums\CaiRuntsPresenceStatus;
 use App\Domain\CaiDirectory\Models\CaiFinancialStatement;
 use App\Domain\CaiDirectory\Models\CaiSubsection;
 use App\Domain\CaiDirectory\Queries\CaiSectionDashboardMetrics;
@@ -119,4 +120,34 @@ test('section members are never summed with the subsections members', function (
     CaiSubsection::create(['cai_codice' => 'SUB-2', 'cai_section_id' => $section->codice_cai, 'name' => 'Sub 2', 'members_count' => 60]);
 
     expect(CaiSectionDashboardMetrics::forSection($section)->members)->toBe(500);
+});
+
+test('a section with a RUNTS registration is registered in the third sector', function (): void {
+    $section = caiSection();
+    caiRuntsRegistration(['cai_section_id' => $section->codice_cai]);
+
+    expect(CaiSectionDashboardMetrics::forSection($section)->thirdSectorRegistered)->toBeTrue();
+});
+
+test('a section found by the RUNTS presence check is registered even without a linked registration', function (): void {
+    $section = caiSection(['runts_presence_status' => CaiRuntsPresenceStatus::Registered]);
+
+    expect(CaiSectionDashboardMetrics::forSection($section)->thirdSectorRegistered)->toBeTrue();
+});
+
+test('a section that is not found as registered is not registered, whatever the check outcome', function (?CaiRuntsPresenceStatus $status): void {
+    $section = caiSection(['runts_presence_status' => $status]);
+
+    expect(CaiSectionDashboardMetrics::forSection($section)->thirdSectorRegistered)->toBeFalse();
+})->with([
+    'mai verificata' => [null],
+    'timeout' => [CaiRuntsPresenceStatus::Timeout],
+    'non presente' => [CaiRuntsPresenceStatus::NotRegistered],
+]);
+
+test('a subsection has no third sector information', function (): void {
+    $section = caiSection(['runts_presence_status' => CaiRuntsPresenceStatus::Registered]);
+    $subsection = CaiSubsection::create(['cai_codice' => 'SUB-ETS', 'cai_section_id' => $section->codice_cai, 'name' => 'Sub']);
+
+    expect(CaiSectionDashboardMetrics::forSubsection($subsection)->thirdSectorRegistered)->toBeNull();
 });
