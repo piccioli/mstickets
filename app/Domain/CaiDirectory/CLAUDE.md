@@ -256,6 +256,11 @@ parametro di rotta) e `docs/collaudo/CLAUDE.md` per il metodo di generazione del
   bilancio collegato via RUNTS. Vincolo unique `(cai_section_id, year)` su `cai_financial_statements`: nei test non creare due
   bilanci diretti dello stesso anno. La regione in maiuscolo si mappa sull'etichetta di `Identity\Enums\Region` confrontando
   `mb_strtoupper(label())`, come fa `CaiRegionalGroupsQuery`.
+  Regole di dominio da rispettare anche nella Dashboard GR (10.2) e nelle pagine Soci/Bilancio: soci = `members_count` così
+  com'è, **mai** sommato con quello delle Sottosezioni (domanda aperta col CAI, PRD 10.1 §9); un valore di bilancio assente
+  resta `null` (il risultato netto non si ricalcola da ricavi/costi) e la vista lo mostra "Non disponibile", mai 0; una
+  Sottosezione non ha mai bilanci (le iscrizioni RUNTS sono solo delle Sezioni). La resa usa `x-cai.metric-badge` +
+  `App\Support\Formatting\ItalianNumberFormatter` (vedi `app/Filament/CLAUDE.md`): riusarli, non duplicarli.
 - `php artisan cai:analyze-financial-documents --year=YYYY [--section=] [--force] [--dry-run]` accoda `AnalyzeCaiFinancialStatementDocument` (coda
   `cai-runts-analysis`) per i documenti CE/SP dell'anno non ancora analizzati. Serve `queue` in esecuzione; il worker ha `memory_limit` 128M e un PDF
   grande può dare OOM (il job viene ritentato: sulla run 2025 tutti i 348 sono comunque arrivati a fine, 0 `failed_jobs`). Controllare l'avanzamento

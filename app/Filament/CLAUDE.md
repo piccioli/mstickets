@@ -109,6 +109,8 @@ trasversali di test Filament (`fillForm()` rotto, notifiche Postgres `text ->> u
   leggono solo token `--ms-*`), non in utility Tailwind con valori arbitrari. Formattazione dei numeri
   all'italiana: `App\Support\Formatting\ItalianNumberFormatter`, mai `number_format()` nella vista.
   Test di rendering di un componente: `test()->blade('<x-...>', [...])->assertSee(...)`.
+  `x-cai.metric-badge` non conosce la Sezione (riceve solo valori già calcolati e un `href`): la Dashboard GR
+  (10.2) lo riusa così com'è, passando i propri numeri; `result: true` solo per un conto economico.
 - **Pagine "in arrivo" della Dashboard V2 Sezione** (US-1003): `SectionComingSoonPage` (astratta, vista
   `section-coming-soon`, fuori navigazione, gate customer + `customer_type = Sezione`) con cinque sottoclassi
   di sole `$title`/`$slug` (`sezione/soci`, `sezione/bilancio`, `sezione/rifugi`, `sezione/sentieri`,
