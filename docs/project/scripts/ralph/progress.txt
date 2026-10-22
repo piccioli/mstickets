@@ -95,3 +95,25 @@ Fase 10.2 — Dashboard V2 del Gruppo Regionale, vedi docs/project/tasks/prd-fas
   - Playwright è installato in `/tmp/node_modules`: lo script `.mjs` va eseguito da `/tmp` (`cd /tmp && node x.mjs`).
   - Login di prova su `http://localhost:8080/admin/login` con `input[type=email]`/`input[type=password]`.
 ---
+
+## 2026-10-22 - US-1015
+- `Dashboard::mount()`: `match` su `customer_type` — Sezione → `SectionDashboard`, GruppoRegionale →
+  `RegionalGroupDashboard`, altri → `CustomerDashboard`. `CustomerDashboard`: `isSezioneUser()` → `hasDashboardV2()`
+  (Sezione o GR), quindi per il GR etichetta/titolo "Ticket e documenti" e icona `OutlinedClipboardDocumentList`;
+  gruppo "GR" e sort -2 invariati (subito dopo la V2 a -3). Blocchi/azioni/autorizzazioni invariati.
+- Test: DashboardTest (GR → V2, Organo Tecnico → CustomerDashboard, sostituiscono il dataset "non-Sezione"),
+  CustomerDashboardTest (nuovo test GR "Ticket e documenti"; GR tolto dal dataset "every other customer"),
+  Fase10DashboardSezioneEndToEndTest (GR → V2, test rinominato). Manifest `fase-10.php` F10-40/F10-44 riallineati
+  ai nuovi nomi (verify-manifest 10 ok). Checkpoint Fasi 6-9 verdi senza modifiche (usano solo URL diretti).
+- Files: app/Filament/Pages/{Dashboard,CustomerDashboard}.php, app/Filament/CLAUDE.md, docs/collaudo/fase-10.php,
+  tests/Feature/Filament/Pages/{DashboardTest,CustomerDashboardTest}.php,
+  tests/Feature/EndToEnd/Fase10DashboardSezioneEndToEndTest.php.
+- Verifica in browser (Playwright, utente GR Toscana di prova poi `forceDelete()`): login → /admin/gr/dashboard;
+  sidebar "GR: Dashboard, Ticket e documenti | Sezioni: Dashboard | Area cliente: …"; "Ticket e documenti" apre la
+  dashboard cliente con badge "Gruppo Regionale — Toscana" e tutti i blocchi.
+- **Learnings for future iterations:**
+  - Rinominare un test referenziato da `docs/collaudo/fase-N.php` rompe `collaudo:verify-manifest`: grep del nome
+    vecchio nei manifest prima di committare.
+  - Nel gruppo "Sezioni" la voce di `CustomerRegionalSectionsDashboard` si chiama ancora "Dashboard" (preesistente,
+    fuori scope: il PRD §5 esclude modifiche a quella pagina).
+---
