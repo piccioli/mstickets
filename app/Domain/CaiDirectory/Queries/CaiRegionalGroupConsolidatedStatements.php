@@ -13,6 +13,7 @@ use App\Domain\CaiDirectory\Models\CaiSection;
 use App\Domain\CaiDirectory\Support\CaiConsolidatedSectionRow;
 use App\Domain\CaiDirectory\Support\CaiRegionalGroupConsolidatedData;
 use App\Domain\Identity\Enums\Region;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 /**
@@ -112,8 +113,10 @@ final class CaiRegionalGroupConsolidatedStatements
     }
 
     /**
-     * I 5 esercizi che finiscono con l'anno più alto fra bilanci e documenti (l'anno corrente se non ce ne sono),
-     * in ordine crescente.
+     * I 5 esercizi che finiscono con l'anno più alto fra bilanci e file di bilancio (l'anno corrente se non ce ne
+     * sono), in ordine crescente. Contano solo i documenti che sono file di bilancio, con la stessa definizione di
+     * {@see CaiSectionFinancialYearQuery::financialDocumentsOf()}: un documento qualunque (es. "Quote associative
+     * 2026") non deve aggiungere un esercizio vuoto.
      *
      * @return list<int>
      */
@@ -121,7 +124,9 @@ final class CaiRegionalGroupConsolidatedStatements
     {
         $latest = max(
             (int) CaiFinancialStatement::query()->max('year'),
-            (int) CaiDocument::query()->max('year'),
+            (int) CaiDocument::query()
+                ->where(fn (Builder $q) => $q->incomeStatement()->orWhere(fn (Builder $q) => $q->balanceSheet()))
+                ->max('year'),
         );
 
         if ($latest === 0) {

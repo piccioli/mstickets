@@ -43,6 +43,15 @@ test('the available years are the five ending with the highest year of statement
     expect(CaiRegionalGroupConsolidatedStatements::availableYears())->toBe([2021, 2022, 2023, 2024, 2025]);
 });
 
+test('a later document that is not a financial statement does not move the available years', function (): void {
+    $a = caiSection(['codice_cai' => '9226001', 'region' => 'TOSCANA']);
+    CaiFinancialStatement::create(['cai_section_id' => $a->codice_cai, 'year' => 2025, 'total_revenues' => 10]);
+    caiDocument(['cai_runts_registration_id' => null, 'cai_section_id' => $a->codice_cai, 'year' => 2026,
+        'document_type' => 'altro', 'title' => 'Quote associative 2026', 'source' => 'manual']);
+
+    expect(CaiRegionalGroupConsolidatedStatements::availableYears())->toBe([2021, 2022, 2023, 2024, 2025]);
+});
+
 test('every section of the group has a row with its status, also those without anything', function (): void {
     $data = caiSection(['codice_cai' => '9226001', 'name' => 'SEZ. A', 'region' => 'TOSCANA']);
     $pdf = caiSection(['codice_cai' => '9226002', 'name' => 'SEZ. B', 'region' => 'TOSCANA']);
