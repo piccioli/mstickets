@@ -109,3 +109,18 @@ Fase 10.3 — Bilancio consolidato delle Sezioni del GR, vedi docs/project/tasks
   - La riga Totale dice "Somma di N Sezioni con dati" con N = Sezioni in "Dati presenti" (14 per Toscana 2025), che può
     differire dalle 11 sommate nella card del conto economico (alcune hanno solo SP).
 ---
+
+## 2026-10-22 - US-1025
+- Dashboard GR: i badge "Conto economico/Stato patrimoniale consolidato Sezioni" aprono `RegionalGroupFinancialStatements`
+  con `?esercizio={anno della card}` (senza parametro se la card non ha esercizio); i due badge del bilancio proprio del GR
+  aprono la stessa pagina senza parametro. Testo del link "Bilancio" invariato.
+- Nuovo `RegionalGroupDashboard::financialStatementsUrl(?int $year)` (usa `getUrl(['esercizio' => $year])`).
+- Modificati: `app/Filament/Pages/RegionalGroupDashboard.php`, `resources/views/filament/pages/regional-group-dashboard.blade.php`,
+  `tests/Feature/Filament/Pages/RegionalGroupDashboardTest.php` (+1 test: anni diversi su CE 2025 / SP 2024).
+- Verifica browser non eseguita: cambia solo l'`href` dei badge, coperto dal test sull'HTML.
+- **Learnings for future iterations:**
+  - `Page::getUrl(['chiave' => valore])` su una pagina Filament senza parametri di rotta accoda i parametri come query
+    string (`/admin/gr/bilancio?esercizio=2025`): niente concatenazione manuale.
+  - In `x-cai.metric-badge` variante bilancio il `link-label` è reso DOPO "Esercizio {anno}": tenerne conto in
+    `assertSeeTextInOrder`.
+---
