@@ -18,8 +18,10 @@ use App\Domain\Reporting\Enums\ActivityReportOwnerKind;
 use App\Domain\Reporting\Enums\ActivityReportPeriodType;
 use App\Domain\Ticketing\Enums\TicketStatus;
 use App\Filament\Pages\CustomerDashboard;
+use App\Filament\Pages\SectionDashboard;
 use Database\Seeders\RolePermissionSeeder;
 use Filament\Facades\Filament;
+use Filament\Support\Icons\Heroicon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
@@ -551,3 +553,46 @@ test('the sync runts data action shows an informative notification when no RUNTS
 
     expect(CaiRuntsRegistration::query()->count())->toBe(0);
 });
+
+test('for a Sezione customer the page becomes "Ticket e documenti", right after the Section dashboard', function (): void {
+    $this->seed(RolePermissionSeeder::class);
+    $customer = withRole(User::factory()->create(), UserRole::Customer);
+    $customer->forceFill(['customer_type' => CustomerType::Sezione])->save();
+
+    $this->actingAs($customer);
+
+    expect(CustomerDashboard::getNavigationLabel())->toBe('Ticket e documenti')
+        ->and(CustomerDashboard::getNavigationIcon())->not->toBe(Heroicon::OutlinedHome)
+        ->and(CustomerDashboard::getNavigationGroup())->toBe('Area cliente')
+        ->and(CustomerDashboard::getNavigationSort())->toBe(SectionDashboard::getNavigationSort() + 1);
+
+    expect(Livewire::test(CustomerDashboard::class)->instance()->getTitle())->toBe('Ticket e documenti');
+
+    $this->get(CustomerDashboard::getUrl())
+        ->assertSuccessful()
+        ->assertSee('Ticket e documenti')
+        ->assertSee('Ticket aperti');
+});
+
+test('for every other customer the page keeps the "Dashboard" label, title, icon, group and position', function (?CustomerType $type, string $group): void {
+    $this->seed(RolePermissionSeeder::class);
+    $customer = withRole(User::factory()->create(), UserRole::Customer);
+    $customer->forceFill(['customer_type' => $type])->save();
+
+    $this->actingAs($customer);
+
+    expect(CustomerDashboard::getNavigationLabel())->toBe('Dashboard')
+        ->and(CustomerDashboard::getNavigationIcon())->toBe(Heroicon::OutlinedHome)
+        ->and(CustomerDashboard::getNavigationGroup())->toBe($group)
+        ->and(CustomerDashboard::getNavigationSort())->toBe(-2);
+
+    expect(Livewire::test(CustomerDashboard::class)->instance()->getTitle())->toBe('Dashboard');
+
+    $this->get(CustomerDashboard::getUrl())
+        ->assertSuccessful()
+        ->assertDontSee('Ticket e documenti');
+})->with([
+    'Gruppo Regionale' => [CustomerType::GruppoRegionale, 'GR'],
+    'Organo Tecnico/Struttura Operativa' => [CustomerType::OrganoTecnicoStrutturaOperativa, 'Area cliente'],
+    'nessun tipo' => [null, 'Area cliente'],
+]);

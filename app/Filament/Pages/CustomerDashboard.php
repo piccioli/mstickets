@@ -29,6 +29,7 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Facades\Auth;
 use Throwable;
@@ -71,11 +72,37 @@ class CustomerDashboard extends Page
 
     protected static ?int $navigationSort = -2;
 
+    /** Per l'utente Sezione questa pagina è "Ticket e documenti" (US-1005): la sua "Dashboard" è {@see SectionDashboard}. */
+    private const string SEZIONE_TITLE = 'Ticket e documenti';
+
     public static function canAccess(): bool
     {
         $user = Auth::user();
 
         return $user instanceof User && $user->hasRole(UserRole::Customer->value);
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return self::isSezioneUser() ? self::SEZIONE_TITLE : parent::getNavigationLabel();
+    }
+
+    public static function getNavigationIcon(): string|BackedEnum|Htmlable|null
+    {
+        return self::isSezioneUser() ? Heroicon::OutlinedClipboardDocumentList : parent::getNavigationIcon();
+    }
+
+    public function getTitle(): string|Htmlable
+    {
+        return self::isSezioneUser() ? self::SEZIONE_TITLE : parent::getTitle();
+    }
+
+    /** Il sort -2 resta per tutti: per la Sezione cade subito dopo {@see SectionDashboard} (-3). */
+    private static function isSezioneUser(): bool
+    {
+        $user = Auth::user();
+
+        return $user instanceof User && $user->customer_type === CustomerType::Sezione;
     }
 
     /**
