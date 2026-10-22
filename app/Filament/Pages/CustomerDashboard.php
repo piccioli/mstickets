@@ -72,8 +72,11 @@ class CustomerDashboard extends Page
 
     protected static ?int $navigationSort = -2;
 
-    /** Per l'utente Sezione questa pagina è "Ticket e documenti" (US-1005): la sua "Dashboard" è {@see SectionDashboard}. */
-    private const string SEZIONE_TITLE = 'Ticket e documenti';
+    /**
+     * Per l'utente Sezione (US-1005) e Gruppo Regionale (US-1015) questa pagina è "Ticket e documenti": la loro
+     * "Dashboard" è la V2 ({@see SectionDashboard}, {@see RegionalGroupDashboard}).
+     */
+    private const string TICKETS_AND_DOCUMENTS_TITLE = 'Ticket e documenti';
 
     public static function canAccess(): bool
     {
@@ -84,25 +87,29 @@ class CustomerDashboard extends Page
 
     public static function getNavigationLabel(): string
     {
-        return self::isSezioneUser() ? self::SEZIONE_TITLE : parent::getNavigationLabel();
+        return self::hasDashboardV2() ? self::TICKETS_AND_DOCUMENTS_TITLE : parent::getNavigationLabel();
     }
 
     public static function getNavigationIcon(): string|BackedEnum|Htmlable|null
     {
-        return self::isSezioneUser() ? Heroicon::OutlinedClipboardDocumentList : parent::getNavigationIcon();
+        return self::hasDashboardV2() ? Heroicon::OutlinedClipboardDocumentList : parent::getNavigationIcon();
     }
 
     public function getTitle(): string|Htmlable
     {
-        return self::isSezioneUser() ? self::SEZIONE_TITLE : parent::getTitle();
+        return self::hasDashboardV2() ? self::TICKETS_AND_DOCUMENTS_TITLE : parent::getTitle();
     }
 
-    /** Il sort -2 resta per tutti: per la Sezione cade subito dopo {@see SectionDashboard} (-3). */
-    private static function isSezioneUser(): bool
+    /**
+     * Il sort -2 resta per tutti: cade subito dopo la Dashboard V2 (-3) — {@see SectionDashboard} per la Sezione,
+     * {@see RegionalGroupDashboard} nel gruppo "GR".
+     */
+    private static function hasDashboardV2(): bool
     {
         $user = Auth::user();
 
-        return $user instanceof User && $user->customer_type === CustomerType::Sezione;
+        return $user instanceof User
+            && in_array($user->customer_type, [CustomerType::Sezione, CustomerType::GruppoRegionale], true);
     }
 
     /**

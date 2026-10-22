@@ -16,7 +16,8 @@ use Illuminate\Support\Facades\Auth;
  * Landing per ruolo (§6.7.2, US-113, US-602): admin/manager/developer
  * atterrano sulla vista di lavoro, customer sulla dashboard cliente
  * (US-601) — il customer Sezione sulla propria Dashboard V2 (US-1005,
- * {@see SectionDashboard}) —, fundraising sull'elenco opportunità — mai sulla dashboard di
+ * {@see SectionDashboard}), il customer Gruppo Regionale sulla sua (US-1015,
+ * {@see RegionalGroupDashboard}) —, fundraising sull'elenco opportunità — mai sulla dashboard di
  * default. Sottoclasse (non middleware) perché la Dashboard di Filament è
  * già la pagina registrata sulla root del pannello (`$routePath = '/'`,
  * ereditato): sostituirla in `AdminPanelProvider::pages()` con questa è
@@ -50,9 +51,11 @@ class Dashboard extends BaseDashboard
         }
 
         if ($user->hasRole(UserRole::Customer->value)) {
-            $this->redirect($user->customer_type === CustomerType::Sezione
-                ? SectionDashboard::getUrl()
-                : CustomerDashboard::getUrl());
+            $this->redirect(match ($user->customer_type) {
+                CustomerType::Sezione => SectionDashboard::getUrl(),
+                CustomerType::GruppoRegionale => RegionalGroupDashboard::getUrl(),
+                default => CustomerDashboard::getUrl(),
+            });
 
             return;
         }

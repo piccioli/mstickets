@@ -92,7 +92,7 @@ return [
             'titolo' => 'Dashboard V2 della Sezione (10.1) — atterraggio e "Ticket e documenti" (US-1005)',
             'test' => [
                 ['id' => 'F10-39', 'descrizione' => 'Dopo il login l\'utente Sezione atterra sulla Dashboard V2', 'test_automatico' => 'tests/Feature/Filament/Pages/DashboardTest.php::a Sezione customer landing on the dashboard is redirected to the Section dashboard V2'],
-                ['id' => 'F10-40', 'descrizione' => 'Gli altri clienti (GR, Organo Tecnico, Generico) atterrano ancora sulla dashboard cliente', 'test_automatico' => 'tests/Feature/Filament/Pages/DashboardTest.php::a non-Sezione customer landing on the dashboard is still redirected to the customer dashboard'],
+                ['id' => 'F10-40', 'descrizione' => 'Gli altri clienti (Organo Tecnico, Generico) atterrano ancora sulla dashboard cliente', 'test_automatico' => 'tests/Feature/Filament/Pages/DashboardTest.php::an Organo Tecnico customer landing on the dashboard is still redirected to the customer dashboard'],
                 ['id' => 'F10-41', 'descrizione' => 'Per l\'utente Sezione la dashboard cliente diventa "Ticket e documenti", subito dopo la Dashboard', 'test_automatico' => 'tests/Feature/Filament/Pages/CustomerDashboardTest.php::for a Sezione customer the page becomes "Ticket e documenti", right after the Section dashboard'],
                 ['id' => 'F10-42', 'descrizione' => 'Per ogni altro cliente etichetta, titolo, icona, gruppo e posizione restano invariati', 'test_automatico' => 'tests/Feature/Filament/Pages/CustomerDashboardTest.php::for every other customer the page keeps the "Dashboard" label, title, icon, group and position'],
             ],
@@ -101,7 +101,7 @@ return [
             'titolo' => 'Dashboard V2 della Sezione (10.1) — percorso end-to-end (US-1006)',
             'test' => [
                 ['id' => 'F10-43', 'descrizione' => 'Utente Sezione: login → Dashboard V2 con i valori reali → badge "Soci" → pagina "in arrivo" → "Ticket e documenti"', 'test_automatico' => 'tests/Feature/EndToEnd/Fase10DashboardSezioneEndToEndTest.php::a Sezione user logs in, lands on the Dashboard V2 with real values and follows a badge to the coming soon page'],
-                ['id' => 'F10-44', 'descrizione' => 'Utente Gruppo Regionale: atterra sulla dashboard cliente e non apre la Dashboard V2 della Sezione', 'test_automatico' => 'tests/Feature/EndToEnd/Fase10DashboardSezioneEndToEndTest.php::a Gruppo Regionale user still lands on the customer dashboard and cannot open the Section Dashboard V2'],
+                ['id' => 'F10-44', 'descrizione' => 'Utente Gruppo Regionale: atterra sulla propria Dashboard V2 e non apre la Dashboard V2 della Sezione', 'test_automatico' => 'tests/Feature/EndToEnd/Fase10DashboardSezioneEndToEndTest.php::a Gruppo Regionale user lands on the regional group dashboard V2 and cannot open the Section Dashboard V2'],
             ],
         ],
     ],
