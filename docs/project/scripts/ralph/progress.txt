@@ -24,3 +24,26 @@ Fase 10.2 — Dashboard V2 del Gruppo Regionale, vedi docs/project/tasks/prd-fas
   collaudo `manager@oc.test` NON può impersonare (impersonation solo admin).
 - Fase 10.1 (Dashboard Sezione) è già su `develop`: componente `x-cai.metric-badge`, `ItalianNumberFormatter`,
   `CaiSectionDashboardMetrics`, base `SectionComingSoonPage`, `SectionDashboard` — riusarli, non duplicarli.
+- Bilanci di N Sezioni in una query: `CaiSectionStatementsQuery::forSections($codes)` (diretti + via RUNTS, colonna
+  `owner_section_code`, ordine anno desc / RUNTS prima). Il "primo per (Sezione, anno)" che soddisfa un criterio vince.
+- **Numeri attesi del PRD 10.2 §7 sono gonfiati**: sommano due volte le Sezioni che hanno sia bilancio diretto sia
+  RUNTS per lo stesso anno. Valori corretti (dev DB) Toscana 2025: 11/27 Sezioni, ricavi 1.520.538,66 €, risultato
+  +90.143,67 €, SP 8/27 — usare questi in verifica browser.
+
+## 2026-10-22 - US-1011
+- `CaiRegionalGroupDashboardMetrics::forRegion(Region)` → `CaiRegionalGroupDashboardData` (codice GR = prefisso
+  4 cifre più frequente fra le Sezioni della regione + `000`, Sezioni per prefisso, soci, consolidato CE/SP su un
+  esercizio ciascuno). Nuovi VO `CaiConsolidatedIncomeStatementSummary`/`CaiConsolidatedBalanceSheetSummary`.
+- Estratta la query bilanci della 10.1 in `CaiSectionStatementsQuery::forSections()` (una query per N Sezioni,
+  `owner_section_code` via COALESCE + LEFT JOIN su `cai_runts_registrations`); `CaiSectionDashboardMetrics` la usa.
+- Files: app/Domain/CaiDirectory/Queries/{CaiRegionalGroupDashboardMetrics,CaiSectionStatementsQuery,
+  CaiSectionDashboardMetrics}.php, app/Domain/CaiDirectory/Support/{CaiRegionalGroupDashboardData,
+  CaiConsolidatedIncomeStatementSummary,CaiConsolidatedBalanceSheetSummary}.php,
+  tests/Feature/Domain/CaiDirectory/Queries/CaiRegionalGroupDashboardMetricsTest.php (13 test).
+- Verifica su dev DB: conteggi Sezioni = PRD (Toscana 11/27 CE, 8 SP; Lombardia 31/152; Veneto 24/66 con Sappada),
+  ma importi diversi dal PRD §7 — il PRD conta due volte i bilanci diretti+RUNTS della stessa Sezione/anno.
+- **Learnings for future iterations:**
+  - `countBy()` con chiavi stringa numeriche ("9226") le converte in int: ricastare a string.
+  - Somme di `decimal:2` come float → `round(..., 2)` per evitare residui (0.30000000000000004).
+  - Test N+1: `DB::enableQueryLog()` + filtrare le query per nome tabella.
+---

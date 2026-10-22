@@ -23,8 +23,8 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Numeri reali dev DB (dedup RUNTS): Toscana 2025 11/27, ricavi 1.520.538,66, risultato +90.143,67, SP 8/27. I valori del PRD §7 (≈2.205.590 / +119.867) contano due volte le Sezioni con bilancio diretto E RUNTS dello stesso anno."
     },
     {
       "id": "US-1012",
