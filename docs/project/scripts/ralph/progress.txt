@@ -47,3 +47,16 @@ Fase 10.2 — Dashboard V2 del Gruppo Regionale, vedi docs/project/tasks/prd-fas
   - Somme di `decimal:2` come float → `round(..., 2)` per evitare residui (0.30000000000000004).
   - Test N+1: `DB::enableQueryLog()` + filtrare le query per nome tabella.
 ---
+
+## 2026-10-22 - US-1012
+- `x-cai.metric-badge`: prop facoltativa `note` (variante semplice, `<span class="ms-metric-badge__note">` sotto il
+  numero, solo con valore) e `yearNote` (variante bilancio, accodata a "Esercizio {year}" con " · ", solo se la riga
+  dell'esercizio è mostrata). Senza le prop l'HTML è identico (test 10.1 verdi senza modifiche).
+- Nuova classe CSS `.ms-metric-badge__note` (12,5 px, `--ms-text-muted` = #8b93a3, margin-top 2 px); `npm run build` fatto.
+- Files: resources/views/components/cai/metric-badge.blade.php, resources/css/filament/admin/metric-badge.css,
+  tests/Feature/View/Components/CaiMetricBadgeTest.php (+6 test).
+- Verifica in browser non eseguita: nessuna pagina usa ancora le nuove prop (arriva con la Dashboard GR, US-1014).
+- **Learnings for future iterations:**
+  - Prop Blade camelCase (`yearNote`) si passano in kebab-case nel tag (`year-note="..."`), come `main-label`.
+  - `public/build` è gitignored: dopo una modifica CSS basta `npm run build` in locale, nulla da committare.
+---
