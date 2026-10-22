@@ -281,6 +281,20 @@ parametro di rotta) e `docs/collaudo/CLAUDE.md` per il metodo di generazione del
     `users.region`: il suo numero può differire dal badge "Sezioni" della V2. Atteso, non allinearli senza un PRD.
   - I numeri attesi del PRD 10.2 §7 sono gonfiati (contano due volte diretto+RUNTS dello stesso anno); il GR Sicilia 2025 ha ricavi
     consolidati anomali (~203 M€ su 5 Sezioni) per un bilancio letto male — qualità del dato, da verificare a parte.
+- **Bilancio consolidato per esercizio** (`Queries\CaiRegionalGroupConsolidatedStatements::forRegion($region, ?$year)`, Fase 10.3,
+  pagina `RegionalGroupFinancialStatements`) — a differenza della Dashboard GR l'esercizio è **scelto**, non "il più recente per voce":
+  - esercizi disponibili (`availableYears()`) = i 5 anni che finiscono con l'anno più alto fra bilanci **e documenti** (un solo PDF
+    2026 basta a spostare la finestra: sul dev DB è 2022–2026); default = il più recente con almeno una Sezione in "Dati presenti",
+    altrimenti il più recente dei 5; anno assente, non numerico o fuori dai 5 → default, mai errore;
+  - stato della Sezione nell'esercizio (`Enums\CaiSectionStatementStatus`): "Dati presenti" = bilancio dell'anno con almeno una cifra
+    di CE o SP (CE e SP scelti indipendentemente, a parità vince RUNTS); altrimenti "Solo PDF" = file di bilancio dell'anno
+    (`CaiSectionFinancialYearQuery::financialDocumentsOf()`, stessi criteri di `CaiFinancialDocumentKind`); altrimenti "Nessun
+    bilancio". Ogni Sezione del prefisso ha sempre una riga, anche senza nulla;
+  - "da verificare": ricavi, costi, patrimonio netto, totale attivo (**mai il risultato netto**) con valore assoluto > 10× la mediana
+    dei valori assoluti non nulli della voce fra le Sezioni con dati, solo se quei valori sono **almeno 3**. Il valore resta nel
+    totale: la card dice solo "Include N valori da verificare";
+  - il PDF di una riga è scaricabile dal GR con la regola del prefisso di `CaiDocumentDownloadController` (sopra): non serve un'altra
+    autorizzazione per le pagine GR che linkano documenti delle Sezioni.
 - `php artisan cai:analyze-financial-documents --year=YYYY [--section=] [--force] [--dry-run]` accoda `AnalyzeCaiFinancialStatementDocument` (coda
   `cai-runts-analysis`) per i documenti CE/SP dell'anno non ancora analizzati. Serve `queue` in esecuzione; il worker ha `memory_limit` 128M e un PDF
   grande può dare OOM (il job viene ritentato: sulla run 2025 tutti i 348 sono comunque arrivati a fine, 0 `failed_jobs`). Controllare l'avanzamento
