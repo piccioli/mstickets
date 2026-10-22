@@ -2503,19 +2503,30 @@ navigazione, rifinitura e ottimizzazione della vista di lavoro (§8.6).
 **Criteri di accettazione**: un utente cliente reale importato dal dump accede e vede solo i propri dati; tutti
 i comandi hanno `--dry-run` e log strutturato.
 
-### Fase 7 — DA DEFINIRE
+### Fase 7 — Tipologia di cliente CAI *(chiusa)*
 
-*(Riservata a nuove funzionalità, ancora da specificare col committente.)*
+Sezione / Gruppo Regionale / Organo Tecnico-Struttura Operativa. PRD: `docs/project/tasks/prd-fase-7-tipologia-clienti-cai.md`.
 
-### Fase 8 — DA DEFINIRE
+### Fase 8 — Integrazione dati RUNTS-CAI *(chiusa)*
 
-*(Riservata a nuove funzionalità, ancora da specificare col committente.)*
+Sezioni/Sottosezioni. PRD: `docs/project/tasks/prd-fase-8-integrazione-runts-cai.md`.
 
-### Fase 9 — DA DEFINIRE
+### Fase 9 — Sincronizzazione live CAI/RUNTS e datapack *(chiusa il 2026-10-21)*
 
-*(Riservata a nuove funzionalità, ancora da specificare col committente.)*
+Sincronizzazione live CAI/RUNTS, fallback CF/PIVA, upload manuale documenti, menu Anagrafica CAI e Gruppo
+Regionale, Bilancio 2025, snapshot completo dei dati CAI/RUNTS nel datapack importato dal deploy UAT.
+PRD: `docs/project/tasks/prd-menu-anagrafica-cai-bilanci-gruppi-regionali.md`,
+`docs/project/tasks/prd-datapack-snapshot-runts-uat.md`.
 
-### Fase 10 — Cutover
+### Fase 10 — Area Sezioni, Gruppi Regionali e Organi Tecnici *(in corso)*
+
+Dodici feature, una sessione Ralph ciascuna con un PRD concordato col committente all'inizio della sessione.
+Elenco, stato e regole di processo: `docs/project/tasks/fase-10-roadmap.md`. Al termine di ogni feature UAT
+viene aggiornato insieme al datapack, così che tutti i dati raccolti risultino funzionanti anche lì.
+
+### Fase 11 — Cutover
+
+*(Era Fase 10 fino alla rinumerazione del 2026-10-21.)*
 
 - Prova completa di §11.9 su staging.
 - Confronto v1/v2 su dati reali: conteggi per stato, ore per ticket, report generati.

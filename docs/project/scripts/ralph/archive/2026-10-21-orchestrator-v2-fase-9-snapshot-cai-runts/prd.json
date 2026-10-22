@@ -1,0 +1,156 @@
+{
+  "project": "Orchestrator v2 — Fase 9 (estensione): snapshot completo dei dati CAI/RUNTS nel datapack, importato dal deploy UAT",
+  "branchName": "ralph/orchestrator-v2-fase-9",
+  "description": "Comando cai:export-datapack-snapshot (tabelle snap_* + file content-addressed) e importer dello snapshot in cai:import-datapack, per avere su UAT (senza scraper né analisi) gli stessi dati CAI/RUNTS del DB locale. Vincolo spazio su msuat gestito con controlli espliciti. PRD completo: docs/project/tasks/prd-datapack-snapshot-runts-uat.md (US-950..US-957).",
+  "userStories": [
+    {
+      "id": "US-950",
+      "title": "Esportazione delle righe — tabelle `snap_*` nel datapack",
+      "description": "As a data manager, voglio esportare dal DB locale tutte le righe CAI in tabelle `snap_*` del datapack, per portarle su UAT.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: `docs/project/tasks/prd-datapack-snapshot-runts-uat.md` (§1.1, §4, §7).",
+        "Comando `cai:export-datapack-snapshot` in `app/Console/Commands/` (opzioni `--datapack= cai-datapack/runts-cai.sqlite`, `--dry-run`); classe `App\\Domain\\CaiDirectory\\Export\\CaiSnapshotExporter` (comando sottile: opzioni + delega + riepilogo).",
+        "Per ciascuna delle 6 tabelle crea `snap_cai_sections`, `snap_cai_subsections`, `snap_cai_runts_registrations`, `snap_cai_financial_statements`, `snap_cai_board_members`, `snap_cai_documents` (DROP + CREATE + INSERT in **una sola transazione** sul file SQLite; mai toccare `sezioni_cai`, `enti`, `bilanci`, `allegati`, `cariche_sociali`, `bilanci_manuali`, `sottosezioni_cai`). Colonne = quelle elencate in §1.1 **senza** `id` autoincrementale, **senza** `user_id` (il link utente si ricostruisce per email) e con i timestamp `created_at`/`updated_at`.",
+        "`snap_cai_financial_statements` e `snap_cai_documents` portano entrambe le colonne genitore (`cai_runts_registration_id`, `cai_section_id`) nullable; `snap_cai_documents` ha in più `snapshot_file` (path relativo del file nel datapack, valorizzato da US-951) e `file_in_datapack` (0/1).",
+        "Idempotente (due run = stesso contenuto, stesso ordine) e `--dry-run` non scrive nulla (file invariato).",
+        "Riepilogo con i conteggi per tabella e confronto con il DB (devono coincidere); i valori Eloquent castati (enum, bool, date) sono scritti nella forma grezza di colonna, mai nel formato di presentazione.",
+        "Test Pest con un DB sqlite di test e un datapack fixture temporaneo: ogni tabella, idempotenza, `--dry-run`, altre tabelle del datapack intatte.",
+        "Tests pass, Pint, Larastan verdi.",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-951",
+      "title": "Esportazione dei file dei documenti (content-addressed) con controllo spazio",
+      "description": "As a data manager, voglio copiare nel datapack i file dei documenti RUNTS senza duplicati.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: docs/project/tasks/prd-datapack-snapshot-runts-uat.md (§1.1 stato verificato, §4 requisiti funzionali, §7 note tecniche) — leggerlo PRIMA di implementare, non rifare l'esplorazione",
+        "Per ogni `CaiDocument` con `source = Runts` copia il file dal disco `cai-documents` in `<datapack>/snapshot-files/<hash[0..1]>/<hash>.<ext>` (nome = sha256 del contenuto, **un solo file** anche se più documenti hanno lo stesso hash: 1999 righe → ~1981 file); imposta `snapshot_file` e `file_in_datapack = 1` nelle righe `snap_cai_documents`. L'hash si **ricalcola** dal file (`hash_file`), non ci si fida di `cai_documents.hash`.",
+        "I documenti `source = Manual` **non** vengono copiati (esistono già in `bilanci-sezioni-2026/normalized/` e arrivano da `bilanci_manuali`): righe esportate con `file_in_datapack = 0` (servono solo a ripristinare l'esito di analisi, US-955).",
+        "File mancante sul disco → riga esportata con `file_in_datapack = 0` e avviso nel riepilogo (mai eccezione che ferma l'export; try/catch dentro il loop).",
+        "Idempotente: un file già presente con lo stesso hash non viene ricopiato; stream (`copy`/`fopen`), mai `file_get_contents` di interi PDF.",
+        "Prima di copiare calcola lo spazio necessario e lo spazio libero locale (`disk_free_space`); se manca, termina con errore esplicito in italiano **prima** di scrivere.",
+        "Riepilogo: n° file copiati/già presenti/mancanti, MB totali, n° hash distinti.",
+        "Test Pest con `Storage::fake('cai-documents')` e un datapack temporaneo: dedup per hash, file mancante, manuale non copiato, idempotenza, controllo spazio (mock di funzione di spazio iniettabile).",
+        "Tests pass, Pint, Larastan verdi.",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-952",
+      "title": "Import snapshot — sezioni, sottosezioni, registrazioni, cariche, bilanci",
+      "description": "As a developer, voglio che `cai:import-datapack` ripristini le tabelle `snap_*` non-documento.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: docs/project/tasks/prd-datapack-snapshot-runts-uat.md (§1.1 stato verificato, §4 requisiti funzionali, §7 note tecniche) — leggerlo PRIMA di implementare, non rifare l'esplorazione",
+        "Nuova classe `App\\Domain\\CaiDirectory\\Import\\CaiSnapshotImporter`, richiamata da `CaiDatapackImporter::import()` **dopo** tutti gli step esistenti (sezioni → … → documenti manuali) e solo se `snap_cai_sections` esiste (datapack vecchio = nessun effetto, nessun errore) e solo per l'import completo (non quando `$onlyCaiSectionCode !== null` o `$skipSectionFields`).",
+        "Upsert per chiave naturale: `cai_sections` per `codice_cai` (aggiorna **tutte** le colonne snapshot, incluso `runts_presence_status`/`runts_presence_checked_at`/`cai_last_synced_at`, **ma mai `user_id`**), `cai_subsections` per `cai_codice`, `cai_runts_registrations` per `id_runts` (incluso `runts_last_synced_at`), `cai_board_members` per (registrazione, ruolo, nominativo, validità), `cai_financial_statements` per (registrazione, anno) **oppure** (sezione, anno) secondo il genitore valorizzato (invariante \"esattamente uno dei due genitori\" rispettata).",
+        "Il collegamento `user_id` di sezioni/sottosezioni continua a essere ricostruito per email con la logica già esistente nell'import legacy (riusarla, non duplicarla); una sezione già collegata dall'import legacy non perde il collegamento.",
+        "Righe il cui genitore non esiste (sezione/registrazione assente) → saltate con conteggio, mai FK violata.",
+        "`--dry-run` non scrive e riporta gli stessi conteggi; il riepilogo di `cai:import-datapack` ottiene le righe `snapshot_sezioni`, `snapshot_registrazioni`, `snapshot_bilanci`, `snapshot_cariche`.",
+        "Idempotente: seconda esecuzione = 0 create / 0 aggiornate se nulla è cambiato (confronto attributi come in `DiffsAttributes` già usato dall'import legacy).",
+        "Test Pest: DB sqlite vuoto + datapack fixture con `snap_*` → parità di conteggi, idempotenza, sezione sconosciuta, bilancio per registrazione e per sezione, `user_id` preservato, datapack senza `snap_*`.",
+        "Tests pass, Pint, Larastan verdi.",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Sezioni e sottosezioni sono in un unico riepilogo `snapshot_sezioni` (conteggi sommati). Righe orfane: contate in `skipped` + warning."
+    },
+    {
+      "id": "US-953",
+      "title": "Import snapshot — documenti RUNTS e relativi file",
+      "description": "As a developer, voglio ripristinare i documenti RUNTS con i file scaricabili.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: docs/project/tasks/prd-datapack-snapshot-runts-uat.md (§1.1 stato verificato, §4 requisiti funzionali, §7 note tecniche) — leggerlo PRIMA di implementare, non rifare l'esplorazione",
+        "Per ogni riga `snap_cai_documents` con `source = runts` e `file_in_datapack = 1`: se esiste già un `CaiDocument` con stesso genitore (registrazione o sezione), stesso `hash` e stessa `source` (anche creato dall'import legacy `allegati`) → **non** duplicarlo, ma allinea `financial_analysis_status`, `raw_text_excerpt`, `extracted_via_ocr`; altrimenti copia il file da `<datapack>/<snapshot_file>` al disco `cai-documents` come `<id_runts|codice_cai>/<uuid>-<file_name>` e crea il documento con tutti i campi (`source = Runts`, mai `Manual`).",
+        "Invariante genitori mutuamente esclusivi rispettata; genitore mancante → saltato con conteggio.",
+        "Controllo spazio **prima** di copiare: se `disk_free_space` dello storage < byte da copiare + margine (default 10%, configurabile in `config('cai_directory.snapshot.disk_margin_percent')`), l'import **non copia nulla** e termina l'import documenti con errore esplicito in italiano (le righe già importate restano); le fasi precedenti non vengono annullate.",
+        "File sorgente mancante → riga saltata con warning, mai eccezione che ferma gli altri (try/catch nel loop).",
+        "`--dry-run` non scrive né copia ma riporta conteggi e byte previsti.",
+        "Riga di riepilogo `snapshot_documenti` (created / updated / skipped / MB copiati).",
+        "Il file scaricato da `CaiDocumentDownloadController` per un documento importato ha lo stesso sha256 del sorgente (test con file reale piccolo in `Storage::fake`).",
+        "Test Pest: creazione, dedup contro un documento legacy, idempotenza, file mancante, spazio insufficiente (soglia mockata via config), dry-run.",
+        "Tests pass, Pint, Larastan verdi.",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-954",
+      "title": "Import snapshot — esito di analisi dei documenti manuali",
+      "description": "As a developer, voglio che i documenti manuali importati da `bilanci_manuali` riabbiano lo stato di analisi già calcolato in locale.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: docs/project/tasks/prd-datapack-snapshot-runts-uat.md (§1.1 stato verificato, §4 requisiti funzionali, §7 note tecniche) — leggerlo PRIMA di implementare, non rifare l'esplorazione",
+        "Per ogni riga `snap_cai_documents` con `source = manual`: trova il `CaiDocument` manuale con stessa `cai_section_id` e stesso `hash` (creato dallo step `documenti_manuali`) e imposta `financial_analysis_status`, `raw_text_excerpt`, `extracted_via_ocr`; mai crea un documento nuovo, mai copia file.",
+        "Nessun documento corrispondente → saltato con conteggio (`snapshot_manuali_senza_match`).",
+        "Nessun job di analisi viene accodato (nessun `AnalyzeCaiFinancialStatementDocument::dispatch`): test con `Queue::fake()` + `assertNothingPushed`.",
+        "Dopo l'import completo, la pagina \"Bilancio 2025\" ottiene gli stessi flag di locale: un test di integrazione con `CaiSectionFinancialYearQuery::forYear(2025)` su dati fixture snapshot lo verifica (file CE/SP presenti, interpretati).",
+        "Riga di riepilogo `snapshot_manuali` (aggiornati / senza match).",
+        "Tests pass, Pint, Larastan verdi.",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-955",
+      "title": "`bin/push-cai-datapack` con controllo spazio remoto e deploy docs",
+      "description": "As a developer, voglio che il push verso UAT mi avvisi se lo spazio non basta e mi dica cosa verrà trasferito.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: docs/project/tasks/prd-datapack-snapshot-runts-uat.md (§1.1 stato verificato, §4 requisiti funzionali, §7 note tecniche) — leggerlo PRIMA di implementare, non rifare l'esplorazione",
+        "Prima del rsync lo script calcola la dimensione di ciò che verrà trasferito (rsync `--dry-run --stats`) e lo spazio libero remoto (`ssh <host> df -B1 --output=avail <percorso>`), stampa entrambi, e **si ferma con errore** se `avail < 2.2 × (dimensione dei file nel datapack)` (l'import li copia una seconda volta nello storage del container). Opzione `--force` per proseguire comunque.",
+        "Il resto del comportamento (`--delete`, esclusioni di `bilanci-sezioni-2026/originals/` e dell'Excel, host/percorso di default) è invariato; `bash -n` e una prova a secco con destinazione locale temporanea (senza host reale) passano.",
+        "`deploy/CLAUDE.md`: sezione \"Snapshot CAI/RUNTS\" con l'ordine operativo (`cai:build-manual-bilanci-datapack` → `cai:export-datapack-snapshot` → pulizia spazio su msuat se serve (`docker image prune -a -f`, `docker builder prune -f`, **azione manuale**) → `bin/push-cai-datapack` → deploy), il vincolo di spazio (~2× i file) e il fatto che UAT **non** esegue scraper né analisi.",
+        "Nessun file di dati tracciato da git (`git ls-files cai-datapack` vuoto).",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-956",
+      "title": "Verifica round-trip locale su database di prova (senza toccare quello di sviluppo)",
+      "description": "As a data manager, voglio la prova che export+import ricostruiscono lo stesso stato.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: docs/project/tasks/prd-datapack-snapshot-runts-uat.md (§1.1 stato verificato, §4 requisiti funzionali, §7 note tecniche) — leggerlo PRIMA di implementare, non rifare l'esplorazione",
+        "**Mai** `migrate:fresh` sul database di sviluppo (è la sorgente dei dati): creare un database Postgres separato (es. `orchestrator_roundtrip` sul servizio `db`) e lanciare lì i comandi con `DB_DATABASE=orchestrator_roundtrip` e un disco di destinazione separato (variabile/`config` per il percorso del disco `cai-documents`, oppure `Storage::fake` equivalente via env), più un backup del file `cai-datapack/runts-cai.sqlite` prima dell'export (copia nello scratchpad).",
+        "Sul DB di prova: `migrate:fresh` → `RolePermissionSeeder` → `cai:import-datapack` (senza passare dal v1:import: gli utenti non servono, i link utente restano null); esito atteso: conteggi **identici** al locale per `cai_sections`, `cai_subsections`, `cai_runts_registrations`, `cai_financial_statements` (719), `cai_documents` RUNTS (1999) e manuali (403) — con tolleranza dichiarata e spiegata solo per i duplicati identici stessa sezione/hash.",
+        "Parità campo-per-campo su un campione: 20 righe casuali per tabella confrontate fra i due DB (script una tantum in `/tmp`, esito riportato in `progress.txt`).",
+        "5 file RUNTS e 5 manuali scaricati via `CaiDocumentDownloadController` (o letti dal disco di prova) con sha256 uguale al sorgente.",
+        "Seconda esecuzione di `cai:import-datapack` sul DB di prova: tutte le righe snapshot `created = 0`.",
+        "Il database di prova e i file temporanei vengono eliminati a fine verifica; il DB di sviluppo ha gli stessi conteggi di prima (verificarlo con un `count` prima/dopo).",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-957",
+      "title": "Collaudo, note per gli agenti e progress",
+      "description": "As a maintainer, voglio documentazione e collaudo allineati.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: docs/project/tasks/prd-datapack-snapshot-runts-uat.md (§1.1 stato verificato, §4 requisiti funzionali, §7 note tecniche) — leggerlo PRIMA di implementare, non rifare l'esplorazione",
+        "`docs/collaudo/fase-9.php`: nuovo argomento \"Snapshot CAI/RUNTS nel datapack (export e import)\" con casi collegati ai test di US-950..US-954; `php artisan collaudo:verify-manifest 9` passa.",
+        "`docs/collaudo/16-fase-9.md` + file cumulativi (00, 01, 11, 12, README) aggiornati nello stesso modo usato per l'argomento precedente (conteggi test/argomenti, righe in matrice e registro, versione 9.2).",
+        "`app/Domain/CaiDirectory/CLAUDE.md`: sezione \"Snapshot CAI/RUNTS nel datapack\" (tabelle `snap_*`, chiavi naturali, regola \"mai `user_id`\", dedup per hash, controllo spazio, nessuna analisi accodata, ordine dei comandi, gotcha della verifica su DB separato).",
+        "`progress.txt` aggiornato nel formato esistente.",
+        "`composer run lint`, `composer run analyse`, `--filter=Cai`, `--filter=Snapshot` verdi (la suite intera NON è un criterio: crash preesistente documentato in `CLAUDE.md`).",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": ""
+    }
+  ]
+}

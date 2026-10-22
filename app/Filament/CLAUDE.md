@@ -102,6 +102,34 @@ trasversali di test Filament (`fillForm()` rotto, notifiche Postgres `text ->> u
   nessun elemento visivo, senza errori/log. Dopo aver aggiunto/modificato markup con classi Tailwind non
   ancora usate altrove, eseguire `npm run build` PRIMA di uno screenshot di verifica. `public/build/` non è
   tracciato da git (verificare `git status`), quindi la rebuild non sporca il commit.
+- **Componenti Blade anonimi (`resources/views/components/**`) e stili di componente**: il tema ha anche
+  `@source '../../../../resources/views/components'` (aggiunto in US-1002). Per un componente con un design
+  pixel-preciso (es. `x-cai.metric-badge`, riusabile da più dashboard) gli stili vivono in un file CSS
+  dedicato importato dal tema (`resources/css/filament/admin/metric-badge.css`, classi BEM `ms-*` che
+  leggono solo token `--ms-*`), non in utility Tailwind con valori arbitrari. Formattazione dei numeri
+  all'italiana: `App\Support\Formatting\ItalianNumberFormatter`, mai `number_format()` nella vista.
+  Test di rendering di un componente: `test()->blade('<x-...>', [...])->assertSee(...)`.
+  `x-cai.metric-badge` non conosce la Sezione (riceve solo valori già calcolati e un `href`): la Dashboard GR
+  (10.2) lo riusa così com'è, passando i propri numeri; `result: true` solo per un conto economico.
+- **Pagine "in arrivo" della Dashboard V2 Sezione** (US-1003): `SectionComingSoonPage` (astratta, vista
+  `section-coming-soon`, fuori navigazione, gate customer + `customer_type = Sezione`) con cinque sottoclassi
+  di sole `$title`/`$slug` (`sezione/soci`, `sezione/bilancio`, `sezione/rifugi`, `sezione/sentieri`,
+  `sezione/tappe-sicai`). Quando una feature della Fase 10 porta il contenuto reale, sostituire la sottoclasse
+  con una pagina vera mantenendo nome di classe e slug (i badge e i test di link puntano a quelli).
+  `discoverPages()` ignora le classi astratte, quindi una base astratta in `app/Filament/Pages` è sicura.
+- **Dashboard V2 Sezione** (US-1004, `SectionDashboard`, slug `sezione/dashboard`): intestazione propria nella
+  vista (`getHeading()` restituisce `''`, così l'header standard di Filament non viene reso; `$title` resta
+  "Dashboard" per il `<title>` e la navigazione). Layout in `resources/css/filament/admin/section-dashboard.css`.
+  Nei test, contare i badge senza dati con `substr_count($html, 'ms-metric-badge--unavailable')` su
+  `Livewire::test(...)->html()`: è più robusto di `assertSee('Non disponibile')`, che non distingue quante card.
+- **Atterraggio per tipo di cliente** (US-1005): `Dashboard::mount()` manda il customer `Sezione` su
+  `SectionDashboard`, ogni altro customer su `CustomerDashboard`. Per la Sezione `CustomerDashboard` diventa
+  "Ticket e documenti" via override statici di `getNavigationLabel()`/`getNavigationIcon()` e `getTitle()`
+  condizionati su `customer_type` (stesso idioma di `getNavigationGroup()`), non con una seconda pagina: le
+  autorizzazioni restano quelle di sempre. Una futura Dashboard V2 per un altro tipo (es. GR, 10.2) segue lo
+  stesso schema: ramo in `Dashboard::mount()` + etichetta condizionata su `CustomerDashboard`.
+  Nei test, il `<title>` HTML di Filament contiene spazi/a capo: verificare il titolo con
+  `Livewire::test(...)->instance()->getTitle()`, non con `assertSee('<title>...')`.
 
 ## Pixel-perfect login/recupero password (ciclo `ralph/login-design-pixel-fixes`)
 

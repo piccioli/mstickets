@@ -175,6 +175,22 @@ valori intermedi non osservati.
 | `shadow-hover-brand` | `0 4px 12px rgba(23,161,128,.10)` | Hover delle card cliccabili (servizi attivi) |
 | `shadow-modal` | `0 20px 60px rgba(0,0,0,.25)` | Modale/overlay in primo piano |
 
+## Badge metrica (Dashboard V2 della Sezione, Fase 10.1)
+
+Token aggiunti in `resources/css/theme.css` dal file Claude Design `Badge Metrica.dc.html` (misure complete in
+`docs/project/tasks/prd-fase-10-dashboard-sezione-v2.md` §6). Componente: `resources/views/components/cai/
+metric-badge.blade.php`, stili in `resources/css/filament/admin/metric-badge.css`.
+
+| Nome semantico | Valore | Uso |
+|---|---|---|
+| `surface-unavailable` | `#f9fafb` | Sfondo della card senza dati |
+| `surface-pressed-brand` | `#f6fbf9` | Sfondo della card cliccabile alla pressione |
+| `text-dash` | `#c4cad3` | Trattino "—" del dato non disponibile |
+| `negative-value` | `#c0412e` | Risultato netto negativo |
+| `deficit-bg` / `deficit-text` / `deficit-border` | `#fdf0ee` / `#b83c2a` / `#f4d3cd` | Pill "Disavanzo" |
+| `shadow-hover-brand-lift` | `0 6px 18px rgba(23,161,128,.12)` | Hover del badge (con `translateY(-2px)`) |
+| `dur-badge` / `ease-out` | `180ms` / `ease-out` | Transizioni del badge |
+
 ## Breakpoint
 
 **Il mockup non definisce alcun breakpoint responsive**: nessuna `@media query` è presente nel
