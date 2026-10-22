@@ -6,7 +6,7 @@ Aperta il 2026-10-21, dopo la chiusura della Fase 9. Riferimento: `PRD-ORCHESTRA
 
 | # | Area | Feature | PRD | Stato |
 |---|---|---|---|---|
-| 10.1 | Sezioni | Dashboard V2 | — | da specificare |
+| 10.1 | Sezioni | Dashboard V2 | [prd-fase-10-dashboard-sezione-v2.md](prd-fase-10-dashboard-sezione-v2.md) | in sviluppo |
 | 10.2 | GR | Dashboard V2 | — | da specificare |
 | 10.3 | GR | Bilancio consolidato Sezioni | — | da specificare |
 | 10.4 | Sezioni | Rifugi di Sezione | — | da specificare |
