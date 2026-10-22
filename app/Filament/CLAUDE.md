@@ -111,10 +111,12 @@ trasversali di test Filament (`fillForm()` rotto, notifiche Postgres `text ->> u
   Test di rendering di un componente: `test()->blade('<x-...>', [...])->assertSee(...)`.
   `x-cai.metric-badge` non conosce la Sezione (riceve solo valori già calcolati e un `href`): la Dashboard GR
   (10.2) lo riusa così com'è, passando i propri numeri; `result: true` solo per un conto economico.
-- **Pagine "in arrivo" della Dashboard V2 Sezione** (US-1003): `SectionComingSoonPage` (astratta, vista
-  `section-coming-soon`, fuori navigazione, gate customer + `customer_type = Sezione`) con cinque sottoclassi
-  di sole `$title`/`$slug` (`sezione/soci`, `sezione/bilancio`, `sezione/rifugi`, `sezione/sentieri`,
-  `sezione/tappe-sicai`). Quando una feature della Fase 10 porta il contenuto reale, sostituire la sottoclasse
+- **Pagine "in arrivo" delle Dashboard V2 cliente** (US-1003, US-1013): base astratta `CustomerComingSoonPage`
+  (vista `coming-soon`, fuori navigazione, gate customer + `customer_type === static::allowedCustomerType()`),
+  due basi astratte per famiglia — `SectionComingSoonPage` (Sezione) e `RegionalGroupComingSoonPage` (GR) — e
+  sottoclassi di sole `$title`/`$slug`: `sezione/{soci,bilancio,rifugi,sentieri,tappe-sicai}` e
+  `gr/{soci,bilancio,rifugi,sentieri,tappe-sicai}` (`RegionalGroup{Members,FinancialStatements,Huts,Trails,
+  SicaiStages}`). Un nuovo tipo cliente = una nuova base che implementa solo `allowedCustomerType()`. Quando una feature della Fase 10 porta il contenuto reale, sostituire la sottoclasse
   con una pagina vera mantenendo nome di classe e slug (i badge e i test di link puntano a quelli).
   `discoverPages()` ignora le classi astratte, quindi una base astratta in `app/Filament/Pages` è sicura.
 - **Dashboard V2 Sezione** (US-1004, `SectionDashboard`, slug `sezione/dashboard`): intestazione propria nella
