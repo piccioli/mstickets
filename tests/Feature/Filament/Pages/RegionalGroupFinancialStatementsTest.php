@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domain\CaiDirectory\Enums\CaiDocumentSource;
+use App\Domain\CaiDirectory\Models\CaiDocument;
 use App\Domain\CaiDirectory\Models\CaiFinancialStatement;
 use App\Domain\Identity\Enums\CustomerType;
 use App\Domain\Identity\Enums\Region;
@@ -217,4 +218,211 @@ test('a customer of another type cannot access the consolidated statements page'
 test('the consolidated statements page keeps its slug and is not in the navigation', function (): void {
     expect(RegionalGroupFinancialStatements::getUrl())->toEndWith('/gr/bilancio')
         ->and(RegionalGroupFinancialStatements::shouldRegisterNavigation())->toBeFalse();
+});
+
+/** Nomi delle Sezioni nell'ordine della tabella desktop. */
+function consolidatedTableNames(string $html): array
+{
+    preg_match_all('/ms-consolidated__name">([^<]+)</', $html, $matches);
+
+    return array_map('trim', $matches[1]);
+}
+
+test('the sections table shows every section with status, source and values', function (): void {
+    consolidatedPageFixture();
+
+    $this->actingAs(consolidatedPageCustomer());
+
+    $component = Livewire::test(RegionalGroupFinancialStatements::class)
+        ->assertSeeText('Sezioni del GR')
+        ->assertSeeText('4 Sezioni')
+        ->assertSeeTextInOrder(['Sezione', 'Stato', 'Fonte', 'Ricavi', 'Costi', 'Risultato netto', 'Patrimonio netto',
+            'Totale attivo', 'PDF'])
+        ->assertSeeTextInOrder(['SEZ. A', 'Dati presenti', 'Caricato a mano', '100.000 €', '90.000 €', '+10.000 €',
+            '50.000 €', '120.000 €'])
+        ->assertSeeTextInOrder(['SEZ. B', 'Dati presenti', 'Caricato a mano', '86.420 €', '82.310 €', '+4.110 €', '—', '—'])
+        ->assertSeeTextInOrder(['SEZ. C', 'Solo PDF', 'Caricato a mano'])
+        ->assertSeeTextInOrder(['SEZ. D', 'Nessun bilancio'])
+        ->assertSeeText('Dati non ancora estratti dal PDF.')
+        ->assertSeeText('Fonte: Caricato a mano');
+
+    expect(consolidatedTableNames($component->html()))->toBe(['SEZ. A', 'SEZ. B', 'SEZ. C', 'SEZ. D']);
+});
+
+test('the status filters show their counts and filter the rows', function (): void {
+    consolidatedPageFixture();
+
+    $this->actingAs(consolidatedPageCustomer());
+
+    $component = Livewire::test(RegionalGroupFinancialStatements::class);
+
+    preg_match_all('/<button[^>]*ms-consolidated__filter[^>]*>\s*([^<]+?)\s*<span class="ms-consolidated__filter-count">(\d+)</', $component->html(), $matches);
+
+    expect(array_combine($matches[1], $matches[2]))
+        ->toBe(['Tutte' => '4', 'Dati presenti' => '2', 'Solo PDF' => '1', 'Nessun bilancio' => '1']);
+
+    $component->call('filterStatus', 'solo-pdf')
+        ->assertSet('status', 'solo-pdf')
+        ->assertSeeText('1 di 4 Sezioni');
+
+    expect(consolidatedTableNames($component->html()))->toBe(['SEZ. C']);
+
+    $component->call('filterStatus', 'dati');
+    expect(consolidatedTableNames($component->html()))->toBe(['SEZ. A', 'SEZ. B']);
+
+    $component->call('filterStatus', null)
+        ->assertSet('status', null)
+        ->assertSeeText('4 Sezioni')
+        ->assertDontSeeText('di 4 Sezioni');
+});
+
+test('a filter without rows says so for the year', function (): void {
+    consolidatedPageFixture();
+
+    $this->actingAs(consolidatedPageCustomer());
+
+    $component = Livewire::withQueryParams(['esercizio' => 2024, 'stato' => 'dati'])
+        ->test(RegionalGroupFinancialStatements::class)
+        ->assertSeeText('0 di 4 Sezioni')
+        ->assertSeeText('Nessuna Sezione in questo stato per l\'esercizio 2024.');
+
+    expect(consolidatedTableNames($component->html()))->toBe([]);
+});
+
+test('sorting by name inverts on the second click', function (): void {
+    consolidatedPageFixture();
+
+    $this->actingAs(consolidatedPageCustomer());
+
+    $component = Livewire::test(RegionalGroupFinancialStatements::class)
+        ->call('sortBy', 'nome')
+        ->assertSet('sort', null)
+        ->assertSet('direction', 'desc');
+
+    expect(consolidatedTableNames($component->html()))->toBe(['SEZ. D', 'SEZ. C', 'SEZ. B', 'SEZ. A']);
+
+    $component->call('sortBy', 'nome')->assertSet('direction', null);
+    expect(consolidatedTableNames($component->html()))->toBe(['SEZ. A', 'SEZ. B', 'SEZ. C', 'SEZ. D']);
+});
+
+test('sorting by a number starts descending, inverts, and always keeps missing values at the bottom', function (): void {
+    consolidatedPageFixture();
+
+    $this->actingAs(consolidatedPageCustomer());
+
+    $component = Livewire::test(RegionalGroupFinancialStatements::class)
+        ->call('sortBy', 'ricavi')
+        ->assertSet('sort', 'ricavi')
+        ->assertSet('direction', null);
+
+    $html = $component->html();
+    expect(consolidatedTableNames($html))->toBe(['SEZ. A', 'SEZ. B', 'SEZ. C', 'SEZ. D'])
+        ->and($html)->toMatch('/aria-sort="descending"[^>]*>\s*<button[^>]*ms-consolidated__sort--active[^>]*>\s*Ricavi\s*<span[^>]*>↓</');
+
+    $component->call('sortBy', 'ricavi')->assertSet('direction', 'asc');
+    expect(consolidatedTableNames($component->html()))->toBe(['SEZ. B', 'SEZ. A', 'SEZ. C', 'SEZ. D']);
+
+    $component->call('sortBy', 'patrimonio')->assertSet('sort', 'patrimonio')->assertSet('direction', null);
+    expect(consolidatedTableNames($component->html()))->toBe(['SEZ. A', 'SEZ. B', 'SEZ. C', 'SEZ. D']);
+});
+
+test('sorting by status follows the status order and ties are broken by name', function (): void {
+    consolidatedPageFixture();
+
+    $this->actingAs(consolidatedPageCustomer());
+
+    $component = Livewire::test(RegionalGroupFinancialStatements::class)->call('sortBy', 'stato');
+    expect(consolidatedTableNames($component->html()))->toBe(['SEZ. A', 'SEZ. B', 'SEZ. C', 'SEZ. D']);
+
+    $component->call('sortBy', 'stato');
+    expect(consolidatedTableNames($component->html()))->toBe(['SEZ. D', 'SEZ. C', 'SEZ. A', 'SEZ. B']);
+});
+
+test('sorting and filtering are restored from the URL', function (): void {
+    consolidatedPageFixture();
+
+    $this->actingAs(consolidatedPageCustomer());
+
+    $component = Livewire::withQueryParams(['ordina' => 'ricavi', 'verso' => 'asc', 'stato' => 'dati'])
+        ->test(RegionalGroupFinancialStatements::class);
+
+    expect(consolidatedTableNames($component->html()))->toBe(['SEZ. B', 'SEZ. A']);
+
+    $component = Livewire::withQueryParams(['ordina' => 'boh', 'verso' => 'boh', 'stato' => 'boh'])
+        ->test(RegionalGroupFinancialStatements::class)
+        ->assertSeeText('4 Sezioni');
+
+    expect(consolidatedTableNames($component->html()))->toBe(['SEZ. A', 'SEZ. B', 'SEZ. C', 'SEZ. D']);
+});
+
+test('the mobile sort menu lists its options and applies the chosen one', function (): void {
+    consolidatedPageFixture();
+
+    $this->actingAs(consolidatedPageCustomer());
+
+    $component = Livewire::test(RegionalGroupFinancialStatements::class)
+        ->assertSeeText('Ordina per')
+        ->assertSeeTextInOrder(['Nome (A–Z)', 'Stato', 'Ricavi (dal più alto)', 'Costi (dal più alto)',
+            'Risultato netto (dal più alto)', 'Risultato netto (dal più basso)', 'Patrimonio netto (dal più alto)',
+            'Totale attivo (dal più alto)'])
+        ->call('applySortOption', 'risultato:asc')
+        ->assertSet('sort', 'risultato')
+        ->assertSet('direction', 'asc');
+
+    expect(consolidatedTableNames($component->html()))->toBe(['SEZ. B', 'SEZ. A', 'SEZ. C', 'SEZ. D'])
+        ->and($component->html())->toContain('<option value="risultato:asc" selected');
+
+    $component->call('applySortOption', 'nonsense')->assertSet('sort', 'risultato');
+});
+
+test('the PDF link is shown only for a section with a document', function (): void {
+    consolidatedPageFixture();
+    $document = CaiDocument::query()->where('cai_section_id', '9226003')->sole();
+
+    $this->actingAs(consolidatedPageCustomer());
+
+    $html = Livewire::test(RegionalGroupFinancialStatements::class)->html();
+    $url = route('cai-documents.download', $document);
+
+    expect(substr_count($html, 'href="'.$url.'" target="_blank"'))->toBe(2)
+        ->and(substr_count($html, 'class="ms-consolidated__pdf"'))->toBe(1)
+        ->and(substr_count($html, 'ms-consolidated__item-pdf'))->toBe(1);
+});
+
+test('a value to verify is highlighted in the table and in the mobile list', function (): void {
+    foreach (['9226001', '9226002', '9226003', '9226004'] as $i => $code) {
+        caiSection(['codice_cai' => $code, 'name' => 'SEZ. '.$i, 'region' => 'TOSCANA']);
+        consolidatedPageStatement($code, 2025, $i === 3
+            ? ['total_revenues' => 202500000, 'total_expenses' => 202400000, 'net_result' => 100000]
+            : ['total_revenues' => 1000, 'total_expenses' => 900, 'net_result' => 100]);
+    }
+
+    $this->actingAs(consolidatedPageCustomer());
+
+    $html = Livewire::test(RegionalGroupFinancialStatements::class)
+        ->assertSeeText('valore da verificare')
+        ->html();
+
+    expect(substr_count($html, 'ms-consolidated__review-note'))->toBe(4)
+        ->and($html)->toMatch('/ms-consolidated__review-value[^>]*>\s*<svg.*?<\/svg>\s*202\.500\.000 €/s');
+});
+
+test('the total row sums the sections with data and a negative result is red', function (): void {
+    consolidatedPageFixture();
+    consolidatedPageStatement('9226004', 2023, ['total_revenues' => 5000, 'total_expenses' => 7000, 'net_result' => -2000]);
+
+    $this->actingAs(consolidatedPageCustomer());
+
+    $component = Livewire::test(RegionalGroupFinancialStatements::class)
+        ->assertSeeTextInOrder(['Totale', 'Somma di 2 Sezioni con dati', '186.420 €', '172.310 €', '+14.110 €', '50.000 €',
+            '120.000 €']);
+
+    expect($component->html())->toMatch('/ms-consolidated__table-row--total.*?ms-consolidated__total-note/s');
+
+    $component->call('selectYear', 2023)
+        ->assertSeeText('Somma di 1 Sezione con dati');
+
+    expect($component->html())->toContain('<span class="ms-consolidated__negative">−2.000 €</span>');
+
+    $component->call('selectYear', 2024)->assertSeeText('Nessuna Sezione con dati');
 });

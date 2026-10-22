@@ -116,6 +116,9 @@ trasversali di test Filament (`fillForm()` rotto, notifiche Postgres `text ->> u
   **Gotcha Blade**: una direttiva attaccata a una parola (`disponibile@if (...)`) NON viene compilata (Blade la
   scambia per un'email) mentre il suo `@endif` sì → "syntax error, unexpected token else". Usare un'espressione
   `{{ ... ? ... : ... }}` o uno spazio; dopo `}}` (`{{ $x }}@if`) invece funziona.
+  **Gotcha Blade 2**: in una vista che contiene anche un blocco `@php ... @endphp`, un `@php($x = ...)` inline
+  viene inghiottito dal blocco successivo → "syntax error, unexpected token class". Nella stessa vista usare SOLO
+  la forma a blocco `@php ... @endphp`.
 - **Pagine "in arrivo" delle Dashboard V2 cliente** (US-1003, US-1013): base astratta `CustomerComingSoonPage`
   (vista `coming-soon`, fuori navigazione, gate customer + `customer_type === static::allowedCustomerType()`),
   due basi astratte per famiglia — `SectionComingSoonPage` (Sezione) e `RegionalGroupComingSoonPage` (GR) — e
