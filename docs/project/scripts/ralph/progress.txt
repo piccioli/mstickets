@@ -29,4 +29,24 @@ Fase 10.3 — Bilancio consolidato delle Sezioni del GR, vedi docs/project/tasks
 - **Numeri attesi del PRD 10.2 §7 sono gonfiati**: sommano due volte le Sezioni che hanno sia bilancio diretto sia
   RUNTS per lo stesso anno. Valori corretti (dev DB) Toscana 2025: 11/27 Sezioni, ricavi 1.520.538,66 €, risultato
   +90.143,67 €, SP 8/27 — usare questi in verifica browser.
+- Consolidato GR per esercizio (10.3): `CaiRegionalGroupConsolidatedStatements::forRegion($region, ?$year)` → righe per Sezione,
+  totali, copertura, flag "da verificare"; anno null/fuori dai 5 → default. Prefisso/Sezioni del GR via
+  `CaiRegionalGroupDashboardMetrics::prefixOf()`/`sectionsOf()` (ora pubblici) — usarli anche per l'autorizzazione download.
 - Fase 10.2 (Dashboard GR) è su `develop`: `CaiRegionalGroupDashboardMetrics` (prefisso del GR, Sezioni per prefisso), `CaiSectionStatementsQuery`, `RegionalGroupDashboard`, base `CustomerComingSoonPage`/`RegionalGroupComingSoonPage` — riusarli.
+
+## 2026-10-22 - US-1021
+- `Queries\CaiRegionalGroupConsolidatedStatements` (+ `availableYears()`), VO `Support\CaiRegionalGroupConsolidatedData` e
+  `Support\CaiConsolidatedSectionRow` (costanti REVENUES/EXPENSES/NET_EQUITY/TOTAL_ASSETS per i flag), enum
+  `CaiSectionStatementStatus` (dati/solo-pdf/nessuno) e `CaiStatementSource` (RUNTS / Caricato a mano).
+- `CaiRegionalGroupDashboardMetrics::prefixOf()` e nuovo `sectionsOf()` pubblici; nuovo
+  `CaiSectionFinancialYearQuery::financialDocumentsOf($codes, $year)` (stessi scope di has_*_file, una query, `owner_section_code`).
+- Test: `tests/Feature/Domain/CaiDirectory/Queries/CaiRegionalGroupConsolidatedStatementsTest.php` (16 test).
+- **Learnings for future iterations:**
+  - Conto economico e stato patrimoniale di una Sezione si scelgono INDIPENDENTEMENTE (primo bilancio dell'anno con CE,
+    primo con SP): prendendo tutto da un solo bilancio il GR Toscana 2025 dava SP 5 invece di 8. Verificato su dev DB:
+    Toscana 2025 → 27 Sezioni, CE 11 (ricavi 1.520.538,66, risultato +90.143,67), SP 8, copertura 14/9/4; Sicilia 2025 →
+    SEZ. RAGUSA ricavi+costi segnalati.
+  - Il titolo di default di `caiDocument()` ("Bilancio di esercizio 2024") NON è un file di bilancio per
+    `CaiFinancialDocumentKind`: nei test passare un titolo tipo "Rendiconto gestionale".
+  - La riga per "Dati presenti" ha `documentId` del PDF se c'è (anche manuale con file), non solo per "Solo PDF".
+---
