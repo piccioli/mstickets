@@ -46,6 +46,11 @@ test('the navigation group is "Sezioni"', function (): void {
     expect(CustomerRegionalSectionsDashboard::getNavigationGroup())->toBe('Sezioni');
 });
 
+test('the page is labelled "Sezioni del GR", not "Dashboard"', function (): void {
+    expect(CustomerRegionalSectionsDashboard::getNavigationLabel())->toBe('Sezioni del GR')
+        ->and((new CustomerRegionalSectionsDashboard)->getTitle())->toBe('Sezioni del GR');
+});
+
 test('it lists only sections in the same region, with their open ticket count', function (): void {
     $this->seed(RolePermissionSeeder::class);
     $groupLeader = withRole(User::factory()->create(), UserRole::Customer);
