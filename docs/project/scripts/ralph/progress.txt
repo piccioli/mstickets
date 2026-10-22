@@ -131,3 +131,22 @@ Fase 10 — una sessione Ralph per feature, vedi docs/project/tasks/fase-10-road
   - US-1006: ID collaudo per US-1005 → `DashboardTest` (landing Sezione/non-Sezione) e `CustomerDashboardTest`
     ("Ticket e documenti" solo per la Sezione).
 ---
+
+## 2026-10-22 - US-1006
+- Nuovo manifest `docs/collaudo/fase-10.php` (un argomento per feature, qui 10.1 suddiviso per user story): F10-01..F10-42
+  collegati ai test di US-1001..US-1005, F10-43/F10-44 al nuovo end-to-end. `collaudo:verify-manifest 10` verde.
+  Credenziali UAT con `pisa@cai.it` (customer Sezione, password `uat` da `FixedPasswordHasher`).
+- `tests/Feature/EndToEnd/Fase10DashboardSezioneEndToEndTest.php`: utente Sezione con CE 2025 via RUNTS e SP 2024 diretto →
+  login (Livewire `Login`) → `Dashboard` redirect alla V2 → valori in HTTP GET → link del badge Soci → "in arrivo" →
+  "Ticket e documenti"; più un caso GR (atterraggio invariato, 403 sulla V2).
+- Note per gli agenti: `app/Domain/CaiDirectory/CLAUDE.md` (soci mai sommati, `null` mai ricalcolato/mai 0, Sottosezione
+  senza bilanci, riuso badge/formatter per 10.2); `app/Filament/CLAUDE.md` (badge riusabile così com'è dalla Dashboard GR).
+  Roadmap già con riga 10.1 "in sviluppo" e link al PRD (nessuna modifica). Manuale narrativo e PDF rimandati a fine Fase 10.
+- Verifiche: Pint, Larastan, `--filter=Cai` (369 + 1 skipped), `--filter=Dashboard` (76), `tests/Feature/EndToEnd` +
+  `tests/Feature/Filament/Pages` (120), tutto con l'isolamento dal DB di sviluppo.
+- **Learnings for future iterations:**
+  - `collaudo:verify-manifest` controlla la descrizione con `str_contains` sul file di test: per un titolo di test che
+    contiene virgolette doppie si può citare un prefisso univoco del titolo invece del titolo intero.
+  - Prossimo passo fuori dal loop: PR verso `develop` (deploy UAT), verifica con `pisa@cai.it`, poi riga 10.1 → "su UAT"
+    e archiviazione di prd.json/progress.txt in `archive/<data>-fase-10-dashboard-sezione-v2/`.
+---
