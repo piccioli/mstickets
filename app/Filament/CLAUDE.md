@@ -115,6 +115,11 @@ trasversali di test Filament (`fillForm()` rotto, notifiche Postgres `text ->> u
   `sezione/tappe-sicai`). Quando una feature della Fase 10 porta il contenuto reale, sostituire la sottoclasse
   con una pagina vera mantenendo nome di classe e slug (i badge e i test di link puntano a quelli).
   `discoverPages()` ignora le classi astratte, quindi una base astratta in `app/Filament/Pages` è sicura.
+- **Dashboard V2 Sezione** (US-1004, `SectionDashboard`, slug `sezione/dashboard`): intestazione propria nella
+  vista (`getHeading()` restituisce `''`, così l'header standard di Filament non viene reso; `$title` resta
+  "Dashboard" per il `<title>` e la navigazione). Layout in `resources/css/filament/admin/section-dashboard.css`.
+  Nei test, contare i badge senza dati con `substr_count($html, 'ms-metric-badge--unavailable')` su
+  `Livewire::test(...)->html()`: è più robusto di `assertSee('Non disponibile')`, che non distingue quante card.
 
 ## Pixel-perfect login/recupero password (ciclo `ralph/login-design-pixel-fixes`)
 
