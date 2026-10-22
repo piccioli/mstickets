@@ -2,6 +2,7 @@
 
 @source '../../../../app/Filament';
 @source '../../../../resources/views/filament';
+@source '../../../../resources/views/components';
 
 /*
  * Design tokens (Montagna Servizi, US-004): custom properties only, no
@@ -10,3 +11,6 @@
  * which reads the same source file below.
  */
 @import '../../theme.css';
+
+/* Badge metrica della Dashboard V2 della Sezione (Fase 10.1). */
+@import './metric-badge.css';

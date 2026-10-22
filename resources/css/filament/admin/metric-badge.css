@@ -1,0 +1,227 @@
+/*
+ * Badge metrica (Fase 10.1) — resources/views/components/cai/metric-badge.blade.php.
+ * Misure dal design "Badge Metrica.dc.html" (PRD fase 10.1 §6); colori solo da token --ms-* di resources/css/theme.css.
+ */
+.ms-metric-badge {
+  display: flex;
+  flex-direction: column;
+  min-height: 164px;
+  padding: 20px 22px;
+  background: var(--ms-surface-card);
+  border: var(--ms-border-width) solid var(--ms-border-subtle);
+  border-radius: var(--ms-radius-card);
+  box-shadow: var(--ms-shadow-card);
+  color: var(--ms-text-strong);
+  font-family: var(--ms-font-sans);
+  text-decoration: none;
+  transition:
+    box-shadow var(--ms-dur-badge) var(--ms-ease-out),
+    border-color var(--ms-dur-badge) var(--ms-ease-out),
+    transform var(--ms-dur-badge) var(--ms-ease-out),
+    background-color var(--ms-dur-badge) var(--ms-ease-out);
+}
+
+.ms-metric-badge:hover {
+  border-color: var(--ms-brand-border-tint-alt);
+  box-shadow: var(--ms-shadow-hover-brand-lift);
+  transform: translateY(-2px);
+}
+
+.ms-metric-badge:active {
+  transform: translateY(0);
+  background: var(--ms-surface-pressed-brand);
+  box-shadow: var(--ms-shadow-card);
+}
+
+.ms-metric-badge:focus-visible {
+  outline: 2px solid var(--ms-brand-focus-ring);
+  outline-offset: 2px;
+}
+
+.ms-metric-badge--balance {
+  min-height: 248px;
+  padding: 22px 24px;
+}
+
+/* ---- Variante semplice ---- */
+.ms-metric-badge__label {
+  font-size: var(--ms-text-md);
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-text-label);
+}
+
+.ms-metric-badge__value {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.ms-metric-badge__number {
+  font-size: 2.375rem; /* 38px */
+  font-weight: var(--ms-fw-extrabold);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--ms-text-strong);
+}
+
+.ms-metric-badge__unit {
+  font-size: var(--ms-text-xl);
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-text-muted);
+}
+
+/* ---- Variante bilancio ---- */
+.ms-metric-badge__title {
+  font-size: var(--ms-text-lg);
+  font-weight: var(--ms-fw-extrabold);
+  color: var(--ms-text-strong);
+}
+
+.ms-metric-badge__main-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  font-size: 0.78125rem; /* 12.5px */
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-text-muted);
+}
+
+.ms-metric-badge__pill {
+  padding: 1px 8px;
+  border: var(--ms-border-width) solid var(--ms-brand-border-tint);
+  border-radius: var(--ms-radius-pill);
+  background: var(--ms-brand-surface-tint);
+  color: var(--ms-brand-hover);
+  font-size: 0.65625rem; /* 10.5px */
+  font-weight: var(--ms-fw-extrabold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ms-metric-badge__pill--deficit {
+  border-color: var(--ms-deficit-border);
+  background: var(--ms-deficit-bg);
+  color: var(--ms-deficit-text);
+}
+
+.ms-metric-badge__main-value {
+  margin-top: 4px;
+  font-size: 2.375rem; /* 38px */
+  font-weight: var(--ms-fw-extrabold);
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--ms-text-strong);
+}
+
+.ms-metric-badge__main-value--negative {
+  color: var(--ms-negative-value);
+}
+
+.ms-metric-badge__year {
+  font-size: 0.78125rem; /* 12.5px */
+  color: var(--ms-text-muted);
+}
+
+.ms-metric-badge__secondary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: var(--ms-border-width) solid var(--ms-border-subtle-alt);
+}
+
+.ms-metric-badge__secondary-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.ms-metric-badge__secondary-label {
+  font-size: 0.78125rem; /* 12.5px */
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-text-muted);
+}
+
+.ms-metric-badge__secondary-value {
+  font-size: 1.125rem; /* 18px */
+  font-weight: var(--ms-fw-bold);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--ms-text-strong);
+}
+
+.ms-metric-badge__secondary-item .ms-metric-badge__missing {
+  font-size: 0.78125rem; /* 12.5px */
+  margin-top: 0;
+}
+
+/* ---- Dato non disponibile ---- */
+.ms-metric-badge .ms-metric-badge__dash {
+  color: var(--ms-text-dash);
+}
+
+.ms-metric-badge__missing {
+  margin-top: 2px;
+  font-size: var(--ms-text-sm);
+  color: var(--ms-text-muted);
+}
+
+/* ---- Link in fondo ---- */
+.ms-metric-badge__link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 18px;
+  font-size: var(--ms-text-sm);
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-brand);
+}
+
+.ms-metric-badge__arrow {
+  transition: transform var(--ms-dur-badge) var(--ms-ease-out);
+}
+
+.ms-metric-badge:hover .ms-metric-badge__link {
+  color: var(--ms-brand-link-hover);
+  text-decoration: underline;
+}
+
+.ms-metric-badge:hover .ms-metric-badge__arrow {
+  transform: translateX(3px);
+}
+
+/* ---- Card senza dati: grigia, senza ombra, hover solo sul bordo ---- */
+.ms-metric-badge--unavailable,
+.ms-metric-badge--unavailable:active {
+  background: var(--ms-surface-unavailable);
+  box-shadow: none;
+}
+
+.ms-metric-badge--unavailable:hover {
+  border-color: var(--ms-border-default);
+  box-shadow: none;
+  transform: none;
+}
+
+.ms-metric-badge--unavailable .ms-metric-badge__label,
+.ms-metric-badge--unavailable .ms-metric-badge__title,
+.ms-metric-badge--unavailable .ms-metric-badge__link,
+.ms-metric-badge--unavailable:hover .ms-metric-badge__link {
+  color: var(--ms-text-muted);
+}
+
+.ms-metric-badge--unavailable .ms-metric-badge__main-label {
+  color: var(--ms-text-faint);
+}
+
+.ms-metric-badge--unavailable:hover .ms-metric-badge__link {
+  text-decoration: none;
+}
+
+.ms-metric-badge--unavailable:hover .ms-metric-badge__arrow {
+  transform: none;
+}

@@ -55,6 +55,15 @@
   --ms-border-default: #dfe3e8;
   --ms-border-muted: #e4e7eb;
 
+  /* ---- Badge metrica (Dashboard V2 della Sezione, Fase 10.1) ---- */
+  --ms-surface-unavailable: #f9fafb;
+  --ms-surface-pressed-brand: #f6fbf9;
+  --ms-text-dash: #c4cad3;
+  --ms-negative-value: #c0412e;
+  --ms-deficit-bg: #fdf0ee;
+  --ms-deficit-text: #b83c2a;
+  --ms-deficit-border: #f4d3cd;
+
   /* ---- Badge di stato (ticket/progetto) — vedi docs/design-system.md per il gap sugli stati non coperti ---- */
   --ms-status-nuovo-bg: #bfd9f7;
   --ms-status-nuovo-border: #8fbcee;
@@ -131,9 +140,12 @@
   --ms-shadow-card: 0 1px 2px rgba(30, 50, 40, 0.05);
   --ms-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
   --ms-shadow-hover-brand: 0 4px 12px rgba(23, 161, 128, 0.1);
+  --ms-shadow-hover-brand-lift: 0 6px 18px rgba(23, 161, 128, 0.12);
   --ms-shadow-modal: 0 20px 60px rgba(0, 0, 0, 0.25);
 
   /* ---- Motion ---- */
   --ms-dur-fast: 150ms;
   --ms-ease-standard: ease;
+  --ms-dur-badge: 180ms;
+  --ms-ease-out: ease-out;
 }

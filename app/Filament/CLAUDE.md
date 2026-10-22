@@ -102,6 +102,13 @@ trasversali di test Filament (`fillForm()` rotto, notifiche Postgres `text ->> u
   nessun elemento visivo, senza errori/log. Dopo aver aggiunto/modificato markup con classi Tailwind non
   ancora usate altrove, eseguire `npm run build` PRIMA di uno screenshot di verifica. `public/build/` non è
   tracciato da git (verificare `git status`), quindi la rebuild non sporca il commit.
+- **Componenti Blade anonimi (`resources/views/components/**`) e stili di componente**: il tema ha anche
+  `@source '../../../../resources/views/components'` (aggiunto in US-1002). Per un componente con un design
+  pixel-preciso (es. `x-cai.metric-badge`, riusabile da più dashboard) gli stili vivono in un file CSS
+  dedicato importato dal tema (`resources/css/filament/admin/metric-badge.css`, classi BEM `ms-*` che
+  leggono solo token `--ms-*`), non in utility Tailwind con valori arbitrari. Formattazione dei numeri
+  all'italiana: `App\Support\Formatting\ItalianNumberFormatter`, mai `number_format()` nella vista.
+  Test di rendering di un componente: `test()->blade('<x-...>', [...])->assertSee(...)`.
 
 ## Pixel-perfect login/recupero password (ciclo `ralph/login-design-pixel-fixes`)
 
