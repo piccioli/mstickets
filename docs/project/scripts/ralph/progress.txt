@@ -62,3 +62,23 @@ Fase 10 — una sessione Ralph per feature, vedi docs/project/tasks/fase-10-road
   - US-1004: badge bilancio CE = `result: true`, secondari Ricavi/Costi; SP = `result: false`, secondario Totale
     attivo; km sentieri = `unit="km" :decimals="1"`.
 ---
+
+## 2026-10-22 - US-1003
+- Base astratta `App\Filament\Pages\SectionComingSoonPage` (vista unica `filament.pages.section-coming-soon`:
+  "Questa sezione è in arrivo." + link "Torna alla dashboard" → `Dashboard::getUrl()`, la root che smista per
+  ruolo, così resta corretto dopo US-1005). `$shouldRegisterNavigation = false`; `canAccess()` = customer +
+  `customer_type = Sezione`. Sottoclassi con solo `$title`/`$slug`: `SectionMembers` (Soci, `sezione/soci`),
+  `SectionFinancialStatements` (Bilancio, `sezione/bilancio`), `SectionHuts` (Rifugi di Sezione, `sezione/rifugi`),
+  `SectionTrails` (Sentieri di Sezione, `sezione/sentieri`), `SectionSicaiStages` (Tappe SICAI, `sezione/tappe-sicai`).
+- Files: app/Filament/Pages/{SectionComingSoonPage,SectionMembers,SectionFinancialStatements,SectionHuts,
+  SectionTrails,SectionSicaiStages}.php, resources/views/filament/pages/section-coming-soon.blade.php,
+  tests/Feature/Filament/Pages/SectionComingSoonPagesTest.php, app/Filament/CLAUDE.md
+- Test: 30 casi (dataset × Sezione 200 / Developer 403 / GR, Organo Tecnico, nessun tipo 403 / fuori navigazione);
+  tutta `tests/Feature/Filament` verde (370). Pint e Larastan puliti. Verifica in browser non eseguita (pagina
+  statica coperta dai test HTTP; la verifica Playwright è prevista in US-1004/US-1005 col click sul badge).
+- **Learnings for future iterations:**
+  - US-1004: link dei badge = `SectionMembers::getUrl()`, `SectionFinancialStatements::getUrl()` (entrambi i badge
+    di bilancio), `SectionHuts`, `SectionTrails`, `SectionSicaiStages`.
+  - Pest: due `->with()` concatenati fanno il prodotto cartesiano dei dataset; la closure riceve gli argomenti di
+    entrambi in ordine (anche quelli non usati, es. `$title`).
+---
