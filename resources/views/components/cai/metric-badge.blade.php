@@ -1,9 +1,11 @@
 {{-- Badge metrica della Dashboard V2 della Sezione (Fase 10.1, US-1002), riusabile dalla Dashboard GR (10.2).
      Tutta la card è un link. Un valore `null` si mostra sempre come "—" + "Non disponibile", mai come 0.
      Varianti:
-     - `semplice`: `label`, `value` (int|float|null), `unit` facoltativa, `decimals`;
+     - `semplice`: `label`, `value` (int|float|null), `unit` facoltativa, `decimals`, `note` facoltativa sotto il
+       numero (es. "Somma di 42 Sezioni", mai mostrata se il valore manca);
      - `bilancio`: `title`, `mainLabel`, `mainValue`, `year`, `secondary` (1 o 2 voci `['label' => ..., 'value' => ...]`)
-       e `result` (true solo per il conto economico: segno, pill Avanzo/Disavanzo, rosso se negativo).
+       e `result` (true solo per il conto economico: segno, pill Avanzo/Disavanzo, rosso se negativo); `yearNote`
+       facoltativa accodata a "Esercizio {year}" con " · " (solo se l'esercizio è mostrato).
      Importi in euro, formattati da ItalianNumberFormatter; stili in resources/css/filament/admin/metric-badge.css. --}}
 @props([
     'variant' => 'semplice',
@@ -12,10 +14,12 @@
     'value' => null,
     'unit' => null,
     'decimals' => 0,
+    'note' => null,
     'title' => null,
     'mainLabel' => null,
     'mainValue' => null,
     'year' => null,
+    'yearNote' => null,
     'result' => false,
     'secondary' => [],
     'linkLabel' => 'Vedi dettaglio',
@@ -55,7 +59,7 @@
             <span class="ms-metric-badge__missing">Non disponibile</span>
         @endif
         @if ($hasData && $year !== null)
-            <span class="ms-metric-badge__year">Esercizio {{ $year }}</span>
+            <span class="ms-metric-badge__year">Esercizio {{ $year }}@if ($yearNote !== null) · {{ $yearNote }}@endif</span>
         @endif
         @if ($hasData && $secondary !== [])
             <span class="ms-metric-badge__secondary">
@@ -81,6 +85,9 @@
                     <span class="ms-metric-badge__unit">{{ $unit }}</span>
                 @endif
             </span>
+            @if ($note !== null)
+                <span class="ms-metric-badge__note">{{ $note }}</span>
+            @endif
         @else
             <span class="ms-metric-badge__value">
                 <span class="ms-metric-badge__number ms-metric-badge__dash">—</span>
