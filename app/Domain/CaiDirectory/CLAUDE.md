@@ -271,6 +271,9 @@ parametro di rotta) e `docs/collaudo/CLAUDE.md` per il metodo di generazione del
     numericamente più alto); codice CAI del GR = prefisso + `000` (derivato, mai salvato);
   - Sezioni del GR = `CaiSection` con quel prefisso, **non** per `region` (la SAT `9218…` resta fuori, Sappada `9220…` in FVG entra
     nel Veneto); le Sottosezioni non contano mai;
+  - download PDF (`CaiDocumentDownloadController`, US-1022): il GR scarica i documenti di ogni Sezione del suo prefisso (anche
+    senza utente collegato) oltre alla vecchia regola sulla `region` dell'utente Sezione collegato. Fixture di test: `caiSection()`
+    ha default `region` `LOMBARDIA` e codice `CAI-N`, quindi per il GR Lombardia è "dentro il prefisso" — per un 403 cambiare regione;
   - consolidato = **un solo esercizio**, il più recente in cui almeno una Sezione ha dati, sommando solo le Sezioni con dati in
     quell'anno e solo i valori non nulli (totale senza valori = `null`, mai 0); CE e SP scelgono l'anno indipendentemente; il
     bilancio di una Sezione per anno segue `CaiSectionStatementsQuery::forSections()` (una query per tutte, a parità vince RUNTS);

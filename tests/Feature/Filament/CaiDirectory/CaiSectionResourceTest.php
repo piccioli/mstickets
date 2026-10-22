@@ -436,7 +436,7 @@ test('a gruppo regionale customer cannot download a document belonging to a sect
 
     $sectionOwner = withRole(User::factory()->create(), UserRole::Customer);
     $sectionOwner->forceFill(['customer_type' => CustomerType::Sezione, 'region' => Region::Lazio])->save();
-    $section = caiSection(['user_id' => $sectionOwner->id]);
+    $section = caiSection(['user_id' => $sectionOwner->id, 'region' => 'LAZIO']);
     $registration = CaiRuntsRegistration::create([
         'id_runts' => 'RUNTS-'.$section->codice_cai,
         'cai_section_id' => $section->codice_cai,

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Domain\CaiDirectory\Models\CaiDocument;
+use App\Domain\CaiDirectory\Queries\CaiRegionalGroupDashboardMetrics;
 use App\Domain\Identity\Enums\CustomerType;
 use App\Domain\Identity\Enums\Permission;
 use App\Domain\Identity\Models\User;
@@ -29,7 +30,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * - un cliente Gruppo Regionale la cui regione combacia con quella dell'utente cliente Sezione
  *   collegato alla `CaiSection` (US-807), per gli allegati mostrati sulla pagina di dettaglio
  *   {@see CaiSectionRegionalDetail} — confronto sull'account cliente
- *   collegato (`region` enum), non sul campo testo libero `CaiSection.region` (dato RUNTS grezzo).
+ *   collegato (`region` enum), non sul campo testo libero `CaiSection.region` (dato RUNTS grezzo);
+ * - un cliente Gruppo Regionale per qualunque `CaiSection` del suo GR secondo la regola del prefisso
+ *   (US-1022, {@see CaiRegionalGroupDashboardMetrics::prefixOf()}/`sectionsOf()`, la stessa del bilancio
+ *   consolidato): copre anche le Sezioni senza utente collegato e Sappada (`9220…`, in FVG ma nel GR Veneto).
  */
 class CaiDocumentDownloadController extends Controller
 {
@@ -63,8 +67,17 @@ class CaiDocumentDownloadController extends Controller
             return true;
         }
 
-        return $user->customer_type === CustomerType::GruppoRegionale
-            && $user->region !== null
-            && $section?->user?->region === $user->region;
+        if ($section === null || $user->customer_type !== CustomerType::GruppoRegionale || $user->region === null) {
+            return false;
+        }
+
+        if ($section->user?->region === $user->region) {
+            return true;
+        }
+
+        $prefix = CaiRegionalGroupDashboardMetrics::prefixOf($user->region);
+
+        return $prefix !== null
+            && CaiRegionalGroupDashboardMetrics::sectionsOf($prefix)->whereKey($section->getKey())->exists();
     }
 }
