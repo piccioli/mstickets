@@ -60,3 +60,18 @@ Fase 10.2 — Dashboard V2 del Gruppo Regionale, vedi docs/project/tasks/prd-fas
   - Prop Blade camelCase (`yearNote`) si passano in kebab-case nel tag (`year-note="..."`), come `main-label`.
   - `public/build` è gitignored: dopo una modifica CSS basta `npm run build` in locale, nulla da committare.
 ---
+
+## 2026-10-22 - US-1013
+- Generalizzata la base delle pagine "in arrivo": nuova `CustomerComingSoonPage` astratta (vista rinominata
+  `filament.pages.coming-soon`, gate su `static::allowedCustomerType()`); `SectionComingSoonPage` ora è solo la base
+  Sezione, nuova `RegionalGroupComingSoonPage` per il GR. Cinque pagine GR: `RegionalGroupMembers` (gr/soci),
+  `RegionalGroupFinancialStatements` (gr/bilancio, unica per i 4 badge di bilancio), `RegionalGroupHuts` (gr/rifugi,
+  "Rifugi del GR"), `RegionalGroupTrails` (gr/sentieri, "Sentieri del GR"), `RegionalGroupSicaiStages` (gr/tappe-sicai).
+- Files: app/Filament/Pages/{CustomerComingSoonPage,SectionComingSoonPage,RegionalGroupComingSoonPage,
+  RegionalGroup{Members,FinancialStatements,Huts,Trails,SicaiStages}}.php, resources/views/filament/pages/coming-soon.blade.php,
+  tests/Feature/Filament/Pages/RegionalGroupComingSoonPagesTest.php (35 test), app/Filament/CLAUDE.md.
+- Test 10.1 (SectionComingSoonPagesTest, SectionDashboardTest, Fase10DashboardSezioneEndToEndTest) verdi senza modifiche.
+- Verifica in browser non eseguita: pagine statiche identiche a quelle Sezione, coperte dai test HTTP (200/403).
+- **Learnings for future iterations:**
+  - Link di ritorno = `Dashboard::getUrl()`: per il GR diventa corretto solo dopo US-1015 (redirect GR → V2).
+---
