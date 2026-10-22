@@ -32,6 +32,10 @@ Fase 10.3 — Bilancio consolidato delle Sezioni del GR, vedi docs/project/tasks
 - Consolidato GR per esercizio (10.3): `CaiRegionalGroupConsolidatedStatements::forRegion($region, ?$year)` → righe per Sezione,
   totali, copertura, flag "da verificare"; anno null/fuori dai 5 → default. Prefisso/Sezioni del GR via
   `CaiRegionalGroupDashboardMetrics::prefixOf()`/`sectionsOf()` (ora pubblici) — usarli anche per l'autorizzazione download.
+- Pagina consolidato GR (10.3): `RegionalGroupFinancialStatements` (vista `regional-group-financial-statements`, CSS
+  `regional-group-financial-statements.css`, classi `ms-consolidated__*`), dati da `consolidated()` (memo per esercizio),
+  esercizio in `#[Url(as: 'esercizio')] public int|string|null $year`. Token ambra `--ms-review-*` e `--ms-total-border`
+  già in `resources/css/theme.css`: usarli per tabella/pillole "Solo PDF"/riga Totale (US-1024).
 - Fase 10.2 (Dashboard GR) è su `develop`: `CaiRegionalGroupDashboardMetrics` (prefisso del GR, Sezioni per prefisso), `CaiSectionStatementsQuery`, `RegionalGroupDashboard`, base `CustomerComingSoonPage`/`RegionalGroupComingSoonPage` — riusarli.
 
 ## 2026-10-22 - US-1021
@@ -62,4 +66,25 @@ Fase 10.3 — Bilancio consolidato delle Sezioni del GR, vedi docs/project/tasks
   - `caiSection()` ha default `region` `LOMBARDIA` e `codice_cai` `CAI-N`: con la regola del prefisso il GR Lombardia "possiede"
     ogni Sezione di default. Per un caso 403 di GR usare una regione esplicita diversa.
   - `caiRuntsRegistration` con `id_runts` `RUNTS-<codice>`: una sola per Sezione nel test (chiave primaria).
+---
+
+## 2026-10-22 - US-1023
+- `RegionalGroupFinancialStatements` ora pagina reale (non più coming soon): titolo "Bilancio consolidato Sezioni", slug
+  `gr/bilancio`, fuori navigazione, gate customer GR; "← Dashboard", sottotitolo "{nome} · Codice CAI {codice}", selettore
+  esercizio a pulsanti (`selectYear()`, `?esercizio=`), due card consolidate (riuso `x-cai.metric-badge` senza `href`),
+  note "Somma di…"/"Nessuna Sezione con dati su M" + "Include N valori da verificare", card Copertura (barra a 3 segmenti
+  con `flex-grow` inline, legenda, nota nei tre casi con singolari), avviso per GR senza regione.
+- `x-cai.metric-badge`: `href` facoltativo → card statica (`--static`), "Non disponibile · Esercizio {year}" senza dati.
+- Nuovi token `--ms-review-{bg,text,border,icon,bar}`, `--ms-total-border`; nuovo CSS importato dal tema admin.
+- Test: `tests/Feature/Filament/Pages/RegionalGroupFinancialStatementsTest.php` (15 test); tolto "Bilancio" dal dataset di
+  `RegionalGroupComingSoonPagesTest`.
+- Verifica browser (Playwright, utente GR di prova creato e cancellato): Toscana 2025 desktop e mobile (+90.144 €, 11 e 8
+  Sezioni su 27, copertura 14/9/4), 2026 senza dati (card grigie, nota "nessuna Sezione").
+- **Learnings for future iterations:**
+  - Sul dev DB gli esercizi disponibili sono 2022–2026 (c'è almeno un bilancio/documento 2026), non 2021–2025: in verifica
+    browser "esercizio senza dati" = 2026.
+  - `ItalianNumberFormatter` usa il segno meno Unicode `−` (U+2212): nei test `assertSeeText('−2.000 €')`, non `-`.
+  - Blade: `parola@if (...)` non viene compilato (sembra un'email) ma `@endif` sì → syntax error. Vedi app/Filament/CLAUDE.md.
+  - Card della pagina: `Livewire::withQueryParams(['esercizio' => 2024])->test(...)` per l'URL; `->get(url.'?esercizio=abc')`
+    per l'anno non valido (la proprietà `int|string|null` evita il TypeError di Livewire su un valore non numerico).
 ---
