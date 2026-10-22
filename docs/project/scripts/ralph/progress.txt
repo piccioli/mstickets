@@ -35,3 +35,30 @@ Fase 10 — una sessione Ralph per feature, vedi docs/project/tasks/fase-10-road
     `Region::label()`; i valori non ufficiali diventano "Extra regione"; vuoto → null.
   - Verificato su Postgres dev (SEZ. PISA 9226003: CE 2025, nessuno SP) — l'`orderByRaw(CASE ...)` funziona su entrambi i DB.
 ---
+
+## 2026-10-22 - US-1002
+- Componente Blade anonimo `x-cai.metric-badge` (varianti `semplice` e `bilancio`, tutta la card è un `<a>`), con
+  stati con valore / non disponibile / risultato negativo (pill Disavanzo, rosso) / ≥ 0 (Avanzo) / singolo valore
+  mancante / nessun dato (card grigia). `result=true` solo per il conto economico: lo stato patrimoniale negativo ha
+  il segno meno ma niente pill né rosso. Props: `label`/`value`/`unit`/`decimals` (semplice);
+  `title`/`mainLabel`/`mainValue`/`year`/`secondary` (lista `['label','value']`)/`result` (bilancio); `href`, `linkLabel`
+  (default "Vedi dettaglio").
+- `App\Support\Formatting\ItalianNumberFormatter` (`integer`, `decimal`, `kilometers`, `euro`, `signedEuro`; meno
+  U+2212; zero senza segno, anche se arrotondato da -0,4).
+- Stili in `resources/css/filament/admin/metric-badge.css` (BEM `ms-metric-badge__*`), importato dal tema; nuovi
+  token `--ms-*` in `resources/css/theme.css` documentati in `docs/design-system.md`. Aggiunto `@source` per
+  `resources/views/components`. `npm run build` eseguito, verificato visivamente con screenshot Chrome headless di
+  un HTML statico col CSS compilato.
+- Files: app/Support/Formatting/ItalianNumberFormatter.php, resources/views/components/cai/metric-badge.blade.php,
+  resources/css/{theme.css,filament/admin/theme.css,filament/admin/metric-badge.css}, docs/design-system.md,
+  app/Filament/CLAUDE.md, tests/Unit/Support/Formatting/ItalianNumberFormatterTest.php,
+  tests/Feature/View/Components/CaiMetricBadgeTest.php
+- **Learnings for future iterations:**
+  - In una vista Blade usare `@use('Classe\\FQCN')` invece di `use` dentro `@php`.
+  - Helper globali nei file di test Pest (funzioni/const) condividono lo spazio dei nomi di tutta la suite: dare
+    nomi univoci (`metricBadgeSimple()`), niente `const` globali.
+  - Verifica visiva di un componente senza pagina Filament: `Blade::render()` nel container → HTML statico con
+    `<link>` a `public/build/assets/theme-*.css` → Chrome headless `--allow-file-access-from-files`.
+  - US-1004: badge bilancio CE = `result: true`, secondari Ricavi/Costi; SP = `result: false`, secondario Totale
+    attivo; km sentieri = `unit="km" :decimals="1"`.
+---
