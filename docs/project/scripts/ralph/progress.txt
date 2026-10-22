@@ -82,3 +82,32 @@ Fase 10 — una sessione Ralph per feature, vedi docs/project/tasks/fase-10-road
   - Pest: due `->with()` concatenati fanno il prodotto cartesiano dei dataset; la closure riceve gli argomenti di
     entrambi in ordine (anche quelli non usati, es. `$title`).
 ---
+
+## 2026-10-22 - US-1004
+- Pagina `App\Filament\Pages\SectionDashboard` (slug `sezione/dashboard`, "Dashboard", icona home, gruppo "Area
+  cliente", sort -3 prima di `CustomerDashboard` -2; gate customer + `customer_type = Sezione`). Intestazione propria
+  (nome 28px/800 + "Codice CAI {codice} · {regione}", regione omessa se assente; `getHeading()` = '').
+  Metriche: `CaiSection` per `user_id`, altrimenti `CaiSubsection` (con `section` eager-loaded per la regione),
+  altrimenti `null` → nome utente + avviso "Nessuna Sezione CAI collegata..." e 6 badge non disponibili. Memo per
+  richiesta in proprietà private. Riga 1: CE (risultato netto, `result`, Ricavi/Costi) e SP (patrimonio netto,
+  Totale attivo) → `SectionFinancialStatements`; riga 2: Soci/Rifugi/Sentieri (km, 1 decimale)/Tappe SICAI.
+- Layout `resources/css/filament/admin/section-dashboard.css` (grid 2 + 4, gap 20; < 640px: 1 + 2, gap 12; nome 22px).
+- Files: app/Filament/Pages/SectionDashboard.php, resources/views/filament/pages/section-dashboard.blade.php,
+  resources/css/filament/admin/{section-dashboard.css,theme.css}, tests/Feature/Filament/Pages/SectionDashboardTest.php,
+  app/Filament/CLAUDE.md
+- Test: 11 casi (completa, tipica, vuota, Sottosezione, senza Sezione, link, navigazione, 403 staff / altri tipi).
+  `tests/Feature/Filament` (381) + EndToEnd + Domain/CaiDirectory verdi; Pint e Larastan puliti; `npm run build`.
+- Verifica in browser Playwright come `pisa@cai.it` (SEZ. PISA 9226003, CE 2025 +27.553 €, 963 soci, nessuno SP):
+  desktop 1440 e mobile 390 conformi; click su "Soci" → `/admin/sezione/soci` "in arrivo". Password temporanea
+  impostata e hash originale ripristinato subito dopo (verificato).
+- **Learnings for future iterations:**
+  - Fino a US-1005 la sidebar dell'utente Sezione mostra DUE voci "Dashboard" (V2 + `CustomerDashboard`):
+    atteso, US-1005 rinomina la seconda in "Ticket e documenti" e cambia l'atterraggio in `Dashboard::mount()`.
+  - La navigazione di una Page Filament è già filtrata da `canAccess()` (`Page::registerNavigationItems`): non
+    serve un `shouldRegisterNavigation()` custom per nasconderla ad altri ruoli.
+  - Verifica browser con un utente reale del dev DB: salvare l'hash con `getRawOriginal('password')`, impostare
+    una password temporanea con `saveQuietly()`, poi ripristinare l'hash con `DB::table('users')->update()`
+    (non via model, che lo ri-hasherebbe col cast `hashed`).
+  - Playwright in `/tmp/<dir>`: dopo `npm i playwright@latest` serve `npx playwright install chromium` (la
+    revisione del browser cambia con la versione del pacchetto).
+---
