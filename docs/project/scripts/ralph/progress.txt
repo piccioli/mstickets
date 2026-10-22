@@ -18,3 +18,20 @@ Fase 10 — una sessione Ralph per feature, vedi docs/project/tasks/fase-10-road
 - Il piano dettagliato `docs/superpowers/plans/2026-09-07-cai-scraper-native-php.md` contiene il codice
   ESATTO (migrazione, test, classi) da usare per ogni Task N ↔ US-90(N). Copiarlo alla lettera invece di
   reinventare, come richiesto dal PRD.
+
+## 2026-10-22 - US-1001
+- Implementata `App\Domain\CaiDirectory\Queries\CaiSectionDashboardMetrics` (`forSection()`/`forSubsection()`), che
+  restituisce `Support\CaiSectionDashboardData` (readonly) con `CaiIncomeStatementSummary`/`CaiBalanceSheetSummary`
+  annidati (null se nessun bilancio ha dati CE/SP). Una sola query sui bilanci (diretti OR via iscrizione RUNTS),
+  ordinata per anno desc + RUNTS prima; CE e SP scelti con `hasIncomeStatementData()`/`hasBalanceSheetData()`.
+  Importi come `?float`; rifugi/km sentieri/tappe SICAI sempre null.
+- Files: app/Domain/CaiDirectory/Queries/CaiSectionDashboardMetrics.php, app/Domain/CaiDirectory/Support/
+  {CaiSectionDashboardData,CaiIncomeStatementSummary,CaiBalanceSheetSummary}.php,
+  tests/Feature/Domain/CaiDirectory/Queries/CaiSectionDashboardMetricsTest.php, app/Domain/CaiDirectory/CLAUDE.md
+- **Learnings for future iterations:**
+  - `cai_financial_statements` ha unique `(cai_section_id, year)`: un test di "parità di anno" può avere al massimo
+    un bilancio diretto + uno via RUNTS.
+  - Regione: `cai_sections.region` è maiuscolo ("TOSCANA", "EXTRA REGIONE", ""); l'etichetta italiana viene da
+    `Region::label()`; i valori non ufficiali diventano "Extra regione"; vuoto → null.
+  - Verificato su Postgres dev (SEZ. PISA 9226003: CE 2025, nessuno SP) — l'`orderByRaw(CASE ...)` funziona su entrambi i DB.
+---

@@ -251,6 +251,11 @@ parametro di rotta) e `docs/collaudo/CLAUDE.md` per il metodo di generazione del
 - `CaiFinancialStatement::hasIncomeStatementData()` / `hasBalanceSheetData()` dicono se il record ha cifre di CE / SP (SP: `total_assets`,
   `total_liabilities`, `net_equity`). Le pagine "Bilancio 2025"/"Gruppi regionali" non rileggono i bilanci: usano `Queries\CaiSectionFinancialYearQuery`
   (colonne `EXISTS`, "collegato" = `cai_section_id` diretto OR via registrazione RUNTS).
+- `Queries\CaiSectionDashboardMetrics` (Dashboard V2, Fase 10.1) legge le metriche di UNA Sezione/Sottosezione in un value
+  object (`Support\CaiSectionDashboardData`): CE e SP scelti indipendentemente (ultimo anno con dati), a parità di anno vince il
+  bilancio collegato via RUNTS. Vincolo unique `(cai_section_id, year)` su `cai_financial_statements`: nei test non creare due
+  bilanci diretti dello stesso anno. La regione in maiuscolo si mappa sull'etichetta di `Identity\Enums\Region` confrontando
+  `mb_strtoupper(label())`, come fa `CaiRegionalGroupsQuery`.
 - `php artisan cai:analyze-financial-documents --year=YYYY [--section=] [--force] [--dry-run]` accoda `AnalyzeCaiFinancialStatementDocument` (coda
   `cai-runts-analysis`) per i documenti CE/SP dell'anno non ancora analizzati. Serve `queue` in esecuzione; il worker ha `memory_limit` 128M e un PDF
   grande può dare OOM (il job viene ritentato: sulla run 2025 tutti i 348 sono comunque arrivati a fine, 0 `failed_jobs`). Controllare l'avanzamento
