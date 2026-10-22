@@ -124,6 +124,11 @@ trasversali di test Filament (`fillForm()` rotto, notifiche Postgres `text ->> u
   "Dashboard" per il `<title>` e la navigazione). Layout in `resources/css/filament/admin/section-dashboard.css`.
   Nei test, contare i badge senza dati con `substr_count($html, 'ms-metric-badge--unavailable')` su
   `Livewire::test(...)->html()`: è più robusto di `assertSee('Non disponibile')`, che non distingue quante card.
+- **Dashboard V2 GR** (US-1014, `RegionalGroupDashboard`, slug `gr/dashboard`): riusa le classi
+  `ms-section-dashboard*` (intestazione, avviso, griglie di bilancio); `regional-group-dashboard.css` aggiunge solo
+  la griglia a 5 colonne e gli override mobile, scopati sotto `.ms-regional-group-dashboard`. Una classe extra su
+  un singolo badge (es. "Sezioni" a tutta larghezza su mobile) si passa con `class="..."`: il componente la fonde
+  via `$attributes->class()`.
 - **Atterraggio per tipo di cliente** (US-1005): `Dashboard::mount()` manda il customer `Sezione` su
   `SectionDashboard`, ogni altro customer su `CustomerDashboard`. Per la Sezione `CustomerDashboard` diventa
   "Ticket e documenti" via override statici di `getNavigationLabel()`/`getNavigationIcon()` e `getTitle()`
