@@ -50,3 +50,16 @@ Fase 10.3 — Bilancio consolidato delle Sezioni del GR, vedi docs/project/tasks
     `CaiFinancialDocumentKind`: nei test passare un titolo tipo "Rendiconto gestionale".
   - La riga per "Dati presenti" ha `documentId` del PDF se c'è (anche manuale con file), non solo per "Solo PDF".
 ---
+
+## 2026-10-22 - US-1022
+- `CaiDocumentDownloadController::authorized()`: un cliente GR è autorizzato se la `CaiSection` del documento (via RUNTS o
+  diretta) è nel prefisso del suo GR (`CaiRegionalGroupDashboardMetrics::prefixOf()` + `sectionsOf()->whereKey()`), oltre alla
+  regola esistente sulla regione dell'utente Sezione collegato.
+- Test: nuovo `tests/Feature/Http/CaiDocumentDownloadControllerTest.php` (6 test: Sezione senza utente 200, via RUNTS 200, altro
+  GR 403 diretto/RUNTS, codice fuori prefisso con stessa regione 403, Sappada Veneto 200 / FVG 403, cliente Sezione 403).
+  Aggiornato il fixture del test 403 "another region" in `CaiSectionResourceTest` (sezione ora `LAZIO`).
+- **Learnings for future iterations:**
+  - `caiSection()` ha default `region` `LOMBARDIA` e `codice_cai` `CAI-N`: con la regola del prefisso il GR Lombardia "possiede"
+    ogni Sezione di default. Per un caso 403 di GR usare una regione esplicita diversa.
+  - `caiRuntsRegistration` con `id_runts` `RUNTS-<codice>`: una sola per Sezione nel test (chiave primaria).
+---
