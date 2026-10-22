@@ -139,3 +139,51 @@ test('balance sheet shows a positive net equity without the plus sign', function
         ->assertSee('5.200 €')
         ->assertDontSee('+5.200 €');
 });
+
+test('simple badge shows the note under the number when the value is present', function (): void {
+    test()->blade(
+        '<x-cai.metric-badge variant="semplice" href="/admin/gr/soci" label="Soci" :value="$value" note="Somma di 42 Sezioni" />',
+        ['value' => 12480],
+    )
+        ->assertSeeInOrder(['Soci', '12.480', 'Somma di 42 Sezioni', 'Vedi dettaglio'])
+        ->assertSee('ms-metric-badge__note', false);
+});
+
+test('simple badge never shows the note when the value is unavailable', function (): void {
+    test()->blade(
+        '<x-cai.metric-badge variant="semplice" href="/admin/gr/rifugi" label="Rifugi" :value="null" note="Somma di 42 Sezioni" />',
+    )
+        ->assertSee('Non disponibile')
+        ->assertDontSee('Somma di 42 Sezioni')
+        ->assertDontSee('ms-metric-badge__note', false);
+});
+
+test('simple badge without the note prop renders no note element', function (): void {
+    metricBadgeSimple(1248)->assertDontSee('ms-metric-badge__note', false);
+});
+
+test('balance badge appends the year note to the fiscal year line', function (): void {
+    test()->blade(
+        '<x-cai.metric-badge variant="bilancio" href="/admin/gr/bilancio" title="Conto economico consolidato Sezioni" main-label="Risultato netto" :main-value="90143.67" :year="2025" :result="true" year-note="Somma di 11 Sezioni" :secondary="$secondary" />',
+        ['secondary' => [['label' => 'Ricavi', 'value' => 1520538.66], ['label' => 'Costi', 'value' => 1430394.99]]],
+    )
+        ->assertSee('Esercizio 2025 · Somma di 11 Sezioni')
+        ->assertSeeInOrder(['+90.144 €', 'Esercizio 2025 · Somma di 11 Sezioni', 'Ricavi']);
+});
+
+test('balance badge hides the year note when there is no fiscal year', function (): void {
+    test()->blade(
+        '<x-cai.metric-badge variant="bilancio" href="/admin/gr/bilancio" title="Stato patrimoniale consolidato Sezioni" main-label="Patrimonio netto" :main-value="null" :year="null" year-note="Somma di 8 Sezioni" :secondary="$secondary" />',
+        ['secondary' => [['label' => 'Totale attivo', 'value' => null]]],
+    )
+        ->assertSee('Non disponibile')
+        ->assertDontSee('Esercizio')
+        ->assertDontSee('Somma di 8 Sezioni');
+});
+
+test('balance badge without the year note keeps the plain fiscal year line', function (): void {
+    $view = metricBadgeBalance(14110.0, [['label' => 'Ricavi', 'value' => 186420.0], ['label' => 'Costi', 'value' => 172310.0]]);
+
+    $view->assertSee('Esercizio 2025</span>', false)
+        ->assertDontSee(' · ');
+});

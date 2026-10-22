@@ -92,7 +92,7 @@ return [
             'titolo' => 'Dashboard V2 della Sezione (10.1) — atterraggio e "Ticket e documenti" (US-1005)',
             'test' => [
                 ['id' => 'F10-39', 'descrizione' => 'Dopo il login l\'utente Sezione atterra sulla Dashboard V2', 'test_automatico' => 'tests/Feature/Filament/Pages/DashboardTest.php::a Sezione customer landing on the dashboard is redirected to the Section dashboard V2'],
-                ['id' => 'F10-40', 'descrizione' => 'Gli altri clienti (GR, Organo Tecnico, Generico) atterrano ancora sulla dashboard cliente', 'test_automatico' => 'tests/Feature/Filament/Pages/DashboardTest.php::a non-Sezione customer landing on the dashboard is still redirected to the customer dashboard'],
+                ['id' => 'F10-40', 'descrizione' => 'Gli altri clienti (Organo Tecnico, Generico) atterrano ancora sulla dashboard cliente', 'test_automatico' => 'tests/Feature/Filament/Pages/DashboardTest.php::an Organo Tecnico customer landing on the dashboard is still redirected to the customer dashboard'],
                 ['id' => 'F10-41', 'descrizione' => 'Per l\'utente Sezione la dashboard cliente diventa "Ticket e documenti", subito dopo la Dashboard', 'test_automatico' => 'tests/Feature/Filament/Pages/CustomerDashboardTest.php::for a Sezione customer the page becomes "Ticket e documenti", right after the Section dashboard'],
                 ['id' => 'F10-42', 'descrizione' => 'Per ogni altro cliente etichetta, titolo, icona, gruppo e posizione restano invariati', 'test_automatico' => 'tests/Feature/Filament/Pages/CustomerDashboardTest.php::for every other customer the page keeps the "Dashboard" label, title, icon, group and position'],
             ],
@@ -101,7 +101,72 @@ return [
             'titolo' => 'Dashboard V2 della Sezione (10.1) — percorso end-to-end (US-1006)',
             'test' => [
                 ['id' => 'F10-43', 'descrizione' => 'Utente Sezione: login → Dashboard V2 con i valori reali → badge "Soci" → pagina "in arrivo" → "Ticket e documenti"', 'test_automatico' => 'tests/Feature/EndToEnd/Fase10DashboardSezioneEndToEndTest.php::a Sezione user logs in, lands on the Dashboard V2 with real values and follows a badge to the coming soon page'],
-                ['id' => 'F10-44', 'descrizione' => 'Utente Gruppo Regionale: atterra sulla dashboard cliente e non apre la Dashboard V2 della Sezione', 'test_automatico' => 'tests/Feature/EndToEnd/Fase10DashboardSezioneEndToEndTest.php::a Gruppo Regionale user still lands on the customer dashboard and cannot open the Section Dashboard V2'],
+                ['id' => 'F10-44', 'descrizione' => 'Utente Gruppo Regionale: atterra sulla propria Dashboard V2 e non apre la Dashboard V2 della Sezione', 'test_automatico' => 'tests/Feature/EndToEnd/Fase10DashboardSezioneEndToEndTest.php::a Gruppo Regionale user lands on the regional group dashboard V2 and cannot open the Section Dashboard V2'],
+            ],
+        ],
+        [
+            'titolo' => 'Dashboard V2 del Gruppo Regionale (10.2) — metriche del GR (US-1011)',
+            'test' => [
+                ['id' => 'F10-52', 'descrizione' => 'Il codice CAI del GR è il prefisso più frequente fra le Sezioni della regione seguito da 000', 'test_automatico' => 'tests/Feature/Domain/CaiDirectory/Queries/CaiRegionalGroupDashboardMetricsTest.php::the regional group code is the most frequent prefix of its region followed by 000'],
+                ['id' => 'F10-53', 'descrizione' => 'A parità di frequenza vince il prefisso numericamente più alto', 'test_automatico' => 'tests/Feature/Domain/CaiDirectory/Queries/CaiRegionalGroupDashboardMetricsTest.php::on a tie the numerically highest prefix wins'],
+                ['id' => 'F10-54', 'descrizione' => 'Le Sezioni del GR si scelgono per prefisso del codice, qualunque sia la loro regione', 'test_automatico' => 'tests/Feature/Domain/CaiDirectory/Queries/CaiRegionalGroupDashboardMetricsTest.php::the sections of the group are picked by code prefix, whatever their region'],
+                ['id' => 'F10-55', 'descrizione' => 'Una regione senza Sezioni non ha codice, conteggi né bilanci', 'test_automatico' => 'tests/Feature/Domain/CaiDirectory/Queries/CaiRegionalGroupDashboardMetricsTest.php::a region without sections has everything null'],
+                ['id' => 'F10-56', 'descrizione' => 'I soci sono la somma delle sole Sezioni che li hanno', 'test_automatico' => 'tests/Feature/Domain/CaiDirectory/Queries/CaiRegionalGroupDashboardMetricsTest.php::members are the sum of the sections that have them'],
+                ['id' => 'F10-57', 'descrizione' => 'Senza soci in nessuna Sezione il totale resta assente, mai 0', 'test_automatico' => 'tests/Feature/Domain/CaiDirectory/Queries/CaiRegionalGroupDashboardMetricsTest.php::members are null when no section has them'],
+                ['id' => 'F10-58', 'descrizione' => 'Il consolidato somma un solo esercizio, il più recente con dati, e solo le Sezioni con dati in quell\'anno', 'test_automatico' => 'tests/Feature/Domain/CaiDirectory/Queries/CaiRegionalGroupDashboardMetricsTest.php::the consolidated income statement sums only the latest year and the sections with data in it'],
+                ['id' => 'F10-59', 'descrizione' => 'Un totale consolidato senza alcun valore resta assente, mai 0', 'test_automatico' => 'tests/Feature/Domain/CaiDirectory/Queries/CaiRegionalGroupDashboardMetricsTest.php::a consolidated total without any value stays null, never 0'],
+                ['id' => 'F10-60', 'descrizione' => 'A parità di anno per una Sezione vince il bilancio collegato all\'iscrizione RUNTS', 'test_automatico' => 'tests/Feature/Domain/CaiDirectory/Queries/CaiRegionalGroupDashboardMetricsTest.php::on the same year of a section the statement linked to the RUNTS registration wins'],
+                ['id' => 'F10-61', 'descrizione' => 'Un bilancio collegato solo all\'iscrizione RUNTS entra nel consolidato', 'test_automatico' => 'tests/Feature/Domain/CaiDirectory/Queries/CaiRegionalGroupDashboardMetricsTest.php::a statement linked only through the RUNTS registration is consolidated'],
+                ['id' => 'F10-62', 'descrizione' => 'Conto economico e stato patrimoniale consolidati scelgono l\'esercizio in modo indipendente', 'test_automatico' => 'tests/Feature/Domain/CaiDirectory/Queries/CaiRegionalGroupDashboardMetricsTest.php::income statement and balance sheet pick their year independently'],
+                ['id' => 'F10-63', 'descrizione' => 'Le Sottosezioni non contano mai fra le Sezioni del GR', 'test_automatico' => 'tests/Feature/Domain/CaiDirectory/Queries/CaiRegionalGroupDashboardMetricsTest.php::subsections never count as sections of the group'],
+                ['id' => 'F10-64', 'descrizione' => 'I bilanci di tutte le Sezioni del GR si leggono con una sola query', 'test_automatico' => 'tests/Feature/Domain/CaiDirectory/Queries/CaiRegionalGroupDashboardMetricsTest.php::the statements of all the sections are loaded with a single query'],
+            ],
+        ],
+        [
+            'titolo' => 'Dashboard V2 del Gruppo Regionale (10.2) — nota sotto il valore del badge (US-1012)',
+            'test' => [
+                ['id' => 'F10-65', 'descrizione' => 'Badge semplice con valore: la nota compare sotto il numero', 'test_automatico' => 'tests/Feature/View/Components/CaiMetricBadgeTest.php::simple badge shows the note under the number when the value is present'],
+                ['id' => 'F10-66', 'descrizione' => 'Badge semplice senza valore: nessuna nota', 'test_automatico' => 'tests/Feature/View/Components/CaiMetricBadgeTest.php::simple badge never shows the note when the value is unavailable'],
+                ['id' => 'F10-67', 'descrizione' => 'Badge semplice senza nota: HTML invariato rispetto alla 10.1', 'test_automatico' => 'tests/Feature/View/Components/CaiMetricBadgeTest.php::simple badge without the note prop renders no note element'],
+                ['id' => 'F10-68', 'descrizione' => 'Badge bilancio: la nota si accoda all\'esercizio ("Esercizio 2025 · Somma di 11 Sezioni")', 'test_automatico' => 'tests/Feature/View/Components/CaiMetricBadgeTest.php::balance badge appends the year note to the fiscal year line'],
+                ['id' => 'F10-69', 'descrizione' => 'Badge bilancio senza esercizio: nessuna nota', 'test_automatico' => 'tests/Feature/View/Components/CaiMetricBadgeTest.php::balance badge hides the year note when there is no fiscal year'],
+                ['id' => 'F10-70', 'descrizione' => 'Badge bilancio senza nota: riga dell\'esercizio invariata', 'test_automatico' => 'tests/Feature/View/Components/CaiMetricBadgeTest.php::balance badge without the year note keeps the plain fiscal year line'],
+            ],
+        ],
+        [
+            'titolo' => 'Dashboard V2 del Gruppo Regionale (10.2) — pagine di approfondimento "in arrivo" (US-1013)',
+            'test' => [
+                ['id' => 'F10-71', 'descrizione' => 'L\'utente GR apre Soci, Bilancio, Rifugi, Sentieri e Tappe SICAI: "Questa sezione è in arrivo."', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupComingSoonPagesTest.php::a regional group customer sees the coming soon page'],
+                ['id' => 'F10-72', 'descrizione' => 'Un utente staff riceve 403 sulle pagine "in arrivo" del GR', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupComingSoonPagesTest.php::a staff user cannot access the regional group coming soon page'],
+                ['id' => 'F10-73', 'descrizione' => 'Un cliente di altro tipo (Sezione, Organo Tecnico, nessun tipo) riceve 403', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupComingSoonPagesTest.php::a customer of another type cannot access the regional group coming soon page'],
+                ['id' => 'F10-74', 'descrizione' => 'Le pagine "in arrivo" del GR non compaiono nella navigazione', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupComingSoonPagesTest.php::the regional group coming soon pages are not in the navigation'],
+            ],
+        ],
+        [
+            'titolo' => 'Dashboard V2 del Gruppo Regionale (10.2) — pagina Dashboard (US-1014)',
+            'test' => [
+                ['id' => 'F10-75', 'descrizione' => 'GR con Sezioni: codice del GR, bilancio consolidato con "Somma di N Sezioni" e soci', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupDashboardTest.php::a regional group with sections shows the GR code, consolidated statements and members'],
+                ['id' => 'F10-76', 'descrizione' => 'Bilancio proprio del GR, rifugi, sentieri e tappe SICAI "Non disponibile", mai 0', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupDashboardTest.php::the GR own statements, huts, trails and SICAI stages are not available, never 0'],
+                ['id' => 'F10-77', 'descrizione' => 'GR la cui regione non ha Sezioni: solo la regione, nessun dato', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupDashboardTest.php::a regional group whose region has no sections shows only the region and no data'],
+                ['id' => 'F10-78', 'descrizione' => 'GR senza regione: nome, avviso e tutti i badge "Non disponibile"', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupDashboardTest.php::a regional group without a region sees its name, a notice and every badge not available'],
+                ['id' => 'F10-79', 'descrizione' => 'Ogni badge porta alla propria pagina; "Sezioni" all\'elenco delle Sezioni del GR', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupDashboardTest.php::the badges link to their detail pages'],
+                ['id' => 'F10-80', 'descrizione' => 'La nota usa il singolare con una sola Sezione', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupDashboardTest.php::the sum note handles the singular'],
+                ['id' => 'F10-81', 'descrizione' => 'La Dashboard è la prima voce del gruppo "GR"', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupDashboardTest.php::a regional group customer opens the dashboard and finds it first in the GR group'],
+                ['id' => 'F10-82', 'descrizione' => 'Un utente staff riceve 403 sulla Dashboard V2 del GR', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupDashboardTest.php::a staff user cannot access the regional group dashboard'],
+                ['id' => 'F10-83', 'descrizione' => 'Un cliente di altro tipo riceve 403 sulla Dashboard V2 del GR', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupDashboardTest.php::a customer of another type cannot access the regional group dashboard'],
+            ],
+        ],
+        [
+            'titolo' => 'Dashboard V2 del Gruppo Regionale (10.2) — atterraggio e "Ticket e documenti" (US-1015)',
+            'test' => [
+                ['id' => 'F10-84', 'descrizione' => 'Dopo il login l\'utente GR atterra sulla Dashboard V2 del GR', 'test_automatico' => 'tests/Feature/Filament/Pages/DashboardTest.php::a Gruppo Regionale customer landing on the dashboard is redirected to the regional group dashboard V2'],
+                ['id' => 'F10-85', 'descrizione' => 'Per l\'utente GR la dashboard cliente diventa "Ticket e documenti", subito dopo la Dashboard nel gruppo "GR"', 'test_automatico' => 'tests/Feature/Filament/Pages/CustomerDashboardTest.php::for a Gruppo Regionale customer the page becomes "Ticket e documenti", right after the GR dashboard in the "GR" group'],
+            ],
+        ],
+        [
+            'titolo' => 'Dashboard V2 del Gruppo Regionale (10.2) — percorso end-to-end (US-1016)',
+            'test' => [
+                ['id' => 'F10-86', 'descrizione' => 'Utente GR: login → Dashboard V2 con i valori consolidati → badge "Sezioni" → elenco delle Sezioni del GR → "Ticket e documenti"', 'test_automatico' => 'tests/Feature/EndToEnd/Fase10DashboardGruppoRegionaleEndToEndTest.php::a Gruppo Regionale user logs in, lands on the Dashboard V2 with the consolidated values and follows the Sezioni badge to the sections of the group'],
             ],
         ],
     ],

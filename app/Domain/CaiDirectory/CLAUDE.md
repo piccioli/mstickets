@@ -264,6 +264,20 @@ parametro di rotta) e `docs/collaudo/CLAUDE.md` per il metodo di generazione del
   Pillola "Terzo Settore" (`CaiSectionDashboardData::$thirdSectorRegistered`): iscritta = `CaiRuntsRegistration` collegata
   OPPURE `runts_presence_status = Registered`; ogni altro caso (null, `Timeout`, `NotRegistered`) = "non iscritta", per scelta
   del committente anche se il dato è incerto (oggi ~300 Sezioni in timeout o mai verificate). Sottosezione = `null`, nessuna pillola.
+- **Regole del Gruppo Regionale** (`Queries\CaiRegionalGroupDashboardMetrics`, Dashboard V2 GR, Fase 10.2) — il GR non esiste come
+  ente/tabella: tutto si deriva dalle Sezioni. **Da riusare identiche nella 10.3 (bilancio consolidato) e nelle altre pagine GR**,
+  senza ricalcolarle altrove:
+  - prefisso del GR = i primi 4 caratteri di `codice_cai` più frequenti fra le `CaiSection` con `region` del GR (parità → il
+    numericamente più alto); codice CAI del GR = prefisso + `000` (derivato, mai salvato);
+  - Sezioni del GR = `CaiSection` con quel prefisso, **non** per `region` (la SAT `9218…` resta fuori, Sappada `9220…` in FVG entra
+    nel Veneto); le Sottosezioni non contano mai;
+  - consolidato = **un solo esercizio**, il più recente in cui almeno una Sezione ha dati, sommando solo le Sezioni con dati in
+    quell'anno e solo i valori non nulli (totale senza valori = `null`, mai 0); CE e SP scelgono l'anno indipendentemente; il
+    bilancio di una Sezione per anno segue `CaiSectionStatementsQuery::forSections()` (una query per tutte, a parità vince RUNTS);
+  - la pagina "Sezioni del gruppo regionale" (`CustomerRegionalSectionsDashboard`) elenca invece gli **utenti** Sezione per
+    `users.region`: il suo numero può differire dal badge "Sezioni" della V2. Atteso, non allinearli senza un PRD.
+  - I numeri attesi del PRD 10.2 §7 sono gonfiati (contano due volte diretto+RUNTS dello stesso anno); il GR Sicilia 2025 ha ricavi
+    consolidati anomali (~203 M€ su 5 Sezioni) per un bilancio letto male — qualità del dato, da verificare a parte.
 - `php artisan cai:analyze-financial-documents --year=YYYY [--section=] [--force] [--dry-run]` accoda `AnalyzeCaiFinancialStatementDocument` (coda
   `cai-runts-analysis`) per i documenti CE/SP dell'anno non ancora analizzati. Serve `queue` in esecuzione; il worker ha `memory_limit` 128M e un PDF
   grande può dare OOM (il job viene ritentato: sulla run 2025 tutti i 348 sono comunque arrivati a fine, 0 `failed_jobs`). Controllare l'avanzamento

@@ -71,6 +71,13 @@
   color: var(--ms-text-muted);
 }
 
+/* Nota sotto il numero (Dashboard GR, 10.2): "Somma di N Sezioni" */
+.ms-metric-badge__note {
+  margin-top: 2px;
+  font-size: 0.78125rem; /* 12.5px */
+  color: var(--ms-text-muted);
+}
+
 /* ---- Variante bilancio ---- */
 .ms-metric-badge__title {
   font-size: var(--ms-text-lg);

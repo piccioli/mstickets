@@ -17,3 +17,6 @@
 
 /* Dashboard V2 della Sezione (Fase 10.1). */
 @import './section-dashboard.css';
+
+/* Dashboard V2 del Gruppo Regionale (Fase 10.2). */
+@import './regional-group-dashboard.css';

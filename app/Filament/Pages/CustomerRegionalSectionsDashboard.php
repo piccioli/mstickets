@@ -28,13 +28,13 @@ class CustomerRegionalSectionsDashboard extends Page
 {
     protected string $view = 'filament.pages.customer-regional-sections-dashboard';
 
-    protected static ?string $title = 'Dashboard';
+    protected static ?string $title = 'Sezioni del GR';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMap;
 
     protected static string|UnitEnum|null $navigationGroup = 'Sezioni';
 
-    protected static ?string $navigationLabel = 'Dashboard';
+    protected static ?string $navigationLabel = 'Sezioni del GR';
 
     /**
      * Stesso gate di {@see CaiSectionRegionalDetail::canAccess()}: solo un cliente Gruppo

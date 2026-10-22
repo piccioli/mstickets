@@ -7,6 +7,7 @@ use App\Domain\Identity\Enums\Permission as PermissionEnum;
 use App\Domain\Identity\Enums\UserRole;
 use App\Filament\Pages\CustomerDashboard;
 use App\Filament\Pages\Dashboard;
+use App\Filament\Pages\RegionalGroupDashboard;
 use App\Filament\Pages\SectionDashboard;
 use App\Filament\Pages\WorkBoard;
 use App\Filament\Resources\FundraisingOpportunities\FundraisingOpportunityResource;
@@ -49,17 +50,23 @@ test('a Sezione customer landing on the dashboard is redirected to the Section d
     Livewire::test(Dashboard::class)->assertRedirect(SectionDashboard::getUrl());
 });
 
-test('a non-Sezione customer landing on the dashboard is still redirected to the customer dashboard', function (CustomerType $type): void {
+test('a Gruppo Regionale customer landing on the dashboard is redirected to the regional group dashboard V2', function (): void {
     $customer = grantTicketPanelRole(userWithPermissions(), UserRole::Customer);
-    $customer->forceFill(['customer_type' => $type])->save();
+    $customer->forceFill(['customer_type' => CustomerType::GruppoRegionale])->save();
+
+    $this->actingAs($customer);
+
+    Livewire::test(Dashboard::class)->assertRedirect(RegionalGroupDashboard::getUrl());
+});
+
+test('an Organo Tecnico customer landing on the dashboard is still redirected to the customer dashboard', function (): void {
+    $customer = grantTicketPanelRole(userWithPermissions(), UserRole::Customer);
+    $customer->forceFill(['customer_type' => CustomerType::OrganoTecnicoStrutturaOperativa])->save();
 
     $this->actingAs($customer);
 
     Livewire::test(Dashboard::class)->assertRedirect(CustomerDashboard::getUrl());
-})->with([
-    'Gruppo Regionale' => [CustomerType::GruppoRegionale],
-    'Organo Tecnico' => [CustomerType::OrganoTecnicoStrutturaOperativa],
-]);
+});
 
 test('a fundraising team member landing on the dashboard is redirected to the opportunity list', function (): void {
     $fundraising = grantTicketPanelRole(userWithPermissions(), UserRole::Fundraising);

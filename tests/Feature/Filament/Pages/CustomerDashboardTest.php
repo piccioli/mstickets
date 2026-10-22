@@ -18,6 +18,7 @@ use App\Domain\Reporting\Enums\ActivityReportOwnerKind;
 use App\Domain\Reporting\Enums\ActivityReportPeriodType;
 use App\Domain\Ticketing\Enums\TicketStatus;
 use App\Filament\Pages\CustomerDashboard;
+use App\Filament\Pages\RegionalGroupDashboard;
 use App\Filament\Pages\SectionDashboard;
 use Database\Seeders\RolePermissionSeeder;
 use Filament\Facades\Filament;
@@ -574,6 +575,28 @@ test('for a Sezione customer the page becomes "Ticket e documenti", right after 
         ->assertSee('Ticket aperti');
 });
 
+test('for a Gruppo Regionale customer the page becomes "Ticket e documenti", right after the GR dashboard in the "GR" group', function (): void {
+    $this->seed(RolePermissionSeeder::class);
+    $customer = withRole(User::factory()->create(), UserRole::Customer);
+    $customer->forceFill(['customer_type' => CustomerType::GruppoRegionale, 'region' => Region::Toscana])->save();
+
+    $this->actingAs($customer);
+
+    expect(CustomerDashboard::getNavigationLabel())->toBe('Ticket e documenti')
+        ->and(CustomerDashboard::getNavigationIcon())->toBe(Heroicon::OutlinedClipboardDocumentList)
+        ->and(CustomerDashboard::getNavigationGroup())->toBe('GR')
+        ->and(RegionalGroupDashboard::getNavigationGroup())->toBe('GR')
+        ->and(CustomerDashboard::getNavigationSort())->toBe(RegionalGroupDashboard::getNavigationSort() + 1);
+
+    expect(Livewire::test(CustomerDashboard::class)->instance()->getTitle())->toBe('Ticket e documenti');
+
+    $this->get(CustomerDashboard::getUrl())
+        ->assertSuccessful()
+        ->assertSee('Ticket e documenti')
+        ->assertSee('Ticket aperti')
+        ->assertSee('Gruppo Regionale — Toscana');
+});
+
 test('for every other customer the page keeps the "Dashboard" label, title, icon, group and position', function (?CustomerType $type, string $group): void {
     $this->seed(RolePermissionSeeder::class);
     $customer = withRole(User::factory()->create(), UserRole::Customer);
@@ -592,7 +615,6 @@ test('for every other customer the page keeps the "Dashboard" label, title, icon
         ->assertSuccessful()
         ->assertDontSee('Ticket e documenti');
 })->with([
-    'Gruppo Regionale' => [CustomerType::GruppoRegionale, 'GR'],
     'Organo Tecnico/Struttura Operativa' => [CustomerType::OrganoTecnicoStrutturaOperativa, 'Area cliente'],
     'nessun tipo' => [null, 'Area cliente'],
 ]);

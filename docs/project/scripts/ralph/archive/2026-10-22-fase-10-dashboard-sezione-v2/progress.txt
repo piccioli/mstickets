@@ -1,0 +1,152 @@
+# Ralph Progress Log
+Started: Mer 21 Ott 2026 17:56:07 CEST
+Fase 10 — una sessione Ralph per feature, vedi docs/project/tasks/fase-10-roadmap.md
+---
+
+## Codebase Patterns
+- Repo git root è direttamente `mstickets/` (non un sottodirectory `orchestrator/` separato — quella
+  cartella esiste ma è vuota/legacy, ignorarla). `git rev-parse --show-toplevel` conferma.
+- Ambiente via `docker compose` (servizi `app`/`db`/`redis`/`queue`/`web`/`scheduler`/`mailpit`), già up in
+  questa sessione. Comandi via `docker compose exec -T app ...`.
+- **Isolamento test da dev DB**: `docker compose exec -T app env -u DB_CONNECTION -u DB_DATABASE -u DB_HOST
+  -u DB_PORT -u DB_USERNAME -u DB_PASSWORD php -d memory_limit=512M vendor/bin/pest <path>` — necessario
+  perché le env reali del container (iniettate da `env_file: .env`) altrimenti sovrascrivono gli `<env>` di
+  `phpunit.xml` (gotcha già documentato in CLAUDE.md, ora forse mitigato da un fix in 3c0d277 "isolamento
+  reale dell'ambiente di test" — verificato comunque che il workaround esplicito resta necessario/innocuo).
+- Analyse: `docker compose exec -T app vendor/bin/phpstan analyse --memory-limit=1G`. Lint: `docker compose
+  exec -T app vendor/bin/pint --test`.
+- Il piano dettagliato `docs/superpowers/plans/2026-09-07-cai-scraper-native-php.md` contiene il codice
+  ESATTO (migrazione, test, classi) da usare per ogni Task N ↔ US-90(N). Copiarlo alla lettera invece di
+  reinventare, come richiesto dal PRD.
+
+## 2026-10-22 - US-1001
+- Implementata `App\Domain\CaiDirectory\Queries\CaiSectionDashboardMetrics` (`forSection()`/`forSubsection()`), che
+  restituisce `Support\CaiSectionDashboardData` (readonly) con `CaiIncomeStatementSummary`/`CaiBalanceSheetSummary`
+  annidati (null se nessun bilancio ha dati CE/SP). Una sola query sui bilanci (diretti OR via iscrizione RUNTS),
+  ordinata per anno desc + RUNTS prima; CE e SP scelti con `hasIncomeStatementData()`/`hasBalanceSheetData()`.
+  Importi come `?float`; rifugi/km sentieri/tappe SICAI sempre null.
+- Files: app/Domain/CaiDirectory/Queries/CaiSectionDashboardMetrics.php, app/Domain/CaiDirectory/Support/
+  {CaiSectionDashboardData,CaiIncomeStatementSummary,CaiBalanceSheetSummary}.php,
+  tests/Feature/Domain/CaiDirectory/Queries/CaiSectionDashboardMetricsTest.php, app/Domain/CaiDirectory/CLAUDE.md
+- **Learnings for future iterations:**
+  - `cai_financial_statements` ha unique `(cai_section_id, year)`: un test di "parità di anno" può avere al massimo
+    un bilancio diretto + uno via RUNTS.
+  - Regione: `cai_sections.region` è maiuscolo ("TOSCANA", "EXTRA REGIONE", ""); l'etichetta italiana viene da
+    `Region::label()`; i valori non ufficiali diventano "Extra regione"; vuoto → null.
+  - Verificato su Postgres dev (SEZ. PISA 9226003: CE 2025, nessuno SP) — l'`orderByRaw(CASE ...)` funziona su entrambi i DB.
+---
+
+## 2026-10-22 - US-1002
+- Componente Blade anonimo `x-cai.metric-badge` (varianti `semplice` e `bilancio`, tutta la card è un `<a>`), con
+  stati con valore / non disponibile / risultato negativo (pill Disavanzo, rosso) / ≥ 0 (Avanzo) / singolo valore
+  mancante / nessun dato (card grigia). `result=true` solo per il conto economico: lo stato patrimoniale negativo ha
+  il segno meno ma niente pill né rosso. Props: `label`/`value`/`unit`/`decimals` (semplice);
+  `title`/`mainLabel`/`mainValue`/`year`/`secondary` (lista `['label','value']`)/`result` (bilancio); `href`, `linkLabel`
+  (default "Vedi dettaglio").
+- `App\Support\Formatting\ItalianNumberFormatter` (`integer`, `decimal`, `kilometers`, `euro`, `signedEuro`; meno
+  U+2212; zero senza segno, anche se arrotondato da -0,4).
+- Stili in `resources/css/filament/admin/metric-badge.css` (BEM `ms-metric-badge__*`), importato dal tema; nuovi
+  token `--ms-*` in `resources/css/theme.css` documentati in `docs/design-system.md`. Aggiunto `@source` per
+  `resources/views/components`. `npm run build` eseguito, verificato visivamente con screenshot Chrome headless di
+  un HTML statico col CSS compilato.
+- Files: app/Support/Formatting/ItalianNumberFormatter.php, resources/views/components/cai/metric-badge.blade.php,
+  resources/css/{theme.css,filament/admin/theme.css,filament/admin/metric-badge.css}, docs/design-system.md,
+  app/Filament/CLAUDE.md, tests/Unit/Support/Formatting/ItalianNumberFormatterTest.php,
+  tests/Feature/View/Components/CaiMetricBadgeTest.php
+- **Learnings for future iterations:**
+  - In una vista Blade usare `@use('Classe\\FQCN')` invece di `use` dentro `@php`.
+  - Helper globali nei file di test Pest (funzioni/const) condividono lo spazio dei nomi di tutta la suite: dare
+    nomi univoci (`metricBadgeSimple()`), niente `const` globali.
+  - Verifica visiva di un componente senza pagina Filament: `Blade::render()` nel container → HTML statico con
+    `<link>` a `public/build/assets/theme-*.css` → Chrome headless `--allow-file-access-from-files`.
+  - US-1004: badge bilancio CE = `result: true`, secondari Ricavi/Costi; SP = `result: false`, secondario Totale
+    attivo; km sentieri = `unit="km" :decimals="1"`.
+---
+
+## 2026-10-22 - US-1003
+- Base astratta `App\Filament\Pages\SectionComingSoonPage` (vista unica `filament.pages.section-coming-soon`:
+  "Questa sezione è in arrivo." + link "Torna alla dashboard" → `Dashboard::getUrl()`, la root che smista per
+  ruolo, così resta corretto dopo US-1005). `$shouldRegisterNavigation = false`; `canAccess()` = customer +
+  `customer_type = Sezione`. Sottoclassi con solo `$title`/`$slug`: `SectionMembers` (Soci, `sezione/soci`),
+  `SectionFinancialStatements` (Bilancio, `sezione/bilancio`), `SectionHuts` (Rifugi di Sezione, `sezione/rifugi`),
+  `SectionTrails` (Sentieri di Sezione, `sezione/sentieri`), `SectionSicaiStages` (Tappe SICAI, `sezione/tappe-sicai`).
+- Files: app/Filament/Pages/{SectionComingSoonPage,SectionMembers,SectionFinancialStatements,SectionHuts,
+  SectionTrails,SectionSicaiStages}.php, resources/views/filament/pages/section-coming-soon.blade.php,
+  tests/Feature/Filament/Pages/SectionComingSoonPagesTest.php, app/Filament/CLAUDE.md
+- Test: 30 casi (dataset × Sezione 200 / Developer 403 / GR, Organo Tecnico, nessun tipo 403 / fuori navigazione);
+  tutta `tests/Feature/Filament` verde (370). Pint e Larastan puliti. Verifica in browser non eseguita (pagina
+  statica coperta dai test HTTP; la verifica Playwright è prevista in US-1004/US-1005 col click sul badge).
+- **Learnings for future iterations:**
+  - US-1004: link dei badge = `SectionMembers::getUrl()`, `SectionFinancialStatements::getUrl()` (entrambi i badge
+    di bilancio), `SectionHuts`, `SectionTrails`, `SectionSicaiStages`.
+  - Pest: due `->with()` concatenati fanno il prodotto cartesiano dei dataset; la closure riceve gli argomenti di
+    entrambi in ordine (anche quelli non usati, es. `$title`).
+---
+
+## 2026-10-22 - US-1004
+- Pagina `App\Filament\Pages\SectionDashboard` (slug `sezione/dashboard`, "Dashboard", icona home, gruppo "Area
+  cliente", sort -3 prima di `CustomerDashboard` -2; gate customer + `customer_type = Sezione`). Intestazione propria
+  (nome 28px/800 + "Codice CAI {codice} · {regione}", regione omessa se assente; `getHeading()` = '').
+  Metriche: `CaiSection` per `user_id`, altrimenti `CaiSubsection` (con `section` eager-loaded per la regione),
+  altrimenti `null` → nome utente + avviso "Nessuna Sezione CAI collegata..." e 6 badge non disponibili. Memo per
+  richiesta in proprietà private. Riga 1: CE (risultato netto, `result`, Ricavi/Costi) e SP (patrimonio netto,
+  Totale attivo) → `SectionFinancialStatements`; riga 2: Soci/Rifugi/Sentieri (km, 1 decimale)/Tappe SICAI.
+- Layout `resources/css/filament/admin/section-dashboard.css` (grid 2 + 4, gap 20; < 640px: 1 + 2, gap 12; nome 22px).
+- Files: app/Filament/Pages/SectionDashboard.php, resources/views/filament/pages/section-dashboard.blade.php,
+  resources/css/filament/admin/{section-dashboard.css,theme.css}, tests/Feature/Filament/Pages/SectionDashboardTest.php,
+  app/Filament/CLAUDE.md
+- Test: 11 casi (completa, tipica, vuota, Sottosezione, senza Sezione, link, navigazione, 403 staff / altri tipi).
+  `tests/Feature/Filament` (381) + EndToEnd + Domain/CaiDirectory verdi; Pint e Larastan puliti; `npm run build`.
+- Verifica in browser Playwright come `pisa@cai.it` (SEZ. PISA 9226003, CE 2025 +27.553 €, 963 soci, nessuno SP):
+  desktop 1440 e mobile 390 conformi; click su "Soci" → `/admin/sezione/soci` "in arrivo". Password temporanea
+  impostata e hash originale ripristinato subito dopo (verificato).
+- **Learnings for future iterations:**
+  - Fino a US-1005 la sidebar dell'utente Sezione mostra DUE voci "Dashboard" (V2 + `CustomerDashboard`):
+    atteso, US-1005 rinomina la seconda in "Ticket e documenti" e cambia l'atterraggio in `Dashboard::mount()`.
+  - La navigazione di una Page Filament è già filtrata da `canAccess()` (`Page::registerNavigationItems`): non
+    serve un `shouldRegisterNavigation()` custom per nasconderla ad altri ruoli.
+  - Verifica browser con un utente reale del dev DB: salvare l'hash con `getRawOriginal('password')`, impostare
+    una password temporanea con `saveQuietly()`, poi ripristinare l'hash con `DB::table('users')->update()`
+    (non via model, che lo ri-hasherebbe col cast `hashed`).
+  - Playwright in `/tmp/<dir>`: dopo `npm i playwright@latest` serve `npx playwright install chromium` (la
+    revisione del browser cambia con la versione del pacchetto).
+---
+
+## 2026-10-22 - US-1005
+- `Dashboard::mount()`: customer con `customer_type = Sezione` → `SectionDashboard`; ogni altro customer →
+  `CustomerDashboard` come prima. `CustomerDashboard` per la Sezione: `getNavigationLabel()`/`getTitle()` =
+  "Ticket e documenti", `getNavigationIcon()` = `OutlinedClipboardDocumentList`; sort -2 invariato (subito dopo
+  `SectionDashboard` -3), gruppo e `canAccess()` invariati. Per GR/Organo Tecnico/nessun tipo nulla cambia.
+- Files: app/Filament/Pages/{Dashboard,CustomerDashboard}.php, tests/Feature/Filament/Pages/{DashboardTest,
+  CustomerDashboardTest}.php, app/Filament/CLAUDE.md
+- Test: atterraggio Sezione → V2, GR/Organo Tecnico → `CustomerDashboard`; etichetta/titolo/icona/gruppo/sort per
+  Sezione vs GR/Organo Tecnico/nessun tipo. Nessun test esistente si aspettava il vecchio atterraggio della Sezione
+  (nessuna modifica ai checkpoint Fasi 6-9). `tests/Feature/Filament` + `EndToEnd` verdi (400); Pint/Larastan puliti.
+- Verifica in browser Playwright come `pisa@cai.it`: login → `/admin/sezione/dashboard`; sidebar intera = Area
+  cliente: Dashboard, Ticket e documenti, Preferenze di notifica, Report Attività, Opportunità, Progetti,
+  Documentazione, Ticket; "Ticket e documenti" → `/admin/customer-dashboard` con tutti i blocchi e i pulsanti di
+  sincronizzazione. Hash password originale ripristinato (verificato).
+- **Learnings for future iterations:**
+  - Il `<title>` HTML di Filament è su più righe: testare il titolo con `->instance()->getTitle()`.
+  - US-1006: ID collaudo per US-1005 → `DashboardTest` (landing Sezione/non-Sezione) e `CustomerDashboardTest`
+    ("Ticket e documenti" solo per la Sezione).
+---
+
+## 2026-10-22 - US-1006
+- Nuovo manifest `docs/collaudo/fase-10.php` (un argomento per feature, qui 10.1 suddiviso per user story): F10-01..F10-42
+  collegati ai test di US-1001..US-1005, F10-43/F10-44 al nuovo end-to-end. `collaudo:verify-manifest 10` verde.
+  Credenziali UAT con `pisa@cai.it` (customer Sezione, password `uat` da `FixedPasswordHasher`).
+- `tests/Feature/EndToEnd/Fase10DashboardSezioneEndToEndTest.php`: utente Sezione con CE 2025 via RUNTS e SP 2024 diretto →
+  login (Livewire `Login`) → `Dashboard` redirect alla V2 → valori in HTTP GET → link del badge Soci → "in arrivo" →
+  "Ticket e documenti"; più un caso GR (atterraggio invariato, 403 sulla V2).
+- Note per gli agenti: `app/Domain/CaiDirectory/CLAUDE.md` (soci mai sommati, `null` mai ricalcolato/mai 0, Sottosezione
+  senza bilanci, riuso badge/formatter per 10.2); `app/Filament/CLAUDE.md` (badge riusabile così com'è dalla Dashboard GR).
+  Roadmap già con riga 10.1 "in sviluppo" e link al PRD (nessuna modifica). Manuale narrativo e PDF rimandati a fine Fase 10.
+- Verifiche: Pint, Larastan, `--filter=Cai` (369 + 1 skipped), `--filter=Dashboard` (76), `tests/Feature/EndToEnd` +
+  `tests/Feature/Filament/Pages` (120), tutto con l'isolamento dal DB di sviluppo.
+- **Learnings for future iterations:**
+  - `collaudo:verify-manifest` controlla la descrizione con `str_contains` sul file di test: per un titolo di test che
+    contiene virgolette doppie si può citare un prefisso univoco del titolo invece del titolo intero.
+  - Prossimo passo fuori dal loop: PR verso `develop` (deploy UAT), verifica con `pisa@cai.it`, poi riga 10.1 → "su UAT"
+    e archiviazione di prd.json/progress.txt in `archive/<data>-fase-10-dashboard-sezione-v2/`.
+---

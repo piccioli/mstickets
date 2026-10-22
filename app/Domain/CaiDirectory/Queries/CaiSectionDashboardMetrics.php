@@ -12,14 +12,11 @@ use App\Domain\CaiDirectory\Support\CaiBalanceSheetSummary;
 use App\Domain\CaiDirectory\Support\CaiIncomeStatementSummary;
 use App\Domain\CaiDirectory\Support\CaiSectionDashboardData;
 use App\Domain\Identity\Enums\Region;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Query\Builder as QueryBuilder;
 
 /**
  * Metriche di sola lettura della Dashboard V2 (Fase 10.1). Un bilancio è "della Sezione" sia se collegato
  * direttamente (`cai_section_id`) sia se collegato a una sua `CaiRuntsRegistration` — stessa regola di
- * {@see CaiSectionFinancialYearQuery}. Una sola query sui bilanci per Sezione.
+ * {@see CaiSectionFinancialYearQuery}. Una sola query sui bilanci per Sezione ({@see CaiSectionStatementsQuery}).
  *
  * Soci = `members_count` della Sezione così com'è: i soci delle Sottosezioni non vengono mai sommati.
  *
@@ -30,7 +27,7 @@ final class CaiSectionDashboardMetrics
 {
     public static function forSection(CaiSection $section): CaiSectionDashboardData
     {
-        $statements = self::statementsOf($section);
+        $statements = CaiSectionStatementsQuery::forSections([$section->codice_cai]);
 
         $income = $statements->first(fn (CaiFinancialStatement $s): bool => $s->hasIncomeStatementData());
         $balance = $statements->first(fn (CaiFinancialStatement $s): bool => $s->hasBalanceSheetData());
@@ -70,28 +67,6 @@ final class CaiSectionDashboardMetrics
             incomeStatement: null,
             balanceSheet: null,
         );
-    }
-
-    /**
-     * Bilanci della Sezione dal più recente; a parità di anno prima quello collegato all'iscrizione RUNTS.
-     *
-     * @return Collection<int, CaiFinancialStatement>
-     */
-    private static function statementsOf(CaiSection $section): Collection
-    {
-        return CaiFinancialStatement::query()
-            ->where(function (Builder $q) use ($section): void {
-                $q->where('cai_section_id', $section->codice_cai)
-                    ->orWhereIn('cai_runts_registration_id', function (QueryBuilder $sub) use ($section): void {
-                        $sub->select('id_runts')
-                            ->from('cai_runts_registrations')
-                            ->where('cai_section_id', $section->codice_cai);
-                    });
-            })
-            ->orderByDesc('year')
-            ->orderByRaw('CASE WHEN cai_runts_registration_id IS NULL THEN 1 ELSE 0 END')
-            ->orderBy('id')
-            ->get();
     }
 
     /**

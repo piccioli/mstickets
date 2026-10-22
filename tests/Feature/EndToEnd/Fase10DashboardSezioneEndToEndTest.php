@@ -9,6 +9,7 @@ use App\Domain\Identity\Models\User;
 use App\Filament\Auth\Pages\Login;
 use App\Filament\Pages\CustomerDashboard;
 use App\Filament\Pages\Dashboard;
+use App\Filament\Pages\RegionalGroupDashboard;
 use App\Filament\Pages\SectionDashboard;
 use App\Filament\Pages\SectionMembers;
 use Database\Seeders\RolePermissionSeeder;
@@ -88,13 +89,13 @@ test('a Sezione user logs in, lands on the Dashboard V2 with real values and fol
     expect(CustomerDashboard::getNavigationLabel())->toBe('Ticket e documenti');
 });
 
-test('a Gruppo Regionale user still lands on the customer dashboard and cannot open the Section Dashboard V2', function (): void {
+test('a Gruppo Regionale user lands on the regional group dashboard V2 and cannot open the Section Dashboard V2', function (): void {
     $user = withRole(User::factory()->create(), UserRole::Customer);
     $user->forceFill(['customer_type' => CustomerType::GruppoRegionale])->save();
 
     $this->actingAs($user);
 
-    Livewire::test(Dashboard::class)->assertRedirect(CustomerDashboard::getUrl());
+    Livewire::test(Dashboard::class)->assertRedirect(RegionalGroupDashboard::getUrl());
 
     $this->get(SectionDashboard::getUrl())->assertForbidden();
     $this->get(SectionMembers::getUrl())->assertForbidden();

@@ -111,10 +111,12 @@ trasversali di test Filament (`fillForm()` rotto, notifiche Postgres `text ->> u
   Test di rendering di un componente: `test()->blade('<x-...>', [...])->assertSee(...)`.
   `x-cai.metric-badge` non conosce la Sezione (riceve solo valori già calcolati e un `href`): la Dashboard GR
   (10.2) lo riusa così com'è, passando i propri numeri; `result: true` solo per un conto economico.
-- **Pagine "in arrivo" della Dashboard V2 Sezione** (US-1003): `SectionComingSoonPage` (astratta, vista
-  `section-coming-soon`, fuori navigazione, gate customer + `customer_type = Sezione`) con cinque sottoclassi
-  di sole `$title`/`$slug` (`sezione/soci`, `sezione/bilancio`, `sezione/rifugi`, `sezione/sentieri`,
-  `sezione/tappe-sicai`). Quando una feature della Fase 10 porta il contenuto reale, sostituire la sottoclasse
+- **Pagine "in arrivo" delle Dashboard V2 cliente** (US-1003, US-1013): base astratta `CustomerComingSoonPage`
+  (vista `coming-soon`, fuori navigazione, gate customer + `customer_type === static::allowedCustomerType()`),
+  due basi astratte per famiglia — `SectionComingSoonPage` (Sezione) e `RegionalGroupComingSoonPage` (GR) — e
+  sottoclassi di sole `$title`/`$slug`: `sezione/{soci,bilancio,rifugi,sentieri,tappe-sicai}` e
+  `gr/{soci,bilancio,rifugi,sentieri,tappe-sicai}` (`RegionalGroup{Members,FinancialStatements,Huts,Trails,
+  SicaiStages}`). Un nuovo tipo cliente = una nuova base che implementa solo `allowedCustomerType()`. Quando una feature della Fase 10 porta il contenuto reale, sostituire la sottoclasse
   con una pagina vera mantenendo nome di classe e slug (i badge e i test di link puntano a quelli).
   `discoverPages()` ignora le classi astratte, quindi una base astratta in `app/Filament/Pages` è sicura.
 - **Dashboard V2 Sezione** (US-1004, `SectionDashboard`, slug `sezione/dashboard`): intestazione propria nella
@@ -122,12 +124,19 @@ trasversali di test Filament (`fillForm()` rotto, notifiche Postgres `text ->> u
   "Dashboard" per il `<title>` e la navigazione). Layout in `resources/css/filament/admin/section-dashboard.css`.
   Nei test, contare i badge senza dati con `substr_count($html, 'ms-metric-badge--unavailable')` su
   `Livewire::test(...)->html()`: è più robusto di `assertSee('Non disponibile')`, che non distingue quante card.
-- **Atterraggio per tipo di cliente** (US-1005): `Dashboard::mount()` manda il customer `Sezione` su
-  `SectionDashboard`, ogni altro customer su `CustomerDashboard`. Per la Sezione `CustomerDashboard` diventa
-  "Ticket e documenti" via override statici di `getNavigationLabel()`/`getNavigationIcon()` e `getTitle()`
-  condizionati su `customer_type` (stesso idioma di `getNavigationGroup()`), non con una seconda pagina: le
-  autorizzazioni restano quelle di sempre. Una futura Dashboard V2 per un altro tipo (es. GR, 10.2) segue lo
-  stesso schema: ramo in `Dashboard::mount()` + etichetta condizionata su `CustomerDashboard`.
+- **Dashboard V2 GR** (US-1014, `RegionalGroupDashboard`, slug `gr/dashboard`): riusa le classi
+  `ms-section-dashboard*` (intestazione, avviso, griglie di bilancio); `regional-group-dashboard.css` aggiunge solo
+  la griglia a 5 colonne e gli override mobile, scopati sotto `.ms-regional-group-dashboard`. Una classe extra su
+  un singolo badge (es. "Sezioni" a tutta larghezza su mobile) si passa con `class="..."`: il componente la fonde
+  via `$attributes->class()`.
+- **Atterraggio per tipo di cliente** (US-1005, US-1015): `Dashboard::mount()` fa un `match` su `customer_type`
+  — `Sezione` → `SectionDashboard`, `GruppoRegionale` → `RegionalGroupDashboard`, ogni altro customer →
+  `CustomerDashboard`. Per Sezione e GR `CustomerDashboard` diventa "Ticket e documenti" via override statici di
+  `getNavigationLabel()`/`getNavigationIcon()` e `getTitle()` condizionati su `customer_type`
+  (`CustomerDashboard::hasDashboardV2()`, stesso idioma di `getNavigationGroup()`), non con una seconda pagina:
+  le autorizzazioni restano quelle di sempre. Una nuova Dashboard V2 per un altro tipo segue lo stesso schema:
+  ramo nel `match` di `Dashboard::mount()` + tipo aggiunto a `hasDashboardV2()`, sort -3 (prima del -2 di
+  `CustomerDashboard`) nello stesso gruppo di navigazione.
   Nei test, il `<title>` HTML di Filament contiene spazi/a capo: verificare il titolo con
   `Livewire::test(...)->instance()->getTitle()`, non con `assertSee('<title>...')`.
 

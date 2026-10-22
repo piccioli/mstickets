@@ -1,0 +1,27 @@
+/*
+ * Dashboard V2 del Gruppo Regionale (Fase 10.2) — resources/views/filament/pages/regional-group-dashboard.blade.php.
+ * Intestazione, avviso e griglie di bilancio riusano section-dashboard.css (10.1); qui solo la riga dei 5 badge
+ * semplici (PRD fase 10.2 §6). Colori solo da token --ms-*.
+ */
+.ms-regional-group-dashboard__simple-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--ms-space-10); /* 20px */
+}
+
+/* Mobile (< 640px): bilancio in colonna, "Sezioni" a tutta larghezza, poi gli altri 4 su 2 colonne. */
+@media (max-width: 639.98px) {
+  /* I 4 badge di bilancio uno sotto l'altro, gap 16px anche dentro ciascuna griglia. */
+  .ms-regional-group-dashboard .ms-section-dashboard__balance-grid {
+    gap: var(--ms-space-8); /* 16px */
+  }
+
+  .ms-regional-group-dashboard__simple-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--ms-space-6); /* 12px */
+  }
+
+  .ms-regional-group-dashboard__sections {
+    grid-column: 1 / -1;
+  }
+}
