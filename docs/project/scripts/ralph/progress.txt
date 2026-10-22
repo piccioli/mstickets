@@ -75,3 +75,23 @@ Fase 10.2 — Dashboard V2 del Gruppo Regionale, vedi docs/project/tasks/prd-fas
 - **Learnings for future iterations:**
   - Link di ritorno = `Dashboard::getUrl()`: per il GR diventa corretto solo dopo US-1015 (redirect GR → V2).
 ---
+
+## 2026-10-22 - US-1014
+- Nuova pagina `RegionalGroupDashboard` (slug `gr/dashboard`, gruppo "GR", sort -3, gate customer GruppoRegionale):
+  intestazione nome utente + "Codice CAI {prefisso}000 · {regione}" (codice omesso se la regione non ha Sezioni),
+  riga 1 bilancio proprio del GR (sempre "Non disponibile"), riga 2 consolidato Sezioni con `yearNote`
+  "Somma di N Sezioni[ su M]", riga 3 Sezioni/Soci (nota)/Rifugi/Sentieri/Tappe SICAI. Senza `region`: avviso
+  "Nessuna regione associata…" e 9 badge "Non disponibile". Singolare via `RegionalGroupDashboard::sumNote()`.
+- Files: app/Filament/Pages/RegionalGroupDashboard.php, resources/views/filament/pages/regional-group-dashboard.blade.php,
+  resources/css/filament/admin/{regional-group-dashboard.css,theme.css}, tests/Feature/Filament/Pages/RegionalGroupDashboardTest.php
+  (11 test), app/Filament/CLAUDE.md.
+- Verifica in browser (Playwright, utente di prova GR Toscana creato e poi `forceDelete()`): desktop 1440 e mobile 390
+  ok; valori = numeri corretti del dev DB (CE 2025 11 Sezioni, ricavi 1.520.539 €, +90.144 €; SP 8 su 27; 27 Sezioni,
+  15.187 soci su 27). Nella sidebar GR compaiono ancora DUE "Dashboard" (questa + `CustomerDashboard`): atteso, lo
+  risolve US-1015 ("Ticket e documenti").
+- `notifications.data` sul dev DB ora è `json`: il gotcha `->databaseNotifications()` del CLAUDE.md radice non ha
+  bloccato la verifica autenticata.
+- **Learnings for future iterations:**
+  - Playwright è installato in `/tmp/node_modules`: lo script `.mjs` va eseguito da `/tmp` (`cd /tmp && node x.mjs`).
+  - Login di prova su `http://localhost:8080/admin/login` con `input[type=email]`/`input[type=password]`.
+---
