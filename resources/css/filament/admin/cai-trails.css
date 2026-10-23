@@ -34,6 +34,29 @@
   height: 30px;
 }
 
+/* Testata della scheda del sentiero (desktop 84×58 con bande da 12px, mobile 60×40 con bande da 8px). */
+.ms-cai-trail-sign--xl {
+  min-width: 84px;
+  height: 58px;
+  padding: 0 10px;
+  border-top-width: 12px;
+  border-bottom-width: 12px;
+  border-radius: 4px;
+  font-size: 22px;
+}
+
+@media (max-width: 639.98px) {
+  .ms-cai-trail-sign--xl {
+    min-width: 60px;
+    height: 40px;
+    padding: 0 8px;
+    border-top-width: 8px;
+    border-bottom-width: 8px;
+    border-radius: 3px;
+    font-size: var(--ms-text-md);
+  }
+}
+
 .ms-cai-trail-status {
   display: inline-flex;
   align-items: center;

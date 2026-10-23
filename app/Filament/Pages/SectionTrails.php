@@ -45,6 +45,9 @@ class SectionTrails extends Page
     /** Nome della mappa negli eventi `cai-map-*` (vedi `x-cai.map`). */
     public const MAP_NAME = 'trails';
 
+    /** Parametri dell'URL dell'elenco (filtri e ordinamento), riportati dalla scheda del sentiero nel link di ritorno. */
+    public const LIST_QUERY_KEYS = ['stato', 'difficolta', 'percorribilita', 'ordina'];
+
     /** Sotto questa quota della barra (in %) il segmento non porta l'etichetta dei km, come nel design. */
     private const BAR_LABEL_MIN_PERCENT = 9;
 
@@ -326,12 +329,24 @@ class SectionTrails extends Page
     }
 
     /**
-     * Scheda del sentiero: arriva con la US-1055 (`CaiTrailDetail`). Finché è `null` la riga e la card selezionano la
-     * linea sulla mappa, senza "›" né "Apri scheda →".
+     * Filtri e ordinamento correnti come parametri dell'URL ({@see LIST_QUERY_KEYS}), solo quelli impostati.
+     *
+     * @return array<string, string|list<string>>
      */
-    public function trailUrl(CaiTrail $trail): ?string
+    public function listQuery(): array
     {
-        return null;
+        return array_filter([
+            'stato' => array_map(fn (CaiTrailStatus $status): string => (string) $status->value, $this->activeStatuses()),
+            'difficolta' => $this->activeDifficulty()?->value,
+            'percorribilita' => $this->activePracticability()?->key(),
+            'ordina' => $this->sort === null ? null : $this->activeSort()->value,
+        ], fn (array|string|null $value): bool => $value !== null && $value !== '' && $value !== []);
+    }
+
+    /** Scheda del sentiero (US-1055), con filtri e ordinamento dell'elenco per il link di ritorno. */
+    public function trailUrl(CaiTrail $trail): string
+    {
+        return CaiTrailDetail::getUrl(['trailId' => $trail->id, ...$this->listQuery()]);
     }
 
     /** "Partenza → Arrivo", "—" al posto del dato mancante. */

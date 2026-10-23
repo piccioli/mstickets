@@ -95,4 +95,24 @@ enum CaiTrailPracticability: string implements HasLabel
             self::Unknown => '#a6aebb',
         };
     }
+
+    /** Titolo dell'avviso della scheda del sentiero (US-1055): solo non percorribile o con difficoltà, altrimenti `null`. */
+    public function alertTitle(): ?string
+    {
+        return match ($this) {
+            self::NotPracticable => 'Sentiero non percorribile',
+            self::WithDifficulty => 'Sentiero percorribile con difficoltà',
+            default => null,
+        };
+    }
+
+    /** Bordo dell'avviso della scheda (sfondo e testo: {@see background()} / {@see foreground()}). */
+    public function alertBorder(): string
+    {
+        return match ($this) {
+            self::NotPracticable => '#f3c4bf',
+            self::WithDifficulty => '#f3d9a6',
+            default => '#dfe3e8',
+        };
+    }
 }

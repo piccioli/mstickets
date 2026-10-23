@@ -209,9 +209,7 @@
                                     @endif
                                 </span>
                                 <span role="cell">
-                                    @if ($url !== null)
-                                        <a href="{{ $url }}" class="ms-trails__open" title="Apri scheda" aria-label="Apri scheda" x-on:click.stop>›</a>
-                                    @endif
+                                    <a href="{{ $url }}" class="ms-trails__open" title="Apri scheda" aria-label="Apri scheda" x-on:click.stop>›</a>
                                 </span>
                             </div>
                         @endforeach
@@ -233,11 +231,7 @@
                             $shared = $this->sharedWith($trail);
                         @endphp
                         <li wire:key="card-{{ $trail->id }}">
-                            <a
-                                @if ($url !== null) href="{{ $url }}" @endif
-                                class="ms-trails__card"
-                                @if ($url === null) x-on:click="active = {{ $trail->id }}; $dispatch('cai-map-select', @js(['map' => $mapName, 'id' => $trail->id]))" @endif
-                            >
+                            <a href="{{ $url }}" class="ms-trails__card">
                                 <x-cai.trail-sign :ref="$trail->ref" size="lg" />
                                 <span class="ms-trails__card-body">
                                     <span class="ms-trails__card-heading">
@@ -253,9 +247,7 @@
                                         <span class="ms-trails__shared">Condiviso con {{ $shared }}</span>
                                     @endif
                                 </span>
-                                @if ($url !== null)
-                                    <span class="ms-trails__card-chevron" aria-hidden="true">›</span>
-                                @endif
+                                <span class="ms-trails__card-chevron" aria-hidden="true">›</span>
                             </a>
                         </li>
                     @endforeach

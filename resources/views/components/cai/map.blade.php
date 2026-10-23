@@ -12,8 +12,9 @@
      - `cluster` (US-1042): raggruppa i marker vicini sotto lo zoom 12 in un cerchio con il numero (tooltip
        "N {clusterNoun} · clic per ingrandire", clic → zoom +2 sul gruppo), con leaflet.markercluster 1.5.3 caricato
        una sola volta e solo se almeno una mappa della pagina lo chiede. Senza, il comportamento è quello della 10.4;
-     - `clusterNoun`: sostantivo plurale del tooltip del gruppo (default "rifugi").
-     Vista: `fitBounds` con margine (zoom massimo 13) sui marker e le linee dentro l'Italia, un solo marker → zoom 13,
+     - `clusterNoun`: sostantivo plurale del tooltip del gruppo (default "rifugi");
+     - `fitMaxZoom`: zoom massimo dell'inquadratura iniziale (default 13; la scheda del sentiero usa 15).
+     Vista: `fitBounds` con margine (zoom massimo `fitMaxZoom`) sui marker e le linee dentro l'Italia, un solo marker → zoom 13,
      niente da mostrare → Italia.
      Eventi (bubbling fino a `window`, `detail` = `{ map: name, id }`); marker e linee condividono lo spazio degli id:
      - emessi: `cai-map-marker-selected` / `cai-map-line-selected` (clic sul marker / sulla linea; `id` null alla
@@ -33,6 +34,7 @@
     'height' => '440px',
     'cluster' => false,
     'clusterNoun' => 'rifugi',
+    'fitMaxZoom' => 13,
 ])
 @use('App\Domain\CaiDirectory\Support\CaiMapLine')
 @use('App\Domain\CaiDirectory\Support\CaiMapMarker')
@@ -55,7 +57,7 @@
         'attribution' => '© CAI · © OpenStreetMap contributors',
         'minZoom' => 6,
         'maxZoom' => 16,
-        'fitMaxZoom' => 13,
+        'fitMaxZoom' => (int) $fitMaxZoom,
         'singleZoom' => 13,
         'cluster' => (bool) $cluster,
         'clusterNoun' => $clusterNoun,

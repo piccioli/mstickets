@@ -1,0 +1,556 @@
+/*
+ * Scheda del sentiero (Fase 10.6, US-1055) — resources/views/filament/pages/cai-trail-detail.blade.php.
+ * Misure dal design docs/project/design/fase-10/sentieri-di-sezione.dc.html §2; colori solo da token --ms-*, tranne
+ * quelli di stato e percorribilità che arrivano dagli enum (stile inline). Layout (container query sull'area contenuti):
+ * da 1000px mappa + colonna laterale di 420px come nel design, sotto una colonna sola. Sotto i 640px di viewport
+ * (mobile) si mostrano le varianti `__mobile` (riquadri dei dati fuori dalla scheda, link alle fonti in fondo) e si
+ * nascondono le `__desktop`.
+ */
+.ms-trail {
+  --ms-trail-map-height: 540px;
+  --ms-trail-side-width: 420px;
+
+  container: trail / inline-size;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-10); /* 20px */
+  font-family: var(--ms-font-sans);
+  color: var(--ms-text-strong);
+}
+
+.ms-trail .ms-trail__mobile,
+.ms-trail .ms-trail__mobile-inline {
+  display: none;
+}
+
+.ms-trail__missing {
+  color: var(--ms-value-missing);
+}
+
+/* ---- Percorso ---- */
+.ms-trail__crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ms-space-8);
+  font-size: var(--ms-text-sm);
+  font-weight: var(--ms-fw-bold);
+}
+
+.ms-trail__crumb {
+  color: var(--ms-brand);
+  text-decoration: none;
+}
+
+.ms-trail__crumb:hover {
+  color: var(--ms-brand-link-hover);
+  text-decoration: underline;
+}
+
+.ms-trail__crumb-sep {
+  color: var(--ms-text-dash);
+}
+
+.ms-trail__crumb-current {
+  color: var(--ms-text-secondary);
+}
+
+/* ---- Testata ---- */
+.ms-trail__hero {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'sign name sources'
+    'sign main sources';
+  align-items: center;
+  column-gap: var(--ms-space-12);
+  row-gap: var(--ms-space-4);
+  padding: var(--ms-space-12) var(--ms-space-14);
+  border: var(--ms-border-width) solid var(--ms-border-subtle);
+  border-radius: var(--ms-radius-card);
+  background: var(--ms-surface-card);
+}
+
+.ms-trail__hero-title {
+  display: contents;
+}
+
+.ms-trail__hero-title .ms-cai-trail-sign {
+  grid-area: sign;
+}
+
+.ms-trail__name {
+  grid-area: name;
+  align-self: end;
+  margin: 0;
+  font-size: 30px;
+  font-weight: var(--ms-fw-extrabold);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+.ms-trail__hero-main {
+  grid-area: main;
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-4);
+  min-width: 0;
+}
+
+.ms-trail__route {
+  margin: 0;
+  font-size: var(--ms-text-xl);
+  font-weight: var(--ms-fw-semibold);
+  color: var(--ms-text-label);
+}
+
+.ms-trail__pills {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ms-space-4);
+}
+
+.ms-trail__status {
+  padding: 3px 11px 3px 8px;
+  font-size: var(--ms-text-sm);
+}
+
+.ms-trail__status::before {
+  width: 9px;
+  height: 9px;
+}
+
+.ms-trail__practicability {
+  padding: 4px 12px;
+  border-radius: var(--ms-radius-xl);
+  font-size: var(--ms-text-sm);
+  font-weight: var(--ms-fw-extrabold);
+  white-space: nowrap;
+}
+
+.ms-trail__updated {
+  font-size: var(--ms-text-sm);
+  color: var(--ms-text-secondary);
+}
+
+.ms-trail__updated strong {
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-text-strong);
+}
+
+.ms-trail__updated strong.ms-trail__missing {
+  color: var(--ms-value-missing);
+}
+
+.ms-trail__desktop-inline {
+  display: inline;
+}
+
+.ms-trail__sources {
+  grid-area: sources;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-4);
+}
+
+.ms-trail__source {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  padding: 0 var(--ms-space-9);
+  border: var(--ms-border-width) solid var(--ms-brand-border-tint);
+  border-radius: var(--ms-radius-lg);
+  background: var(--ms-surface-card);
+  color: var(--ms-brand);
+  font-size: var(--ms-text-md);
+  font-weight: var(--ms-fw-extrabold);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.ms-trail__source:hover {
+  color: var(--ms-brand-link-hover);
+}
+
+.ms-trail__source--primary {
+  border-color: var(--ms-brand);
+  background: var(--ms-brand);
+  color: var(--ms-surface-card);
+}
+
+.ms-trail__source--primary:hover {
+  border-color: var(--ms-brand-hover);
+  background: var(--ms-brand-hover);
+  color: var(--ms-surface-card);
+}
+
+/* ---- Avviso di percorribilità (colori dall'enum, inline) ---- */
+.ms-trail__alert {
+  display: flex;
+  align-items: center;
+  gap: var(--ms-space-7);
+  padding: var(--ms-space-7) var(--ms-space-10);
+  border: var(--ms-border-width) solid;
+  border-radius: var(--ms-radius-card);
+}
+
+.ms-trail__alert svg {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ms-trail__alert-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: var(--ms-text-sm);
+}
+
+.ms-trail__alert-title {
+  font-size: var(--ms-text-lg);
+  font-weight: var(--ms-fw-extrabold);
+}
+
+/* ---- Griglia: mappa | dati ---- */
+.ms-trail__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--ms-space-10);
+  align-items: start;
+}
+
+@container trail (min-width: 1000px) {
+  .ms-trail__grid {
+    grid-template-columns: minmax(0, 1fr) var(--ms-trail-side-width);
+  }
+}
+
+.ms-trail__side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-10);
+  min-width: 0;
+}
+
+.ms-trail__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-7);
+  padding: var(--ms-space-10) var(--ms-space-11);
+  border: var(--ms-border-width) solid var(--ms-border-subtle);
+  border-radius: var(--ms-radius-card);
+  background: var(--ms-surface-card);
+}
+
+.ms-trail__card--map {
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.ms-trail__card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--ms-space-6);
+}
+
+.ms-trail__card-title {
+  margin: 0;
+  font-size: var(--ms-text-xl);
+  font-weight: var(--ms-fw-extrabold);
+}
+
+.ms-trail__count {
+  font-size: var(--ms-text-sm);
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-text-muted);
+}
+
+/* Partenza e arrivo sotto la mappa (desktop). */
+.ms-trail__ends {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ms-space-12);
+  padding: var(--ms-space-6) var(--ms-space-9);
+  font-size: var(--ms-text-sm);
+}
+
+.ms-trail__end {
+  display: flex;
+  align-items: center;
+  gap: var(--ms-space-4);
+}
+
+.ms-trail__end-key {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--ms-radius-circle);
+  color: var(--ms-map-marker-text);
+  font-size: 10px;
+  font-weight: var(--ms-fw-extrabold);
+}
+
+.ms-trail__end-key--start {
+  background: var(--ms-brand);
+}
+
+.ms-trail__end-key--end {
+  background: var(--ms-text-strong);
+}
+
+.ms-trail__end-label {
+  color: var(--ms-text-secondary);
+}
+
+.ms-trail__end strong {
+  font-weight: var(--ms-fw-bold);
+}
+
+/* Riquadri: lunghezza, difficoltà, dislivelli. */
+.ms-trail__figures {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--ms-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ms-trail__figure {
+  display: flex;
+  flex-direction: column;
+  padding: var(--ms-space-5) var(--ms-space-7);
+  border-radius: var(--ms-radius-lg);
+  background: var(--ms-surface-page);
+}
+
+.ms-trail__figure-label {
+  font-size: 12px;
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-text-secondary);
+}
+
+.ms-trail__figure-value {
+  font-size: 22px;
+  font-weight: var(--ms-fw-extrabold);
+  font-variant-numeric: tabular-nums;
+}
+
+.ms-trail__pairs {
+  margin: 0;
+}
+
+.ms-trail__pair {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--ms-space-8);
+  padding: var(--ms-space-5) 0;
+  border-top: var(--ms-border-width) solid var(--ms-surface-muted);
+  font-size: var(--ms-text-md);
+}
+
+.ms-trail__pair dt {
+  flex: none;
+  color: var(--ms-text-secondary);
+}
+
+.ms-trail__pair dd {
+  margin: 0;
+  font-weight: var(--ms-fw-bold);
+  text-align: right;
+}
+
+/* Sezioni che gestiscono il sentiero. */
+.ms-trail__shared {
+  margin: 0;
+  padding: var(--ms-space-4) var(--ms-space-6);
+  border-radius: var(--ms-radius-lg);
+  background: var(--ms-trail-shared-bg);
+  color: var(--ms-trail-shared-text);
+  font-size: var(--ms-text-sm);
+  font-weight: var(--ms-fw-bold);
+}
+
+.ms-trail__sections {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ms-trail__section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ms-space-6);
+  padding: var(--ms-space-5) 0;
+  border-top: var(--ms-border-width) solid var(--ms-surface-muted);
+  font-size: var(--ms-text-md);
+}
+
+.ms-trail__section-name {
+  font-weight: var(--ms-fw-bold);
+}
+
+.ms-trail__own {
+  flex: none;
+  padding: 2px 9px;
+  border-radius: var(--ms-radius-xl);
+  background: var(--ms-chip-active-bg);
+  color: var(--ms-brand-link-hover);
+  font-size: 11px;
+  font-weight: var(--ms-fw-extrabold);
+}
+
+/* ---- Mobile (design 390px) ---- */
+@media (max-width: 639.98px) {
+  .ms-trail {
+    --ms-trail-map-height: 240px;
+
+    gap: var(--ms-space-7);
+  }
+
+  .ms-trail .ms-trail__desktop,
+  .ms-trail .ms-trail__desktop-inline {
+    display: none;
+  }
+
+  .ms-trail .ms-trail__mobile {
+    display: flex;
+  }
+
+  .ms-trail .ms-trail__mobile-inline {
+    display: inline;
+  }
+
+  .ms-trail .ms-trail__figures.ms-trail__mobile {
+    display: grid;
+  }
+
+  .ms-trail__hero {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--ms-space-5);
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+
+  .ms-trail__hero-title {
+    display: flex;
+    align-items: center;
+    gap: var(--ms-space-6);
+  }
+
+  .ms-trail__name {
+    font-size: 22px;
+  }
+
+  .ms-trail__route {
+    font-size: var(--ms-text-md);
+  }
+
+  .ms-trail__pills {
+    gap: var(--ms-space-3);
+  }
+
+  .ms-trail__status {
+    padding: 2px 9px 2px 7px;
+    font-size: 12px;
+  }
+
+  .ms-trail__status::before {
+    width: 8px;
+    height: 8px;
+  }
+
+  .ms-trail__practicability {
+    padding: 3px 10px;
+    font-size: 12px;
+  }
+
+  .ms-trail__alert {
+    align-items: flex-start;
+    gap: var(--ms-space-5);
+    padding: var(--ms-space-6) var(--ms-space-7);
+  }
+
+  .ms-trail__alert svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .ms-trail__alert-text {
+    font-size: 12px;
+  }
+
+  .ms-trail__alert-title {
+    font-size: var(--ms-text-md);
+  }
+
+  .ms-trail__grid,
+  .ms-trail__side {
+    gap: var(--ms-space-7);
+  }
+
+  .ms-trail__card {
+    gap: var(--ms-space-5);
+    padding: var(--ms-space-8);
+  }
+
+  .ms-trail__card--map {
+    padding: 0;
+  }
+
+  .ms-trail__card-title {
+    font-size: var(--ms-text-lg);
+  }
+
+  .ms-trail__figures--mobile .ms-trail__figure {
+    border: var(--ms-border-width) solid var(--ms-border-subtle);
+    border-radius: var(--ms-radius-card);
+    background: var(--ms-surface-card);
+  }
+
+  .ms-trail__figures--mobile .ms-trail__figure-label {
+    font-size: 11px;
+  }
+
+  .ms-trail__figures--mobile .ms-trail__figure-value {
+    font-size: 20px;
+  }
+
+  .ms-trail__pair,
+  .ms-trail__section {
+    padding: 9px 0;
+    font-size: var(--ms-text-sm);
+  }
+
+  .ms-trail__shared {
+    font-size: 12px;
+  }
+
+  .ms-trail__sources--mobile {
+    flex-direction: column;
+  }
+
+  .ms-trail__sources--mobile .ms-trail__source {
+    height: 46px;
+    border-radius: var(--ms-radius-card);
+    font-size: var(--ms-text-lg);
+  }
+}

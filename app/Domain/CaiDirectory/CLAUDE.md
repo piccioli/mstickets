@@ -521,7 +521,17 @@ Operativo (ordine dei comandi e vincolo di spazio remoto): `deploy/CLAUDE.md` §
   ordine naturale, mancanti in fondo), `Enums\CaiTrailDifficulty` (`?difficolta=`, conta la prima sigla di `cai_scale`:
   "EEA:PD" → EEA, "T/E" → T) e `CaiTrailPracticability::key()` (`?percorribilita=`); stati in `?stato[]=`. Nota
   "Condiviso con …" con `Support\CaiSectionShortName` ("SEZ. PARMA" → "CAI Parma", "SEZ. S.A.T." → "SAT"). La mappa
-  riceve le sole linee filtrate (Parma: ~1 s a filtro sul dev locale). Lo `href` della scheda (`trailUrl()`) arriva
-  con la US-1055: finché è `null` la riga seleziona la linea e non c'è "›".
+  riceve le sole linee filtrate (Parma: ~1 s a filtro sul dev locale). La riga seleziona la linea, "›" (e la card
+  mobile) apre la scheda con `trailUrl()` = `CaiTrailDetail` + `listQuery()` (filtri e ordinamento correnti).
+- **Scheda del sentiero** (`Filament\Pages\CaiTrailDetail`, US-1055, slug `sentieri/{trailId}`): stessa struttura di
+  `CaiHutDetail` (`canAccess()` per profilo + `CaiTrailPolicy::view` in `mount()`, 404 su id non numerico). Il link di
+  ritorno riporta le chiavi `SectionTrails::LIST_QUERY_KEYS` (`stato` è una LISTA: `listQueryFrom()` accetta stringhe e
+  array di stringhe); con `?da=gr` o utente GR punta a `RegionalGroupTrails` con gli stessi parametri — **la 10.7, se
+  l'elenco del GR usa chiavi diverse, deve estendere `listQueryFrom()`**. Mappa: il tracciato come linea `selected`
+  senza popup (spessore/bordo della linea selezionata) + marker `start`/`end` (A/B, primo e ultimo punto della
+  geometria, `CaiTrailDetail::endpoints()`), `x-cai.map` con `fit-max-zoom` 15. Avviso di percorribilità e suoi colori
+  da `CaiTrailPracticability::alertTitle()`/`alertBorder()`.
+- **`Livewire::withQueryParams()` resta attivo per i `Livewire::test` successivi dello stesso test**: azzerarlo con
+  `withQueryParams([])` prima di un secondo componente senza parametri.
 - **Test Livewire dopo un `call()`**: `assertSeeTextInOrder` lavora sulla risposta JSON, dove "→" non si trova:
   verificare l'ordine sullo `strip_tags($component->html())` (vedi `SectionTrailsTest`).
