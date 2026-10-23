@@ -47,6 +47,7 @@ final class CaiDatapackImporter
         private readonly CaiHutsImporter $hutsImporter,
         private readonly CaiTrailsImporter $trailsImporter,
         private readonly CaiTrailTerritoriesImporter $trailTerritoriesImporter,
+        private readonly CaiSicaiStagesImporter $sicaiStagesImporter,
     ) {}
 
     private const CONNECTION_NAME = 'cai_datapack';
@@ -130,6 +131,8 @@ final class CaiDatapackImporter
                 $results += $this->trailsImporter->import($connection, $dryRun);
                 // Dopo i sentieri: i legami sentiero–territorio puntano a `cai_trails`.
                 $results += $this->trailTerritoriesImporter->import($connection, $dryRun);
+                // Tappe SICAI: anche loro sono sentieri di `cai_trails`.
+                $results += $this->sicaiStagesImporter->import($connection, $dryRun);
             }
 
             return $results;

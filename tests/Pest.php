@@ -713,7 +713,7 @@ function osm2caiCsvDirectory(array $overrides): string
     $dir = sys_get_temp_dir().'/osm2cai-csv-'.bin2hex(random_bytes(4));
     mkdir($dir);
 
-    foreach (['trails.csv', 'trail_sections.csv', 'regions.csv', 'provinces.csv', 'sectors.csv', 'territory_km.csv', 'trail_territory.csv'] as $file) {
+    foreach (['trails.csv', 'trail_sections.csv', 'regions.csv', 'provinces.csv', 'sectors.csv', 'territory_km.csv', 'trail_territory.csv', 'sicai_stages.csv'] as $file) {
         $content = array_key_exists($file, $overrides) ? $overrides[$file] : file_get_contents(base_path('tests/Fixtures/osm2cai/'.$file));
 
         if ($content !== null) {

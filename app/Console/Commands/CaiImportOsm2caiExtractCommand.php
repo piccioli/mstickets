@@ -72,6 +72,17 @@ final class CaiImportOsm2caiExtractCommand extends Command
             $this->line(sprintf('  - %s: %s · %d sentieri', $row['region']->label(), ItalianNumberFormatter::kilometers($row['km']), $row['presentRoutes']));
         }
 
+        $this->line(sprintf(
+            'Tappe SICAI: %d (senza numero nel nome: %d, senza lettera: %d)',
+            $summary->sicaiStages['total'],
+            $summary->sicaiStages['withoutNumber'],
+            $summary->sicaiStages['withoutLetter'],
+        ));
+
+        if ($summary->sicaiStages['withoutLetter'] > 0) {
+            $this->warn('Tappe SICAI senza lettera: l\'itinerario non finisce con "<lettera>00"; non compariranno in nessun GR.');
+        }
+
         return self::SUCCESS;
     }
 

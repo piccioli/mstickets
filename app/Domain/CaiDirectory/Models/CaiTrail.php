@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * Sentiero del catasto osm2cai (US-1052), sola lettura: si scrive solo da `cai:import-datapack` (tabelle
@@ -69,5 +70,15 @@ class CaiTrail extends Model
     public function territories(): HasMany
     {
         return $this->hasMany(CaiTrailTerritory::class, 'cai_trail_id');
+    }
+
+    /**
+     * Tappa del Sentiero Italia CAI, se il sentiero lo è (US-1091).
+     *
+     * @return HasOne<CaiSicaiStage, $this>
+     */
+    public function sicaiStage(): HasOne
+    {
+        return $this->hasOne(CaiSicaiStage::class, 'cai_trail_id');
     }
 }

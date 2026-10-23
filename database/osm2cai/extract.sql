@@ -182,3 +182,25 @@ LEFT JOIN osm2cai_extract.provinces p ON m.territory_type = 'province' AND p.id 
 LEFT JOIN osm2cai_extract.sectors s ON m.territory_type = 'sector' AND s.id = m.territory_id
 LEFT JOIN osm2cai_extract.provinces sp ON sp.id = s.province_id
 ORDER BY 1, 2, 3 NULLS FIRST, 4 NULLS FIRST;
+
+-- ---------------------------------------------------------------------------------------------------------------------
+-- Tappe del Sentiero Italia CAI (Fase 10.9, US-1091): i sentieri degli itinerari regionali "Sentiero Italia - … X00".
+-- Il codice della tappa NON sta in `hiking_routes.name` (lì c'è "SI - Partenza - Arrivo") ma nei tag OSM: `name`
+-- ("Sentiero Italia - Tappa D17S", 451 tappe sul dump di settembre 2026) o, se il nome manca, `description` (altre 42).
+-- Si esportano i due tag, il `ref` del sentiero (per i 32 tratti "AVxx" dell'Alta Via dei Monti Liguri è il loro codice)
+-- e il nome dell'itinerario; il codice lo ricava `CaiOsm2caiExtractWriter` in PHP (`CaiSicaiStageCode`, testato). Il tag
+-- `stage` non si usa: in un caso contraddice il nome (Q12/Q13). Tutte le 525 tappe sono sentieri di `trails` (stato 2–4,
+-- nessuna eliminata su OSM): il JOIN non ne perde nessuna.
+CREATE TABLE osm2cai_extract.sicai_stages AS
+SELECT DISTINCT ON (t.id)
+    t.id AS trail_id,
+    btrim(i.name) AS itinerary_name,
+    osm2cai_extract.text_or_null(hr.osmfeatures_data -> 'properties' ->> 'name') AS osm_name,
+    osm2cai_extract.text_or_null(hr.osmfeatures_data -> 'properties' -> 'osm_tags' ->> 'description') AS osm_description,
+    t.ref
+FROM public.hiking_route_itinerary hri
+JOIN public.itineraries i ON i.id = hri.itinerary_id
+JOIN osm2cai_extract.trails t ON t.id = hri.hiking_route_id
+JOIN public.hiking_routes hr ON hr.id = t.id
+WHERE btrim(i.name) LIKE 'Sentiero Italia%'
+ORDER BY t.id, i.id;

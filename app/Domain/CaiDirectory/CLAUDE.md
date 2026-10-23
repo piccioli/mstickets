@@ -620,3 +620,21 @@ Operativo (ordine dei comandi e vincolo di spazio remoto): `deploy/CLAUDE.md` §
   `withQueryParams([])` prima di un secondo componente senza parametri.
 - **Test Livewire dopo un `call()`**: `assertSeeTextInOrder` lavora sulla risposta JSON, dove "→" non si trova:
   verificare l'ordine sullo `strip_tags($component->html())` (vedi `SectionTrailsTest`).
+
+## Tappe SICAI (`cai_sicai_stages`, Fase 10.9, US-1091)
+
+- **Fonte**: stesso dump osm2cai e stesso script dei sentieri. `extract.sql` → `sicai_stages.csv` (sentieri degli 18
+  itinerari "Sentiero Italia - … X00" via `hiking_route_itinerary`, 525 sul dump di settembre 2026, tutte già in `trails`)
+  → `snap_osm2cai_sicai_stages` (`trail_id`, `itinerary_name`, `letter`, `number`, `variant`, `code`, `sort_key`).
+- **Il codice della tappa NON è in `hiking_routes.name`** (lì c'è "SI - Partenza - Arrivo", 0 corrispondenze): sta nel tag
+  OSM `osmfeatures_data.properties.name` ("Sentiero Italia - Tappa D17S", 451) o, se manca, in `osm_tags.description`
+  (altre 42). Le 32 restanti sono i tratti "AVxx" dell'Alta Via dei Monti Liguri: lettera G dall'itinerario, codice =
+  `ref` ("AV16"), numero/variante null. Il tag `stage` non si usa (in un caso dice Q13 dove il nome dice Q12).
+- **Parsing in PHP** al momento della scrittura del datapack: `Support\CaiSicaiStageCode::parse($osmName, $osmDescription,
+  $itinerary, $ref)` (regex del PRD; `sortKey` "D018S", senza numero "G999 AV16", senza lettera "~999 …"). Ordinare per
+  `sort_key`, poi `cai_trail_id`. La lettera dal codice non sempre coincide con l'itinerario (Puglia R: 21 tappe contro 18
+  dell'itinerario R00, Basilicata T: 8 contro 11): il GR si sceglie per lettera della tappa, non per itinerario.
+- **Import** `Import\CaiSicaiStagesImporter` (riga `snapshot_tappe_sicai`), dopo sentieri e territori: crea/aggiorna/
+  elimina per `cai_trail_id`, FK in cascata su `cai_trails`; tappe di sentieri non importati → avviso; tabella assente →
+  avviso, tappe intatte. Modello `CaiSicaiStage` (`CaiTrail::sicaiStage()`), `CaiSicaiStagePolicy` di sola lettura
+  (per ora solo staff: il GR per lettera arriva con US-1094/1096).

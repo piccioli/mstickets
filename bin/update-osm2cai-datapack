@@ -129,11 +129,11 @@ psql_exec -d postgres -c 'CREATE ROLE osm2cai2 NOLOGIN' -c 'CREATE DATABASE osm2
 echo "Importo il dump $DUMP_PATH (qualche minuto)..."
 gunzip -c "$DUMP_PATH" | LC_ALL=C sed -E '/^\\(un)?restrict /d' | psql_exec -d osm2cai >/dev/null
 
-echo "Estraggo sentieri e territori (database/osm2cai/extract.sql, qualche minuto)..."
+echo "Estraggo sentieri, territori e tappe SICAI (database/osm2cai/extract.sql, qualche minuto)..."
 psql_exec -d osm2cai < database/osm2cai/extract.sql
 
 mkdir -p "$CSV_DIR"
-for table in trails trail_sections regions provinces sectors territory_km trail_territory; do
+for table in trails trail_sections regions provinces sectors territory_km trail_territory sicai_stages; do
     psql_exec -d osm2cai -c "\\copy osm2cai_extract.$table TO STDOUT WITH (FORMAT csv, HEADER true)" > "$CSV_DIR/$table.csv"
 done
 
