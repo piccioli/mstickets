@@ -29,8 +29,11 @@ final readonly class CaiMapMarker
         public ?string $popupHtml = null,
     ) {}
 
-    /** Marker di un rifugio, con il popup del design; `null` se il rifugio non ha coordinate. */
-    public static function forHut(CaiHut $hut, ?string $url = null): ?self
+    /**
+     * Marker di un rifugio, con il popup del design; `null` se il rifugio non ha coordinate. `$section` (nome della
+     * Sezione proprietaria o "GR {regione}") compare sotto il nome nell'elenco del GR.
+     */
+    public static function forHut(CaiHut $hut, ?string $url = null, ?string $section = null): ?self
     {
         if ($hut->latitude === null || $hut->longitude === null) {
             return null;
@@ -48,6 +51,7 @@ final readonly class CaiMapMarker
             letter: $hut->type?->letter() ?? self::UNKNOWN_LETTER,
             popupHtml: view('components.cai.map-popup', [
                 'title' => $hut->name,
+                'section' => $section,
                 'photo' => $photo,
                 'color' => $hut->type?->color() ?? self::UNKNOWN_COLOR,
                 'typeLabel' => $hut->type?->getLabel() ?? 'Tipo non indicato',

@@ -161,6 +161,12 @@ parametro di rotta) e `docs/collaudo/CLAUDE.md` per il metodo di generazione del
   passano da attributi `data-cai-map-config` / `data-cai-map-payload` (JSON leggibile nei test), non da `@js(...)`.
 - Verifica JS senza pannello: rendere il componente con `Blade::render` in tinker, avvolgerlo in una pagina HTML con
   Alpine da CDN e il CSS di `public/build`, aprirla con Playwright (`file://`).
+- **Cluster (US-1042)**: prop `cluster` (+ `clusterNoun` per il tooltip) → `leaflet.markercluster` 1.5.3, caricato in un
+  `@once` separato solo se una mappa lo chiede (senza l'opzione l'HTML è quello della 10.4). Raggruppa fino allo zoom 11,
+  clic sul gruppo = zoom +2 (`zoomToBoundsOnClick: false` + `clusterclick`). Un marker dentro un gruppo non ha `_map`:
+  `cai-map-select` dall'elenco usa `zoomToShowLayer()` prima di aprire il popup. In Playwright i marker fuori vista
+  restano nel DOM: cliccarli via `element.click()` in `evaluate`, non con `locator.click()`.
+- Popup con la Sezione proprietaria: `CaiMapMarker::forHut($hut, $url, $sectionName)` (terzo argomento facoltativo).
 
 ## Riusare un Infolist Filament dentro una pagina custom non-Resource (US-806)
 

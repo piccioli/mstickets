@@ -148,3 +148,40 @@ test('a hut with unknown type gets the neutral marker and a hut without coordina
         ->and(CaiMapMarker::forHut(caiMapHut(['type' => null]))?->color)->toBe(CaiMapMarker::UNKNOWN_COLOR)
         ->and(CaiMapMarker::forHut(caiMapHut(['latitude' => null])))->toBeNull();
 });
+
+test('without the cluster option the map does not load leaflet.markercluster', function (): void {
+    $view = $this->blade('<x-cai.map name="huts" />');
+
+    expect(caiMapPayload((string) $view, 'data-cai-map-config'))->toMatchArray(['cluster' => false])
+        ->and((string) $view)->not->toContain('leaflet.markercluster');
+});
+
+test('the cluster option loads leaflet.markercluster 1.5.3 once and configures the groups of the design', function (): void {
+    $html = (string) $this->blade('<x-cai.map name="uno" cluster /><x-cai.map name="due" cluster cluster-noun="punti" />');
+
+    expect(substr_count($html, 'leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js'))->toBe(1)
+        ->and(substr_count($html, 'leaflet.markercluster@1.5.3/dist/MarkerCluster.css'))->toBe(1)
+        ->and(strpos($html, 'leaflet@1.9.4/dist/leaflet.js'))->toBeLessThan(strpos($html, 'leaflet.markercluster.js'))
+        ->and($html)->toContain('clic per ingrandire');
+
+    expect(caiMapPayload($html, 'data-cai-map-config'))->toMatchArray([
+        'name' => 'uno',
+        'cluster' => true,
+        'clusterNoun' => 'rifugi',
+        'clusterUntilZoom' => 11,
+        'clusterZoomStep' => 2,
+    ]);
+
+    preg_match_all('/data-cai-map-config="([^"]*)"/', $html, $configs);
+    $second = json_decode(html_entity_decode($configs[1][1], ENT_QUOTES | ENT_HTML5), true, flags: JSON_THROW_ON_ERROR);
+
+    expect($second)->toMatchArray(['name' => 'due', 'cluster' => true, 'clusterNoun' => 'punti']);
+});
+
+test('a hut popup can show the owning section under the name', function (): void {
+    $withSection = CaiMapMarker::forHut(caiMapHut(), '/admin/rifugi/1201', 'SEZ. DI MILANO');
+
+    expect($withSection?->popupHtml)
+        ->toContain('ms-cai-map-popup__section">SEZ. DI MILANO</div>')
+        ->and(CaiMapMarker::forHut(caiMapHut())?->popupHtml)->not->toContain('ms-cai-map-popup__section');
+});

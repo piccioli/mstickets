@@ -1,8 +1,9 @@
 {{-- Contenuto del popup di un marker di x-cai.map (US-1033), come nel design "Rifugi di Sezione": foto facoltativa,
-     nome, pallino e tipo · dato (es. quota), pillola di stato facoltativa, link "Apri scheda →" facoltativo. Si rende in
+     nome, Sezione proprietaria facoltativa (elenco del GR, US-1042), pallino e tipo · dato (es. quota), pillola di stato facoltativa, link "Apri scheda →" facoltativo. Si rende in
      stringa (`view(...)->render()`, vedi CaiMapMarker::forHut) e la mappa lo inserisce come HTML del popup. --}}
 @props([
     'title',
+    'section' => null,
     'photo' => null,
     'color' => null,
     'typeLabel' => null,
@@ -19,6 +20,9 @@
     @endif
     <div class="ms-cai-map-popup__body">
         <div class="ms-cai-map-popup__title">{{ $title }}</div>
+        @if ($section !== null)
+            <div class="ms-cai-map-popup__section">{{ $section }}</div>
+        @endif
         @if ($typeLabel !== null || $meta !== null)
             <div class="ms-cai-map-popup__type">
                 @if ($color !== null)

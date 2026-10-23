@@ -205,6 +205,7 @@ I colori dei marker vengono dagli enum del tipo (es. `CaiHutType::color()`), non
 | `shadow-map-popup` | `0 8px 24px rgba(20,30,40,.25)` | Popup del marker |
 | `shadow-map-control` | `0 1px 4px rgba(0,0,0,.2)` | Pulsanti di zoom |
 | `map-legend-surface` | `rgba(255,255,255,.95)` | Legenda dei tipi sovrapposta alla mappa (desktop) |
+| `map-cluster-bg` / `map-cluster-border` / `shadow-map-cluster` | `#0f7d63` / `rgba(255,255,255,.9)` / `0 0 0 4px rgba(23,161,128,.28), 0 2px 6px rgba(0,0,0,.3)` | Gruppo di marker (`x-cai.map` con `cluster`, design "Rifugi del GR") |
 | `chip-active-bg` | `#e3f4ee` | Chip di filtro selezionato (bordo `brand`, testo `brand-link-hover`) |
 | `row-highlight-bg` | `#eef8f5` | Riga dell'elenco evidenziata dal marker (hover/selezione) |
 | `photo-placeholder-bg` / `photo-placeholder-icon` | `#eef1f4` / `#b4bbc6` | Segnaposto della miniatura senza foto |

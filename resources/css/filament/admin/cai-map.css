@@ -145,3 +145,33 @@
 .ms-cai-map .ms-cai-map-popup__link:hover {
   color: var(--ms-brand-link-hover);
 }
+
+/* Gruppo di marker (US-1042, design "Rifugi del GR"): cerchio verde con il numero, diametro dal divIcon. */
+.ms-cai-map .ms-cai-map__cluster-icon {
+  background: none;
+  border: none;
+}
+
+.ms-cai-map__cluster {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border: 3px solid var(--ms-map-cluster-border);
+  border-radius: var(--ms-radius-circle);
+  background: var(--ms-map-cluster-bg);
+  box-shadow: var(--ms-shadow-map-cluster);
+  color: var(--ms-map-marker-text);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.ms-cai-map-popup__section {
+  color: var(--ms-text-body);
+  font-size: 12px;
+  font-weight: 700;
+}

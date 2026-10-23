@@ -5,7 +5,11 @@
      - `markers`: lista di CaiMapMarker (o array con `id`, `lat`, `lng`, `label`, `color`, `letter`, `popupHtml`);
      - `lines`: lista di CaiMapLine (o array con `id`, `geojson`, `color`, `label`, `weight`, `popupHtml`);
      - `selected`: id del marker selezionato all'apertura (popup aperto);
-     - `height`: altezza CSS del riquadro.
+     - `height`: altezza CSS del riquadro;
+     - `cluster` (US-1042): raggruppa i marker vicini sotto lo zoom 12 in un cerchio con il numero (tooltip
+       "N {clusterNoun} · clic per ingrandire", clic → zoom +2 sul gruppo), con leaflet.markercluster 1.5.3 caricato
+       una sola volta e solo se almeno una mappa della pagina lo chiede. Senza, il comportamento è quello della 10.4;
+     - `clusterNoun`: sostantivo plurale del tooltip del gruppo (default "rifugi").
      Vista: `fitBounds` con margine (zoom massimo 13) sui marker e le linee dentro l'Italia, un solo marker → zoom 13,
      niente da mostrare → Italia.
      Eventi (bubbling fino a `window`, `detail` = `{ map: name, id }`):
@@ -23,6 +27,8 @@
     'lines' => [],
     'selected' => null,
     'height' => '440px',
+    'cluster' => false,
+    'clusterNoun' => 'rifugi',
 ])
 @use('App\Domain\CaiDirectory\Support\CaiMapLine')
 @use('App\Domain\CaiDirectory\Support\CaiMapMarker')
@@ -47,6 +53,12 @@
         'maxZoom' => 16,
         'fitMaxZoom' => 13,
         'singleZoom' => 13,
+        'cluster' => (bool) $cluster,
+        'clusterNoun' => $clusterNoun,
+        // Come nel design: sotto lo zoom 12 i marker vicini si raggruppano, il clic sul gruppo ingrandisce di 2.
+        'clusterUntilZoom' => 11,
+        'clusterRadius' => 40,
+        'clusterZoomStep' => 2,
     ];
 @endphp
 @once
@@ -59,6 +71,7 @@
             // Oggetti Leaflet fuori dallo stato Alpine: un Proxy reattivo attorno alla mappa la romperebbe.
             let map = null;
             let markerLayer = null;
+            let clusterLayer = null;
             let lineLayer = null;
             let resizeObserver = null;
             let payload = { markers: [], lines: [] };
@@ -98,7 +111,8 @@
 
             return {
                 init() {
-                    const boot = () => (window.L ? this.boot() : setTimeout(boot, 50));
+                    const ready = () => window.L && (! config.cluster || L.markerClusterGroup);
+                    const boot = () => (ready() ? this.boot() : setTimeout(boot, 50));
                     boot();
                 },
 
@@ -116,7 +130,8 @@
                     }).addTo(map);
                     map.attributionControl.setPrefix(false);
                     lineLayer = L.featureGroup().addTo(map);
-                    markerLayer = L.featureGroup().addTo(map);
+                    markerLayer = config.cluster ? this.clusterGroup() : L.featureGroup();
+                    markerLayer.addTo(map);
                     map.on('popupclose', (event) => {
                         if (event.popup._caiMarkerId !== undefined && key(event.popup._caiMarkerId) === key(selected)) {
                             this.select(null, true);
@@ -140,6 +155,33 @@
                     resizeObserver.observe(this.$refs.canvas);
 
                     this.render();
+                },
+
+                // Gruppo di marker del design: cerchio verde con il numero, diametro 30–48 px secondo la quantità.
+                clusterGroup() {
+                    clusterLayer = L.markerClusterGroup({
+                        maxClusterRadius: config.clusterRadius,
+                        disableClusteringAtZoom: config.clusterUntilZoom + 1,
+                        showCoverageOnHover: false,
+                        spiderfyOnMaxZoom: false,
+                        zoomToBoundsOnClick: false,
+                        iconCreateFunction: (cluster) => {
+                            const count = cluster.getChildCount();
+                            const size = Math.round(30 + Math.min(18, Math.log2(count) * 4));
+
+                            return L.divIcon({
+                                className: 'ms-cai-map__cluster-icon',
+                                html: `<span class="ms-cai-map__cluster" title="${escapeHtml(`${count} ${config.clusterNoun} · clic per ingrandire`)}">${count}</span>`,
+                                iconSize: [size, size],
+                                iconAnchor: [size / 2, size / 2],
+                            });
+                        },
+                    });
+                    clusterLayer.on('clusterclick', (event) => {
+                        map.setView(event.layer.getLatLng(), Math.min(config.maxZoom, map.getZoom() + config.clusterZoomStep));
+                    });
+
+                    return clusterLayer;
                 },
 
                 load(data) {
@@ -191,7 +233,10 @@
                     this.fit();
 
                     if (selected !== null) {
-                        markers.get(key(selected)).layer.openPopup();
+                        const entry = markers.get(key(selected));
+                        clusterLayer && ! entry.layer._map
+                            ? clusterLayer.zoomToShowLayer(entry.layer, () => entry.layer.openPopup())
+                            : entry.layer.openPopup();
                     }
                 },
 
@@ -234,10 +279,13 @@
                                 map.panTo(entry.layer.getLatLng());
                             }
 
-                            if (entry.layer.getPopup()) {
-                                entry.layer.openPopup();
+                            const open = () => (entry.layer.getPopup() ? entry.layer.openPopup() : map.closePopup());
+
+                            // Un marker dentro un gruppo non è sulla mappa: prima si ingrandisce fino a mostrarlo.
+                            if (clusterLayer && ! entry.layer._map) {
+                                clusterLayer.zoomToShowLayer(entry.layer, open);
                             } else {
-                                map.closePopup();
+                                open();
                             }
                         }
                     }
@@ -262,6 +310,7 @@
                 destroy() {
                     listeners.forEach(([type, listener]) => window.removeEventListener(type, listener));
                     resizeObserver?.disconnect();
+                    clusterLayer = null;
                     map?.remove();
                     map = null;
                 },
@@ -269,6 +318,14 @@
         };
     </script>
 @endonce
+@if ($cluster)
+    @once
+        <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"
+            integrity="sha256-YU3qCpj/P06tdPBJGPax0bm6Q1wltfwjsho5TR4+TYc=" crossorigin="" data-navigate-once />
+        <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"
+            integrity="sha256-Hk4dIpcqOSb0hZjgyvFOP+cEmDXUKKNE/tT542ZbNQg=" crossorigin="" data-navigate-once></script>
+    @endonce
+@endif
 <div
     {{ $attributes->class(['ms-cai-map']) }}
     x-data="caiMapComponent(JSON.parse($el.dataset.caiMapConfig))"
