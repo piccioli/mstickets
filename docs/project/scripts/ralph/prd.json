@@ -502,8 +502,8 @@
         "Typecheck passes"
       ],
       "priority": 29,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Comando gemello cai:fetch-sicai-rest-points (rate limit). shelter_id = id interno del rifugio, non id_cai. fields.stages NON è vuoto (294/307 con codici tappa in data). Datapack locale aggiornato (307 punti): rifare bin/push-cai-datapack prima del deploy UAT."
     },
     {
       "id": "US-1093",

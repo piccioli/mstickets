@@ -54,6 +54,9 @@ Fase 10.4–10.9 (run unico): rifugi, sentieri, tappe SICAI. PRD in docs/project
   `snap_osm2cai_trails`/`snap_osm2cai_trail_sections` del datapack (costanti in `Import\CaiOsm2caiExtractWriter`), estrazione in
   `database/osm2cai/extract.sql`. `issues_status` reali: percorribile / percorribile parzialmente / non percorribile / sconosciuto.
   Per ispezionare il dump: `--keep-db`, poi `docker exec -it <container> psql -U postgres -d osm2cai`.
+- API rifugi.cai.it generica: `Import\CaiRifugiApiFetcher` (astratta, elenco paginato + dettaglio, tutto o niente) con
+  `CaiHutsFetcher` e `CaiSicaiRestPointsFetcher`; un'altra risorsa della stessa API = nuova sottoclasse. Nei `shelter_id`
+  della fonte c'è l'`id` interno del rifugio, non `id_cai` (traduzione via `json_extract(payload,'$.id')` di `snap_cai_huts`).
 - Fonti esterne: API pubblica https://rifugi.cai.it/api/v1 (rifugi e punti SICAI) e dump osm2cai in /Users/alessiopiccioli/Documents/LAVORO/MS/SOFTWARE/OSM2CAIReport/data/last_dump.sql.gz (contiene dati personali: mai nel DB dell'app). Tile CAI: https://r3-it.storage.cloud.it/tiles/{z}/{x}/{y}.png zoom 6–16.
 
 ## 2026-10-23 - US-1031
@@ -682,4 +685,32 @@ Fase 10.4–10.9 (run unico): rifugi, sentieri, tappe SICAI. PRD in docs/project
   - Lettera G: G01, G28V, G34 numerate + 32 AVxx in fondo (ordinate per codice grazie a `sort_key` "G999 AVnn").
   - Per ispezionare il dump senza rifare lo script: container PostGIS a mano + `sed '/^\\(un)?restrict /d'`, ~10 min di load;
     poi `extract.sql` + `\copy` + `cai:import-osm2cai-extract` equivalgono allo script. Rimuovere il container alla fine.
+---
+
+## 2026-10-23 - US-1092
+- Comando gemello `cai:fetch-sicai-rest-points` (rifugi + punti nello stesso run supererebbero le 1000 richieste della
+  finestra): `Import\CaiSicaiRestPointsFetcher` → `snap_cai_sicai_rest_points` (`id`, `payload`). La logica del fetcher dei
+  rifugi è stata estratta in `Import\CaiRifugiApiFetcher` (astratta), `CaiHutsFetcher` ora ne è una sottoclasse (test
+  invariati e verdi).
+- Tabella `cai_sicai_rest_points` (colonne del PRD, testi liberi `text`, FK `cai_hut_id_cai` → `cai_huts` `nullOnDelete`),
+  modello `CaiSicaiRestPoint` (`hut()`), mapper `CaiSicaiRestPointFieldMapper` (helper di `CaiHutFieldMapper` resi pubblici),
+  `CaiSicaiRestPointsImporter` (riga `snapshot_punti_appoggio_sicai`, dopo i rifugi, in transazione, idempotente, con
+  eliminazione), `CaiSicaiRestPointPolicy` di sola lettura.
+- **Run reale**: 307 punti scaricati in ~17 s (53 con `shelter_id`; tipi Rifugio 110, Hotel 61, B&B 57, …, 1 vuoto); dev DB
+  migrato, import 307 creati / secondo run 307 saltati, 53 collegati a un rifugio, 6 senza regione, 0 senza coordinate.
+  Backup del datapack prima del run: /tmp/runts-cai.backup-us1092.sqlite. **Rifare `bin/push-cai-datapack` prima del deploy UAT.**
+- Files: app/Console/Commands/CaiFetchSicaiRestPointsCommand.php, app/Domain/CaiDirectory/{Import/CaiRifugiApiFetcher,
+  Import/CaiHutsFetcher,Import/CaiSicaiRestPointsFetcher,Import/CaiSicaiRestPointFieldMapper,Import/CaiSicaiRestPointsImporter,
+  Import/CaiHutFieldMapper,Import/CaiDatapackImporter,Models/CaiSicaiRestPoint,Policies/CaiSicaiRestPointPolicy}.php,
+  app/Domain/CaiDirectory/CLAUDE.md, database/migrations/2026_10_23_150000_create_cai_sicai_rest_points_table.php,
+  tests/Pest.php (`sicaiRestPointApiDetail`, `writeSicaiRestPointsSnapshot`), tests/Feature/Console/{CaiFetchSicaiRestPointsCommandTest,
+  CaiSicaiRestPointsImportTest}.php.
+- **Learnings for future iterations:**
+  - **Il PRD sbaglia su `stages`**: 294/307 punti hanno in `fields.stages` (nel `data`) i codici delle tappe, es.
+    `["SI E03","SI E04"]`. US-1093 resta geometrica (1,5 km) come da PRD, ma i codici sono un controllo incrociato utile
+    (formato "SI " + codice di `cai_sicai_stages.code`).
+  - `shelter_id` = `id` interno di rifugi.cai.it (`/shelters/163` dà 404): mai confrontarlo con `cai_huts.id_cai`.
+  - Il primo import reale è fallito per un `website` di ~350 caratteri in `varchar(255)` (sqlite nei test non lo vede):
+    per testo libero di fonti esterne usare `text`. Senza transazione l'import era rimasto a metà (75 righe).
+  - `fields` dei punti contiene dati del gestore (nome, cognome, codice fiscale, PEC, SDI): non mostrarli nelle pagine (US-1095).
 ---
