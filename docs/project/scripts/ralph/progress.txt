@@ -48,6 +48,7 @@ Fase 10.4–10.9 (run unico): rifugi, sentieri, tappe SICAI. PRD in docs/project
 - Mappa per settori / linee per area visibile (10.7+): `x-cai.trail-sectors-map` (`areas` = `CaiRegionalGroupTrails::sectorAreas()`,
   `lines-url` = rotta `cai-trail-regions.map-trails`), eventi `cai-map-area-selected`/`-listed`; riquadro dei sentieri in
   `cai_trails.min_lat…max_lng` (dall'import). Riusabile per le tappe SICAI (10.9) con un endpoint analogo.
+- Pagina con mappa pesante + filtri (10.7+): la mappa va in un widget Livewire figlio (`RegionalGroupTrailsMap`, `$isDiscovered`/`$isLazy` = false) così i filtri non rispediscono il payload; riusarlo per le tappe SICAI (10.9). La scheda del sentiero per il GR autorizza anche i sentieri presenti ≥ 50% nella regione.
 - I design di questo run sono file `.dc.html` in `docs/project/design/fase-10/`: stili inline + blocco `<script type="text/x-dc">` con dati d'esempio e logica degli stati. Leggerli per misure, colori, testi e comportamenti.
 - Sentieri osm2cai (10.6+): `bin/update-osm2cai-datapack <dump>` (container PostGIS usa-e-getta, ~6 min) → tabelle
   `snap_osm2cai_trails`/`snap_osm2cai_trail_sections` del datapack (costanti in `Import\CaiOsm2caiExtractWriter`), estrazione in
@@ -583,4 +584,37 @@ Fase 10.4–10.9 (run unico): rifugi, sentieri, tappe SICAI. PRD in docs/project
   - `Authenticate` calcola subito `redirectTo` anche per le richieste JSON: senza `redirectGuestsTo` → 500.
   - Container senza GD: `TicketAttachmentDownloadControllerTest` (2 test con `UploadedFile::fake()->image`) fallisce
     in Docker, indipendente dalle story.
+---
+
+## 2026-10-23 - US-1065
+- `RegionalGroupTrails` diventa la pagina reale (slug `gr/sentieri`): riepilogo con i due totali spiegati, sentieri
+  presenti (senza Sezione / condivisi / province · settori), barra per stato con parentesi e quota consolidati, percorribilità;
+  mappa per settori; "Per provincia" (tabella km per stato, provincia aperta `?aperta=`, settori con "Sulla mappa" →
+  `cai-map-select` e "Elenco sentieri →", vuoti evidenziati); "Per Sezione" (ricerca, filtro tutte/con/senza, ordinamento,
+  nota e riga "Somma delle Sezioni" quando supera i km gestiti); elenco paginato in SQL (25 righe) con ricerca e filtri
+  provincia/settore/Sezione (anche "Nessuna")/stato/percorribilità, ordinamento, tutto in `#[Url]`. Mobile: card come nel
+  design (stessa paginazione SQL da 25 con "‹ Precedenti / Pagina X di Y / Successivi ›", il design ne usa 10).
+- Mappa in un **widget figlio** (`Filament\Widgets\RegionalGroupTrailsMap`, non scoperto, non lazy): i settori (Lombardia
+  ~430 KB) non tornano a ogni filtro. `cai-map-area-listed` dalla mappa filtra l'elenco per provincia e settore.
+- `RegionalGroupSectionTrails` (`gr/sentieri/sezioni/{codice}`) estende `SectionTrails` (stessa vista, nuovo `backLink()`):
+  404 Sezione inesistente, 403 fuori dal prefisso del GR / non GR. `CaiTrailDetail`: `?da=gr` legge le chiavi dell'elenco
+  del GR, `?da=sezione-gr&codice=` torna alla Sezione vista dal GR. `CaiRegionalGroupTrails::trailsKm()` per "n di N · X km".
+- **Fix autorizzazione**: `CaiTrailPolicy::view` ammette per il GR anche i sentieri presenti (≥ 50%) nella sua regione:
+  prima la scheda di un sentiero senza Sezione (2.654 in Lombardia) dall'elenco del GR dava 403.
+- Verifica in browser (Playwright, utenti GR Lombardia e Molise di prova poi `forceDelete`): desktop 1440 e mobile 390,
+  apertura provincia, "Elenco sentieri →" di un settore (Lombardia DBGA1: 95 di 4.017 · 479 km), paginazione, settori
+  vuoti del Molise (QCBC6/QCBC8); nessun errore JS; caricamento ~1,5–1,9 s.
+- Files: app/Filament/Pages/{RegionalGroupTrails,RegionalGroupSectionTrails,SectionTrails,CaiTrailDetail}.php,
+  app/Filament/Widgets/RegionalGroupTrailsMap.php, app/Domain/CaiDirectory/{Policies/CaiTrailPolicy,Queries/
+  CaiRegionalGroupTrails}.php, resources/views/filament/{pages/regional-group-trails,pages/section-trails,widgets/
+  regional-group-trails-map}.blade.php, resources/css/{theme.css,filament/admin/theme.css,filament/admin/
+  regional-group-trails.css}, test: RegionalGroupTrailsTest (18), CaiTrailPolicyTest, RegionalGroupComingSoonPagesTest.
+- **Learnings for future iterations:**
+  - `@php($x = …)` inline in una vista che ha anche blocchi `@php … @endphp` non viene chiuso: "syntax error". Usare blocchi.
+  - Memo per richiesta su una pagina Livewire: se un'azione lo calcola prima di cambiare lo stato (es. `lastPage()` in
+    `goToPage()`), azzerarlo dopo, altrimenti la vista mostra lo stato vecchio (il test lo ha preso, l'URL no).
+  - Componente figlio Livewire per un payload pesante e stabile (mappa): `@livewire(Widget::class, [], key('…'))`; dopo un
+    update del padre l'HTML non contiene più `data-cai-map-payload` (verificato nel test).
+  - Il nome dei settori lombardi coincide spesso col codice (DBGA1): mostrare "—" invece di ripeterlo.
+  - Per US-1067 (e2e): fixture `grTrailsFixture()` + `grTrailsCustomer()` in RegionalGroupTrailsTest.
 ---
