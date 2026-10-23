@@ -43,6 +43,22 @@ return [
      * `cai:sync-national`, dietro il feature flag
      * `config('orchestrator.features.cai_sync_national')` (disattivo di default).
      */
+    /*
+     * API pubblica rifugi.cai.it (Fase 10.4, US-1032), letta SOLO da `cai:fetch-huts` in locale per riscrivere
+     * `snap_cai_huts` nel datapack: mai durante le richieste web o il deploy. Concorrenza, timeout e tentativi del
+     * PRD 10.4 (§US-1032); la pausa fra un tentativo e l'altro è sovrascrivibile nei test.
+     */
+    'huts_api' => [
+        'base_url' => env('CAI_HUTS_API_BASE_URL', 'https://rifugi.cai.it/api/v1'),
+        'per_page' => 200,
+        'concurrency' => 4,
+        'timeout_seconds' => (int) env('CAI_HUTS_API_TIMEOUT_SECONDS', 30),
+        'attempts' => 3,
+        'retry_pause_ms' => (int) env('CAI_HUTS_API_RETRY_PAUSE_MS', 2000),
+        // Tetto al `Retry-After` di una risposta 429 (rate limit dell'API) rispettato prima del tentativo successivo.
+        'max_retry_after_seconds' => (int) env('CAI_HUTS_API_MAX_RETRY_AFTER_SECONDS', 180),
+    ],
+
     'sync_national' => [
         'schedule_cron' => env('CAI_SYNC_NATIONAL_SCHEDULE_CRON', '0 6 1 * *'),
     ],

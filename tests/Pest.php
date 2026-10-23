@@ -502,3 +502,68 @@ function caiDocument(array $attributes = []): CaiDocument
         'hash' => 'hash-'.$sequence,
     ], $attributes))->fresh();
 }
+
+/**
+ * Dettaglio API rifugi.cai.it come salvato in `snap_cai_huts.payload`.
+ *
+ * @param  array<string, mixed>  $fields  nome → valore
+ * @return array<string, mixed>
+ */
+function hutApiDetail(int $idCai, string $title, array $fields = []): array
+{
+    $fields += [
+        'branch_id' => '9218001',
+        'branch' => 'SAT',
+        'type' => 'Rifugio custodito',
+        'status' => 'In attività',
+        'altitude_geo' => 2491,
+        'municipality_geo' => 'San Lorenzo Dorsino',
+        'posti_letto_service' => '150',
+        'wifi_service' => '0',
+        'elettricita_service' => '1',
+        'contract_fee_management_property' => '48564,05',
+        'contract_end_date_management_property' => '2027-03-31',
+    ];
+
+    return [
+        'id' => $idCai,
+        'id_cai' => $idCai,
+        'title' => $title,
+        'slug' => str($title)->slug()->value(),
+        'geo' => ['type' => 'Point', 'coordinates' => [10.8764, 46.1697]],
+        'updated_at' => '2026-09-12T08:30:00.000000Z',
+        'fields' => collect($fields)->map(fn ($value, $name): array => ['name' => $name, 'value' => $value, 'data' => null])->values()->all(),
+        'media' => [['original_url' => 'https://rifugi.cai.it/media/images/1/tosa.jpg', 'order_column' => 1]],
+    ];
+}
+
+/**
+ * Datapack con le tabelle legacy vuote e `snap_cai_huts` con i dettagli indicati.
+ *
+ * @param  list<array<string, mixed>>  $details
+ */
+function makeHutsDatapack(array $details, ?string $sqlite = null): string
+{
+    if ($sqlite === null) {
+        $dir = sys_get_temp_dir().'/snap-huts-'.bin2hex(random_bytes(4));
+        mkdir($dir);
+        $sqlite = $dir.'/runts-cai.sqlite';
+    }
+
+    $pdo = new PDO('sqlite:'.$sqlite);
+    $pdo->exec('CREATE TABLE IF NOT EXISTS sezioni_cai (codice_cai TEXT)');
+    $pdo->exec('CREATE TABLE IF NOT EXISTS sottosezioni_cai (cai_codice TEXT, cai_sezione_codice TEXT)');
+    $pdo->exec('CREATE TABLE IF NOT EXISTS enti (id_runts TEXT)');
+    $pdo->exec('CREATE TABLE IF NOT EXISTS bilanci (id INTEGER)');
+    $pdo->exec('CREATE TABLE IF NOT EXISTS cariche_sociali (id INTEGER)');
+    $pdo->exec('CREATE TABLE IF NOT EXISTS allegati (id INTEGER)');
+    $pdo->exec('DROP TABLE IF EXISTS snap_cai_huts');
+    $pdo->exec('CREATE TABLE snap_cai_huts (id_cai INTEGER PRIMARY KEY, payload TEXT NOT NULL)');
+    $insert = $pdo->prepare('INSERT INTO snap_cai_huts (id_cai, payload) VALUES (?, ?)');
+
+    foreach ($details as $detail) {
+        $insert->execute([$detail['id_cai'], json_encode($detail)]);
+    }
+
+    return $sqlite;
+}

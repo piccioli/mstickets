@@ -363,3 +363,13 @@ Operativo (ordine dei comandi e vincolo di spazio remoto): `deploy/CLAUDE.md` §
   `jsonb`) conserva l'ordine, ma il confronto non deve dipenderne.
 - `CaiHutPolicy`: `view` = `viewManagement` = staff `CaiDirectoryView`, customer collegato alla Sezione `branch_code`,
   customer GR il cui `prefixOf(region)` è prefisso del `branch_code`; create/update/delete sempre `false`.
+- **Aggiornamento dall'API (US-1032)**: `cai:fetch-huts [--datapack=] [--dry-run]` → `Import\CaiHutsFetcher`
+  (`fetch()` elenco paginato + dettagli con `Http::pool` a blocchi, `write()` DROP+CREATE+INSERT in una transazione,
+  tutto o niente) → riepilogo `CaiHutsFetchSummary` (collegati = `branch_id` presente in `sezioni_cai` del datapack).
+  Procedura: `cai:fetch-huts` → `cai:import-datapack` in locale → `bin/push-cai-datapack` → deploy UAT; mai l'API
+  durante il deploy o le richieste web. Parametri in `config('cai_directory.huts_api')`.
+- **Rate limit dell'API**: 1000 richieste per finestra, poi `429` con `Retry-After` (~60–100 s). Un run (~770
+  richieste) ci sta, due di fila no: il fetcher rispetta `Retry-After` (tetto `max_retry_after_seconds`) fra i
+  tentativi. I dettagli restano JSON grezzo (stringhe, ~12,6 MB): decodificati tutti insieme e con 764 risposte del
+  pool vive il comando sforava in silenzio il `memory_limit` CLI di 128M. Nei test la pausa si verifica con
+  `Sleep::fake()` (il fetcher usa `Illuminate\Support\Sleep`, non `usleep`).

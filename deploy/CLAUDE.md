@@ -48,3 +48,6 @@ per la pipeline ETL che gira ad ogni deploy.
   (prova a secco: `bin/push-cai-datapack local /tmp/prova`).
 - UAT **non** esegue scraper né analisi dei documenti: importa solo ciò che il datapack contiene.
 - `cai-datapack/` non è mai tracciato da git (`git ls-files cai-datapack` deve restare vuoto).
+- **Rifugi (Fase 10.4)**: `cai:fetch-huts` (scarica da rifugi.cai.it in `snap_cai_huts`, **solo in locale**) →
+  `cai:import-datapack` in locale (verifica conteggi) → `bin/push-cai-datapack` → deploy UAT. Il deploy non chiama
+  **mai** l'API: importa solo `snap_cai_huts` già presente nel datapack.
