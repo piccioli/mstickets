@@ -438,3 +438,18 @@ Fase 10.4–10.9 (run unico): rifugi, sentieri, tappe SICAI. PRD in docs/project
   - I conteggi `ms-metric-badge--unavailable` sono asseriti in SectionDashboardTest e negli end-to-end Fase10: quando un
     badge diventa reale (10.8 tappe SICAI, 10.7 sentieri GR) aggiornarli tutti.
 ---
+
+## 2026-10-23 - US-1057
+- Collaudo 10.6: `docs/collaudo/fase-10.php` con 7 argomenti "Sentieri di Sezione (10.6) — …" (uno per US-1051..US-1057),
+  F10-227..F10-287, tutti collegati a test reali; `collaudo:verify-manifest 10` passa.
+- Nuovo end-to-end `tests/Feature/EndToEnd/Fase10SentieriSezioneEndToEndTest.php`: login Sezione → Dashboard (badge
+  "15,8" km, sentiero condiviso per intero) → elenco (con "Condiviso con", senza il sentiero di un'altra Sezione) → scheda
+  del sentiero condiviso ("Sezioni che lo gestiscono", "Questa Sezione") → scheda di un'altra Sezione 403.
+- Roadmap riga 10.6 "sviluppata"; `app/Domain/CaiDirectory/CLAUDE.md`: riepilogo 10.6 (fonte, tabelle, regola dei
+  sentieri condivisi, nomi e colori di stato e percorribilità).
+- Pint, Larastan e 305 test dei file toccati/della 10.6 verdi. `collaudo:generate 10` non eseguito: la fase 10 non è chiusa.
+- **Learnings for future iterations:**
+  - Per costruire le voci del manifest di una feature: `git show --format= <commit> -- tests | grep -E '^\+(test|it)\('`
+    sui commit `feat: US-…` della feature dà i titoli esatti dei test aggiunti.
+  - US-1067 (10.7) deve ripartire da F10-288.
+---
