@@ -160,7 +160,8 @@ parametro di rotta) e `docs/collaudo/CLAUDE.md` per il metodo di generazione del
 
 - Unico componente mappa delle pagine Sezione/GR della Fase 10: `resources/views/components/cai/map.blade.php`, CSS
   `resources/css/filament/admin/cai-map.css`. Dati come `Support\CaiMapMarker` (rifugio: `CaiMapMarker::forHut($hut,
-  $url)`, popup del design da `components.cai.map-popup`) e `Support\CaiMapLine` (GeoJSON + colore, per i sentieri).
+  $url)`, popup del design da `components.cai.map-popup`) e `Support\CaiMapLine` (GeoJSON + colore, sentiero:
+  `CaiMapLine::forTrail()`).
 - Legame con l'elenco della pagina **solo via eventi** (`detail.map` = prop `name`): la mappa emette
   `cai-map-marker-selected` / `cai-map-marker-hovered`, ascolta su `window` `cai-map-highlight` / `cai-map-select`.
   Esempio riga: `@mouseenter="$dispatch('cai-map-highlight', { map: 'huts', id: 12 })"`, elenco
@@ -178,6 +179,15 @@ parametro di rotta) e `docs/collaudo/CLAUDE.md` per il metodo di generazione del
   `cai-map-select` dall'elenco usa `zoomToShowLayer()` prima di aprire il popup. In Playwright i marker fuori vista
   restano nel DOM: cliccarli via `element.click()` in `evaluate`, non con `locator.click()`.
 - Popup con la Sezione proprietaria: `CaiMapMarker::forHut($hut, $url, $sectionName)` (terzo argomento facoltativo).
+- **Linee / sentieri (US-1053)**: `CaiMapLine::forTrail($trail, $url)` (colore dello stato, spessore 3, anteprima
+  `components.cai.map-trail-popup` col segnavia `x-cai.trail-sign`, CSS comune dei sentieri in `cai-trails.css`).
+  Le linee hanno eventi propri `cai-map-line-selected` / `cai-map-line-hovered` (stesso `detail`); `cai-map-highlight` /
+  `cai-map-select` valgono per marker e linee (un solo spazio di id per mappa). Disegnate su `L.canvas` con `tolerance`
+  (niente tracciati SVG invisibili per l'area di clic); il bordo bianco della linea attiva è un secondo layer creato
+  solo quando serve. Verificato con Parma (380 linee): nessun blocco, ~16 ms per aggiornamento di evidenziazione.
+  **Peso**: 380 geometrie ≈ 2 MB di payload nel markup (rimandato a ogni update Livewire che cambia i dati): tenerne
+  conto nelle pagine con filtri. In Playwright una linea su canvas non ha un nodo DOM: trovarla col mouse
+  (`mouse.move` a griglia finché arriva `cai-map-line-hovered`) o selezionarla con `cai-map-select`.
 
 ## Riusare un Infolist Filament dentro una pagina custom non-Resource (US-806)
 

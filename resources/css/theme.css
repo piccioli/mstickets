@@ -163,6 +163,12 @@
   --ms-map-cluster-bg: #0f7d63;
   --ms-map-cluster-border: rgba(255, 255, 255, 0.9);
   --ms-shadow-map-cluster: 0 0 0 4px rgba(23, 161, 128, 0.28), 0 2px 6px rgba(0, 0, 0, 0.3);
+  --ms-map-line-casing: #ffffff;
+
+  /* ---- Sentieri osm2cai (Fase 10.6) ---- */
+  --ms-trail-sign-red: #d22630;
+  --ms-trail-sign-border: #e1e4e8;
+  --ms-trail-sign-text: #1f2633;
 
   /* ---- Elenco rifugi (Fase 10.4) ---- */
   --ms-chip-active-bg: #e3f4ee;

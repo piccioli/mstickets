@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 use App\Domain\CaiDirectory\Enums\CaiHutStatus;
 use App\Domain\CaiDirectory\Enums\CaiHutType;
+use App\Domain\CaiDirectory\Enums\CaiTrailPracticability;
+use App\Domain\CaiDirectory\Enums\CaiTrailStatus;
 use App\Domain\CaiDirectory\Models\CaiHut;
+use App\Domain\CaiDirectory\Models\CaiTrail;
 use App\Domain\CaiDirectory\Support\CaiMapLine;
 use App\Domain\CaiDirectory\Support\CaiMapMarker;
 
@@ -184,4 +187,90 @@ test('a hut popup can show the owning section under the name', function (): void
     expect($withSection?->popupHtml)
         ->toContain('ms-cai-map-popup__section">SEZ. DI MILANO</div>')
         ->and(CaiMapMarker::forHut(caiMapHut())?->popupHtml)->not->toContain('ms-cai-map-popup__section');
+});
+
+/**
+ * @param  array<string, mixed>  $attributes
+ */
+function caiMapTrail(array $attributes = []): CaiTrail
+{
+    return new CaiTrail(array_merge([
+        'id' => 4512,
+        'ref' => '101',
+        'name' => 'Sentiero dei "Fiori"',
+        'from_place' => 'Passo Cereda',
+        'to_place' => 'Malga Fosse',
+        'length_km' => '12.345',
+        'status' => CaiTrailStatus::PreValidated,
+        'practicability' => CaiTrailPracticability::WithDifficulty,
+        'geometry' => ['type' => 'MultiLineString', 'coordinates' => [[[11.81, 46.22], [11.82, 46.23]]]],
+    ], $attributes));
+}
+
+test('the map config carries the line weights, casing, dimming and click tolerance of the design', function (): void {
+    expect(caiMapPayload((string) $this->blade('<x-cai.map name="sentieri" />'), 'data-cai-map-config'))->toMatchArray([
+        'lineHoverWeight' => 5,
+        'lineSelectedWeight' => 5.5,
+        'lineHoverCasing' => 8,
+        'lineSelectedCasing' => 10,
+        'lineDimmedOpacity' => 0.5,
+        'lineTolerance' => 6,
+    ]);
+});
+
+test('lines are drawn on canvas and emit their own selection and hover events', function (): void {
+    $html = (string) $this->blade('<x-cai.map name="sentieri" />');
+
+    expect($html)->toContain('L.canvas({ tolerance: config.lineTolerance })')
+        ->toContain("this.select(line.id, true, 'line')")
+        ->toContain("this.hover(line.id, 'line')")
+        ->toContain('cai-map-${kind}-selected')
+        ->toContain('cai-map-${kind}-hovered');
+});
+
+test('a trail line has the colour of its status, the design weight and the preview with the link', function (): void {
+    $line = CaiMapLine::forTrail(caiMapTrail(), '/admin/sentieri/4512');
+
+    expect($line)->not->toBeNull()
+        ->and($line->id)->toBe(4512)
+        ->and($line->color)->toBe('#a24cc7')
+        ->and($line->weight)->toBe(CaiMapLine::TRAIL_WEIGHT)
+        ->and($line->label)->toBe('101 · Sentiero dei "Fiori"')
+        ->and($line->geojson)->toBe(['type' => 'MultiLineString', 'coordinates' => [[[11.81, 46.22], [11.82, 46.23]]]]);
+
+    expect($line->popupHtml)
+        ->toContain('ms-cai-trail-sign--sm">101</span>')
+        ->toContain('Sentiero dei &quot;Fiori&quot;')
+        ->toContain('Passo Cereda → Malga Fosse')
+        ->toContain('--ms-cai-trail-status-color: #a24cc7">3 · Pre-validato</span>')
+        ->toContain('background: #fdf1dc; color: #8a5600">Percorribile con difficoltà</span>')
+        ->toContain('12,3 km')
+        ->toContain('href="/admin/sentieri/4512"')
+        ->toContain('Apri scheda →');
+});
+
+test('a trail preview without number, name or places shows dashes and no link', function (): void {
+    $line = CaiMapLine::forTrail(caiMapTrail(['ref' => null, 'name' => null, 'from_place' => '', 'to_place' => null]));
+
+    expect($line?->label)->toBeNull()
+        ->and($line?->popupHtml)
+        ->toContain('ms-cai-trail-sign--sm">—</span>')
+        ->toContain('ms-cai-map-popup__title--missing">—</div>')
+        ->toContain('— → —')
+        ->not->toContain('Apri scheda');
+});
+
+test('a trail without geometry has no line', function (): void {
+    expect(CaiMapLine::forTrail(caiMapTrail(['geometry' => null])))->toBeNull();
+});
+
+test('trail lines reach the map payload as GeoJSON with their preview', function (): void {
+    $lines = [CaiMapLine::forTrail(caiMapTrail(), '/admin/sentieri/4512')];
+
+    $payload = caiMapPayload((string) $this->blade('<x-cai.map name="sentieri" :lines="$lines" selected="4512" />', ['lines' => $lines]));
+
+    expect($payload['lines'])->toHaveCount(1)
+        ->and($payload['lines'][0])->toMatchArray(['id' => 4512, 'color' => '#a24cc7', 'weight' => 3])
+        ->and($payload['lines'][0]['geojson']['type'])->toBe('MultiLineString')
+        ->and($payload['lines'][0]['popupHtml'])->toContain('Apri scheda →');
 });

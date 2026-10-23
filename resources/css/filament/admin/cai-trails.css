@@ -1,0 +1,69 @@
+/*
+ * Elementi comuni ai sentieri osm2cai (Fase 10.6+): segnavia con il numero (x-cai.trail-sign) e pillola dello stato di
+ * accatastamento. Misure dal design docs/project/design/fase-10/sentieri-di-sezione.dc.html; il colore dello stato
+ * arriva da CaiTrailStatus::color() nella variabile inline --ms-cai-trail-status-color.
+ */
+.ms-cai-trail-sign {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  min-width: 46px;
+  height: 28px;
+  padding: 0 6px;
+  border: var(--ms-border-width) solid var(--ms-trail-sign-border);
+  border-top: 5px solid var(--ms-trail-sign-red);
+  border-bottom: 5px solid var(--ms-trail-sign-red);
+  border-radius: 3px;
+  background: var(--ms-surface-card);
+  color: var(--ms-trail-sign-text);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.ms-cai-trail-sign--sm {
+  min-width: 44px;
+  height: 26px;
+}
+
+.ms-cai-trail-sign--lg {
+  min-width: 48px;
+  height: 30px;
+}
+
+.ms-cai-trail-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 9px 2px 7px;
+  border: var(--ms-border-width) solid var(--ms-cai-trail-status-color);
+  border-radius: var(--ms-radius-xl);
+  background: var(--ms-surface-card);
+  color: var(--ms-text-body);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.ms-cai-trail-status::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: var(--ms-radius-circle);
+  background: var(--ms-cai-trail-status-color);
+}
+
+.ms-cai-trail-status--sm {
+  gap: 5px;
+  padding: 1px 8px 1px 6px;
+  font-size: 11px;
+}
+
+.ms-cai-trail-status--sm::before {
+  width: 7px;
+  height: 7px;
+}

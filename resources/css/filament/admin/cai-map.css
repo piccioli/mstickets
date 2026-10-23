@@ -175,3 +175,40 @@
   font-size: 12px;
   font-weight: 700;
 }
+
+/* Anteprima di un sentiero (US-1053, design "Sentieri di Sezione"): card 260 px senza foto, segnavia in alto. */
+.ms-cai-map .ms-cai-map__popup--line .leaflet-popup-content {
+  width: 260px !important;
+}
+
+.ms-cai-map-popup--trail .ms-cai-map-popup__body {
+  gap: 7px;
+  padding: 12px 14px 14px;
+}
+
+.ms-cai-map-popup__heading {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ms-cai-map-popup__title--missing {
+  color: var(--ms-value-missing);
+}
+
+.ms-cai-map-popup__route {
+  color: var(--ms-text-secondary);
+  font-size: 12px;
+}
+
+.ms-cai-map-popup__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ms-cai-map-popup__km {
+  color: var(--ms-text-body);
+  font-size: 12px;
+  font-weight: 700;
+}

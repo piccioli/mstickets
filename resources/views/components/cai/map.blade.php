@@ -3,8 +3,11 @@
      Props:
      - `name`: identificativo della mappa nella pagina, ripetuto negli eventi (più mappe nella stessa pagina);
      - `markers`: lista di CaiMapMarker (o array con `id`, `lat`, `lng`, `label`, `color`, `letter`, `popupHtml`);
-     - `lines`: lista di CaiMapLine (o array con `id`, `geojson`, `color`, `label`, `weight`, `popupHtml`);
-     - `selected`: id del marker selezionato all'apertura (popup aperto);
+     - `lines`: lista di CaiMapLine (o array con `id`, `geojson`, `color`, `label`, `weight`, `popupHtml`); sentiero →
+       `CaiMapLine::forTrail()` (US-1053). Disegnate su canvas (centinaia di linee senza blocchi) con un margine di clic
+       di qualche pixel; la linea evidenziata (hover) o selezionata diventa più spessa con un bordo bianco e sta sopra
+       le altre, che con una linea selezionata si attenuano, come nel design "Sentieri di Sezione";
+     - `selected`: id del marker o della linea selezionati all'apertura (popup aperto);
      - `height`: altezza CSS del riquadro;
      - `cluster` (US-1042): raggruppa i marker vicini sotto lo zoom 12 in un cerchio con il numero (tooltip
        "N {clusterNoun} · clic per ingrandire", clic → zoom +2 sul gruppo), con leaflet.markercluster 1.5.3 caricato
@@ -12,11 +15,12 @@
      - `clusterNoun`: sostantivo plurale del tooltip del gruppo (default "rifugi").
      Vista: `fitBounds` con margine (zoom massimo 13) sui marker e le linee dentro l'Italia, un solo marker → zoom 13,
      niente da mostrare → Italia.
-     Eventi (bubbling fino a `window`, `detail` = `{ map: name, id }`):
-     - emessi: `cai-map-marker-selected` (clic sul marker; `id` null alla chiusura del popup), `cai-map-marker-hovered`
-       (`id` null all'uscita);
-     - ascoltati su `window`: `cai-map-highlight` (marker ingrandito, es. hover sulla riga dell'elenco) e `cai-map-select`
-       (selezione con popup aperto, es. clic sulla riga).
+     Eventi (bubbling fino a `window`, `detail` = `{ map: name, id }`); marker e linee condividono lo spazio degli id:
+     - emessi: `cai-map-marker-selected` / `cai-map-line-selected` (clic sul marker / sulla linea; `id` null alla
+       chiusura del popup), `cai-map-marker-hovered` / `cai-map-line-hovered` (`id` null all'uscita);
+     - ascoltati su `window`: `cai-map-highlight` (marker ingrandito o linea evidenziata, es. hover sulla riga
+       dell'elenco) e `cai-map-select` (selezione con popup aperto, es. clic sulla riga; una linea fuori vista viene
+       inquadrata).
      Dopo un aggiornamento Livewire (filtri) il riquadro Leaflet resta (`wire:ignore`), mentre il contenitore dei dati ha
      un `wire:key` con l'hash dei dati: cambiando i dati Livewire lo sostituisce e il suo `x-init` ridisegna la mappa.
      Il componente va reso sempre (anche senza marker), non dentro un `@if` che compare solo dopo un aggiornamento:
@@ -59,6 +63,15 @@
         'clusterUntilZoom' => 11,
         'clusterRadius' => 40,
         'clusterZoomStep' => 2,
+        // Linee (US-1053), misure del design: a riposo lo spessore della linea, hover 5 px su bordo bianco di 8,
+        // selezionata 5,5 px su bordo di 10, le altre a metà opacità mentre una linea è selezionata. Margine di clic
+        // del renderer canvas in pixel oltre metà spessore (≈ 14 px di area cliccabile come nel design).
+        'lineHoverWeight' => 5,
+        'lineSelectedWeight' => 5.5,
+        'lineHoverCasing' => 8,
+        'lineSelectedCasing' => 10,
+        'lineDimmedOpacity' => 0.5,
+        'lineTolerance' => 6,
     ];
 @endphp
 @once
@@ -73,11 +86,14 @@
             let markerLayer = null;
             let clusterLayer = null;
             let lineLayer = null;
+            let lineRenderer = null;
+            let casingColor = '#ffffff';
             let resizeObserver = null;
             let payload = { markers: [], lines: [] };
             let selected = config.selected ?? null;
             let hovered = null;
             const markers = new Map();
+            const lines = new Map();
             const listeners = [];
             const italy = [[35, 6], [47.5, 19]];
             const key = (id) => (id === null || id === undefined ? null : String(id));
@@ -97,16 +113,62 @@
                 });
             };
 
+            const lineStyle = (line) => {
+                const isSelected = key(line.id) === key(selected);
+                const isHovered = key(line.id) === key(hovered);
+                const dimmed = lines.has(key(selected)) && ! isSelected && ! isHovered;
+
+                return {
+                    color: safeColor(line.color),
+                    weight: isSelected ? config.lineSelectedWeight : isHovered ? config.lineHoverWeight : (line.weight ?? 4),
+                    opacity: dimmed ? config.lineDimmedOpacity : 1,
+                    lineCap: 'round',
+                    lineJoin: 'round',
+                };
+            };
+
+            // Bordo bianco sotto la linea evidenziata o selezionata: un secondo tracciato non cliccabile, creato solo
+            // quando serve (con centinaia di linee non si raddoppiano i tracciati).
+            const refreshLine = (entry) => {
+                const isSelected = key(entry.line.id) === key(selected);
+                const casing = isSelected ? config.lineSelectedCasing : key(entry.line.id) === key(hovered) ? config.lineHoverCasing : 0;
+                entry.layer.setStyle(lineStyle(entry.line));
+                entry.casing?.remove();
+                entry.casing = null;
+
+                if (casing > 0) {
+                    entry.casing = L.geoJSON(entry.line.geojson, {
+                        renderer: lineRenderer,
+                        interactive: false,
+                        style: { color: casingColor, weight: casing, opacity: 1, lineCap: 'round', lineJoin: 'round' },
+                    }).addTo(lineLayer);
+                }
+            };
+
+            // Ordine di disegno: linea evidenziata sopra le altre, selezionata sopra tutte (ciascuna sopra il suo bordo).
+            const raiseLines = () => {
+                [hovered, selected].forEach((id) => {
+                    const entry = lines.get(key(id));
+                    entry?.casing?.bringToFront();
+                    entry?.layer.bringToFront();
+                });
+            };
+
             const refresh = (id) => {
                 const entry = markers.get(key(id));
 
-                if (! entry) {
-                    return;
+                if (entry) {
+                    const active = key(id) === key(selected) || key(id) === key(hovered);
+                    entry.layer.setIcon(icon(entry.marker));
+                    entry.layer.setZIndexOffset(active ? 1000 : 0);
                 }
 
-                const active = key(id) === key(selected) || key(id) === key(hovered);
-                entry.layer.setIcon(icon(entry.marker));
-                entry.layer.setZIndexOffset(active ? 1000 : 0);
+                const line = lines.get(key(id));
+
+                if (line) {
+                    refreshLine(line);
+                    raiseLines();
+                }
             };
 
             return {
@@ -129,12 +191,14 @@
                         attribution: config.attribution,
                     }).addTo(map);
                     map.attributionControl.setPrefix(false);
+                    lineRenderer = L.canvas({ tolerance: config.lineTolerance });
+                    casingColor = getComputedStyle(this.$el).getPropertyValue('--ms-map-line-casing').trim() || casingColor;
                     lineLayer = L.featureGroup().addTo(map);
                     markerLayer = config.cluster ? this.clusterGroup() : L.featureGroup();
                     markerLayer.addTo(map);
                     map.on('popupclose', (event) => {
-                        if (event.popup._caiMarkerId !== undefined && key(event.popup._caiMarkerId) === key(selected)) {
-                            this.select(null, true);
+                        if (event.popup._caiId !== undefined && key(event.popup._caiId) === key(selected)) {
+                            this.select(null, true, event.popup._caiKind);
                         }
                     });
 
@@ -196,19 +260,24 @@
                     markerLayer.clearLayers();
                     lineLayer.clearLayers();
                     markers.clear();
+                    lines.clear();
 
                     (payload.lines ?? []).forEach((line) => {
-                        const layer = L.geoJSON(line.geojson, {
-                            style: { color: safeColor(line.color), weight: line.weight ?? 4, opacity: 0.9 },
-                        });
+                        const layer = L.geoJSON(line.geojson, { renderer: lineRenderer, style: lineStyle(line) });
 
                         if (line.popupHtml) {
-                            layer.bindPopup(line.popupHtml, { className: 'ms-cai-map__popup', maxWidth: 240, minWidth: 240 });
+                            layer.bindPopup(line.popupHtml, { className: 'ms-cai-map__popup ms-cai-map__popup--line', maxWidth: 260, minWidth: 260, autoPanPadding: [16, 16] });
+                            layer.getPopup()._caiId = line.id;
+                            layer.getPopup()._caiKind = 'line';
                         } else if (line.label) {
                             layer.bindTooltip(escapeHtml(line.label), { sticky: true });
                         }
 
+                        layer.on('click', () => this.select(line.id, true, 'line'));
+                        layer.on('mouseover', () => this.hover(line.id, 'line'));
+                        layer.on('mouseout', () => this.hover(null, 'line'));
                         layer.addTo(lineLayer);
+                        lines.set(key(line.id), { line, layer, casing: null });
                     });
 
                     (payload.markers ?? []).forEach((marker) => {
@@ -216,23 +285,28 @@
 
                         if (marker.popupHtml) {
                             layer.bindPopup(marker.popupHtml, { className: 'ms-cai-map__popup', maxWidth: 240, minWidth: 240, autoPanPadding: [16, 16] });
-                            layer.getPopup()._caiMarkerId = marker.id;
+                            layer.getPopup()._caiId = marker.id;
+                            layer.getPopup()._caiKind = 'marker';
                         }
 
-                        layer.on('click', () => this.select(marker.id, true));
-                        layer.on('mouseover', () => this.hover(marker.id));
-                        layer.on('mouseout', () => this.hover(null));
+                        layer.on('click', () => this.select(marker.id, true, 'marker'));
+                        layer.on('mouseover', () => this.hover(marker.id, 'marker'));
+                        layer.on('mouseout', () => this.hover(null, 'marker'));
                         layer.addTo(markerLayer);
                         markers.set(key(marker.id), { marker, layer });
                     });
 
-                    if (! markers.has(key(selected))) {
+                    if (! markers.has(key(selected)) && ! lines.has(key(selected))) {
                         selected = null;
                     }
 
                     this.fit();
 
-                    if (selected !== null) {
+                    if (lines.has(key(selected))) {
+                        lines.forEach(refreshLine);
+                        raiseLines();
+                        lines.get(key(selected)).layer.openPopup();
+                    } else if (selected !== null) {
                         const entry = markers.get(key(selected));
                         clusterLayer && ! entry.layer._map
                             ? clusterLayer.zoomToShowLayer(entry.layer, () => entry.layer.openPopup())
@@ -258,20 +332,38 @@
 
                     if (fitPoints.length === 0) {
                         map.setView([42.5, 12.5], config.minZoom);
-                    } else if (markers.size === 1 && lineLayer.getLayers().length === 0) {
+                    } else if (markers.size === 1 && lines.size === 0) {
                         map.setView(fitPoints[0], config.singleZoom);
                     } else {
                         map.fitBounds(L.latLngBounds(fitPoints), { padding: [30, 40], maxZoom: config.fitMaxZoom });
                     }
                 },
 
-                select(id, fromMap) {
+                select(id, fromMap, kind = 'marker') {
                     const previous = selected;
                     selected = id;
                     refresh(previous);
                     refresh(id);
 
-                    if (! fromMap && id !== null) {
+                    // Selezionare o deselezionare una linea cambia l'attenuazione di tutte le altre.
+                    if (lines.has(key(previous)) || lines.has(key(id))) {
+                        lines.forEach(refreshLine);
+                        raiseLines();
+                    }
+
+                    if (! fromMap && id !== null && lines.has(key(id))) {
+                        const { layer } = lines.get(key(id));
+                        const bounds = layer.getBounds();
+                        const open = () => (layer.getPopup() ? layer.openPopup() : map.closePopup());
+
+                        // Linea fuori vista: si inquadra (senza ingrandire), poi l'anteprima a metà tracciato.
+                        if (bounds.isValid() && ! map.getBounds().contains(bounds)) {
+                            map.once('moveend', open);
+                            map.fitBounds(bounds, { padding: [30, 40], maxZoom: map.getZoom() });
+                        } else {
+                            open();
+                        }
+                    } else if (! fromMap && id !== null) {
                         const entry = markers.get(key(id));
 
                         if (entry) {
@@ -291,13 +383,13 @@
                     }
 
                     if (fromMap) {
-                        this.$dispatch('cai-map-marker-selected', { map: config.name, id });
+                        this.$dispatch(`cai-map-${kind}-selected`, { map: config.name, id });
                     }
                 },
 
-                hover(id) {
+                hover(id, kind = 'marker') {
                     this.highlight(id);
-                    this.$dispatch('cai-map-marker-hovered', { map: config.name, id });
+                    this.$dispatch(`cai-map-${kind}-hovered`, { map: config.name, id });
                 },
 
                 highlight(id) {
@@ -311,6 +403,7 @@
                     listeners.forEach(([type, listener]) => window.removeEventListener(type, listener));
                     resizeObserver?.disconnect();
                     clusterLayer = null;
+                    lines.clear();
                     map?.remove();
                     map = null;
                 },
