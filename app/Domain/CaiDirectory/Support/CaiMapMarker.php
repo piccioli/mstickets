@@ -8,7 +8,7 @@ use App\Domain\CaiDirectory\Models\CaiHut;
 use App\Support\Formatting\ItalianNumberFormatter;
 
 /**
- * Marker del componente `x-cai.map` (US-1033): cerchio del colore del tipo con la lettera, `popupHtml` facoltativo già
+ * Marker del componente `x-cai.map` (US-1033): cerchio del colore del tipo con la lettera (o l'icona `icon`, US-1095), `popupHtml` facoltativo già
  * reso (e già escapato) lato server, di solito con la vista `components.cai.map-popup`. `id` è la chiave con cui la
  * mappa e l'elenco della pagina si evidenziano a vicenda.
  */
@@ -27,6 +27,7 @@ final readonly class CaiMapMarker
         public string $color,
         public string $letter,
         public ?string $popupHtml = null,
+        public ?string $icon = null,
     ) {}
 
     /**
@@ -65,11 +66,48 @@ final readonly class CaiMapMarker
     }
 
     /**
-     * @return array{id: int|string, lat: float, lng: float, label: string, color: string, letter: string, popupHtml: string|null}
+     * Marker di un punto di appoggio SICAI del GR (US-1095): colore e lettera del tipo ({@see CaiSicaiRestPointType}),
+     * anteprima con tipo, nome, comune, tappe vicine e i link; `null` senza coordinate. `$listAnchor` = id dell'elenco
+     * dei punti nella pagina ("Nell'elenco dei punti →").
+     */
+    public static function forSicaiRestPoint(CaiRegionalGroupSicaiRestPointRow $row, string $type, ?string $listAnchor = null): ?self
+    {
+        $point = $row->point;
+
+        if ($point->latitude === null || $point->longitude === null) {
+            return null;
+        }
+
+        $style = CaiSicaiRestPointType::of($type);
+
+        return new self(
+            id: 'punto-'.$point->id,
+            lat: (float) $point->latitude,
+            lng: (float) $point->longitude,
+            label: $style->label().' · '.$point->name,
+            color: $style->color(),
+            letter: $style->letter(),
+            icon: $style->icon(),
+            popupHtml: view('components.cai.map-sicai-point-popup', [
+                'type' => $style->label(),
+                'color' => $style->color(),
+                'name' => $point->name,
+                'municipality' => $point->municipality,
+                'stageCodes' => $row->stageCodes,
+                'hutUrl' => $point->hutUrl(),
+                'listAnchor' => $listAnchor,
+            ])->render(),
+        );
+    }
+
+    /**
+     * `icon` (path SVG su viewBox 24, al posto della lettera) solo se indicato: le mappe dei rifugi mantengono il payload.
+     *
+     * @return array{id: int|string, lat: float, lng: float, label: string, color: string, letter: string, popupHtml: string|null, icon?: string}
      */
     public function toArray(): array
     {
-        return [
+        $marker = [
             'id' => $this->id,
             'lat' => $this->lat,
             'lng' => $this->lng,
@@ -78,5 +116,11 @@ final readonly class CaiMapMarker
             'letter' => $this->letter,
             'popupHtml' => $this->popupHtml,
         ];
+
+        if ($this->icon !== null) {
+            $marker['icon'] = $this->icon;
+        }
+
+        return $marker;
     }
 }

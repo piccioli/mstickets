@@ -4,18 +4,32 @@ declare(strict_types=1);
 
 namespace App\Domain\CaiDirectory\Support;
 
+use App\Domain\CaiDirectory\Enums\CaiTrailPracticability;
 use App\Domain\CaiDirectory\Models\CaiTrail;
 use App\Support\Formatting\ItalianNumberFormatter;
 
 /**
  * Linea del componente `x-cai.map` (US-1033, sentieri dalla US-1053): una geometria GeoJSON (`LineString`/
- * `MultiLineString`, o una `Feature`) disegnata con il colore e lo spessore indicati. `popupHtml` come per i marker;
+ * `MultiLineString`, o una `Feature`) disegnata con il colore, lo spessore e il tratteggio (`dash`, facoltativo) indicati. `popupHtml` come per i marker;
  * `id` è la chiave con cui la mappa e l'elenco della pagina si evidenziano a vicenda.
  */
 final readonly class CaiMapLine
 {
     /** Spessore di un sentiero a riposo, come nel design "Sentieri di Sezione" (evidenziato: 5 / 5,5 nel componente). */
     public const TRAIL_WEIGHT = 3;
+
+    /** Tappe SICAI (US-1095), colori del design "Tappe SICAI del GR": principali a colori alternati, varianti punteggiate. */
+    public const SICAI_COLOR = '#17a180';
+
+    public const SICAI_ALTERNATE_COLOR = '#0b5c49';
+
+    public const SICAI_WEIGHT = 4;
+
+    public const SICAI_VARIANT_WEIGHT = 3;
+
+    public const SICAI_VARIANT_DASH = '0.1 7';
+
+    public const SICAI_NOT_PRACTICABLE_DASH = '8 6';
 
     /**
      * @param  array<string, mixed>  $geojson
@@ -27,6 +41,7 @@ final readonly class CaiMapLine
         public ?string $label = null,
         public int $weight = 4,
         public ?string $popupHtml = null,
+        public ?string $dash = null,
     ) {}
 
     /**
@@ -67,11 +82,53 @@ final readonly class CaiMapLine
     }
 
     /**
-     * @return array{id: int|string, geojson: array<string, mixed>, color: string, label: string|null, weight: int, popupHtml: string|null}
+     * Linea di una tappa SICAI del GR (US-1095) con l'anteprima del design: non percorribile rossa tratteggiata, con
+     * difficoltà ambra, variante verde punteggiata, le principali verdi alternando `$alternate` (una sì e una no);
+     * `$geometry` già semplificata, `null` se la tappa non ha tracciato.
+     *
+     * @param  array<string, mixed>|null  $geometry
+     */
+    public static function forSicaiStage(CaiRegionalGroupSicaiStageRow $row, ?array $geometry, bool $alternate, ?string $url = null): ?self
+    {
+        if ($geometry === null || $geometry === []) {
+            return null;
+        }
+
+        $practicability = $row->practicability();
+        [$color, $weight, $dash] = match (true) {
+            $practicability === CaiTrailPracticability::NotPracticable => [$practicability->dot(), self::SICAI_WEIGHT, self::SICAI_NOT_PRACTICABLE_DASH],
+            $practicability === CaiTrailPracticability::WithDifficulty => [$practicability->dot(), self::SICAI_WEIGHT, null],
+            $row->isVariant => [self::SICAI_COLOR, self::SICAI_VARIANT_WEIGHT, self::SICAI_VARIANT_DASH],
+            default => [$alternate ? self::SICAI_ALTERNATE_COLOR : self::SICAI_COLOR, self::SICAI_WEIGHT, null],
+        };
+
+        return new self(
+            id: $row->stage->cai_trail_id,
+            geojson: $geometry,
+            color: $color,
+            label: $row->code(),
+            weight: $weight,
+            popupHtml: view('components.cai.map-sicai-stage-popup', [
+                'code' => $row->code(),
+                'variantOf' => $row->mainCode,
+                'route' => $row->route(),
+                'km' => $row->km(),
+                'ascent' => $row->ascent(),
+                'practicability' => $practicability,
+                'url' => $url,
+            ])->render(),
+            dash: $dash,
+        );
+    }
+
+    /**
+     * `dash` (tratteggio SVG, es. "8 6") solo se indicato: le mappe di rifugi e sentieri mantengono il payload di prima.
+     *
+     * @return array{id: int|string, geojson: array<string, mixed>, color: string, label: string|null, weight: int, popupHtml: string|null, dash?: string}
      */
     public function toArray(): array
     {
-        return [
+        $line = [
             'id' => $this->id,
             'geojson' => $this->geojson,
             'color' => $this->color,
@@ -79,5 +136,11 @@ final readonly class CaiMapLine
             'weight' => $this->weight,
             'popupHtml' => $this->popupHtml,
         ];
+
+        if ($this->dash !== null) {
+            $line['dash'] = $this->dash;
+        }
+
+        return $line;
     }
 }

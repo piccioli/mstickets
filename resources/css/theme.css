@@ -190,6 +190,18 @@
   --ms-neutral-pill-bg: #eef0f3;
   --ms-neutral-pill-text: #5b6475;
 
+  /* ---- Tappe SICAI del GR (Fase 10.9) ---- */
+  --ms-sicai-line: #17a180;
+  --ms-sicai-line-alternate: #0b5c49;
+  --ms-sicai-line-difficulty: #e0a526;
+  --ms-sicai-line-not-practicable: #d64545;
+  --ms-sicai-danger-bg: #fdf3f2;
+  --ms-sicai-danger-border: #f3c9c4;
+  --ms-sicai-danger-chip-border: #f0b8b1;
+  --ms-sicai-warning-bg: #fdf8ee;
+  --ms-sicai-warning-border: #f0dcb4;
+  --ms-sicai-warning-chip-border: #ecd3a3;
+
   /* ---- Elenco rifugi (Fase 10.4) ---- */
   --ms-chip-active-bg: #e3f4ee;
   --ms-row-highlight-bg: #eef8f5;

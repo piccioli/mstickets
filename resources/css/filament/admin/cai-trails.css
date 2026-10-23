@@ -57,6 +57,23 @@
   }
 }
 
+/* Codice di una tappa del Sentiero Italia CAI (US-1095): cartello con le bande rosse ai lati invece che sopra e sotto,
+   come nel design "Tappe SICAI del GR"; stesse taglie del segnavia. */
+.ms-cai-trail-sign--sicai {
+  min-width: 52px;
+  border-top-width: var(--ms-border-width);
+  border-bottom-width: var(--ms-border-width);
+  border-top-color: var(--ms-trail-sign-border);
+  border-bottom-color: var(--ms-trail-sign-border);
+  border-left: 5px solid var(--ms-trail-sign-red);
+  border-right: 5px solid var(--ms-trail-sign-red);
+}
+
+.ms-cai-trail-sign--sicai.ms-cai-trail-sign--xl {
+  border-left-width: 12px;
+  border-right-width: 12px;
+}
+
 .ms-cai-trail-status {
   display: inline-flex;
   align-items: center;

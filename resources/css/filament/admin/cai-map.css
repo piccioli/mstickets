@@ -44,6 +44,21 @@
   box-sizing: border-box;
 }
 
+.ms-cai-map__marker-svg {
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ms-cai-map__marker.is-active .ms-cai-map__marker-svg {
+  width: 16px;
+  height: 16px;
+}
+
 .ms-cai-map__marker.is-active {
   border-width: 3px;
   box-shadow: var(--ms-shadow-map-marker-active);
@@ -320,4 +335,39 @@
   background: none;
   font-family: inherit;
   cursor: pointer;
+}
+
+/* Anteprime delle tappe SICAI e dei punti di appoggio (US-1095, design "Tappe SICAI del GR"): 280 px come i settori. */
+.ms-cai-map__popup--line:has(.ms-cai-map-popup--sicai) .leaflet-popup-content,
+.ms-cai-map__popup:has(.ms-cai-map-popup--sicai-point) .leaflet-popup-content {
+  width: 280px !important;
+}
+
+.ms-cai-map-popup--sicai .ms-cai-map-popup__body,
+.ms-cai-map-popup--sicai-point .ms-cai-map-popup__body {
+  gap: 8px;
+  padding: 12px 14px 14px;
+}
+
+.ms-cai-map-popup--sicai .ms-cai-map-popup__title,
+.ms-cai-map-popup--sicai-point .ms-cai-map-popup__title {
+  font-size: var(--ms-text-lg);
+  line-height: 1.3;
+}
+
+.ms-cai-map-popup__variant {
+  color: var(--ms-text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ms-cai-map-popup--sicai-point .ms-cai-map-popup__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.ms-cai-map-popup--sicai-point .ms-cai-map-popup__dot {
+  width: 10px;
+  height: 10px;
 }

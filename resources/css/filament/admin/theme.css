@@ -47,3 +47,6 @@
 
 /* Sentieri del GR (Fase 10.7). */
 @import './regional-group-trails.css';
+
+/* Tappe SICAI del GR (Fase 10.9). */
+@import './regional-group-sicai-stages.css';

@@ -45,6 +45,12 @@ class CaiSicaiRestPoint extends Model
         return $this->belongsTo(CaiHut::class, 'cai_hut_id_cai');
     }
 
+    /** Pagina del rifugio su rifugi.cai.it ("Vedi su rifugi.cai.it"), solo se il punto è un rifugio importato. */
+    public function hutUrl(): ?string
+    {
+        return $this->cai_hut_id_cai === null ? null : 'https://rifugi.cai.it/shelters/'.$this->cai_hut_id_cai;
+    }
+
     /**
      * Tappe SICAI il cui tracciato passa entro 1,5 km dal punto (US-1093); pivot `distance_m`, `position`.
      *

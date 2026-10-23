@@ -2,8 +2,10 @@
      sola volta per pagina (@once); tile CAI zoom 6–16.
      Props:
      - `name`: identificativo della mappa nella pagina, ripetuto negli eventi (più mappe nella stessa pagina);
-     - `markers`: lista di CaiMapMarker (o array con `id`, `lat`, `lng`, `label`, `color`, `letter`, `popupHtml`);
-     - `lines`: lista di CaiMapLine (o array con `id`, `geojson`, `color`, `label`, `weight`, `popupHtml`); sentiero →
+     - `markers`: lista di CaiMapMarker (o array con `id`, `lat`, `lng`, `label`, `color`, `letter`, `popupHtml`, `icon`
+       facoltativo: path SVG disegnato al posto della lettera, punti di appoggio SICAI, US-1095);
+     - `lines`: lista di CaiMapLine (o array con `id`, `geojson`, `color`, `label`, `weight`, `popupHtml`, `dash` facoltativo:
+       tratteggio SVG, tappe SICAI non percorribili e varianti, US-1095); sentiero →
        `CaiMapLine::forTrail()` (US-1053). Disegnate su canvas (centinaia di linee senza blocchi) con un margine di clic
        di qualche pixel; la linea evidenziata (hover) o selezionata diventa più spessa con un bordo bianco e sta sopra
        le altre, che con una linea selezionata si attenuano, come nel design "Sentieri di Sezione";
@@ -153,7 +155,7 @@
 
                 return L.divIcon({
                     className: 'ms-cai-map__marker-icon',
-                    html: `<span class="ms-cai-map__marker${active ? ' is-active' : ''}" style="--ms-cai-map-marker-color: ${safeColor(marker.color)}">${escapeHtml(marker.letter)}</span>`,
+                    html: `<span class="ms-cai-map__marker${active ? ' is-active' : ''}" style="--ms-cai-map-marker-color: ${safeColor(marker.color)}">${marker.icon ? `<svg class="ms-cai-map__marker-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="${escapeHtml(marker.icon)}"></path></svg>` : escapeHtml(marker.letter)}</span>`,
                     iconSize: [size, size],
                     iconAnchor: [size / 2, size / 2],
                     popupAnchor: [0, -(size / 2) - 4],
@@ -169,6 +171,7 @@
                     color: safeColor(line.color),
                     weight: isSelected ? config.lineSelectedWeight : isHovered ? config.lineHoverWeight : (line.weight ?? 4),
                     opacity: dimmed ? config.lineDimmedOpacity : 1,
+                    dashArray: line.dash ?? null,
                     lineCap: 'round',
                     lineJoin: 'round',
                 };

@@ -1,0 +1,1195 @@
+/*
+ * Tappe SICAI del GR (Fase 10.9, US-1095) — resources/views/filament/pages/regional-group-sicai-stages.blade.php, partial
+ * partials/regional-group-sicai-point.blade.php e widget resources/views/filament/widgets/regional-group-sicai-stages-map.blade.php.
+ * Misure dal design docs/project/design/fase-10/tappe-sicai-del-gr.dc.html; colori solo da token --ms-*, tranne quelli di
+ * percorribilità e dei tipi di punto che arrivano dall'enum / da CaiSicaiRestPointType (stile inline). Cartello del
+ * codice (ms-cai-trail-sign--sicai) in cai-trails.css. Le tabelle hanno colonne a larghezza minima e scorrono in
+ * orizzontale se l'area contenuti è stretta; sotto i 640px di viewport lasciano il posto alle card, come nel design a 390px.
+ */
+.ms-gr-sicai {
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+  font-family: var(--ms-font-sans);
+  color: var(--ms-text-strong);
+}
+
+.ms-gr-sicai__mobile {
+  display: none;
+}
+
+/* ---- Intestazione ---- */
+.ms-gr-sicai__top {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-7);
+}
+
+.ms-gr-sicai__back {
+  align-self: flex-start;
+  font-size: var(--ms-text-sm);
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-brand);
+  text-decoration: none;
+}
+
+.ms-gr-sicai__back:hover {
+  color: var(--ms-brand-link-hover);
+  text-decoration: underline;
+}
+
+.ms-gr-sicai__heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--ms-space-12);
+}
+
+.ms-gr-sicai__title-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-2);
+}
+
+.ms-gr-sicai__title {
+  margin: 0;
+  font-size: var(--ms-text-3xl);
+  font-weight: var(--ms-fw-extrabold);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.ms-gr-sicai__subtitle {
+  margin: 0;
+  font-size: var(--ms-text-lg);
+  font-weight: var(--ms-fw-semibold);
+  color: var(--ms-text-secondary);
+}
+
+.ms-gr-sicai__source {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ms-text-muted);
+}
+
+.ms-gr-sicai__source a,
+.ms-gr-sicai__link,
+.ms-gr-sicai__website {
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-brand);
+  text-decoration: none;
+}
+
+.ms-gr-sicai__link {
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: var(--ms-text-sm);
+  font-weight: var(--ms-fw-extrabold);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ms-gr-sicai__source a:hover,
+.ms-gr-sicai__link:hover,
+.ms-gr-sicai__website:hover {
+  color: var(--ms-brand-link-hover);
+}
+
+/* ---- Blocchi ---- */
+.ms-gr-sicai__block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-8);
+  scroll-margin-top: 80px;
+}
+
+.ms-gr-sicai__block--hidden {
+  display: none;
+}
+
+.ms-gr-sicai__block-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--ms-space-4) var(--ms-space-8);
+}
+
+.ms-gr-sicai__block-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: var(--ms-fw-extrabold);
+}
+
+.ms-gr-sicai__hint {
+  font-size: var(--ms-text-sm);
+  color: var(--ms-text-secondary);
+}
+
+.ms-gr-sicai__card {
+  background: var(--ms-surface-card);
+  border: var(--ms-border-width) solid var(--ms-border-subtle);
+  border-radius: var(--ms-radius-card);
+}
+
+.ms-gr-sicai__numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.ms-gr-sicai__numeric-text {
+  font-variant-numeric: tabular-nums;
+}
+
+.ms-gr-sicai__strong {
+  font-weight: var(--ms-fw-bold);
+}
+
+.ms-gr-sicai__small {
+  font-size: var(--ms-text-sm);
+}
+
+.ms-gr-sicai__missing {
+  color: var(--ms-text-faint-alt);
+}
+
+.ms-gr-sicai__secondary {
+  font-size: 12px;
+  color: var(--ms-text-secondary);
+}
+
+.ms-gr-sicai__secondary-dark {
+  font-size: 12px;
+}
+
+.ms-gr-sicai__label {
+  font-size: 12px;
+  color: var(--ms-text-muted);
+}
+
+.ms-gr-sicai__dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--ms-radius-circle);
+}
+
+.ms-gr-sicai__dot--danger {
+  background: var(--ms-sicai-line-not-practicable);
+}
+
+.ms-gr-sicai__dot--warning {
+  background: var(--ms-sicai-line-difficulty);
+}
+
+.ms-gr-sicai__chevron {
+  color: var(--ms-brand);
+  font-size: 20px;
+  font-weight: var(--ms-fw-bold);
+  line-height: 1;
+}
+
+.ms-gr-sicai__footnote {
+  margin: 0;
+  font-size: 11px;
+  color: var(--ms-text-muted);
+}
+
+/* ---- Riepilogo ---- */
+.ms-gr-sicai__summary {
+  display: grid;
+  grid-template-columns: minmax(0, 4fr) minmax(0, 1.55fr);
+  gap: var(--ms-space-8);
+}
+
+.ms-gr-sicai__kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--ms-space-8);
+}
+
+.ms-gr-sicai__kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 20px 22px;
+  color: var(--ms-text-strong);
+  text-decoration: none;
+}
+
+.ms-gr-sicai__kpi--link:hover {
+  border-color: var(--ms-brand-border-tint);
+}
+
+.ms-gr-sicai__kpi-label {
+  font-size: var(--ms-text-sm);
+  font-weight: var(--ms-fw-extrabold);
+}
+
+.ms-gr-sicai__kpi-value {
+  font-size: 36px;
+  font-weight: var(--ms-fw-extrabold);
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.ms-gr-sicai__kpi-value--empty {
+  color: var(--ms-value-missing);
+}
+
+.ms-gr-sicai__kpi-unit {
+  font-size: 18px;
+  color: var(--ms-text-secondary);
+}
+
+.ms-gr-sicai__kpi-note {
+  font-size: var(--ms-text-sm);
+  line-height: 1.45;
+  color: var(--ms-text-secondary);
+}
+
+.ms-gr-sicai__problems {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px 22px;
+}
+
+.ms-gr-sicai__problems--danger {
+  background: var(--ms-sicai-danger-bg);
+  border-color: var(--ms-sicai-danger-border);
+}
+
+.ms-gr-sicai__problems--warning {
+  background: var(--ms-sicai-warning-bg);
+  border-color: var(--ms-sicai-warning-border);
+}
+
+.ms-gr-sicai__problems-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ms-gr-sicai__problems-title {
+  font-size: var(--ms-text-sm);
+  font-weight: var(--ms-fw-extrabold);
+}
+
+.ms-gr-sicai__problems--danger .ms-gr-sicai__problems-title {
+  color: var(--ms-contract-expired-text);
+}
+
+.ms-gr-sicai__problems--warning .ms-gr-sicai__problems-title {
+  color: var(--ms-contract-expiring-text);
+}
+
+.ms-gr-sicai__problems-km {
+  font-size: 12px;
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-text-secondary);
+}
+
+.ms-gr-sicai__problems-none {
+  margin: 0;
+  font-size: var(--ms-text-md);
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-brand-link-hover);
+}
+
+.ms-gr-sicai__problems-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ms-gr-sicai__problems-group-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--ms-text-md);
+  font-weight: var(--ms-fw-extrabold);
+}
+
+.ms-gr-sicai__problems-group-title .ms-gr-sicai__dot {
+  width: 9px;
+  height: 9px;
+}
+
+.ms-gr-sicai__problems-group-title--danger {
+  color: var(--ms-contract-expired-text);
+}
+
+.ms-gr-sicai__problems-group-title--warning {
+  color: var(--ms-contract-expiring-text);
+}
+
+.ms-gr-sicai__problem-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-left: 17px;
+}
+
+.ms-gr-sicai__problem-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  height: 28px;
+  padding: 0 10px;
+  border: var(--ms-border-width) solid;
+  border-radius: 14px;
+  background: var(--ms-surface-card);
+  font-size: 12px;
+  font-weight: var(--ms-fw-extrabold);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.ms-gr-sicai__problem-chip--danger {
+  border-color: var(--ms-sicai-danger-chip-border);
+  color: var(--ms-contract-expired-text);
+}
+
+.ms-gr-sicai__problem-chip--warning {
+  border-color: var(--ms-sicai-warning-chip-border);
+  color: var(--ms-contract-expiring-text);
+}
+
+.ms-gr-sicai__problem-route {
+  overflow: hidden;
+  font-weight: var(--ms-fw-semibold);
+  color: var(--ms-text-secondary);
+  text-overflow: ellipsis;
+}
+
+/* ---- Mappa ---- */
+.ms-gr-sicai-map {
+  --ms-gr-sicai-map-height: 640px;
+  overflow: hidden;
+}
+
+.ms-gr-sicai-map .ms-cai-map__canvas {
+  border-radius: 0;
+}
+
+.ms-gr-sicai-map__info,
+.ms-gr-sicai-map__legend,
+.ms-gr-sicai-map__reset {
+  position: absolute;
+  z-index: 1000;
+  border-radius: var(--ms-radius-lg);
+  background: var(--ms-map-overlay-surface);
+  box-shadow: var(--ms-shadow-map-overlay);
+}
+
+.ms-gr-sicai-map__info {
+  top: 12px;
+  left: 12px;
+  max-width: calc(100% - 80px);
+  padding: 8px 12px;
+  font-size: var(--ms-text-sm);
+  font-weight: var(--ms-fw-bold);
+}
+
+.ms-gr-sicai-map__reset {
+  top: 86px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: var(--ms-surface-card);
+  box-shadow: var(--ms-shadow-map-control);
+  cursor: pointer;
+}
+
+.ms-gr-sicai-map__reset svg {
+  fill: none;
+  stroke: var(--ms-text-strong);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ms-gr-sicai-map__legend {
+  bottom: 26px;
+  left: 12px;
+  display: flex;
+  gap: 24px;
+  padding: 10px 12px;
+}
+
+.ms-gr-sicai-map__legend-column {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.ms-gr-sicai-map__legend-title {
+  font-size: 11px;
+  font-weight: var(--ms-fw-extrabold);
+  color: var(--ms-text-secondary);
+}
+
+.ms-gr-sicai-map__legend-types {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 5px 14px;
+}
+
+.ms-gr-sicai-map__legend-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: var(--ms-fw-semibold);
+}
+
+/* Campione del tracciato 26×4: pieno, alternato (metà nel secondo verde), tratteggiato, punteggiato. */
+.ms-gr-sicai-map__swatch {
+  flex: none;
+  width: 22px;
+  height: 4px;
+  border-radius: 2px;
+}
+
+.ms-gr-sicai-map__swatch--alternate {
+  background: linear-gradient(90deg, var(--ms-sicai-line) 50%, var(--ms-sicai-line-alternate) 50%);
+}
+
+.ms-gr-sicai-map__swatch--difficulty {
+  background: var(--ms-sicai-line-difficulty);
+}
+
+.ms-gr-sicai-map__swatch--not-practicable {
+  background: repeating-linear-gradient(90deg, var(--ms-sicai-line-not-practicable) 0 6px, transparent 6px 10px);
+}
+
+.ms-gr-sicai-map__swatch--variant {
+  background: radial-gradient(circle, var(--ms-sicai-line) 2px, transparent 2.5px) 0 50% / 7px 4px repeat-x;
+}
+
+.ms-gr-sicai-map__type-icon,
+.ms-gr-sicai__type-icon {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--ms-radius-circle);
+}
+
+.ms-gr-sicai-map__type-icon svg,
+.ms-gr-sicai__type-icon svg {
+  width: 10px;
+  height: 10px;
+  fill: none;
+  stroke: var(--ms-surface-card);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ms-gr-sicai-map__type-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--ms-radius-circle);
+}
+
+.ms-gr-sicai-map__footer {
+  display: none;
+}
+
+/* ---- Elenchi ---- */
+.ms-gr-sicai__list {
+  overflow: hidden;
+}
+
+.ms-gr-sicai__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border-bottom: var(--ms-border-width) solid var(--ms-border-subtle);
+}
+
+.ms-gr-sicai__search {
+  width: 260px;
+  height: 34px;
+  padding: 0 12px;
+  border: var(--ms-border-width) solid var(--ms-border-default);
+  border-radius: var(--ms-radius-lg);
+  background: var(--ms-surface-card);
+  color: var(--ms-text-strong);
+  font-family: inherit;
+  font-size: var(--ms-text-sm);
+}
+
+.ms-gr-sicai__search:focus {
+  border-color: var(--ms-brand);
+  outline: 2px solid var(--ms-brand-focus-ring);
+  outline-offset: 0;
+}
+
+.ms-gr-sicai__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ms-gr-sicai__chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border: var(--ms-border-width) solid var(--ms-border-default);
+  border-radius: 16px;
+  background: var(--ms-surface-card);
+  color: var(--ms-text-strong);
+  font-family: inherit;
+  font-size: var(--ms-text-sm);
+  font-weight: var(--ms-fw-bold);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.ms-gr-sicai__chip.is-active {
+  border-color: var(--ms-brand);
+  background: var(--ms-chip-active-bg);
+  color: var(--ms-brand-link-hover);
+}
+
+.ms-gr-sicai__chip.is-empty:not(.is-active) {
+  color: var(--ms-text-faint-alt);
+}
+
+.ms-gr-sicai__chip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--ms-radius-circle);
+}
+
+.ms-gr-sicai__chip-count {
+  font-weight: var(--ms-fw-semibold);
+  color: var(--ms-text-muted);
+}
+
+.ms-gr-sicai__count {
+  font-size: 12px;
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-text-muted);
+}
+
+.ms-gr-sicai__table {
+  overflow-x: auto;
+}
+
+.ms-gr-sicai__table-head {
+  padding: 10px 20px;
+  border-bottom: var(--ms-border-width) solid var(--ms-border-subtle);
+  background: var(--ms-surface-hover-row);
+  color: var(--ms-text-secondary);
+  font-size: 12px;
+  font-weight: var(--ms-fw-extrabold);
+}
+
+.ms-gr-sicai__table-body {
+  max-height: 680px;
+  overflow-y: auto;
+}
+
+.ms-gr-sicai__points .ms-gr-sicai__table-body {
+  max-height: 720px;
+}
+
+.ms-gr-sicai__table-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 20px;
+  border-top: var(--ms-border-width) solid var(--ms-border-subtle);
+  color: var(--ms-text-secondary);
+  font-size: var(--ms-text-sm);
+  font-weight: var(--ms-fw-bold);
+}
+
+.ms-gr-sicai__table-foot--muted {
+  color: var(--ms-text-muted);
+  font-size: 12px;
+  font-weight: var(--ms-fw-regular);
+}
+
+.ms-gr-sicai__table-foot a {
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-brand);
+  text-decoration: none;
+}
+
+.ms-gr-sicai__foot-note {
+  font-weight: var(--ms-fw-semibold);
+  color: var(--ms-text-muted);
+}
+
+.ms-gr-sicai__none {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 48px 20px;
+  font-size: var(--ms-text-md);
+  color: var(--ms-text-secondary);
+  text-align: center;
+}
+
+/* Tappe: codice, partenza → arrivo, km, salita, discesa, difficoltà, percorribilità, punti vicini, freccia. */
+.ms-gr-sicai__stage-grid {
+  display: grid;
+  grid-template-columns: 84px minmax(200px, 1fr) 60px 72px 72px 70px 190px 86px 14px;
+  gap: 12px;
+  align-items: center;
+  min-width: 960px;
+}
+
+.ms-gr-sicai__stage-row {
+  padding: 10px 20px;
+  border-bottom: var(--ms-border-width) solid var(--ms-surface-muted);
+  color: var(--ms-text-strong);
+  font-size: var(--ms-text-md);
+  text-decoration: none;
+}
+
+.ms-gr-sicai__stage-row:hover {
+  background: var(--ms-trail-row-hover-bg);
+}
+
+.ms-gr-sicai__stage-row--variant {
+  background: var(--ms-surface-hover-row);
+}
+
+.ms-gr-sicai__stage-row--variant .ms-gr-sicai__code-cell {
+  padding-left: 14px;
+}
+
+.ms-gr-sicai__stage-row--critical {
+  background: var(--ms-sicai-danger-bg);
+  box-shadow: inset 3px 0 0 var(--ms-sicai-line-not-practicable);
+}
+
+.ms-gr-sicai__route-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ms-gr-sicai__route {
+  font-weight: var(--ms-fw-extrabold);
+  line-height: 1.3;
+}
+
+.ms-gr-sicai__variant {
+  font-size: 12px;
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-trail-shared-text);
+}
+
+.ms-gr-sicai__difficulty {
+  font-size: var(--ms-text-sm);
+  font-weight: var(--ms-fw-extrabold);
+}
+
+.ms-gr-sicai__pill {
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: var(--ms-fw-bold);
+  white-space: nowrap;
+}
+
+.ms-gr-sicai__pill--sm {
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+/* Punti di appoggio: icona, nome, comune, gestore, contatti, tappe vicine, rifugi.cai.it. */
+.ms-gr-sicai__point-grid {
+  display: grid;
+  grid-template-columns: 28px minmax(160px, 1fr) 130px 150px 190px 120px 150px;
+  gap: 14px;
+  align-items: center;
+  min-width: 1000px;
+}
+
+.ms-gr-sicai__group-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 1000px;
+  padding: 14px 20px 8px;
+  border-bottom: var(--ms-border-width) solid var(--ms-border-subtle);
+}
+
+.ms-gr-sicai__group-title {
+  font-size: var(--ms-text-md);
+  font-weight: var(--ms-fw-extrabold);
+}
+
+.ms-gr-sicai__group-count {
+  font-size: var(--ms-text-sm);
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-text-muted);
+}
+
+.ms-gr-sicai__point-row {
+  padding: 10px 20px;
+  border-bottom: var(--ms-border-width) solid var(--ms-surface-muted);
+}
+
+.ms-gr-sicai__point-row .ms-gr-sicai__type-icon {
+  width: 28px;
+  height: 28px;
+}
+
+.ms-gr-sicai__point-row .ms-gr-sicai__type-icon svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.2;
+}
+
+.ms-gr-sicai__point-name {
+  font-size: var(--ms-text-md);
+  font-weight: var(--ms-fw-extrabold);
+  line-height: 1.25;
+}
+
+.ms-gr-sicai__contacts {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  font-size: var(--ms-text-sm);
+}
+
+.ms-gr-sicai__website {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ms-gr-sicai__stage-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.ms-gr-sicai__stage-link {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 8px;
+  border: var(--ms-border-width) solid var(--ms-border-default);
+  border-radius: 12px;
+  color: var(--ms-brand);
+  font-size: 12px;
+  font-weight: var(--ms-fw-extrabold);
+  text-decoration: none;
+}
+
+.ms-gr-sicai__stage-link:hover {
+  border-color: var(--ms-brand);
+}
+
+.ms-gr-sicai__point-source {
+  text-align: right;
+}
+
+.ms-gr-sicai__stage-cards,
+.ms-gr-sicai__point-cards {
+  display: none;
+}
+
+/* ---- Nessun punto di appoggio ---- */
+.ms-gr-sicai__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.ms-gr-sicai__empty svg {
+  width: 40px;
+  height: 40px;
+  fill: none;
+  stroke: var(--ms-text-faint-alt);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ms-gr-sicai__empty-title {
+  max-width: 560px;
+  margin: 0;
+  font-size: 17px;
+  font-weight: var(--ms-fw-extrabold);
+}
+
+.ms-gr-sicai__empty-text {
+  max-width: 560px;
+  margin: 0;
+  font-size: var(--ms-text-md);
+  line-height: 1.5;
+  color: var(--ms-text-secondary);
+}
+
+.ms-gr-sicai__more {
+  height: 44px;
+  border: var(--ms-border-width) solid var(--ms-border-default);
+  border-radius: var(--ms-radius-card);
+  background: var(--ms-surface-card);
+  color: var(--ms-brand);
+  font-family: inherit;
+  font-size: var(--ms-text-md);
+  font-weight: var(--ms-fw-extrabold);
+  cursor: pointer;
+}
+
+/* Riepilogo su due righe sotto i 1280px di viewport (con la sidebar le cinque card non stanno). */
+@media (max-width: 1279.98px) {
+  .ms-gr-sicai__summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---- Mobile (design a 390px) ---- */
+@media (max-width: 639.98px) {
+  .ms-gr-sicai {
+    gap: 24px;
+  }
+
+  .ms-gr-sicai__desktop {
+    display: none;
+  }
+
+  .ms-gr-sicai__mobile {
+    display: initial;
+  }
+
+  .ms-gr-sicai__title {
+    font-size: 22px;
+  }
+
+  .ms-gr-sicai__subtitle {
+    font-size: var(--ms-text-md);
+  }
+
+  .ms-gr-sicai__block {
+    gap: 10px;
+  }
+
+  .ms-gr-sicai__block-title {
+    font-size: 16px;
+  }
+
+  .ms-gr-sicai__summary {
+    gap: 10px;
+  }
+
+  .ms-gr-sicai__kpis {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .ms-gr-sicai__kpi {
+    gap: 2px;
+    padding: 12px 14px;
+  }
+
+  .ms-gr-sicai__kpi-label {
+    font-size: 12px;
+  }
+
+  .ms-gr-sicai__kpi-value {
+    font-size: 24px;
+  }
+
+  .ms-gr-sicai__kpi-unit {
+    font-size: var(--ms-text-sm);
+  }
+
+  .ms-gr-sicai__kpi-note {
+    font-size: 11px;
+    line-height: 1.4;
+  }
+
+  .ms-gr-sicai__problems {
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .ms-gr-sicai__problems-group-title {
+    font-size: var(--ms-text-sm);
+  }
+
+  .ms-gr-sicai__problem-chips {
+    flex-direction: column;
+    padding-left: 0;
+  }
+
+  .ms-gr-sicai__problem-chip--danger {
+    min-height: 40px;
+    height: auto;
+    border-radius: var(--ms-radius-lg);
+    padding: 0 12px;
+    font-size: var(--ms-text-sm);
+  }
+
+  .ms-gr-sicai__problem-chip--danger .ms-gr-sicai__problem-route {
+    flex: 1;
+    white-space: normal;
+  }
+
+  .ms-gr-sicai__problem-chips--inline {
+    flex-direction: row;
+  }
+
+  .ms-gr-sicai__problem-chip--warning {
+    height: 36px;
+    padding: 0 12px;
+    border-radius: 18px;
+    font-size: var(--ms-text-sm);
+  }
+
+  .ms-gr-sicai-map {
+    --ms-gr-sicai-map-height: 340px;
+  }
+
+  .ms-gr-sicai-map__info,
+  .ms-gr-sicai-map__legend {
+    display: none;
+  }
+
+  .ms-gr-sicai-map__reset {
+    width: 40px;
+    height: 40px;
+    top: 100px;
+  }
+
+  .ms-gr-sicai-map__footer {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px 12px;
+    border-top: var(--ms-border-width) solid var(--ms-border-subtle);
+  }
+
+  .ms-gr-sicai-map__footer-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+  }
+
+  .ms-gr-sicai-map__footer .ms-gr-sicai-map__legend-item {
+    gap: 6px;
+    font-size: 11px;
+  }
+
+  /* Elenco: la card della tabella diventa solo la barra di ricerca e filtri, poi le card delle tappe. */
+  .ms-gr-sicai__list {
+    overflow: visible;
+    border: none;
+    background: none;
+  }
+
+  .ms-gr-sicai__list .ms-gr-sicai__table {
+    display: none;
+  }
+
+  .ms-gr-sicai__toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 0;
+    border-bottom: none;
+  }
+
+  .ms-gr-sicai__search {
+    width: 100%;
+    height: 44px;
+    font-size: var(--ms-text-md);
+  }
+
+  .ms-gr-sicai__chips {
+    flex-wrap: nowrap;
+    margin: 0 -16px;
+    padding: 0 16px 2px;
+    overflow-x: auto;
+  }
+
+  .ms-gr-sicai__chip {
+    flex: none;
+    height: 36px;
+    border-radius: 18px;
+  }
+
+  .ms-gr-sicai__count {
+    display: block;
+    margin-top: 10px;
+  }
+
+  .ms-gr-sicai__stage-cards,
+  .ms-gr-sicai__point-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .ms-gr-sicai__stage-card {
+    display: flex;
+    gap: 12px;
+    padding: 12px;
+    color: var(--ms-text-strong);
+    text-decoration: none;
+  }
+
+  .ms-gr-sicai__stage-card--variant {
+    margin-left: 14px;
+  }
+
+  .ms-gr-sicai__stage-card--critical {
+    border-color: var(--ms-sicai-danger-chip-border);
+    background: var(--ms-sicai-danger-bg);
+  }
+
+  .ms-gr-sicai__stage-card .ms-cai-trail-sign {
+    min-width: 54px;
+  }
+
+  .ms-gr-sicai__stage-card-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+  }
+
+  .ms-gr-sicai__stage-card-route {
+    font-size: var(--ms-text-lg);
+    font-weight: var(--ms-fw-extrabold);
+    line-height: 1.25;
+  }
+
+  .ms-gr-sicai__stage-card-facts {
+    font-size: 12px;
+    color: var(--ms-text-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ms-gr-sicai__stage-card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .ms-gr-sicai__near {
+    font-size: 12px;
+    font-weight: var(--ms-fw-bold);
+  }
+
+  .ms-gr-sicai__stage-card .ms-gr-sicai__chevron {
+    align-self: center;
+    font-size: 22px;
+  }
+
+  .ms-gr-sicai__point-card {
+    display: flex;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .ms-gr-sicai__type-icon--lg {
+    width: 32px;
+    height: 32px;
+  }
+
+  .ms-gr-sicai__type-icon--lg svg {
+    width: 15px;
+    height: 15px;
+    stroke-width: 2.2;
+  }
+
+  .ms-gr-sicai__point-card-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  .ms-gr-sicai__point-card-body .ms-gr-sicai__point-name {
+    font-size: var(--ms-text-lg);
+  }
+
+  .ms-gr-sicai__point-card-contacts {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    font-size: var(--ms-text-sm);
+  }
+
+  .ms-gr-sicai__point-card .ms-gr-sicai__stage-links {
+    gap: 6px;
+    margin-top: 2px;
+  }
+
+  .ms-gr-sicai__point-card .ms-gr-sicai__stage-link {
+    height: 28px;
+    padding: 0 9px;
+    border-radius: 14px;
+  }
+
+  .ms-gr-sicai__link--tap {
+    display: flex;
+    align-items: center;
+    min-height: 32px;
+  }
+
+  .ms-gr-sicai__empty {
+    padding: 28px 16px;
+    gap: 8px;
+  }
+
+  .ms-gr-sicai__empty svg {
+    width: 32px;
+    height: 32px;
+  }
+
+  .ms-gr-sicai__empty-title {
+    font-size: var(--ms-text-lg);
+  }
+
+  .ms-gr-sicai__empty-text {
+    font-size: var(--ms-text-sm);
+  }
+}

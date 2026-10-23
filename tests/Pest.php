@@ -11,8 +11,11 @@ use App\Domain\CaiDirectory\Models\CaiDocument;
 use App\Domain\CaiDirectory\Models\CaiHut;
 use App\Domain\CaiDirectory\Models\CaiRuntsRegistration;
 use App\Domain\CaiDirectory\Models\CaiSection;
+use App\Domain\CaiDirectory\Models\CaiSicaiRestPoint;
+use App\Domain\CaiDirectory\Models\CaiSicaiStage;
 use App\Domain\CaiDirectory\Models\CaiTrail;
 use App\Domain\CaiDirectory\Support\CaiGeoJsonBounds;
+use App\Domain\CaiDirectory\Support\CaiSicaiStageCode;
 use App\Domain\Identity\Enums\Permission as PermissionEnum;
 use App\Domain\Identity\Enums\UserRole;
 use App\Domain\Identity\Models\User;
@@ -865,4 +868,59 @@ function writeSicaiRestPointsSnapshot(string $sqlite, array $details): void
     foreach ($details as $detail) {
         $insert->execute([$detail['id'], json_encode($detail)]);
     }
+}
+
+/**
+ * Tappa SICAI di fixture con il suo sentiero; `$code` come nel nome OSM ("E03", "D18S") o un `ref` senza numero ("AV16",
+ * con `$letter`).
+ *
+ * @param  array<string, mixed>  $trail
+ */
+function grSicaiStage(string $code, array $trail = [], ?string $letter = null): CaiSicaiStage
+{
+    $parsed = $letter === null
+        ? CaiSicaiStageCode::parse('Sentiero Italia - Tappa '.$code, null, null, null)
+        : CaiSicaiStageCode::parse(null, null, "Sentiero Italia - Liguria {$letter}00", $code);
+    $sentiero = caiTrail(array_merge(['name' => 'Sentiero Italia - Tappa '.$code], $trail));
+
+    return CaiSicaiStage::create([
+        'cai_trail_id' => $sentiero->id,
+        'itinerary_name' => 'Sentiero Italia',
+        'letter' => $parsed->letter,
+        'number' => $parsed->number,
+        'variant' => $parsed->variant,
+        'code' => $parsed->code,
+        'sort_key' => $parsed->sortKey,
+    ]);
+}
+
+/**
+ * Punto di appoggio di fixture, vicino (pivot) alle tappe indicate; `$attributes` sovrascrive le colonne
+ * (`municipality`, `operator`, `phone`, `website`, `cai_hut_id_cai`, …).
+ *
+ * @param  list<CaiSicaiStage>  $nearStages
+ * @param  array<string, mixed>  $attributes
+ */
+function grSicaiRestPoint(int $id, string $name, ?string $region, ?string $type = 'Rifugio', array $nearStages = [], array $attributes = []): CaiSicaiRestPoint
+{
+    $point = CaiSicaiRestPoint::create(array_merge([
+        'id' => $id,
+        'name' => $name,
+        'type' => $type,
+        'latitude' => 44.1,
+        'longitude' => 7.5,
+        'region' => $region,
+        'fields' => ['type' => $type],
+    ], $attributes));
+
+    foreach (array_values($nearStages) as $position => $stage) {
+        DB::table('cai_sicai_stage_rest_point')->insert([
+            'cai_trail_id' => $stage->cai_trail_id,
+            'rest_point_id' => $id,
+            'distance_m' => 100,
+            'position' => $position * 1000,
+        ]);
+    }
+
+    return $point;
 }

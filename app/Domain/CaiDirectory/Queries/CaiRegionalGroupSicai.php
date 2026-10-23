@@ -7,6 +7,8 @@ namespace App\Domain\CaiDirectory\Queries;
 use App\Domain\CaiDirectory\Enums\CaiTrailPracticability;
 use App\Domain\CaiDirectory\Models\CaiSicaiRestPoint;
 use App\Domain\CaiDirectory\Models\CaiSicaiStage;
+use App\Domain\CaiDirectory\Models\CaiTrail;
+use App\Domain\CaiDirectory\Support\CaiGeoJsonSimplifier;
 use App\Domain\CaiDirectory\Support\CaiOsm2caiRegionName;
 use App\Domain\CaiDirectory\Support\CaiRegionalGroupSicaiData;
 use App\Domain\CaiDirectory\Support\CaiRegionalGroupSicaiRestPointRow;
@@ -124,6 +126,33 @@ final class CaiRegionalGroupSicai
         }
 
         return $rows;
+    }
+
+    /**
+     * Tracciati delle tappe per la mappa del GR (US-1095), semplificati per lo zoom dato ({@see CaiGeoJsonSimplifier}:
+     * le 82 tappe del Piemonte passano da ~940 KB a ~240 KB a zoom 12). Una query; le tappe senza geometria mancano.
+     *
+     * @param  list<CaiRegionalGroupSicaiStageRow>  $rows
+     * @return array<int, array<string, mixed>> id del sentiero → GeoJSON
+     */
+    public static function geometries(array $rows, int $zoom): array
+    {
+        $ids = array_map(fn (CaiRegionalGroupSicaiStageRow $row): int => $row->stage->cai_trail_id, $rows);
+
+        if ($ids === []) {
+            return [];
+        }
+
+        $tolerance = CaiGeoJsonSimplifier::toleranceForZoom($zoom);
+        $geometries = [];
+
+        foreach (CaiTrail::query()->whereIn('id', $ids)->whereNotNull('geometry')->get(['id', 'geometry']) as $trail) {
+            if ($trail->geometry !== null && $trail->geometry !== []) {
+                $geometries[$trail->id] = CaiGeoJsonSimplifier::simplify($trail->geometry, $tolerance);
+            }
+        }
+
+        return $geometries;
     }
 
     /**

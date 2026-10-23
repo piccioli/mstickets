@@ -44,6 +44,9 @@ class CaiTrailDetail extends Page
     /** `?da=` della scheda aperta dai sentieri di una Sezione visti dal GR (con `?codice=`). */
     public const FROM_GROUP_SECTION = 'sezione-gr';
 
+    /** `?da=` della scheda aperta da "Tappe SICAI" del GR ({@see RegionalGroupSicaiStages}). */
+    public const FROM_SICAI = 'sicai';
+
     /** Inquadratura massima del tracciato (il design apre a zoom 15). */
     public const MAP_FIT_MAX_ZOOM = 15;
 

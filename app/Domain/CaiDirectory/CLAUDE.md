@@ -689,3 +689,16 @@ Operativo (ordine dei comandi e vincolo di spazio remoto): `deploy/CLAUDE.md` §
 - Punti del GR = `region` della fonte (confronto `CaiOsm2caiRegionName::toRegion`, la fonte scrive "Friuli Venezia Giulia")
   **oppure** vicini a una tappa del GR; gruppi per `type` della fonte (ordine del design, poi alfabetico, vuoto → "Altro").
   Non si carica `fields` (dati personali del gestore).
+
+## Pagina "Tappe SICAI del GR" (`RegionalGroupSicaiStages`, US-1095)
+
+- Mappa nel widget figlio `RegionalGroupSicaiStagesMap` (come i sentieri del GR): tracciati da
+  `CaiRegionalGroupSicai::geometries($rows, 12)` (semplificati, Piemonte ~240 KB invece di ~940 KB), linee da
+  `CaiMapLine::forSicaiStage()`, punti da `CaiMapMarker::forSicaiRestPoint()` con `cluster` attivo: senza, a zoom regionale
+  i marker coprono tutto il tracciato.
+- `x-cai.map` accetta ora `dash` sulle linee (tratteggio SVG) e `icon` sui marker (path SVG al posto della lettera); entrambi
+  entrano nel payload solo se valorizzati, così le mappe precedenti non cambiano `wire:key`.
+- Aspetto dei tipi di punto (colore, icona, plurale, chiave URL): `Support\CaiSicaiRestPointType`, tipo = testo libero
+  della fonte ("Camping" → "Campeggio"). Link "Vedi su rifugi.cai.it": `CaiSicaiRestPoint::hutUrl()`.
+- Clic su una tappa → `CaiTrailDetail` con `?da=sicai` (`CaiTrailDetail::FROM_SICAI`); il ritorno è di US-1096.
+- Helper di test `grSicaiStage()` / `grSicaiRestPoint()` in `tests/Pest.php`.
