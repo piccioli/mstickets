@@ -486,8 +486,8 @@
         "Typecheck passes"
       ],
       "priority": 28,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Il codice NON è in hiking_routes.name ma nei tag OSM name (451) / description (42); 32 AVxx con codice = ref. Datapack locale rigenerato (525 tappe): rifare bin/push-cai-datapack prima del deploy UAT."
     },
     {
       "id": "US-1092",

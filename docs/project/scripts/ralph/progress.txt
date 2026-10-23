@@ -650,3 +650,36 @@ Fase 10.4–10.9 (run unico): rifugi, sentieri, tappe SICAI. PRD in docs/project
   - Nell'e2e, dopo il login via `Login` serve `flushSession()` prima di `actingAs()` un secondo utente (la sessione
     conserva l'hash della password del primo).
 ---
+
+## 2026-10-23 - US-1091
+- `database/osm2cai/extract.sql` produce `sicai_stages` (sentieri degli 18 itinerari "Sentiero Italia - … X00" via
+  `hiking_route_itinerary`, JOIN su `trails`): `trail_id`, `itinerary_name`, tag OSM `name` e `description`, `ref`. Lo script
+  esporta l'ottavo CSV; `CaiOsm2caiExtractWriter` scrive `snap_osm2cai_sicai_stages` (`trail_id`, `itinerary_name`, `letter`,
+  `number`, `variant`, `code`, `sort_key`) ricavando il codice in PHP con `Support\CaiSicaiStageCode::parse()` (regex del
+  PRD sul nome OSM, poi sulla descrizione; altrimenti lettera dall'itinerario `X00`, codice = `ref` o "—"). Riepilogo del
+  comando: "Tappe SICAI: N (senza numero nel nome: M, senza lettera: K)".
+- Tabella `cai_sicai_stages` (PK/FK `cai_trail_id` in cascata su `cai_trails`), modello `CaiSicaiStage`,
+  `CaiTrail::sicaiStage()`, `CaiSicaiStagePolicy` di sola lettura (solo staff per ora), `Import\CaiSicaiStagesImporter`
+  (riga `snapshot_tappe_sicai`, dopo sentieri e territori): crea/aggiorna/elimina, idempotente, dry-run, orfani con avviso,
+  tabella assente → avviso.
+- **Run reale** (dump di settembre già caricato in un container di ispezione, `extract.sql` ~1 min 50 s, poi
+  `cai:import-osm2cai-extract` sul datapack locale; backup in /tmp/runts-cai.backup-us1091.sqlite): 525 tappe, 32 senza
+  numero (tutte AVxx liguri), 0 senza lettera; altre tabelle invariate (26.056 sentieri, 85.561 legami). Dev DB migrato e
+  importato: creati 525, secondo run saltati 525; codici tutti distinti. **Da rifare `bin/push-cai-datapack` prima del deploy UAT.**
+- Verifica stati: 515 in stato 4, 9 in 3, 1 in 2, nessuna `deleted_on_osm` → tutte già in `cai_trails`, nessuna modifica al
+  filtro dei sentieri necessaria.
+- Files: database/osm2cai/extract.sql, bin/update-osm2cai-datapack, database/migrations/2026_10_23_140000_create_cai_sicai_stages_table.php,
+  app/Domain/CaiDirectory/{Support/CaiSicaiStageCode,Models/CaiSicaiStage,Models/CaiTrail,Policies/CaiSicaiStagePolicy,
+  Import/CaiSicaiStagesImporter,Import/CaiDatapackImporter,Import/CaiOsm2caiExtractWriter,Import/CaiOsm2caiExtractSummary}.php,
+  app/Console/Commands/CaiImportOsm2caiExtractCommand.php, app/Domain/CaiDirectory/CLAUDE.md, tests/Pest.php,
+  tests/Fixtures/osm2cai/sicai_stages.csv, tests/Unit/Domain/CaiDirectory/Support/CaiSicaiStageCodeTest.php,
+  tests/Feature/Console/CaiSicaiStagesImportTest.php.
+- **Learnings for future iterations:**
+  - **Il PRD sbaglia la fonte del codice**: `hiking_routes.name` è "SI - Partenza - Arrivo" (0 match); il codice è nel tag OSM
+    `osmfeatures_data.properties.name` o in `osm_tags.description`. Il tag `stage` esiste (482) ma in un caso contraddice il nome.
+  - La lettera del codice non coincide sempre con l'itinerario: R 21 tappe (itinerario Puglia 18), T 8 (Basilicata 11). Per
+    US-1094 contare per `letter` della tappa, non per itinerario; per Basilicata attendersi 8 tappe.
+  - Lettera G: G01, G28V, G34 numerate + 32 AVxx in fondo (ordinate per codice grazie a `sort_key` "G999 AVnn").
+  - Per ispezionare il dump senza rifare lo script: container PostGIS a mano + `sed '/^\\(un)?restrict /d'`, ~10 min di load;
+    poi `extract.sql` + `\copy` + `cai:import-osm2cai-extract` equivalgono allo script. Rimuovere il container alla fine.
+---
