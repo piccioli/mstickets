@@ -815,3 +815,54 @@ function grTrailsFixture(): void
         'territory_type' => $r[0], 'territory_id' => $r[1], 'status' => $r[2], 'km' => $r[3], 'present_routes' => $r[4],
     ], $km));
 }
+
+/**
+ * Dettaglio di un punto di appoggio SICAI nella forma dell'API rifugi.cai.it (`GET /api/v1/sicaiRestPoints/{id}`,
+ * US-1092); `$fields` sovrascrive/aggiunge campi della lista `fields`.
+ *
+ * @param  array<string, mixed>  $fields
+ * @return array<string, mixed>
+ */
+function sicaiRestPointApiDetail(int $id, string $title, array $fields = [], ?int $shelterId = null): array
+{
+    $fields += [
+        'type' => 'Rifugio',
+        'region_geo' => 'Lombardia',
+        'municipality_geo' => 'Ponte di Legno',
+        'address_street' => 'loc. Conca del Montozzo',
+        'address_number' => '',
+        'operator' => 'Michele Carganico - CAI Brescia',
+        'website' => 'https://www.facebook.com/rifugiobozzi/',
+        'email_management_property' => 'rifugiobozzi@example.test',
+        'mobilePhone_management_property' => '339 0000000',
+        'status' => '1',
+        'stages' => '',
+    ];
+
+    return [
+        'id' => $id,
+        'title' => $title,
+        'slug' => str($title)->slug()->value(),
+        'geo' => ['type' => 'Point', 'coordinates' => [10.569491, 46.303185]],
+        'shelter_id' => $shelterId,
+        'updated_at' => '2025-05-16T08:18:42.000000Z',
+        'fields' => collect($fields)->map(fn ($value, $name): array => ['name' => $name, 'value' => $value, 'data' => null])->values()->all(),
+    ];
+}
+
+/**
+ * Aggiunge (o riscrive) `snap_cai_sicai_rest_points` con i dettagli indicati in un datapack di {@see makeHutsDatapack()}.
+ *
+ * @param  list<array<string, mixed>>  $details
+ */
+function writeSicaiRestPointsSnapshot(string $sqlite, array $details): void
+{
+    $pdo = new PDO('sqlite:'.$sqlite);
+    $pdo->exec('DROP TABLE IF EXISTS snap_cai_sicai_rest_points');
+    $pdo->exec('CREATE TABLE snap_cai_sicai_rest_points (id INTEGER PRIMARY KEY, payload TEXT NOT NULL)');
+    $insert = $pdo->prepare('INSERT INTO snap_cai_sicai_rest_points (id, payload) VALUES (?, ?)');
+
+    foreach ($details as $detail) {
+        $insert->execute([$detail['id'], json_encode($detail)]);
+    }
+}

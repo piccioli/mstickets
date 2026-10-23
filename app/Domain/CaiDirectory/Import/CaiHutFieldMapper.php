@@ -142,7 +142,7 @@ final class CaiHutFieldMapper
      * @param  array<string, mixed>  $detail
      * @return array<string, mixed>
      */
-    private static function fieldsOf(array $detail): array
+    public static function fieldsOf(array $detail): array
     {
         $fields = [];
 
@@ -159,12 +159,12 @@ final class CaiHutFieldMapper
         return $fields;
     }
 
-    private static function coordinate(mixed $value): ?float
+    public static function coordinate(mixed $value): ?float
     {
         return is_numeric($value) && abs((float) $value) < 1000 ? round((float) $value, 7) : null;
     }
 
-    private static function timestamp(mixed $value): ?string
+    public static function timestamp(mixed $value): ?string
     {
         $text = self::text($value);
 

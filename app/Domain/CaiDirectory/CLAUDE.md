@@ -638,3 +638,25 @@ Operativo (ordine dei comandi e vincolo di spazio remoto): `deploy/CLAUDE.md` §
   elimina per `cai_trail_id`, FK in cascata su `cai_trails`; tappe di sentieri non importati → avviso; tabella assente →
   avviso, tappe intatte. Modello `CaiSicaiStage` (`CaiTrail::sicaiStage()`), `CaiSicaiStagePolicy` di sola lettura
   (per ora solo staff: il GR per lettera arriva con US-1094/1096).
+
+## Punti di appoggio SICAI (`cai_sicai_rest_points`, Fase 10.9, US-1092)
+
+- **Fonte**: API rifugi.cai.it, `GET /api/v1/sicaiRestPoints?page=N` (15 per pagina, `per_page` ignorato; ott. 2026: 307
+  punti, 21 pagine) + dettaglio `/sicaiRestPoints/{id}` (stessa forma dei rifugi: `geo` Point, lista `fields`).
+- **Download**: comando gemello `cai:fetch-sicai-rest-points [--datapack=] [--dry-run]` → `Import\CaiSicaiRestPointsFetcher`
+  → `snap_cai_sicai_rest_points` (`id`, `payload` grezzo). Logica comune a `CaiHutsFetcher` in `Import\CaiRifugiApiFetcher`
+  (astratta: `table()`/`listPath()`/`idKey()`/`label()`/`listQuery()`): stessa robustezza, tutto o niente. Comando separato
+  perché rifugi (~770) + punti (~330) superano le 1000 richieste della finestra del rate limit.
+- **`shelter_id` è l'`id` interno del rifugio nella fonte, NON `id_cai`** (`/shelters/163` → 404; il rifugio ha `id` 163,
+  `id_cai` 921600507). L'importer lo traduce con `json_extract(payload, '$.id')` di `snap_cai_huts` e lo tiene solo se il
+  rifugio è in `cai_huts` (FK `cai_hut_id_cai` → `cai_huts`, `nullOnDelete`); altrimenti `null` con avviso. 53/53 collegati.
+- **Il PRD dice che `stages` è sempre vuoto: falso**. 294/307 punti hanno in `fields.stages` (dal `data`, non dal `value`)
+  la lista dei codici, es. `["SI E03","SI E04"]`, `["SI C01","SI D30S","SI D38N"]`. Resta in `fields`; la vicinanza
+  geometrica di US-1093 è comunque la regola del committente.
+- Colonne di testo libero (`address`, `operator`, `website`, `email`, `phone`) sono `text`: un `website` reale è un link
+  "safelinks" di ~350 caratteri. `phone` = cellulare, altrimenti fisso. `fields` contiene anche dati del gestore (nome,
+  codice fiscale, PEC): non mostrarli nelle pagine.
+- **Import** `Import\CaiSicaiRestPointsImporter` (riga `snapshot_punti_appoggio_sicai`), subito dopo i rifugi, in una
+  transazione: crea/aggiorna/elimina, idempotente; senza tabella nessuna riga di risultato e punti intatti. Mapper
+  `CaiSicaiRestPointFieldMapper` (riusa gli helper pubblici di `CaiHutFieldMapper`). Modello `CaiSicaiRestPoint`
+  (`hut()`), `CaiSicaiRestPointPolicy` di sola lettura (solo staff, il GR con US-1094/1095).

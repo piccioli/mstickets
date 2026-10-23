@@ -45,6 +45,7 @@ final class CaiDatapackImporter
         private readonly CaiManualBilanciImporter $manualBilanciImporter,
         private readonly CaiSnapshotImporter $snapshotImporter,
         private readonly CaiHutsImporter $hutsImporter,
+        private readonly CaiSicaiRestPointsImporter $sicaiRestPointsImporter,
         private readonly CaiTrailsImporter $trailsImporter,
         private readonly CaiTrailTerritoriesImporter $trailTerritoriesImporter,
         private readonly CaiSicaiStagesImporter $sicaiStagesImporter,
@@ -126,6 +127,13 @@ final class CaiDatapackImporter
 
                 if ($huts !== null) {
                     $results['snapshot_rifugi'] = $huts;
+                }
+
+                // Dopo i rifugi: il punto di appoggio si collega a un rifugio di `cai_huts`.
+                $restPoints = $this->sicaiRestPointsImporter->import($connection, $dryRun);
+
+                if ($restPoints !== null) {
+                    $results[CaiSicaiRestPointsImporter::RESULT_KEY] = $restPoints;
                 }
 
                 $results += $this->trailsImporter->import($connection, $dryRun);
