@@ -675,3 +675,17 @@ Operativo (ordine dei comandi e vincolo di spazio remoto): `deploy/CLAUDE.md` §
   PRIMA del calcolo (il conteggio `deleted` del calcolo conta solo i punti che si sono allontanati).
 - Controllo incrociato con `fields.stages` (ott. 2026): 405/489 codici dichiarati dalla fonte cadono entro 1,5 km; gli altri
   sono punti di fondovalle più lontani. 43 legami geometrici non sono dichiarati dalla fonte. La regola resta geometrica.
+
+## Tappe e punti di appoggio di un GR (`Queries\CaiRegionalGroupSicai`, Fase 10.9, US-1094)
+
+- `CaiRegionalGroupSicai::forRegion($region)` → `Support\CaiRegionalGroupSicaiData`; tappe per lettera da
+  `Region::sicaiLetters()` (L/N/C condivise: Toscana ed Emilia-Romagna, Umbria e Marche vedono le stesse tappe), ordine
+  `sort_key`. Le righe (`CaiRegionalGroupSicaiStageRow`) hanno il sentiero senza geometria: per la mappa caricarla a parte.
+- **Variante** = tappa con lo stesso `letter`+`number` di una precedente (non "ha un suffisso"): in Lombardia/Trentino i
+  tratti N/S (D10N/D10S) non hanno un codice "puro", la prima è la principale. Km/dislivelli del riepilogo solo sulle
+  principali; non percorribili/con difficoltà includono le varianti.
+- `ascent`/`descent` di osm2cai ci sono solo per 40 tappe su 525: mostrare il dislivello con `mainWithAscentCount`, mai
+  come se fosse completo.
+- Punti del GR = `region` della fonte (confronto `CaiOsm2caiRegionName::toRegion`, la fonte scrive "Friuli Venezia Giulia")
+  **oppure** vicini a una tappa del GR; gruppi per `type` della fonte (ordine del design, poi alfabetico, vuoto → "Altro").
+  Non si carica `fields` (dati personali del gestore).
