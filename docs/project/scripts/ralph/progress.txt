@@ -94,3 +94,17 @@ Fase 10.4–10.9 (run unico): rifugi, sentieri, tappe SICAI. PRD in docs/project
   - Test Livewire: dopo `call()`/`set()` gli assert girano sul JSON della risposta (non ASCII → `\u00..`): fixture ASCII se si riasserisce dopo un update. Togliere `<!--[if BLOCK]>` prima di regex sull'HTML.
   - Playwright: marker sovrapposti intercettano il clic sullo span interno → cliccare `.leaflet-marker-icon` con `force: true`.
 ---
+
+## 2026-10-23 - US-1035
+- Pagina `CaiHutDetail` (slug `rifugi/{idCai}`, fuori navigazione) come nel design §2: testata con foto (o segnaposto "Nessuna foto disponibile su rifugi.cai.it"), tipo, stato (testo grezzo se sconosciuto, es. "Rudere"), alias, quota; mappa `x-cai.map` con un marker + coordinate WGS84; "Dove si trova"; "Ospitalità e servizi" (posti, 15 servizi Sì/No/—); "Contatti" con link `tel:`/`mailto:`/URL e orari; fonte "Vedi su rifugi.cai.it ↗" (`/shelters/{id_cai}`) e "Ultimo aggiornamento del dato"; "Gestione" (gestore, contratto con scadenza rossa/ambra, canone, proprietà, CIN, certificazioni) solo se `viewManagement`.
+- Accesso: `canAccess()` staff `CaiDirectoryView` o customer Sezione/GR; `mount()` → `CaiHutPolicy::view` (403 con id di altri, 404 con id inesistente/non numerico). Link di ritorno: Sezione "← Rifugi di Sezione", GR o `?da=gr` "← Rifugi del GR", staff → scheda Sezione della Resource.
+- `SectionHuts::hutUrl()` ora punta alla scheda (riga e popup "Apri scheda →").
+- Formattazione in `Support\CaiHutSheet`, scadenza in `Enums\CaiHutContractStatus` (soglia 183 giorni, "Scaduto da N mesi/giorni", "Scade oggi"). Token nuovi `--ms-hero-*`, `--ms-value-missing`, `--ms-flag-unknown-icon`, `--ms-management-surface`, `--ms-contract-expired-*`/`-expiring-*` (in `docs/design-system.md`).
+- Verificato in browser (Playwright, utenti di prova poi cancellati, collegamento SEZ. VARALLO 9212002 → user 391 ripristinato): GNIFETTI GIOVANNI (custodito completo, contratto in scadenza, utente Sezione) desktop/mobile; ALPE PRIMALPIA (bivacco senza foto, molti "—", nessun gestore) e BOZANO LORENZO (contratto scaduto da 6 mesi) da staff, desktop e mobile; utente Sezione su rifugio di altra Sezione → 403; clic riga dell'elenco → scheda. Nessun errore JS, nessun overflow orizzontale a 390px.
+- File: `app/Filament/Pages/{CaiHutDetail,SectionHuts}.php`, `app/Domain/CaiDirectory/{Support/CaiHutSheet,Enums/CaiHutContractStatus}.php`, `resources/views/filament/pages/cai-hut-detail.blade.php`, `resources/css/filament/admin/{cai-hut-detail.css,theme.css}`, `resources/css/theme.css`, `docs/design-system.md`, `app/Domain/CaiDirectory/CLAUDE.md`, test `tests/Feature/Filament/Pages/CaiHutDetailTest.php`, `tests/Unit/Domain/CaiDirectory/Support/CaiHutSheetTest.php`.
+- **Learnings for future iterations:**
+  - Le 8 certificazioni del design non esistono tutte nella fonte: usate le chiavi sì/no reali (`iso14001`, `photovoltaic`, `powerGenerator`, `hydroelectric`, `recycling`, `oilSeparator`, `rain_water`, `greenCertification`).
+  - Dati reali: 107 contratti scaduti e 18 in scadenza al 23/10/2026; `possession_type` del gestore spesso vuoto → ripiego su `property.possession_type`; social quasi sempre URL completi; un periodo di apertura può essere vuoto (niente tipi né date) e va saltato.
+  - Il login Filament ha un rate limit: in Playwright un login per utente e poi più pagine nello stesso contesto (cambiando viewport), non un login per screenshot.
+  - Gestione "nascosta" non testabile con un utente reale finché `viewManagement` = `view`: `Gate::before` nel test.
+---
