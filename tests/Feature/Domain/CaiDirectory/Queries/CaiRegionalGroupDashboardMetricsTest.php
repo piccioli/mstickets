@@ -66,8 +66,60 @@ test('a region without sections has everything null', function (): void {
         ->and($data->incomeStatement)->toBeNull()
         ->and($data->balanceSheet)->toBeNull()
         ->and($data->huts)->toBeNull()
+        ->and($data->hutsSectionsCount)->toBeNull()
         ->and($data->trailsKm)->toBeNull()
         ->and($data->sicaiStages)->toBeNull();
+});
+
+test('huts are those of the sections of the group plus those owned by the GR', function (): void {
+    caiSection(['codice_cai' => '9226001', 'region' => 'TOSCANA']);
+    caiSection(['codice_cai' => '9226002', 'region' => 'TOSCANA']);
+    caiSection(['codice_cai' => '9226003', 'region' => 'TOSCANA']);
+    caiHut(['branch_code' => '9226001']);
+    caiHut(['branch_code' => '9226001']);
+    caiHut(['branch_code' => '9226003', 'status' => null]);
+    caiHut(['branch_code' => '9500010', 'branch_name' => 'gr toscana']);
+    caiHut(['branch_code' => '9500046', 'branch_name' => 'GR SICILIA']);
+    caiHut(['branch_code' => '9216001']);
+    caiHut(['branch_code' => null]);
+
+    $data = CaiRegionalGroupDashboardMetrics::forRegion(Region::Toscana);
+
+    expect($data->huts)->toBe(4)
+        ->and($data->hutsSectionsCount)->toBe(2);
+});
+
+test('a group without huts has 0 huts and 0 sections with huts, never null', function (): void {
+    caiSection(['codice_cai' => '9226001', 'region' => 'TOSCANA']);
+    caiHut(['branch_code' => '9216001']);
+
+    $data = CaiRegionalGroupDashboardMetrics::forRegion(Region::Toscana);
+
+    expect($data->huts)->toBe(0)
+        ->and($data->hutsSectionsCount)->toBe(0);
+});
+
+test('the huts owned by the GR do not count as a section with huts', function (): void {
+    caiSection(['codice_cai' => '9233001', 'region' => 'SICILIA']);
+    caiHut(['branch_code' => '9500046', 'branch_name' => 'GR SICILIA']);
+
+    $data = CaiRegionalGroupDashboardMetrics::forRegion(Region::Sicilia);
+
+    expect($data->huts)->toBe(1)
+        ->and($data->hutsSectionsCount)->toBe(0);
+});
+
+test('the huts of the group are counted with a single query', function (): void {
+    foreach (range(1, 5) as $i) {
+        caiSection(['codice_cai' => '922600'.$i, 'region' => 'TOSCANA']);
+        caiHut(['branch_code' => '922600'.$i]);
+    }
+
+    DB::enableQueryLog();
+    CaiRegionalGroupDashboardMetrics::forRegion(Region::Toscana);
+    $hutQueries = collect(DB::getQueryLog())->filter(fn (array $q): bool => str_contains($q['query'], 'cai_huts'));
+
+    expect($hutQueries)->toHaveCount(1);
 });
 
 test('members are the sum of the sections that have them', function (): void {
@@ -196,4 +248,47 @@ test('the statements of all the sections are loaded with a single query', functi
         ->filter(fn (array $q): bool => str_contains($q['query'], 'cai_financial_statements'));
 
     expect($statementQueries)->toHaveCount(1);
+});
+
+test('trails are the km in the regional territory, including trails without a section', function (): void {
+    grTrailsFixture();
+
+    expect(CaiRegionalGroupDashboardMetrics::forRegion(Region::Lombardia)->trailsKm)->toBe(30.7)
+        ->and(CaiRegionalGroupDashboardMetrics::forRegion(Region::Molise)->trailsKm)->toBe(7.0);
+});
+
+test('a region missing from the trails data has 0 km, never null', function (): void {
+    grTrailsFixture();
+
+    expect(CaiRegionalGroupDashboardMetrics::forRegion(Region::Piemonte)->trailsKm)->toBe(0.0);
+});
+
+test('a region known to the trails data but without km has 0 km', function (): void {
+    caiSection(['codice_cai' => '9300001', 'region' => 'LOMBARDIA']);
+    DB::table('cai_trail_regions')->insert(['id' => 1, 'name' => 'Lombardia', 'region_key' => 'lombardia']);
+
+    expect(CaiRegionalGroupDashboardMetrics::forRegion(Region::Lombardia)->trailsKm)->toBe(0.0);
+});
+
+test('SICAI stages are those of the letters of the region, with the km of the main stages', function (): void {
+    caiSection(['codice_cai' => '9226001', 'region' => 'TOSCANA']);
+    grSicaiStage('L01', ['length_km' => 12.25]);
+    grSicaiStage('L01S', ['length_km' => 4]);
+    grSicaiStage('L02', ['length_km' => 10.5]);
+    grSicaiStage('E01', ['length_km' => 30]);
+
+    $data = CaiRegionalGroupDashboardMetrics::forRegion(Region::Toscana);
+
+    expect($data->sicaiStages)->toBe(3)
+        ->and($data->sicaiStagesKm)->toBe(22.75);
+});
+
+test('a group without SICAI stages has 0 stages, never null', function (): void {
+    caiSection(['codice_cai' => '9226001', 'region' => 'TOSCANA']);
+    grSicaiStage('E01', ['length_km' => 30]);
+
+    $data = CaiRegionalGroupDashboardMetrics::forRegion(Region::Toscana);
+
+    expect($data->sicaiStages)->toBe(0)
+        ->and($data->sicaiStagesKm)->toBe(0.0);
 });

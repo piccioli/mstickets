@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <meta name="design_doc_mode" content="canvas">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap">
+  <style>html,body{margin:0;padding:0;background:#e9ecef;font-family:'Nunito Sans',sans-serif;color:#3c4557;} a{color:#17a180;text-decoration:none;} a:hover{color:#0f7d63;} button,select{font-family:inherit;} *{box-sizing:border-box;}</style>
+</helmet>
+<section style="padding:56px 64px 96px;display:flex;flex-direction:column;gap:56px;">
+  <div style="display:flex;flex-direction:column;gap:6px;">
+    <div style="font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#17a180;">Piattaforma Montagna Servizi · Sezione</div>
+    <div style="font-size:28px;font-weight:800;">Sentieri di Sezione</div>
+    <div style="font-size:14px;color:#6b7486;max-width:760px;line-height:1.5;text-wrap:pretty;">Pagina aperta dal badge «Sentieri» (km) della Dashboard V2 della Sezione. Solo area contenuti. Dati dal catasto sentieri CAI (osm2cai), cartografia escursionistica CAI.</div>
+  </div>
+
+  <div id="elenco" style="display:flex;flex-direction:column;gap:20px;">
+    <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+      <div style="font-size:18px;font-weight:800;">1 · Elenco sentieri</div>
+      <div style="display:flex;gap:4px;padding:4px;background:#fff;border:1px solid #dfe3e8;border-radius:10px;">
+        <sc-for list="{{scenBtns}}" as="b" hint-placeholder-count="3">
+          <button onClick="{{b.click}}" style="height:32px;padding:0 14px;border:none;border-radius:7px;background:{{b.bg}};color:{{b.fg}};font-size:13px;font-weight:700;cursor:pointer;">{{b.l}}</button>
+        </sc-for>
+      </div>
+      <div style="font-size:13px;color:#6b7486;">Clic su una linea o su una riga per selezionare · › per aprire la scheda qui sotto</div>
+    </div>
+    <div style="display:flex;gap:48px;align-items:flex-start;flex-wrap:wrap;">
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#8a93a3;">Desktop · 1440</div>
+        <div data-screen-label="Elenco desktop" style="width:1440px;background:#f4f6f8;border-radius:12px;box-shadow:0 1px 2px rgba(20,30,40,.06),0 8px 28px rgba(20,30,40,.08);overflow:hidden;">
+          <div style="padding:36px 40px 56px;display:flex;flex-direction:column;gap:20px;">
+            <div style="display:flex;flex-direction:column;gap:14px;">
+              <a href="#dashboard" style="font-size:13px;font-weight:700;color:#17a180;">← Dashboard</a>
+              <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:24px;">
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                  <div style="font-size:28px;font-weight:800;letter-spacing:-0.01em;">Sentieri di Sezione</div>
+                  <div style="font-size:15px;font-weight:600;color:#6b7486;">{{L.sez}}</div>
+                </div>
+                <div style="display:flex;gap:12px;">
+                  <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:12px 18px;display:flex;flex-direction:column;gap:2px;min-width:170px;">
+                    <div style="font-size:12px;font-weight:700;color:#6b7486;">Km totali</div>
+                    <div style="font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;">{{L.kKm}}</div>
+                  </div>
+                  <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:12px 18px;display:flex;flex-direction:column;gap:2px;min-width:140px;">
+                    <div style="font-size:12px;font-weight:700;color:#6b7486;">Sentieri</div>
+                    <div style="font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;">{{L.kN}}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <sc-if value="{{L.has}}" hint-placeholder-val="{{true}}">
+              <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:20px 24px;display:grid;grid-template-columns:minmax(0,1fr) 470px;gap:32px;">
+                <div style="display:flex;flex-direction:column;gap:12px;">
+                  <div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;">
+                    <div style="font-size:15px;font-weight:800;">Km per stato di accatastamento</div>
+                    <div style="font-size:12px;color:#6b7486;">da 1 · Difficoltà a 4 · Validato (il più completo)</div>
+                  </div>
+                  <div style="display:flex;height:28px;border-radius:6px;overflow:hidden;background:#eef1f4;gap:2px;">
+                    <sc-for list="{{SUM.bar}}" as="s" hint-placeholder-count="4"><div title="{{s.t}}" style="width:{{s.w}}%;background:{{s.c}};display:flex;align-items:center;padding:0 8px;font-size:12px;font-weight:800;color:{{s.fg}};white-space:nowrap;overflow:hidden;">{{s.lab}}</div></sc-for>
+                  </div>
+                  <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;">
+                    <sc-for list="{{SUM.leg}}" as="g" hint-placeholder-count="4">
+                      <div style="display:flex;flex-direction:column;gap:2px;">
+                        <div style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:#6b7486;"><span style="width:14px;height:4px;border-radius:2px;background:{{g.c}};"></span>{{g.l}}</div>
+                        <div style="font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;">{{g.km}} km <span style="font-size:12px;font-weight:600;color:#8a93a3;">{{g.pct}} · {{g.n}}</span></div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="border-left:1px solid #eceef1;padding-left:32px;display:flex;flex-direction:column;gap:12px;">
+                  <div style="font-size:15px;font-weight:800;">Percorribilità</div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;">
+                    <sc-for list="{{SUM.per}}" as="p" hint-placeholder-count="4">
+                      <div style="display:flex;flex-direction:column;gap:1px;">
+                        <div style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:#6b7486;"><span style="width:8px;height:8px;border-radius:50%;background:{{p.dot}};"></span>{{p.l}}</div>
+                        <div style="font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;">{{p.km}} km <span style="font-size:12px;font-weight:600;color:#8a93a3;">{{p.n}}</span></div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) 480px;gap:20px;align-items:start;">
+                <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;overflow:hidden;display:flex;flex-direction:column;">
+                  <div style="display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:14px 20px;border-bottom:1px solid #eceef1;">
+                    <div style="display:flex;gap:6px;flex-wrap:nowrap;">
+                      <button onClick="{{allSda}}" style="height:32px;padding:0 12px;border-radius:16px;border:1px solid {{L.allBd}};background:{{L.allBg}};color:{{L.allFg}};font-size:13px;font-weight:700;cursor:pointer;">Tutti gli stati</button>
+                      <sc-for list="{{L.chips}}" as="c" hint-placeholder-count="4">
+                        <button onClick="{{c.click}}" style="display:flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:16px;border:1px solid {{c.bd}};background:{{c.bg}};color:{{c.fg}};font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;"><span style="width:12px;height:4px;border-radius:2px;background:{{c.dot}};"></span>{{c.l}}<span style="font-weight:600;color:#8a93a3;">{{c.n}}</span></button>
+                      </sc-for>
+                    </div>
+                    <div style="display:flex;gap:8px;">
+                      <select value="{{L.diff}}" onChange="{{setDiff}}" style="height:32px;padding:0 8px;border:1px solid #dfe3e8;border-radius:8px;background:#fff;color:#3c4557;font-size:13px;font-weight:700;">
+                        <option value="">Tutte le difficoltà</option>
+                        <sc-for list="{{diffOpts}}" as="o"><option value="{{o.k}}">{{o.l}}</option></sc-for>
+                      </select>
+                      <select value="{{L.per}}" onChange="{{setPer}}" style="height:32px;padding:0 8px;border:1px solid #dfe3e8;border-radius:8px;background:#fff;color:#3c4557;font-size:13px;font-weight:700;">
+                        <option value="">Tutte le percorribilità</option>
+                        <sc-for list="{{perOpts}}" as="o"><option value="{{o.k}}">{{o.l}}</option></sc-for>
+                      </select>
+                    </div>
+                  </div>
+                  <div style="display:grid;grid-template-columns:62px minmax(0,1fr) 58px 50px 128px 180px 18px;gap:12px;padding:10px 20px;background:#fafbfc;border-bottom:1px solid #eceef1;font-size:12px;font-weight:800;color:#6b7486;letter-spacing:.02em;">
+                    <button onClick="{{sortNum}}" style="border:none;background:none;padding:0;text-align:left;font:inherit;color:{{L.hNum}};cursor:pointer;">N° {{L.aNum}}</button>
+                    <span>Nome · da – a</span>
+                    <button onClick="{{sortKm}}" style="border:none;background:none;padding:0;text-align:right;font:inherit;color:{{L.hKm}};cursor:pointer;">Km {{L.aKm}}</button>
+                    <span>Diff.</span>
+                    <button onClick="{{sortSda}}" style="border:none;background:none;padding:0;text-align:left;font:inherit;color:{{L.hSda}};cursor:pointer;">Accatast. {{L.aSda}}</button>
+                    <span>Percorribilità</span><span></span>
+                  </div>
+                  <div ref="{{listRef}}" style="height:{{L.listH}}px;overflow:auto;position:relative;">
+                    <sc-for list="{{L.rows}}" as="r" hint-placeholder-count="8">
+                      <div data-tid="{{r.id}}" onClick="{{r.sel}}" onMouseEnter="{{r.hover}}" onMouseLeave="{{unhover}}" style="display:grid;grid-template-columns:62px minmax(0,1fr) 58px 50px 128px 180px 18px;gap:12px;align-items:center;padding:11px 20px;border-bottom:1px solid #f1f3f5;cursor:pointer;background:{{r.bg}};box-shadow:{{r.sh}};">
+                        <div><span style="display:inline-flex;align-items:center;justify-content:center;min-width:46px;height:28px;padding:0 6px;background:#fff;border:1px solid #e1e4e8;border-top:5px solid #d22630;border-bottom:5px solid #d22630;border-radius:3px;font-size:12px;font-weight:800;color:#1f2633;">{{r.num}}</span></div>
+                        <div style="display:flex;flex-direction:column;gap:2px;min-width:0;">
+                          <div style="font-size:14px;font-weight:800;line-height:1.25;color:{{r.nc}};">{{r.nome}}</div>
+                          <div style="font-size:12px;color:#6b7486;">{{r.daa}}</div>
+                          <sc-if value="{{r.shared}}"><div style="display:flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:#2f5f93;"><svg width="13" height="13" viewBox="0 0 24 24" style="fill:none;stroke:#2f5f93;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none;"><path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21v-1a6 6 0 0 1 12 0v1M16 3.5a4 4 0 0 1 0 7M22 21v-1a6 6 0 0 0-4-5.6"></path></svg>Condiviso con {{r.sharedL}}</div></sc-if>
+                        </div>
+                        <div style="text-align:right;font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;">{{r.km}}</div>
+                        <div><span style="display:inline-block;padding:2px 7px;border-radius:5px;background:{{r.dbg}};color:{{r.dfg}};font-size:12px;font-weight:800;">{{r.diff}}</span></div>
+                        <div><span style="display:inline-flex;align-items:center;gap:6px;padding:2px 9px 2px 7px;border-radius:12px;border:1px solid {{r.sc}};background:#fff;font-size:12px;font-weight:800;white-space:nowrap;"><span style="width:8px;height:8px;border-radius:50%;background:{{r.sc}};"></span>{{r.sl}}</span></div>
+                        <div style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;">
+                          <span style="padding:3px 10px;border-radius:12px;background:{{r.pb}};color:{{r.pf}};font-size:12px;font-weight:700;white-space:nowrap;">{{r.pl}}</span>
+                          <sc-if value="{{r.pd}}"><span style="font-size:11px;color:#8a93a3;padding-left:2px;">agg. {{r.pd}}</span></sc-if>
+                        </div>
+                        <a href="#scheda" onClick="{{r.open}}" title="Apri scheda" style="font-size:20px;font-weight:700;color:#17a180;line-height:1;">›</a>
+                      </div>
+                    </sc-for>
+                    <sc-if value="{{L.noMatch}}">
+                      <div style="padding:48px 20px;display:flex;flex-direction:column;align-items:center;gap:10px;font-size:14px;color:#6b7486;">Nessun sentiero corrisponde ai filtri selezionati.<button onClick="{{resetF}}" style="border:none;background:none;color:#17a180;font-weight:700;font-size:13px;cursor:pointer;">Azzera filtri</button></div>
+                    </sc-if>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;padding:12px 20px;font-size:12px;color:#8a93a3;border-top:1px solid #eceef1;">
+                    <span>{{L.count}}</span>
+                    <span>Fonte: <a href="https://osm2cai.cai.it" target="_blank" style="font-weight:700;">osm2cai</a> · catasto sentieri CAI · dati aggiornati al 21 ottobre 2026</span>
+                  </div>
+                </div>
+
+                <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;overflow:hidden;">
+                  <div style="position:relative;width:{{L.map.w}}px;height:{{L.map.h}}px;overflow:hidden;background:#f4f1e8;">
+                    <sc-for list="{{L.map.tiles}}" as="t"><img src="{{t.src}}" alt="" draggable="false" style="position:absolute;left:{{t.l}}px;top:{{t.t}}px;width:256px;height:256px;max-width:none;user-select:none;"></sc-for>
+                    <sc-for list="{{L.map.lines}}" as="p">
+                      <svg width="{{L.map.w}}" height="{{L.map.h}}" style="position:absolute;left:0;top:0;pointer-events:none;z-index:5;">
+                        <path d="{{p.d}}" style="fill:none;stroke:#fff;stroke-width:{{p.cw}};stroke-linecap:round;stroke-linejoin:round;"></path>
+                        <path d="{{p.d}}" style="fill:none;stroke:{{p.c}};stroke-width:{{p.w}};stroke-linecap:round;stroke-linejoin:round;opacity:{{p.op}};"></path>
+                        <path d="{{p.d}}" onClick="{{p.click}}" onMouseEnter="{{p.hover}}" onMouseLeave="{{unhover}}" style="fill:none;stroke:transparent;stroke-width:14;cursor:pointer;pointer-events:stroke;"></path>
+                      </svg>
+                    </sc-for>
+                    <sc-if value="{{L.map.hasPop}}">
+                      <div style="position:absolute;left:{{L.map.pop.x}}px;top:{{L.map.pop.y}}px;width:260px;background:#fff;border-radius:10px;box-shadow:0 8px 24px rgba(20,30,40,.25);padding:12px 14px 14px;display:flex;flex-direction:column;gap:7px;align-items:flex-start;z-index:60;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;">
+                          <span style="display:inline-flex;align-items:center;justify-content:center;min-width:44px;height:26px;padding:0 6px;background:#fff;border:1px solid #e1e4e8;border-top:5px solid #d22630;border-bottom:5px solid #d22630;border-radius:3px;font-size:12px;font-weight:800;color:#1f2633;">{{L.map.pop.num}}</span>
+                          <button onClick="{{closePop}}" style="border:none;background:none;font-size:18px;line-height:1;color:#8a93a3;cursor:pointer;padding:0;">×</button>
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:2px;">
+                          <div style="font-size:14px;font-weight:800;line-height:1.25;color:{{L.map.pop.nc}};">{{L.map.pop.nome}}</div>
+                          <div style="font-size:12px;color:#6b7486;">{{L.map.pop.daa}}</div>
+                        </div>
+                        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                          <span style="display:inline-flex;align-items:center;gap:5px;padding:1px 8px 1px 6px;border-radius:12px;border:1px solid {{L.map.pop.sc}};font-size:11px;font-weight:800;"><span style="width:7px;height:7px;border-radius:50%;background:{{L.map.pop.sc}};"></span>{{L.map.pop.sl}}</span>
+                          <span style="padding:2px 9px;border-radius:12px;background:{{L.map.pop.pb}};color:{{L.map.pop.pf}};font-size:11px;font-weight:700;">{{L.map.pop.pl}}</span>
+                        </div>
+                        <div style="font-size:12px;color:#3c4557;font-weight:700;">{{L.map.pop.km}} km</div>
+                        <a href="#scheda" onClick="{{L.map.pop.open}}" style="font-size:13px;font-weight:800;">Apri scheda →</a>
+                      </div>
+                    </sc-if>
+                    <div style="position:absolute;right:12px;top:12px;display:flex;flex-direction:column;background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.2);overflow:hidden;z-index:70;">
+                      <button onClick="{{L.map.zin}}" style="width:32px;height:32px;border:none;background:#fff;font-size:18px;font-weight:700;color:#3c4557;cursor:pointer;border-bottom:1px solid #eceef1;">+</button>
+                      <button onClick="{{L.map.zout}}" style="width:32px;height:32px;border:none;background:#fff;font-size:18px;font-weight:700;color:#3c4557;cursor:pointer;">−</button>
+                    </div>
+                    <sc-if value="{{showLegend}}">
+                      <div style="position:absolute;left:12px;bottom:26px;background:rgba(255,255,255,.95);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:5px;box-shadow:0 1px 4px rgba(0,0,0,.15);z-index:70;">
+                        <div style="font-size:11px;font-weight:800;color:#6b7486;">Stato di accatastamento</div>
+                        <sc-for list="{{legend}}" as="g"><div style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;"><span style="width:18px;height:4px;border-radius:2px;background:{{g.c}};"></span>{{g.ll}}</div></sc-for>
+                      </div>
+                    </sc-if>
+                    <div style="position:absolute;right:0;bottom:0;background:rgba(255,255,255,.85);padding:2px 6px;font-size:10px;color:#5b6475;z-index:70;">Cartografia CAI · osm2cai · © OpenStreetMap</div>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{L.empty}}">
+              <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:80px 24px;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;">
+                <svg width="48" height="48" viewBox="0 0 24 24" style="fill:none;stroke:#b4bbc6;stroke-width:1.4;stroke-linejoin:round;stroke-linecap:round;"><path d="M5 20c2-3 6-2 7-6s4-4 7-9M5 20v.01M19 5v.01"></path><path d="M4 20h2M18 5h2"></path></svg>
+                <div style="font-size:17px;font-weight:800;color:#3c4557;max-width:520px;text-wrap:pretty;">Nessun sentiero associato a questa Sezione nel catasto osm2cai</div>
+                <a href="https://osm2cai.cai.it" target="_blank" style="font-size:13px;font-weight:700;">Vai a osm2cai ↗</a>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#8a93a3;">Mobile · 390</div>
+        <div data-screen-label="Elenco mobile" style="width:390px;background:#f4f6f8;border-radius:28px;box-shadow:0 1px 2px rgba(20,30,40,.06),0 8px 28px rgba(20,30,40,.08);overflow:hidden;">
+          <div style="padding:24px 16px 32px;display:flex;flex-direction:column;gap:16px;">
+            <a href="#dashboard" style="font-size:13px;font-weight:700;color:#17a180;">← Dashboard</a>
+            <div style="display:flex;flex-direction:column;gap:4px;">
+              <div style="font-size:22px;font-weight:800;letter-spacing:-0.01em;">Sentieri di Sezione</div>
+              <div style="font-size:14px;font-weight:600;color:#6b7486;">{{L.sez}}</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:10px 14px;">
+                <div style="font-size:11px;font-weight:700;color:#6b7486;">Km totali</div>
+                <div style="font-size:20px;font-weight:800;">{{L.kKm}}</div>
+              </div>
+              <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:10px 14px;">
+                <div style="font-size:11px;font-weight:700;color:#6b7486;">Sentieri</div>
+                <div style="font-size:20px;font-weight:800;">{{L.kN}}</div>
+              </div>
+            </div>
+
+            <sc-if value="{{L.has}}" hint-placeholder-val="{{true}}">
+              <div style="display:flex;flex-direction:column;gap:16px;">
+                <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:12px;">
+                  <div style="display:flex;flex-direction:column;gap:2px;">
+                    <div style="font-size:14px;font-weight:800;">Km per stato di accatastamento</div>
+                    <div style="font-size:11px;color:#6b7486;">da 1 · Difficoltà a 4 · Validato (il più completo)</div>
+                  </div>
+                  <div style="display:flex;height:22px;border-radius:5px;overflow:hidden;background:#eef1f4;gap:2px;">
+                    <sc-for list="{{SUM.bar}}" as="s"><div style="width:{{s.w}}%;background:{{s.c}};"></div></sc-for>
+                  </div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;">
+                    <sc-for list="{{SUM.leg}}" as="g">
+                      <div style="display:flex;flex-direction:column;">
+                        <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#6b7486;"><span style="width:12px;height:4px;border-radius:2px;background:{{g.c}};"></span>{{g.l}}</div>
+                        <div style="font-size:14px;font-weight:800;">{{g.km}} km <span style="font-size:11px;font-weight:600;color:#8a93a3;">{{g.pct}}</span></div>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <div style="border-top:1px solid #eceef1;padding-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;">
+                    <sc-for list="{{SUM.per}}" as="p">
+                      <div style="display:flex;flex-direction:column;">
+                        <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#6b7486;"><span style="width:7px;height:7px;border-radius:50%;background:{{p.dot}};flex:none;"></span>{{p.l}}</div>
+                        <div style="font-size:14px;font-weight:800;">{{p.km}} km</div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+
+                <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;overflow:hidden;">
+                  <div style="position:relative;width:{{M.map.w}}px;height:{{M.map.h}}px;overflow:hidden;background:#f4f1e8;">
+                    <sc-for list="{{M.map.tiles}}" as="t"><img src="{{t.src}}" alt="" draggable="false" style="position:absolute;left:{{t.l}}px;top:{{t.t}}px;width:256px;height:256px;max-width:none;user-select:none;"></sc-for>
+                    <sc-for list="{{M.map.lines}}" as="p">
+                      <svg width="{{M.map.w}}" height="{{M.map.h}}" style="position:absolute;left:0;top:0;pointer-events:none;z-index:5;">
+                        <path d="{{p.d}}" style="fill:none;stroke:#fff;stroke-width:{{p.cw}};stroke-linecap:round;stroke-linejoin:round;"></path>
+                        <path d="{{p.d}}" style="fill:none;stroke:{{p.c}};stroke-width:{{p.w}};stroke-linecap:round;stroke-linejoin:round;opacity:{{p.op}};"></path>
+                        <path d="{{p.d}}" onClick="{{p.click}}" style="fill:none;stroke:transparent;stroke-width:18;pointer-events:stroke;"></path>
+                      </svg>
+                    </sc-for>
+                    <sc-if value="{{M.map.hasPop}}">
+                      <div style="position:absolute;left:{{M.map.pop.x}}px;top:{{M.map.pop.y}}px;width:260px;background:#fff;border-radius:10px;box-shadow:0 8px 24px rgba(20,30,40,.25);padding:10px 12px 12px;display:flex;flex-direction:column;gap:6px;align-items:flex-start;z-index:60;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;">
+                          <span style="display:inline-flex;align-items:center;justify-content:center;min-width:44px;height:26px;padding:0 6px;background:#fff;border:1px solid #e1e4e8;border-top:5px solid #d22630;border-bottom:5px solid #d22630;border-radius:3px;font-size:12px;font-weight:800;color:#1f2633;">{{M.map.pop.num}}</span>
+                          <button onClick="{{closePop}}" style="border:none;background:none;font-size:20px;line-height:1;color:#8a93a3;padding:0 0 0 12px;height:28px;">×</button>
+                        </div>
+                        <div style="font-size:14px;font-weight:800;line-height:1.25;color:{{M.map.pop.nc}};">{{M.map.pop.nome}}</div>
+                        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+                          <span style="display:inline-flex;align-items:center;gap:5px;padding:1px 8px 1px 6px;border-radius:12px;border:1px solid {{M.map.pop.sc}};font-size:11px;font-weight:800;"><span style="width:7px;height:7px;border-radius:50%;background:{{M.map.pop.sc}};"></span>{{M.map.pop.sl}}</span>
+                          <span style="padding:2px 9px;border-radius:12px;background:{{M.map.pop.pb}};color:{{M.map.pop.pf}};font-size:11px;font-weight:700;">{{M.map.pop.pl}}</span>
+                          <span style="font-size:12px;font-weight:700;">{{M.map.pop.km}} km</span>
+                        </div>
+                        <a href="#scheda" onClick="{{M.map.pop.open}}" style="font-size:14px;font-weight:800;min-height:28px;display:flex;align-items:center;">Apri scheda →</a>
+                      </div>
+                    </sc-if>
+                    <div style="position:absolute;right:10px;top:10px;display:flex;flex-direction:column;background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.2);overflow:hidden;z-index:70;">
+                      <button onClick="{{M.map.zin}}" style="width:40px;height:40px;border:none;background:#fff;font-size:18px;font-weight:700;color:#3c4557;border-bottom:1px solid #eceef1;">+</button>
+                      <button onClick="{{M.map.zout}}" style="width:40px;height:40px;border:none;background:#fff;font-size:18px;font-weight:700;color:#3c4557;">−</button>
+                    </div>
+                    <div style="position:absolute;right:0;bottom:0;background:rgba(255,255,255,.85);padding:2px 6px;font-size:9px;color:#5b6475;z-index:70;">Cartografia CAI · © OSM</div>
+                  </div>
+                  <sc-if value="{{showLegend}}">
+                    <div style="display:flex;flex-wrap:wrap;gap:6px 14px;padding:10px 12px;border-top:1px solid #eceef1;">
+                      <sc-for list="{{legend}}" as="g"><div style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;"><span style="width:14px;height:4px;border-radius:2px;background:{{g.c}};"></span>{{g.l}}</div></sc-for>
+                    </div>
+                  </sc-if>
+                </div>
+
+                <div style="display:flex;gap:6px;overflow-x:auto;margin:0 -16px;padding:0 16px 2px;">
+                  <button onClick="{{allSda}}" style="flex:none;height:36px;padding:0 14px;border-radius:18px;border:1px solid {{L.allBd}};background:{{L.allBg}};color:{{L.allFg}};font-size:13px;font-weight:700;">Tutti</button>
+                  <sc-for list="{{L.chips}}" as="c"><button onClick="{{c.click}}" style="flex:none;display:flex;align-items:center;gap:6px;height:36px;padding:0 14px;border-radius:18px;border:1px solid {{c.bd}};background:{{c.bg}};color:{{c.fg}};font-size:13px;font-weight:700;white-space:nowrap;"><span style="width:12px;height:4px;border-radius:2px;background:{{c.dot}};"></span>{{c.l}}<span style="font-weight:600;color:#8a93a3;">{{c.n}}</span></button></sc-for>
+                </div>
+                <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;">
+                  <select value="{{L.diff}}" onChange="{{setDiff}}" style="width:100%;min-width:0;height:44px;padding:0 8px;border:1px solid #dfe3e8;border-radius:8px;background:#fff;color:#3c4557;font-size:14px;font-weight:700;">
+                    <option value="">Difficoltà</option>
+                    <sc-for list="{{diffOpts}}" as="o"><option value="{{o.k}}">{{o.l}}</option></sc-for>
+                  </select>
+                  <select value="{{L.per}}" onChange="{{setPer}}" style="width:100%;min-width:0;height:44px;padding:0 8px;border:1px solid #dfe3e8;border-radius:8px;background:#fff;color:#3c4557;font-size:14px;font-weight:700;">
+                    <option value="">Percorribilità</option>
+                    <sc-for list="{{perOpts}}" as="o"><option value="{{o.k}}">{{o.l}}</option></sc-for>
+                  </select>
+                  <select value="{{L.sortV}}" onChange="{{setSort}}" style="grid-column:1 / -1;width:100%;min-width:0;height:44px;padding:0 8px;border:1px solid #dfe3e8;border-radius:8px;background:#fff;color:#3c4557;font-size:14px;font-weight:700;">
+                    <option value="num:1">Ordina per numero</option>
+                    <option value="km:-1">Km: dal più lungo</option>
+                    <option value="km:1">Km: dal più corto</option>
+                    <option value="sda:-1">Stato: da Validato a Difficoltà</option>
+                    <option value="sda:1">Stato: da Difficoltà a Validato</option>
+                  </select>
+                </div>
+                <div style="font-size:12px;font-weight:700;color:#8a93a3;">{{L.count}}</div>
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                  <sc-for list="{{M.rows}}" as="r" hint-placeholder-count="4">
+                    <a href="#scheda" onClick="{{r.open}}" style="display:flex;gap:12px;padding:12px;background:#fff;border:1px solid {{r.cbd}};border-radius:10px;color:#3c4557;">
+                      <span style="flex:none;display:inline-flex;align-items:center;justify-content:center;min-width:48px;height:30px;padding:0 6px;background:#fff;border:1px solid #e1e4e8;border-top:5px solid #d22630;border-bottom:5px solid #d22630;border-radius:3px;font-size:12px;font-weight:800;color:#1f2633;">{{r.num}}</span>
+                      <div style="display:flex;flex-direction:column;gap:5px;min-width:0;flex:1;">
+                        <div style="display:flex;flex-direction:column;gap:1px;">
+                          <div style="font-size:15px;font-weight:800;line-height:1.25;color:{{r.nc}};">{{r.nome}}</div>
+                          <div style="font-size:12px;color:#6b7486;">{{r.daa}}</div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                          <span style="display:inline-flex;align-items:center;gap:5px;padding:1px 8px 1px 6px;border-radius:12px;border:1px solid {{r.sc}};font-size:11px;font-weight:800;"><span style="width:7px;height:7px;border-radius:50%;background:{{r.sc}};"></span>{{r.sl}}</span>
+                          <span style="padding:2px 8px;border-radius:12px;background:{{r.pb}};color:{{r.pf}};font-size:11px;font-weight:700;">{{r.pl}}</span>
+                        </div>
+                        <div style="font-size:12px;color:#6b7486;">{{r.km}} km · Diff. {{r.diff}}</div>
+                        <sc-if value="{{r.shared}}"><div style="font-size:12px;font-weight:700;color:#2f5f93;">Condiviso con {{r.sharedL}}</div></sc-if>
+                      </div>
+                      <span style="align-self:center;font-size:22px;color:#17a180;font-weight:700;">›</span>
+                    </a>
+                  </sc-for>
+                  <sc-if value="{{L.noMatch}}"><div style="padding:32px 12px;text-align:center;font-size:14px;color:#6b7486;background:#fff;border:1px solid #eceef1;border-radius:10px;">Nessun sentiero corrisponde ai filtri.<br><button onClick="{{resetF}}" style="margin-top:8px;border:none;background:none;color:#17a180;font-weight:700;font-size:14px;height:44px;">Azzera filtri</button></div></sc-if>
+                  <sc-if value="{{M.more}}"><button onClick="{{showAll}}" style="height:44px;border:1px solid #dfe3e8;border-radius:10px;background:#fff;color:#17a180;font-size:14px;font-weight:800;">{{M.moreL}}</button></sc-if>
+                </div>
+                <div style="font-size:11px;color:#8a93a3;">Fonte: osm2cai · aggiornato al 21/10/2026</div>
+              </div>
+            </sc-if>
+            <sc-if value="{{L.empty}}">
+              <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:48px 20px;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;">
+                <svg width="40" height="40" viewBox="0 0 24 24" style="fill:none;stroke:#b4bbc6;stroke-width:1.4;stroke-linejoin:round;stroke-linecap:round;"><path d="M5 20c2-3 6-2 7-6s4-4 7-9M5 20v.01M19 5v.01"></path><path d="M4 20h2M18 5h2"></path></svg>
+                <div style="font-size:15px;font-weight:800;text-wrap:pretty;">Nessun sentiero associato a questa Sezione nel catasto osm2cai</div>
+                <a href="https://osm2cai.cai.it" target="_blank" style="font-size:13px;font-weight:700;min-height:28px;">Vai a osm2cai ↗</a>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="scheda" style="display:flex;flex-direction:column;gap:20px;">
+    <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+      <div style="font-size:18px;font-weight:800;">2 · Scheda sentiero</div>
+      <div style="display:flex;gap:4px;padding:4px;background:#fff;border:1px solid #dfe3e8;border-radius:10px;">
+        <sc-for list="{{schedaBtns}}" as="b" hint-placeholder-count="3">
+          <button onClick="{{b.click}}" style="height:32px;padding:0 14px;border:none;border-radius:7px;background:{{b.bg}};color:{{b.fg}};font-size:13px;font-weight:700;cursor:pointer;">{{b.l}}</button>
+        </sc-for>
+      </div>
+    </div>
+    <div style="display:flex;gap:48px;align-items:flex-start;flex-wrap:wrap;">
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#8a93a3;">Desktop · 1440</div>
+        <div data-screen-label="Scheda desktop" style="width:1440px;background:#f4f6f8;border-radius:12px;box-shadow:0 1px 2px rgba(20,30,40,.06),0 8px 28px rgba(20,30,40,.08);overflow:hidden;">
+          <div style="padding:36px 40px 56px;display:flex;flex-direction:column;gap:20px;">
+            <div style="display:flex;gap:16px;align-items:center;font-size:13px;font-weight:700;">
+              <a href="#dashboard" style="color:#17a180;">← Dashboard</a>
+              <span style="color:#c3c8d0;">/</span>
+              <a href="#elenco" style="color:#17a180;">Sentieri di Sezione</a>
+              <span style="color:#c3c8d0;">/</span>
+              <span style="color:#6b7486;">Sentiero {{S.num}}</span>
+            </div>
+
+            <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:24px 28px;display:flex;align-items:center;gap:24px;">
+              <span style="flex:none;display:inline-flex;align-items:center;justify-content:center;min-width:84px;height:58px;padding:0 10px;background:#fff;border:1px solid #e1e4e8;border-top:12px solid #d22630;border-bottom:12px solid #d22630;border-radius:4px;font-size:22px;font-weight:800;color:#1f2633;">{{S.num}}</span>
+              <div style="flex:1;display:flex;flex-direction:column;gap:8px;min-width:0;">
+                <div style="font-size:30px;font-weight:800;letter-spacing:-0.01em;line-height:1.15;color:{{S.nc}};">{{S.nome}}</div>
+                <div style="font-size:16px;font-weight:600;color:#5b6475;">{{S.daa}}</div>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                  <span style="display:inline-flex;align-items:center;gap:6px;padding:3px 11px 3px 8px;border-radius:14px;border:1px solid {{S.sc}};font-size:13px;font-weight:800;"><span style="width:9px;height:9px;border-radius:50%;background:{{S.sc}};"></span>Accatastamento: {{S.sl}}</span>
+                  <span style="padding:4px 12px;border-radius:14px;background:{{S.pb}};color:{{S.pf}};font-size:13px;font-weight:800;">{{S.pl}}</span>
+                  <span style="font-size:13px;color:#6b7486;">aggiornato il <span style="font-weight:700;color:{{S.pdc}};">{{S.pd}}</span></span>
+                </div>
+              </div>
+              <div style="flex:none;display:flex;flex-direction:column;gap:8px;">
+                <a href="{{S.urlO2c}}" target="_blank" style="display:flex;align-items:center;justify-content:center;height:40px;padding:0 18px;border-radius:8px;background:#17a180;color:#fff;font-size:14px;font-weight:800;">Vedi su osm2cai ↗</a>
+                <a href="{{S.urlOsm}}" target="_blank" style="display:flex;align-items:center;justify-content:center;height:40px;padding:0 18px;border-radius:8px;border:1px solid #cfe9e1;background:#fff;font-size:14px;font-weight:800;">Vedi su OpenStreetMap ↗</a>
+              </div>
+            </div>
+
+            <sc-if value="{{S.warn}}">
+              <div style="display:flex;align-items:center;gap:14px;padding:14px 20px;border-radius:10px;background:{{S.pb}};border:1px solid {{S.wbd}};">
+                <svg width="22" height="22" viewBox="0 0 24 24" style="flex:none;fill:none;stroke:{{S.pf}};stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="M12 3l10 18H2zM12 10v5M12 18v.01"></path></svg>
+                <div style="display:flex;flex-direction:column;gap:1px;">
+                  <div style="font-size:15px;font-weight:800;color:{{S.pf}};">{{S.wt}}</div>
+                  <div style="font-size:13px;color:{{S.pf}};">Stato di percorribilità aggiornato il {{S.pd}} · fonte osm2cai</div>
+                </div>
+              </div>
+            </sc-if>
+
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) 420px;gap:20px;align-items:start;">
+              <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;overflow:hidden;">
+                <div style="position:relative;width:{{S.map.w}}px;height:{{S.map.h}}px;overflow:hidden;background:#f4f1e8;">
+                  <sc-for list="{{S.map.tiles}}" as="t"><img src="{{t.src}}" alt="" draggable="false" style="position:absolute;left:{{t.l}}px;top:{{t.t}}px;width:256px;height:256px;max-width:none;user-select:none;"></sc-for>
+                  <sc-for list="{{S.map.lines}}" as="p">
+                    <svg width="{{S.map.w}}" height="{{S.map.h}}" style="position:absolute;left:0;top:0;pointer-events:none;z-index:5;">
+                      <path d="{{p.d}}" style="fill:none;stroke:#fff;stroke-width:10;stroke-linecap:round;stroke-linejoin:round;"></path>
+                      <path d="{{p.d}}" style="fill:none;stroke:{{p.c}};stroke-width:5;stroke-linecap:round;stroke-linejoin:round;"></path>
+                    </svg>
+                  </sc-for>
+                  <sc-for list="{{S.map.ends}}" as="m"><div title="{{m.t}}" style="position:absolute;left:{{m.x}}px;top:{{m.y}}px;width:28px;height:28px;margin-left:-14px;margin-top:-14px;border-radius:50%;background:{{m.c}};border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:800;z-index:10;">{{m.k}}</div></sc-for>
+                  <div style="position:absolute;right:12px;top:12px;display:flex;flex-direction:column;background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.2);overflow:hidden;z-index:70;">
+                    <button onClick="{{S.map.zin}}" style="width:32px;height:32px;border:none;background:#fff;font-size:18px;font-weight:700;color:#3c4557;cursor:pointer;border-bottom:1px solid #eceef1;">+</button>
+                    <button onClick="{{S.map.zout}}" style="width:32px;height:32px;border:none;background:#fff;font-size:18px;font-weight:700;color:#3c4557;cursor:pointer;">−</button>
+                  </div>
+                  <div style="position:absolute;right:0;bottom:0;background:rgba(255,255,255,.85);padding:2px 6px;font-size:10px;color:#5b6475;z-index:70;">Cartografia CAI · osm2cai · © OpenStreetMap</div>
+                </div>
+                <div style="display:flex;gap:24px;padding:12px 18px;font-size:13px;">
+                  <span style="display:flex;align-items:center;gap:8px;"><span style="width:18px;height:18px;border-radius:50%;background:#17a180;color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;">A</span><span style="color:#6b7486;">Partenza</span><span style="font-weight:700;color:{{S.daC}};">{{S.da}}</span></span>
+                  <span style="display:flex;align-items:center;gap:8px;"><span style="width:18px;height:18px;border-radius:50%;background:#3c4557;color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;">B</span><span style="color:#6b7486;">Arrivo</span><span style="font-weight:700;color:{{S.aC}};">{{S.a}}</span></span>
+                </div>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:20px;">
+                <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:20px 22px;display:flex;flex-direction:column;gap:14px;">
+                  <div style="font-size:16px;font-weight:800;">Dati del sentiero</div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                    <sc-for list="{{S.kpi}}" as="k" hint-placeholder-count="4"><div style="background:#f4f6f8;border-radius:8px;padding:10px 14px;"><div style="font-size:12px;font-weight:700;color:#6b7486;">{{k.k}}</div><div style="font-size:22px;font-weight:800;color:{{k.c}};font-variant-numeric:tabular-nums;">{{k.v}}</div></div></sc-for>
+                  </div>
+                  <div><sc-for list="{{S.kv}}" as="f"><div style="display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-top:1px solid #f1f3f5;font-size:14px;"><span style="color:#6b7486;flex:none;">{{f.k}}</span><span style="font-weight:700;text-align:right;color:{{f.c}};">{{f.v}}</span></div></sc-for></div>
+                </div>
+                <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:20px 22px;display:flex;flex-direction:column;gap:12px;">
+                  <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;">
+                    <div style="font-size:16px;font-weight:800;">Sezioni che lo gestiscono</div>
+                    <span style="font-size:13px;font-weight:700;color:#8a93a3;">{{S.nSez}}</span>
+                  </div>
+                  <sc-if value="{{S.shared}}"><div style="font-size:13px;color:#2f5f93;background:#e5eef8;border-radius:8px;padding:8px 12px;font-weight:700;">Sentiero gestito in comune da {{S.nSez}} Sezioni</div></sc-if>
+                  <div><sc-for list="{{S.sez}}" as="z"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-top:1px solid #f1f3f5;font-size:14px;"><span style="font-weight:700;">{{z.n}}</span><sc-if value="{{z.me}}"><span style="flex:none;padding:2px 9px;border-radius:12px;background:#e3f4ee;color:#0f7d63;font-size:11px;font-weight:800;">Questa Sezione</span></sc-if></div></sc-for></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#8a93a3;">Mobile · 390</div>
+        <div data-screen-label="Scheda mobile" style="width:390px;background:#f4f6f8;border-radius:28px;box-shadow:0 1px 2px rgba(20,30,40,.06),0 8px 28px rgba(20,30,40,.08);overflow:hidden;">
+          <div style="padding:24px 16px 32px;display:flex;flex-direction:column;gap:14px;">
+            <a href="#elenco" style="font-size:13px;font-weight:700;color:#17a180;">← Sentieri di Sezione</a>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div style="display:flex;align-items:center;gap:12px;">
+                <span style="flex:none;display:inline-flex;align-items:center;justify-content:center;min-width:60px;height:40px;padding:0 8px;background:#fff;border:1px solid #e1e4e8;border-top:8px solid #d22630;border-bottom:8px solid #d22630;border-radius:3px;font-size:16px;font-weight:800;color:#1f2633;">{{S.num}}</span>
+                <div style="font-size:22px;font-weight:800;line-height:1.15;color:{{S.nc}};">{{S.nome}}</div>
+              </div>
+              <div style="font-size:14px;font-weight:600;color:#5b6475;">{{S.daa}}</div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <span style="display:inline-flex;align-items:center;gap:5px;padding:2px 9px 2px 7px;border-radius:12px;border:1px solid {{S.sc}};background:#fff;font-size:12px;font-weight:800;"><span style="width:8px;height:8px;border-radius:50%;background:{{S.sc}};"></span>{{S.sl}}</span>
+                <span style="padding:3px 10px;border-radius:12px;background:{{S.pb}};color:{{S.pf}};font-size:12px;font-weight:800;">{{S.pl}}</span>
+              </div>
+            </div>
+            <sc-if value="{{S.warn}}">
+              <div style="display:flex;gap:10px;padding:12px 14px;border-radius:10px;background:{{S.pb}};border:1px solid {{S.wbd}};">
+                <svg width="20" height="20" viewBox="0 0 24 24" style="flex:none;fill:none;stroke:{{S.pf}};stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="M12 3l10 18H2zM12 10v5M12 18v.01"></path></svg>
+                <div style="display:flex;flex-direction:column;gap:1px;">
+                  <div style="font-size:14px;font-weight:800;color:{{S.pf}};">{{S.wt}}</div>
+                  <div style="font-size:12px;color:{{S.pf}};">Aggiornato il {{S.pd}} · fonte osm2cai</div>
+                </div>
+              </div>
+            </sc-if>
+            <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;overflow:hidden;">
+              <div style="position:relative;width:{{T.map.w}}px;height:{{T.map.h}}px;overflow:hidden;background:#f4f1e8;">
+                <sc-for list="{{T.map.tiles}}" as="t"><img src="{{t.src}}" alt="" draggable="false" style="position:absolute;left:{{t.l}}px;top:{{t.t}}px;width:256px;height:256px;max-width:none;user-select:none;"></sc-for>
+                <sc-for list="{{T.map.lines}}" as="p">
+                  <svg width="{{T.map.w}}" height="{{T.map.h}}" style="position:absolute;left:0;top:0;pointer-events:none;z-index:5;">
+                    <path d="{{p.d}}" style="fill:none;stroke:#fff;stroke-width:9;stroke-linecap:round;stroke-linejoin:round;"></path>
+                    <path d="{{p.d}}" style="fill:none;stroke:{{p.c}};stroke-width:4.5;stroke-linecap:round;stroke-linejoin:round;"></path>
+                  </svg>
+                </sc-for>
+                <sc-for list="{{T.map.ends}}" as="m"><div style="position:absolute;left:{{m.x}}px;top:{{m.y}}px;width:24px;height:24px;margin-left:-12px;margin-top:-12px;border-radius:50%;background:{{m.c}};border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:800;z-index:10;">{{m.k}}</div></sc-for>
+                <div style="position:absolute;right:10px;top:10px;display:flex;flex-direction:column;background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.2);overflow:hidden;z-index:70;">
+                  <button onClick="{{T.map.zin}}" style="width:40px;height:40px;border:none;background:#fff;font-size:18px;font-weight:700;color:#3c4557;border-bottom:1px solid #eceef1;">+</button>
+                  <button onClick="{{T.map.zout}}" style="width:40px;height:40px;border:none;background:#fff;font-size:18px;font-weight:700;color:#3c4557;">−</button>
+                </div>
+                <div style="position:absolute;right:0;bottom:0;background:rgba(255,255,255,.85);padding:2px 6px;font-size:9px;color:#5b6475;z-index:70;">Cartografia CAI · © OSM</div>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <sc-for list="{{S.kpi}}" as="k"><div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:10px 14px;"><div style="font-size:11px;font-weight:700;color:#6b7486;">{{k.k}}</div><div style="font-size:20px;font-weight:800;color:{{k.c}};">{{k.v}}</div></div></sc-for>
+            </div>
+            <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px;">
+              <div style="font-size:15px;font-weight:800;">Dati del sentiero</div>
+              <div><sc-for list="{{S.kvM}}" as="f"><div style="display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid #f1f3f5;font-size:13px;"><span style="color:#6b7486;flex:none;">{{f.k}}</span><span style="font-weight:700;text-align:right;color:{{f.c}};">{{f.v}}</span></div></sc-for></div>
+            </div>
+            <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px;">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;"><div style="font-size:15px;font-weight:800;">Sezioni che lo gestiscono</div><span style="font-size:13px;font-weight:700;color:#8a93a3;">{{S.nSez}}</span></div>
+              <sc-if value="{{S.shared}}"><div style="font-size:12px;color:#2f5f93;background:#e5eef8;border-radius:8px;padding:8px 10px;font-weight:700;">Sentiero gestito in comune da {{S.nSez}} Sezioni</div></sc-if>
+              <div><sc-for list="{{S.sez}}" as="z"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-top:1px solid #f1f3f5;font-size:13px;"><span style="font-weight:700;">{{z.n}}</span><sc-if value="{{z.me}}"><span style="flex:none;padding:2px 8px;border-radius:12px;background:#e3f4ee;color:#0f7d63;font-size:11px;font-weight:800;">Questa Sezione</span></sc-if></div></sc-for></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <a href="{{S.urlO2c}}" target="_blank" style="display:flex;align-items:center;justify-content:center;height:46px;border-radius:10px;background:#17a180;color:#fff;font-size:15px;font-weight:800;">Vedi su osm2cai ↗</a>
+              <a href="{{S.urlOsm}}" target="_blank" style="display:flex;align-items:center;justify-content:center;height:46px;border-radius:10px;border:1px solid #cfe9e1;background:#fff;font-size:15px;font-weight:800;">Vedi su OpenStreetMap ↗</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;scenario&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;molti&quot;,&quot;pochi&quot;,&quot;nessuno&quot;],&quot;default&quot;:&quot;molti&quot;,&quot;tsType&quot;:&quot;'molti'|'pochi'|'nessuno'&quot;},&quot;scheda&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;percorribile&quot;,&quot;non&quot;,&quot;condiviso&quot;],&quot;default&quot;:&quot;percorribile&quot;,&quot;tsType&quot;:&quot;'percorribile'|'non'|'condiviso'&quot;},&quot;legenda&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  state = { scen: this.props.scenario ?? 'molti', sda: [], diff: '', per: '', sort: 'num', dir: 1, sel: null, from: null, hover: null, mAll: false, sid: { percorribile: 'brenta', non: 'mocheni', condiviso: 'pasubio' }[this.props.scheda ?? 'percorribile'] || 'brenta', z: {} };
+  listRef = React.createRef();
+
+  db() {
+    if (Component._db) return Component._db;
+    const SDA = { 1: { c: '#e8b500', l: '1 · Difficoltà', ll: '1 · Difficoltà' }, 2: { c: '#f07c22', l: '2 · Ricognizione', ll: '2 · Ricognizione' }, 3: { c: '#a24cc7', l: '3 · Pre-validato', ll: '3 · Pre-validato' }, 4: { c: '#2563c9', l: '4 · Validato', ll: '4 · Validato' } };
+    const PER = { p: { l: 'Percorribile', bg: '#e3f4ee', fg: '#0f7d63', dot: '#17a180' }, d: { l: 'Percorribile con difficoltà', bg: '#fdf1dc', fg: '#8a5600', dot: '#e0a526' }, n: { l: 'Non percorribile', bg: '#fbe7e5', fg: '#b42318', dot: '#d64545' }, s: { l: 'Sconosciuto', bg: '#eef0f3', fg: '#5b6475', dot: '#a6aebb' } };
+    const RNG = seed => { let s = seed; return () => { s = (s * 16807) % 2147483647; return s / 2147483647; }; };
+    const walk = (r, lat, lon, km) => { const st = 0.25, n = Math.max(4, Math.round(km / st)); let h = r() * 6.28; const pts = [[lat, lon]];
+      for (let i = 0; i < n; i++) { h += (r() - .5) * .8; if (r() < .07) h += (r() < .5 ? 1 : -1) * 1.5; lat += st / 111 * Math.cos(h); lon += st / (111 * Math.cos(lat * Math.PI / 180)) * Math.sin(h); pts.push([lat, lon]); }
+      return pts; };
+    const date = r => `${2025 + (r() < .55 ? 1 : 0)}-${String(1 + Math.floor(r() * 9)).padStart(2, '0')}-${String(1 + Math.floor(r() * 28)).padStart(2, '0')}`;
+    const vdate = r => `${2019 + Math.floor(r() * 7)}-${String(1 + Math.floor(r() * 12)).padStart(2, '0')}-${String(1 + Math.floor(r() * 28)).padStart(2, '0')}`;
+    const pick = (r, a) => a[Math.floor(r() * a.length)];
+    const NAMES = ['delle Malghe','dei Fiori','delle Creste','dell\'Alpe','del Lago Nero','dei Forti','della Grande Guerra','delle Marmotte','dei Camosci','delle Cascate','delle Gallerie','dei Larici','dei Pastori','del Crinale','delle Sorgenti','dei Mughi','della Busa','delle Trincee','dei Carbonai','del Vallon'];
+    const PL = ['Malga Valagola','Passo del Grostè','Lago di Tovel','Malga Ritort','Rifugio Stoppani','Passo Coe','Malga Cimana','Cima Palon','Viote del Bondone','Lago di Lamar','Fai della Paganella','Malga Fevri','Passo Rolle','Malga Fosse','Val Venegia','Passo Manghen','Malga Valsorda','Rifugio Lancia','Passo Pertica','Passo San Pellegrino','Ponte Pià','Pejo Fonti','Malga Mare','Val di Rabbi','Pozza di Fassa','Campitello','Riva del Garda','Monte Altissimo','Bocca di Navene','Malga Boch','Torbole','Bosco Chiesanuova'];
+    const SHR = ['SAT Arco','SAT Rovereto','CAI Schio','CAI Feltre','CAI Brescia','CAI Verona','CAI Bolzano'];
+    const CL = [[46.18,10.87],[46.15,10.62],[45.79,11.18],[46.15,11.45],[46.02,11.04],[46.14,11.03],[46.45,11.7],[46.25,11.84],[45.9,10.88],[45.7,11.12],[46.33,10.76],[46.02,11.47]];
+    const mk = (o, r) => ({ ...o, pts: o.pts || walk(r, o.lat, o.lon, o.km), osm: 2000000 + Math.floor(r() * 9000000), o2c: 10000 + Math.floor(r() * 80000) });
+    const sat = [
+      mk({ id: 'brenta', num: '151C', nome: 'Sentiero della Val Brenta Alta', da: 'Rifugio Brentei', a: 'Bocca di Brenta', lat: 46.186, lon: 10.865, km: 3.4, up: 620, down: 40, diff: 'EE', sda: 4, per: 'p', pd: '2026-09-18', val: '2025-06-12', sez: ['SAT'], home: 'SAT' }, RNG(77)),
+      mk({ id: 'mocheni', num: '322B', nome: 'Sentiero della Valle dei Mòcheni', da: 'Palù del Fersina', a: null, lat: 46.12, lon: 11.33, km: 5.8, up: 760, down: null, diff: null, sda: 2, per: 'n', pd: '2026-10-04', val: null, sez: ['SAT'], home: 'SAT' }, RNG(91)),
+      mk({ id: 'pasubio', num: '601', nome: 'Sentiero della Pace · tratto Pasubio', da: 'Passo Pian delle Fugazze', a: 'Rifugio Achille Papa', lat: 45.79, lon: 11.17, km: 6.2, up: 540, down: 210, diff: 'E', sda: 4, per: 'd', pd: '2026-08-30', val: '2024-11-05', sez: ['SAT', 'SAT Rovereto', 'CAI Schio'], home: 'SAT' }, RNG(53))
+    ];
+    const zc = {};
+    for (let i = 0; i < 147; i++) {
+      const r = RNG(1000 + i * 37), ci = i % CL.length, c = CL[ci];
+      const zone = (ci % 6) + 1; zc[zone] = (zc[zone] || 0) + 1;
+      const num = String(zone * 100 + zc[zone] * 3 + Math.floor(r() * 3)) + (r() < .12 ? pick(r, ['B', 'C', 'D']) : '');
+      const km = Math.round((1.2 + r() * r() * 14) * 10) / 10;
+      const up = Math.round(km * (50 + r() * 120) / 10) * 10;
+      const x = r(), diff = x < .12 ? 'T' : x < .6 ? 'E' : x < .85 ? 'EE' : x < .91 ? 'EEA' : null;
+      const y = r(), sda = y < .12 ? 1 : y < .26 ? 2 : y < .5 ? 3 : 4;
+      const w = r(), per = w < .68 ? 'p' : w < .78 ? 'd' : w < .84 ? 'n' : 's';
+      const shared = r() < .1;
+      sat.push(mk({ id: 's' + i, num, nome: r() < .86 ? 'Sentiero ' + pick(r, NAMES) : null, da: pick(r, PL), a: r() < .93 ? pick(r, PL) : null,
+        lat: c[0] + (r() - .5) * .16, lon: c[1] + (r() - .5) * .22, km, up: sda > 1 || r() < .5 ? up : null, down: sda > 1 || r() < .5 ? Math.round(up * (.1 + r() * .9) / 10) * 10 : null,
+        diff, sda, per, pd: per === 's' ? null : date(r), val: sda === 4 ? vdate(r) : null, sez: shared ? ['SAT', pick(r, SHR)] : ['SAT'], home: 'SAT' }, r));
+    }
+    const LU = [
+      ['126', 'Via della Foce di Mosceta', 'Piglionico', 'Foce di Mosceta', 3.1, 'E', 4, 'p', ['CAI Lucca']],
+      ['7', 'Sentiero della Pania', 'Rifugio Rossi', 'Pania della Croce', 1.9, 'EE', 4, 'p', ['CAI Lucca', 'CAI Pietrasanta']],
+      ['127', null, 'Piglionico', 'Rifugio Rossi', 2.4, 'E', 3, 'd', ['CAI Lucca']],
+      ['139', 'Via del Pizzo delle Saette', 'Foce di Mosceta', 'Pizzo delle Saette', 2.7, 'EEA', 3, 'n', ['CAI Lucca', 'CAI Castelnuovo di Garfagnana']],
+      ['124', 'Sentiero dell\'Alpe di Sant\'Antonio', 'Alpe di Sant\'Antonio', 'Piglionico', 4.6, 'T', 2, 'p', ['CAI Lucca']],
+      ['8', 'Sentiero del Puntato', 'Fociomboli', 'Foce di Mosceta', 3.8, 'E', 1, 's', ['CAI Lucca']],
+      ['140', null, 'Col di Favilla', null, 2.2, null, 1, 's', ['CAI Lucca']]
+    ].map((a, i) => { const r = RNG(500 + i * 13); return mk({ id: 'lu' + i, num: a[0], nome: a[1], da: a[2], a: a[3], lat: 44.035 + (r() - .5) * .05, lon: 10.375 + (r() - .5) * .07, km: a[4], up: a[6] > 1 ? Math.round(a[4] * 150 / 10) * 10 : null, down: a[6] > 1 ? Math.round(a[4] * 60 / 10) * 10 : null, diff: a[5], sda: a[6], per: a[7], pd: a[7] === 's' ? null : date(r), val: a[6] === 4 ? vdate(r) : null, sez: a[8], home: 'CAI Lucca' }, r); });
+    const FULL = { SAT: 'SAT – Società degli Alpinisti Tridentini', 'CAI Lucca': 'CAI Sezione di Lucca' };
+    Component._db = { SDA, PER, FULL, all: [...sat, ...LU], scen: { molti: { sez: FULL.SAT, list: sat }, pochi: { sez: FULL['CAI Lucca'], list: LU }, nessuno: { sez: 'CAI Sezione di Livorno', list: [] } } };
+    return Component._db;
+  }
+
+  kmF(x) { const [i, d] = x.toFixed(1).split('.'); return i.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + d; }
+  num(n) { return n == null ? '—' : String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+  fd(s) { if (!s) return null; const [y, m, d] = s.split('-'); return `${d}/${m}/${y}`; }
+  daa(t) { return `${t.da || '—'} → ${t.a || '—'}`; }
+
+  open(id, e) { e && e.stopPropagation && e.stopPropagation(); this.setState({ sid: id }); location.hash = 'scheda'; }
+  zoom(k, d) { this.setState(s => ({ z: { ...s.z, [k]: (s.z[k] || 0) + d } })); }
+
+  componentDidUpdate(pp, ps) {
+    if (this.state.sel && this.state.sel !== ps.sel && this.state.from === 'map') {
+      const c = this.listRef.current; const el = c && c.querySelector(`[data-tid="${this.state.sel}"]`);
+      if (el) c.scrollTop = Math.max(0, el.offsetTop - 60);
+    }
+  }
+
+  mapView(key, trails, W, H, maxZ, opts = {}) {
+    const P = (lat, lon, z) => { const n = 256 * 2 ** z, r = lat * Math.PI / 180; return [(lon + 180) / 360 * n, (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * n]; };
+    const all = trails.length ? trails.flatMap(t => t.pts) : [[46.07, 11.12]];
+    const bb = (pts, z) => { let x0 = 1e12, x1 = -1e12, y0 = 1e12, y1 = -1e12; pts.forEach(p => { const [x, y] = P(p[0], p[1], z); x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }); return { x0, x1, y0, y1 }; };
+    let z = maxZ;
+    for (; z > 6; z--) { const b = bb(all, z); if (b.x1 - b.x0 <= W - 70 && b.y1 - b.y0 <= H - 70) break; }
+    const zo = this.state.z[key] || 0;
+    z = Math.max(6, Math.min(16, z + zo));
+    const selT = trails.find(t => t.id === this.state.sel);
+    const b = bb(zo > 0 && selT && opts.pop ? selT.pts : all, z);
+    const ox = (b.x0 + b.x1) / 2 - W / 2, oy = (b.y0 + b.y1) / 2 - H / 2;
+    const tiles = [];
+    for (let tx = Math.floor(ox / 256); tx <= Math.floor((ox + W - 1) / 256); tx++) for (let ty = Math.floor(oy / 256); ty <= Math.floor((oy + H - 1) / 256); ty++)
+      tiles.push({ src: `https://r3-it.storage.cloud.it/tiles/${z}/${tx}/${ty}.png`, l: Math.round(tx * 256 - ox), t: Math.round(ty * 256 - oy) });
+    const { SDA, PER } = this.db(); const st = this.state;
+    const px = t => t.pts.map(p => { const [x, y] = P(p[0], p[1], z); return [x - ox, y - oy]; });
+    const anySel = !!st.sel && trails.some(t => t.id === st.sel);
+    const lines = trails.map(t => { const xy = px(t); const on = t.id === st.sel, hv = t.id === st.hover;
+      return { id: t.id, on, hv, xy, d: 'M' + xy.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('L'), c: SDA[t.sda].c, w: on ? 5.5 : hv ? 5 : 3, cw: on ? 10 : hv ? 8 : 0, op: anySel && !on && !hv ? .5 : 1,
+        click: e => { e && e.stopPropagation && e.stopPropagation(); this.setState({ sel: t.id, from: 'map' }); }, hover: () => this.setState({ hover: t.id }) }; })
+      .sort((a, b) => (a.on ? 2 : a.hv ? 1 : 0) - (b.on ? 2 : b.hv ? 1 : 0));
+    let pop = null;
+    if (opts.pop && selT) { const l = lines.find(x => x.id === selT.id); const m = l.xy[Math.floor(l.xy.length / 2)];
+      pop = { x: Math.round(Math.max(8, Math.min(W - 268, m[0] - 130))), y: Math.round(m[1] > 200 ? m[1] - 192 : m[1] + 18), num: selT.num, nome: selT.nome || '—', nc: selT.nome ? '#3c4557' : '#9aa1ad', daa: this.daa(selT), sda: selT.sda, sl: SDA[selT.sda].l, sc: SDA[selT.sda].c, pl: PER[selT.per].l, pb: PER[selT.per].bg, pf: PER[selT.per].fg, km: this.kmF(selT.km), open: e => this.open(selT.id, e) }; }
+    let ends = [];
+    if (opts.ends && trails[0]) { const xy = lines[0].xy; ends = [{ k: 'A', t: 'Partenza', c: '#17a180', x: Math.round(xy[0][0]), y: Math.round(xy[0][1]) }, { k: 'B', t: 'Arrivo', c: '#3c4557', x: Math.round(xy[xy.length - 1][0]), y: Math.round(xy[xy.length - 1][1]) }]; }
+    return { w: W, h: H, tiles, lines: lines.map(({ xy, ...l }) => l), ends, hasPop: !!pop, pop: pop || {}, zin: () => this.zoom(key, 1), zout: () => this.zoom(key, -1) };
+  }
+
+  renderVals() {
+    const { SDA, PER, FULL, all, scen } = this.db();
+    const st = this.state, sc = scen[st.scen], list = sc.list;
+    const has = list.length > 0;
+    const tot = list.reduce((a, t) => a + t.km, 0);
+
+    const bar = [1, 2, 3, 4].map(k => { const km = list.filter(t => t.sda === k).reduce((a, t) => a + t.km, 0); const w = tot ? km / tot * 100 : 0;
+      return { c: SDA[k].c, w: w.toFixed(2), fg: k === 1 ? '#3c3000' : '#fff', lab: w > 9 ? this.kmF(km) + ' km' : '', t: `${SDA[k].l} · ${this.kmF(km)} km` }; });
+    const leg = [1, 2, 3, 4].map(k => { const sub = list.filter(t => t.sda === k), km = sub.reduce((a, t) => a + t.km, 0);
+      return { c: SDA[k].c, l: SDA[k].l, km: this.kmF(km), pct: tot ? Math.round(km / tot * 100) + '%' : '—', n: sub.length + (sub.length === 1 ? ' sentiero' : ' sentieri') }; });
+    const per = ['p', 'd', 'n', 's'].map(k => { const sub = list.filter(t => t.per === k); return { l: PER[k].l, dot: PER[k].dot, km: this.kmF(sub.reduce((a, t) => a + t.km, 0)), n: sub.length + (sub.length === 1 ? ' sentiero' : ' sentieri') }; });
+
+    const chips = [1, 2, 3, 4].map(k => { const on = st.sda.includes(k);
+      return { l: SDA[k].l, dot: SDA[k].c, n: list.filter(t => t.sda === k).length || '—', bd: on ? '#17a180' : '#dfe3e8', bg: on ? '#e3f4ee' : '#fff', fg: on ? '#0f7d63' : '#3c4557',
+        click: () => this.setState(s => ({ sda: s.sda.includes(k) ? s.sda.filter(x => x !== k) : [...s.sda, k], sel: null })) }; });
+    let f = list.filter(t => (!st.sda.length || st.sda.includes(t.sda)) && (!st.diff || (st.diff === 'nd' ? !t.diff : t.diff === st.diff)) && (!st.per || t.per === st.per));
+    const byNum = (a, b) => a.num.localeCompare(b.num, 'it', { numeric: true });
+    f = [...f].sort((a, b) => st.sort === 'num' ? st.dir * byNum(a, b) : st.sort === 'km' ? st.dir * (a.km - b.km) : (st.dir * (a.sda - b.sda) || byNum(a, b)));
+    const row = t => { const others = t.sez.filter(x => x !== t.home); const on = t.id === st.sel, hv = t.id === st.hover;
+      return { id: t.id, num: t.num, nome: t.nome || '—', nc: t.nome ? '#3c4557' : '#9aa1ad', daa: this.daa(t), km: this.kmF(t.km),
+        diff: t.diff || '—', dbg: t.diff ? '#eef1f4' : 'transparent', dfg: t.diff ? '#3c4557' : '#9aa1ad',
+        sda: t.sda, sl: SDA[t.sda].l, sc: SDA[t.sda].c, pl: PER[t.per].l, pb: PER[t.per].bg, pf: PER[t.per].fg, pd: this.fd(t.pd),
+        shared: others.length > 0, sharedL: others.join(', '),
+        bg: on ? '#e6f5f0' : hv ? '#f3faf8' : '#fff', sh: on ? 'inset 3px 0 0 #17a180' : 'none', cbd: '#eceef1',
+        sel: () => this.setState({ sel: t.id, from: 'list' }), hover: () => this.setState({ hover: t.id }), open: e => this.open(t.id, e) }; };
+    const rows = f.map(row);
+    const allOn = !st.sda.length;
+    const arrow = k => st.sort === k ? (st.dir > 0 ? '↑' : '↓') : '';
+    const hc = k => st.sort === k ? '#17a180' : '#6b7486';
+    const fKm = f.reduce((a, t) => a + t.km, 0);
+    const mapH = Math.min(720, Math.max(500, 184 + rows.length * 72));
+    const L = {
+      sez: sc.sez, has, empty: !has, kKm: has ? this.kmF(tot) : '—', kN: has ? String(list.length) : '—',
+      chips, allBd: allOn ? '#17a180' : '#dfe3e8', allBg: allOn ? '#e3f4ee' : '#fff', allFg: allOn ? '#0f7d63' : '#3c4557',
+      diff: st.diff, per: st.per, sortV: `${st.sort}:${st.dir}`, rows, noMatch: has && rows.length === 0,
+      count: rows.length === list.length ? `${list.length} ${list.length === 1 ? 'sentiero' : 'sentieri'} · ${this.kmF(tot)} km` : `${rows.length} di ${list.length} sentieri · ${this.kmF(fKm)} km`,
+      hNum: hc('num'), aNum: arrow('num'), hKm: hc('km'), aKm: arrow('km'), hSda: hc('sda'), aSda: arrow('sda'),
+      listH: mapH - 102 - 38 - 42 - 2,
+      map: this.mapView('dl', f, 480, mapH, 14, { pop: true })
+    };
+    const lim = st.mAll ? rows.length : 12;
+    const M = { rows: rows.slice(0, lim), more: rows.length > lim, moreL: `Mostra altri ${rows.length - lim}`, map: this.mapView('ml', f, 358, 280, 14, { pop: true }) };
+
+    const t = all.find(x => x.id === st.sid) || all[0];
+    const dash = v => (v == null || v === '') ? { v: '—', c: '#9aa1ad' } : { v, c: '#3c4557' };
+    const kv = (k, v) => ({ k, ...dash(v) });
+    const pt = PER[t.per];
+    const SC = {
+      num: t.num, nome: t.nome || 'Sentiero senza nome', nc: t.nome ? '#3c4557' : '#9aa1ad', daa: this.daa(t),
+      da: t.da || '—', daC: t.da ? '#3c4557' : '#9aa1ad', a: t.a || '—', aC: t.a ? '#3c4557' : '#9aa1ad',
+      sda: t.sda, sl: SDA[t.sda].l, sc: SDA[t.sda].c, pl: pt.l, pb: pt.bg, pf: pt.fg, pd: this.fd(t.pd) || '—', pdc: t.pd ? '#3c4557' : '#9aa1ad',
+      warn: t.per === 'n' || t.per === 'd', wt: t.per === 'n' ? 'Sentiero non percorribile' : 'Sentiero percorribile con difficoltà', wbd: t.per === 'n' ? '#f3c4bf' : '#f3d9a6',
+      kpi: [{ k: 'Lunghezza', ...dash(this.kmF(t.km) + ' km') }, { k: 'Difficoltà CAI', ...dash(t.diff) }, { k: 'Dislivello in salita', ...dash(t.up != null ? '+' + this.num(t.up) + ' m' : null) }, { k: 'Dislivello in discesa', ...dash(t.down != null ? '−' + this.num(t.down) + ' m' : null) }],
+      kv: [kv('Stato di accatastamento', SDA[t.sda].l), kv('Data di validazione', this.fd(t.val)), kv('Percorribilità aggiornata il', this.fd(t.pd))],
+      kvM: [kv('Partenza', t.da), kv('Arrivo', t.a), kv('Stato di accatastamento', SDA[t.sda].l), kv('Data di validazione', this.fd(t.val)), kv('Percorribilità aggiornata il', this.fd(t.pd))],
+      sez: t.sez.map(s => ({ n: FULL[s] || s, me: s === t.home })), nSez: String(t.sez.length), shared: t.sez.length > 1,
+      urlO2c: `https://osm2cai.cai.it/hiking-route/id/${t.o2c}`, urlOsm: `https://www.openstreetmap.org/relation/${t.osm}`,
+      map: this.mapView('ds', [t], 920, 540, 15, { ends: true })
+    };
+    const TT = { map: this.mapView('ms', [t], 358, 240, 15, { ends: true }) };
+
+    const btn = (l, on, click) => ({ l, click, bg: on ? '#17a180' : 'transparent', fg: on ? '#fff' : '#3c4557' });
+    const setScen = k => () => this.setState({ scen: k, sel: null, hover: null, sda: [], diff: '', per: '', mAll: false, z: {} });
+    return {
+      L, M, S: SC, T: TT, SUM: { bar, leg, per }, listRef: this.listRef,
+      scenBtns: [btn('Molti sentieri · SAT (150)', st.scen === 'molti', setScen('molti')), btn('Pochi sentieri · CAI Lucca (7)', st.scen === 'pochi', setScen('pochi')), btn('Nessun sentiero · CAI Livorno', st.scen === 'nessuno', setScen('nessuno'))],
+      schedaBtns: [btn('Percorribile · 151C', st.sid === 'brenta', () => this.setState({ sid: 'brenta' })), btn('Non percorribile · 322B', st.sid === 'mocheni', () => this.setState({ sid: 'mocheni' })), btn('Condiviso tra 3 Sezioni · 601', st.sid === 'pasubio', () => this.setState({ sid: 'pasubio' }))],
+      diffOpts: [{ k: 'T', l: 'T · Turistico' }, { k: 'E', l: 'E · Escursionistico' }, { k: 'EE', l: 'EE · Escursionisti esperti' }, { k: 'EEA', l: 'EEA · Esperti con attrezzatura' }, { k: 'nd', l: 'Non indicata' }],
+      perOpts: ['p', 'd', 'n', 's'].map(k => ({ k, l: PER[k].l })),
+      legend: [1, 2, 3, 4].map(k => ({ c: SDA[k].c, l: SDA[k].l, ll: SDA[k].ll })),
+      showLegend: this.props.legenda ?? true,
+      allSda: () => this.setState({ sda: [], sel: null }),
+      setDiff: e => this.setState({ diff: e.target.value, sel: null }),
+      setPer: e => this.setState({ per: e.target.value, sel: null }),
+      setSort: e => { const [s, d] = e.target.value.split(':'); this.setState({ sort: s, dir: +d }); },
+      sortNum: () => this.setState(s => ({ sort: 'num', dir: s.sort === 'num' ? -s.dir : 1 })),
+      sortKm: () => this.setState(s => ({ sort: 'km', dir: s.sort === 'km' ? -s.dir : -1 })),
+      sortSda: () => this.setState(s => ({ sort: 'sda', dir: s.sort === 'sda' ? -s.dir : -1 })),
+      resetF: () => this.setState({ sda: [], diff: '', per: '' }),
+      showAll: () => this.setState({ mAll: true }),
+      closePop: e => { e && e.stopPropagation && e.stopPropagation(); this.setState({ sel: null }); },
+      unhover: () => this.setState({ hover: null })
+    };
+  }
+}
+</script>
+</body>
+</html>

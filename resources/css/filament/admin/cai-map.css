@@ -1,0 +1,373 @@
+/*
+ * Mappa con cartografia CAI (Fase 10.4, US-1033) — resources/views/components/cai/map.blade.php.
+ * Misure dal design docs/project/design/fase-10/rifugi-di-sezione.dc.html (marker 24/34 px, popup 240 px);
+ * colori solo da token --ms-*, tranne il colore del marker che arriva dal tipo (variabile inline).
+ */
+.ms-cai-map {
+  position: relative;
+}
+
+/* Riquadro della mappa con gli slot `overlay` posizionati sopra (US-1064). */
+.ms-cai-map__frame {
+  position: relative;
+}
+
+.ms-cai-map__canvas {
+  width: 100%;
+  overflow: hidden;
+  border-radius: var(--ms-radius-card);
+  background: var(--ms-map-surface);
+  font-family: var(--ms-font-sans);
+}
+
+/* Il divIcon di Leaflet ha di default sfondo bianco e bordo: li togliamo, il disegno è nello span. */
+.ms-cai-map .ms-cai-map__marker-icon {
+  background: none;
+  border: none;
+}
+
+.ms-cai-map__marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border: var(--ms-border-width-strong) solid var(--ms-map-marker-border);
+  border-radius: var(--ms-radius-circle);
+  background: var(--ms-cai-map-marker-color);
+  box-shadow: var(--ms-shadow-map-marker);
+  color: var(--ms-map-marker-text);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.ms-cai-map__marker-svg {
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ms-cai-map__marker.is-active .ms-cai-map__marker-svg {
+  width: 16px;
+  height: 16px;
+}
+
+.ms-cai-map__marker.is-active {
+  border-width: 3px;
+  box-shadow: var(--ms-shadow-map-marker-active);
+  font-size: 14px;
+}
+
+/* Pulsanti di zoom come nel design: colonna bianca, angoli arrotondati, ombra leggera. */
+.ms-cai-map .leaflet-bar {
+  overflow: hidden;
+  border: none;
+  border-radius: var(--ms-radius-lg);
+  box-shadow: var(--ms-shadow-map-control);
+}
+
+.ms-cai-map .leaflet-bar a {
+  width: 32px;
+  height: 32px;
+  border-bottom-color: var(--ms-border-subtle);
+  color: var(--ms-text-strong);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 32px;
+}
+
+.ms-cai-map .leaflet-control-attribution {
+  font-family: var(--ms-font-sans);
+  font-size: 10px;
+}
+
+/* Popup: card bianca 240 px con foto in alto a filo (padding del wrapper Leaflet azzerato). */
+.ms-cai-map .ms-cai-map__popup .leaflet-popup-content-wrapper {
+  padding: 0;
+  overflow: hidden;
+  border-radius: var(--ms-radius-card);
+  box-shadow: var(--ms-shadow-map-popup);
+}
+
+.ms-cai-map .ms-cai-map__popup .leaflet-popup-content {
+  width: 240px !important;
+  margin: 0;
+  font-family: var(--ms-font-sans);
+  line-height: 1.25;
+}
+
+.ms-cai-map .ms-cai-map__popup .leaflet-popup-close-button {
+  top: 6px;
+  right: 6px;
+  color: var(--ms-text-muted);
+  font-size: 16px;
+}
+
+.ms-cai-map-popup__photo {
+  display: block;
+  width: 100%;
+  height: 86px;
+  object-fit: cover;
+}
+
+.ms-cai-map-popup__body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 10px 12px 12px;
+  color: var(--ms-text-strong);
+}
+
+.ms-cai-map-popup__title {
+  padding-right: 16px;
+  font-size: var(--ms-text-md);
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.ms-cai-map-popup__type {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ms-text-secondary);
+  font-size: 12px;
+}
+
+.ms-cai-map-popup__dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: var(--ms-radius-circle);
+}
+
+.ms-cai-map-popup__status {
+  padding: 2px 9px;
+  border-radius: var(--ms-radius-xl);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.ms-cai-map .ms-cai-map-popup__link {
+  color: var(--ms-brand);
+  font-size: var(--ms-text-sm);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.ms-cai-map .ms-cai-map-popup__link:hover {
+  color: var(--ms-brand-link-hover);
+}
+
+/* Gruppo di marker (US-1042, design "Rifugi del GR"): cerchio verde con il numero, diametro dal divIcon. */
+.ms-cai-map .ms-cai-map__cluster-icon {
+  background: none;
+  border: none;
+}
+
+.ms-cai-map__cluster {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border: 3px solid var(--ms-map-cluster-border);
+  border-radius: var(--ms-radius-circle);
+  background: var(--ms-map-cluster-bg);
+  box-shadow: var(--ms-shadow-map-cluster);
+  color: var(--ms-map-marker-text);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.ms-cai-map-popup__section {
+  color: var(--ms-text-body);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Anteprima di un sentiero (US-1053, design "Sentieri di Sezione"): card 260 px senza foto, segnavia in alto. */
+.ms-cai-map .ms-cai-map__popup--line .leaflet-popup-content {
+  width: 260px !important;
+}
+
+.ms-cai-map-popup--trail .ms-cai-map-popup__body {
+  gap: 7px;
+  padding: 12px 14px 14px;
+}
+
+.ms-cai-map-popup__heading {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ms-cai-map-popup__title--missing {
+  color: var(--ms-value-missing);
+}
+
+.ms-cai-map-popup__route {
+  color: var(--ms-text-secondary);
+  font-size: 12px;
+}
+
+.ms-cai-map-popup__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ms-cai-map-popup__km {
+  color: var(--ms-text-body);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ms-cai-map-popup__sections {
+  color: var(--ms-text-body);
+  font-size: 12px;
+}
+
+.ms-cai-map-popup__sections--missing {
+  color: var(--ms-value-missing);
+}
+
+/* Aree (US-1064, design "Sentieri del GR"): etichetta permanente del settore al centro, nascosta sotto lo zoom 9. */
+.ms-cai-map .ms-cai-map__area-label {
+  padding: 0;
+  border: none;
+  background: none;
+  box-shadow: none;
+  color: var(--ms-map-area-label);
+  font-family: var(--ms-font-sans);
+  font-size: 11px;
+  font-weight: 800;
+  text-shadow: 0 0 3px var(--ms-map-area-label-halo), 0 0 3px var(--ms-map-area-label-halo), 0 0 2px var(--ms-map-area-label-halo);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.ms-cai-map .ms-cai-map__area-label::before {
+  display: none;
+}
+
+.ms-cai-map .is-area-labels-hidden .ms-cai-map__area-label {
+  display: none;
+}
+
+/* Riquadro di un settore: card 280 px. */
+.ms-cai-map .ms-cai-map__popup--area .leaflet-popup-content {
+  width: 280px !important;
+}
+
+.ms-cai-map-popup--sector .ms-cai-map-popup__body {
+  align-items: stretch;
+  gap: 8px;
+  padding: 12px 14px 14px;
+}
+
+.ms-cai-map-popup__eyebrow {
+  padding-right: 16px;
+  color: var(--ms-text-secondary);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ms-cai-map-popup--sector .ms-cai-map-popup__title {
+  font-size: var(--ms-text-lg);
+}
+
+.ms-cai-map-popup__empty {
+  padding: 8px 10px;
+  border-radius: var(--ms-radius-lg);
+  background: var(--ms-map-empty-bg);
+  color: var(--ms-map-empty-text);
+  font-size: var(--ms-text-sm);
+  font-weight: 700;
+}
+
+.ms-cai-map-popup--sector .ms-cai-map-popup__km {
+  font-size: var(--ms-text-sm);
+}
+
+.ms-cai-map-popup__bar {
+  display: flex;
+  gap: 1px;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--ms-trail-bar-track);
+}
+
+.ms-cai-map-popup__consolidated {
+  color: var(--ms-text-secondary);
+  font-size: 12px;
+}
+
+.ms-cai-map-popup__consolidated strong {
+  color: var(--ms-text-strong);
+  font-weight: 800;
+}
+
+.ms-cai-map-popup__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  padding-top: 2px;
+}
+
+.ms-cai-map button.ms-cai-map-popup__link {
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* Anteprime delle tappe SICAI e dei punti di appoggio (US-1095, design "Tappe SICAI del GR"): 280 px come i settori. */
+.ms-cai-map__popup--line:has(.ms-cai-map-popup--sicai) .leaflet-popup-content,
+.ms-cai-map__popup:has(.ms-cai-map-popup--sicai-point) .leaflet-popup-content {
+  width: 280px !important;
+}
+
+.ms-cai-map-popup--sicai .ms-cai-map-popup__body,
+.ms-cai-map-popup--sicai-point .ms-cai-map-popup__body {
+  gap: 8px;
+  padding: 12px 14px 14px;
+}
+
+.ms-cai-map-popup--sicai .ms-cai-map-popup__title,
+.ms-cai-map-popup--sicai-point .ms-cai-map-popup__title {
+  font-size: var(--ms-text-lg);
+  line-height: 1.3;
+}
+
+.ms-cai-map-popup__variant {
+  color: var(--ms-text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ms-cai-map-popup--sicai-point .ms-cai-map-popup__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.ms-cai-map-popup--sicai-point .ms-cai-map-popup__dot {
+  width: 10px;
+  height: 10px;
+}

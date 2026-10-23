@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <meta name="design_doc_mode" content="canvas">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap">
+  <style>html,body{margin:0;padding:0;background:#e9ecef;font-family:'Nunito Sans',sans-serif;color:#3c4557;} a{color:#17a180;text-decoration:none;} a:hover{color:#0f7d63;} button,select{font-family:inherit;} *{box-sizing:border-box;}</style>
+</helmet>
+<section style="padding:56px 64px 96px;display:flex;flex-direction:column;gap:56px;">
+  <div style="display:flex;flex-direction:column;gap:6px;">
+    <div style="font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#17a180;">Piattaforma Montagna Servizi · Sezione</div>
+    <div style="font-size:28px;font-weight:800;">Rifugi di Sezione</div>
+    <div style="font-size:14px;color:#6b7486;max-width:760px;line-height:1.5;text-wrap:pretty;">Pagina aperta dal badge «Rifugi» della Dashboard V2 della Sezione. Solo area contenuti. Dati dalla banca dati ufficiale rifugi.cai.it, cartografia escursionistica CAI.</div>
+  </div>
+
+  <div id="elenco" style="display:flex;flex-direction:column;gap:20px;">
+    <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+      <div style="font-size:18px;font-weight:800;">1 · Elenco rifugi</div>
+      <div style="display:flex;gap:4px;padding:4px;background:#fff;border:1px solid #dfe3e8;border-radius:10px;">
+        <sc-for list="{{scenBtns}}" as="b" hint-placeholder-count="3">
+          <button onClick="{{b.click}}" style="height:32px;padding:0 14px;border:none;border-radius:7px;background:{{b.bg}};color:{{b.fg}};font-size:13px;font-weight:700;cursor:pointer;">{{b.l}}</button>
+        </sc-for>
+      </div>
+      <div style="font-size:13px;color:#6b7486;">Clic su un marker per l'anteprima · clic su una riga per aprire la scheda qui sotto</div>
+    </div>
+    <div style="display:flex;gap:48px;align-items:flex-start;flex-wrap:wrap;">
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#8a93a3;">Desktop · 1440</div>
+        <div data-screen-label="Elenco desktop" style="width:1440px;background:#f4f6f8;border-radius:12px;box-shadow:0 1px 2px rgba(20,30,40,.06),0 8px 28px rgba(20,30,40,.08);overflow:hidden;">
+          <div style="padding:36px 40px 56px;display:flex;flex-direction:column;gap:24px;">
+            <div style="display:flex;flex-direction:column;gap:14px;">
+              <a href="#dashboard" style="font-size:13px;font-weight:700;color:#17a180;">← Dashboard</a>
+              <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:24px;">
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                  <div style="font-size:28px;font-weight:800;letter-spacing:-0.01em;">Rifugi di Sezione</div>
+                  <div style="font-size:15px;font-weight:600;color:#6b7486;">{{L.sez}}</div>
+                </div>
+                <div style="display:flex;gap:12px;">
+                  <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:12px 18px;display:flex;flex-direction:column;gap:2px;min-width:180px;">
+                    <div style="font-size:12px;font-weight:700;color:#6b7486;">Rifugi in attività / totale</div>
+                    <div style="display:flex;align-items:baseline;gap:4px;"><span style="font-size:24px;font-weight:800;color:#3c4557;">{{L.kA}}</span><span style="font-size:16px;font-weight:700;color:#8a93a3;">{{L.kT}}</span></div>
+                  </div>
+                  <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:12px 18px;display:flex;flex-direction:column;gap:2px;min-width:160px;">
+                    <div style="font-size:12px;font-weight:700;color:#6b7486;">Posti letto totali</div>
+                    <div style="font-size:24px;font-weight:800;color:#3c4557;">{{L.kP}}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <sc-if value="{{L.has}}" hint-placeholder-val="{{true}}">
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) 500px;gap:20px;align-items:start;">
+                <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;overflow:hidden;display:flex;flex-direction:column;">
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 20px;border-bottom:1px solid #eceef1;">
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                      <button onClick="{{L.allTipi}}" style="height:32px;padding:0 12px;border-radius:16px;border:1px solid {{L.allBd}};background:{{L.allBg}};color:{{L.allFg}};font-size:13px;font-weight:700;cursor:pointer;">Tutti i tipi</button>
+                      <sc-for list="{{L.chips}}" as="c" hint-placeholder-count="5">
+                        <button onClick="{{c.click}}" style="display:flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:16px;border:1px solid {{c.bd}};background:{{c.bg}};color:{{c.fg}};font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;"><span style="width:9px;height:9px;border-radius:50%;background:{{c.dot}};"></span>{{c.l}}<span style="font-weight:600;color:#8a93a3;">{{c.n}}</span></button>
+                      </sc-for>
+                    </div>
+                    <select value="{{L.stato}}" onChange="{{setStato}}" style="height:32px;padding:0 10px;border:1px solid #dfe3e8;border-radius:8px;background:#fff;color:#3c4557;font-size:13px;font-weight:700;">
+                      <option value="">Tutti gli stati</option>
+                      <sc-for list="{{statiOpts}}" as="o"><option value="{{o.k}}">{{o.l}}</option></sc-for>
+                    </select>
+                  </div>
+                  <div style="display:grid;grid-template-columns:56px minmax(0,2.3fr) minmax(0,1.3fr) minmax(0,1.5fr) 80px minmax(0,1.3fr) 70px;gap:14px;padding:10px 20px;background:#fafbfc;border-bottom:1px solid #eceef1;font-size:12px;font-weight:800;color:#6b7486;letter-spacing:.02em;">
+                    <span></span>
+                    <button onClick="{{sortNome}}" style="border:none;background:none;padding:0;text-align:left;font:inherit;color:{{L.hN}};cursor:pointer;">Nome {{L.aN}}</button>
+                    <span>Tipo</span><span>Stato</span>
+                    <button onClick="{{sortQuota}}" style="border:none;background:none;padding:0;text-align:right;font:inherit;color:{{L.hQ}};cursor:pointer;">Quota (m) {{L.aQ}}</button>
+                    <span>Comune</span><span style="text-align:right;">Posti letto</span>
+                  </div>
+                  <div style="max-height:{{L.maxH}}px;overflow:auto;">
+                    <sc-for list="{{L.rows}}" as="r" hint-placeholder-count="6">
+                      <div onClick="{{r.open}}" onMouseEnter="{{r.hover}}" onMouseLeave="{{unhover}}" style="display:grid;grid-template-columns:56px minmax(0,2.3fr) minmax(0,1.3fr) minmax(0,1.5fr) 80px minmax(0,1.3fr) 70px;gap:14px;align-items:center;padding:12px 20px;border-bottom:1px solid #f1f3f5;cursor:pointer;background:{{r.bg}};">
+                        <sc-if value="{{r.foto}}"><img src="assets/hero-alpine.svg" alt="" style="width:56px;height:42px;border-radius:6px;object-fit:cover;object-position:{{r.pos}};display:block;"></sc-if>
+                        <sc-if value="{{r.nofoto}}"><div style="width:56px;height:42px;border-radius:6px;background:#eef1f4;display:flex;align-items:center;justify-content:center;"><svg width="22" height="22" viewBox="0 0 24 24" style="fill:none;stroke:#b4bbc6;stroke-width:1.6;stroke-linejoin:round;"><path d="M3 19l6-9 4 5 3-3 5 7z"></path></svg></div></sc-if>
+                        <div style="display:flex;flex-direction:column;gap:2px;min-width:0;">
+                          <div style="font-size:14px;font-weight:800;color:#3c4557;line-height:1.25;">{{r.n}}</div>
+                          <sc-if value="{{r.alt}}"><div style="font-size:12px;color:#6b7486;">{{r.alt}}</div></sc-if>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:7px;font-size:13px;"><span style="width:9px;height:9px;border-radius:50%;background:{{r.tc}};flex:none;"></span>{{r.tl}}</div>
+                        <div><span style="display:inline-block;padding:3px 10px;border-radius:12px;background:{{r.sb}};color:{{r.sf}};font-size:12px;font-weight:700;white-space:nowrap;">{{r.sl}}</span></div>
+                        <div style="text-align:right;font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;">{{r.q}}</div>
+                        <div style="font-size:13px;">{{r.c}} <span style="color:#8a93a3;">({{r.p}})</span></div>
+                        <div style="text-align:right;font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;">{{r.pl}}</div>
+                      </div>
+                    </sc-for>
+                    <sc-if value="{{L.noMatch}}">
+                      <div style="padding:48px 20px;display:flex;flex-direction:column;align-items:center;gap:10px;font-size:14px;color:#6b7486;">Nessun rifugio corrisponde ai filtri selezionati.<button onClick="{{resetF}}" style="border:none;background:none;color:#17a180;font-weight:700;font-size:13px;cursor:pointer;">Azzera filtri</button></div>
+                    </sc-if>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;padding:12px 20px;font-size:12px;color:#8a93a3;border-top:1px solid #eceef1;">
+                    <span>{{L.count}}</span>
+                    <span>Fonte: <a href="https://rifugi.cai.it" target="_blank" style="font-weight:700;">rifugi.cai.it</a> · dati aggiornati al 21 ottobre 2026</span>
+                  </div>
+                </div>
+
+                <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;overflow:hidden;">
+                  <div style="position:relative;width:{{L.map.w}}px;height:{{L.map.h}}px;overflow:hidden;background:#f4f1e8 url(assets/mappa-cai-segnaposto.svg) center/cover;">
+                    <sc-for list="{{L.map.tiles}}" as="t"><img src="{{t.src}}" alt="" draggable="false" style="position:absolute;left:{{t.l}}px;top:{{t.t}}px;width:256px;height:256px;max-width:none;user-select:none;"></sc-for>
+                    <sc-for list="{{L.map.markers}}" as="m"><div onClick="{{m.click}}" title="{{m.n}}" style="position:absolute;left:{{m.x}}px;top:{{m.y}}px;width:{{m.s}}px;height:{{m.s}}px;margin-left:{{m.o}}px;margin-top:{{m.o}}px;border-radius:50%;background:{{m.c}};border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;color:#fff;font-size:{{m.fs}}px;font-weight:800;cursor:pointer;z-index:{{m.z}};">{{m.k}}</div></sc-for>
+                    <sc-if value="{{L.map.hasPop}}">
+                      <div style="position:absolute;left:{{L.map.pop.x}}px;top:{{L.map.pop.y}}px;width:240px;background:#fff;border-radius:10px;box-shadow:0 8px 24px rgba(20,30,40,.25);overflow:hidden;z-index:60;">
+                        <sc-if value="{{L.map.pop.foto}}"><img src="assets/hero-alpine.svg" alt="" style="display:block;width:100%;height:86px;object-fit:cover;"></sc-if>
+                        <div style="padding:10px 12px 12px;display:flex;flex-direction:column;gap:6px;align-items:flex-start;">
+                          <div style="display:flex;justify-content:space-between;gap:8px;width:100%;"><div style="font-size:14px;font-weight:800;line-height:1.25;">{{L.map.pop.n}}</div><button onClick="{{closePop}}" style="border:none;background:none;font-size:16px;line-height:1;color:#8a93a3;cursor:pointer;padding:0;">×</button></div>
+                          <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#6b7486;"><span style="width:8px;height:8px;border-radius:50%;background:{{L.map.pop.tc}};"></span>{{L.map.pop.tl}} · {{L.map.pop.q}}</div>
+                          <span style="padding:2px 9px;border-radius:12px;background:{{L.map.pop.sb}};color:{{L.map.pop.sf}};font-size:11px;font-weight:700;">{{L.map.pop.sl}}</span>
+                          <a href="#scheda" onClick="{{L.map.pop.open}}" style="font-size:13px;font-weight:800;">Apri scheda →</a>
+                        </div>
+                      </div>
+                    </sc-if>
+                    <div style="position:absolute;right:12px;top:12px;display:flex;flex-direction:column;background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.2);overflow:hidden;z-index:70;">
+                      <button onClick="{{L.map.zin}}" style="width:32px;height:32px;border:none;background:#fff;font-size:18px;font-weight:700;color:#3c4557;cursor:pointer;border-bottom:1px solid #eceef1;">+</button>
+                      <button onClick="{{L.map.zout}}" style="width:32px;height:32px;border:none;background:#fff;font-size:18px;font-weight:700;color:#3c4557;cursor:pointer;">−</button>
+                    </div>
+                    <sc-if value="{{showLegend}}">
+                      <div style="position:absolute;left:12px;bottom:26px;background:rgba(255,255,255,.95);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:5px;box-shadow:0 1px 4px rgba(0,0,0,.15);z-index:70;">
+                        <sc-for list="{{legend}}" as="g"><div style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;"><span style="width:16px;height:16px;border-radius:50%;background:{{g.c}};color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;">{{g.k}}</span>{{g.l}}</div></sc-for>
+                      </div>
+                    </sc-if>
+                    <div style="position:absolute;right:0;bottom:0;background:rgba(255,255,255,.85);padding:2px 6px;font-size:10px;color:#5b6475;z-index:70;">Cartografia CAI · osm2cai · © OpenStreetMap</div>
+                  </div>
+                </div>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{L.empty}}">
+              <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:80px 24px;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;">
+                <svg width="48" height="48" viewBox="0 0 24 24" style="fill:none;stroke:#b4bbc6;stroke-width:1.4;stroke-linejoin:round;stroke-linecap:round;"><path d="M3 11l9-7 9 7M5 9.5V20h14V9.5M10 20v-5h4v5"></path></svg>
+                <div style="font-size:17px;font-weight:800;color:#3c4557;max-width:520px;text-wrap:pretty;">Nessun rifugio associato a questa Sezione nella banca dati rifugi.cai.it</div>
+                <a href="https://rifugi.cai.it" target="_blank" style="font-size:13px;font-weight:700;">Vai a rifugi.cai.it ↗</a>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#8a93a3;">Mobile · 390</div>
+        <div data-screen-label="Elenco mobile" style="width:390px;background:#f4f6f8;border-radius:28px;box-shadow:0 1px 2px rgba(20,30,40,.06),0 8px 28px rgba(20,30,40,.08);overflow:hidden;">
+          <div style="padding:24px 16px 32px;display:flex;flex-direction:column;gap:16px;">
+            <a href="#dashboard" style="font-size:13px;font-weight:700;color:#17a180;">← Dashboard</a>
+            <div style="display:flex;flex-direction:column;gap:4px;">
+              <div style="font-size:22px;font-weight:800;letter-spacing:-0.01em;">Rifugi di Sezione</div>
+              <div style="font-size:14px;font-weight:600;color:#6b7486;">{{L.sez}}</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:10px 14px;">
+                <div style="font-size:11px;font-weight:700;color:#6b7486;">In attività / totale</div>
+                <div style="display:flex;align-items:baseline;gap:3px;"><span style="font-size:20px;font-weight:800;">{{L.kA}}</span><span style="font-size:14px;font-weight:700;color:#8a93a3;">{{L.kT}}</span></div>
+              </div>
+              <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:10px 14px;">
+                <div style="font-size:11px;font-weight:700;color:#6b7486;">Posti letto totali</div>
+                <div style="font-size:20px;font-weight:800;">{{L.kP}}</div>
+              </div>
+            </div>
+
+            <sc-if value="{{L.has}}" hint-placeholder-val="{{true}}">
+              <div style="display:flex;flex-direction:column;gap:16px;">
+                <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;overflow:hidden;">
+                  <div style="position:relative;width:{{M.map.w}}px;height:{{M.map.h}}px;overflow:hidden;background:#f4f1e8 url(assets/mappa-cai-segnaposto.svg) center/cover;">
+                    <sc-for list="{{M.map.tiles}}" as="t"><img src="{{t.src}}" alt="" draggable="false" style="position:absolute;left:{{t.l}}px;top:{{t.t}}px;width:256px;height:256px;max-width:none;user-select:none;"></sc-for>
+                    <sc-for list="{{M.map.markers}}" as="m"><div onClick="{{m.click}}" style="position:absolute;left:{{m.x}}px;top:{{m.y}}px;width:{{m.s}}px;height:{{m.s}}px;margin-left:{{m.o}}px;margin-top:{{m.o}}px;border-radius:50%;background:{{m.c}};border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;color:#fff;font-size:{{m.fs}}px;font-weight:800;cursor:pointer;z-index:{{m.z}};">{{m.k}}</div></sc-for>
+                    <sc-if value="{{M.map.hasPop}}">
+                      <div style="position:absolute;left:{{M.map.pop.x}}px;top:{{M.map.pop.y}}px;width:240px;background:#fff;border-radius:10px;box-shadow:0 8px 24px rgba(20,30,40,.25);overflow:hidden;z-index:60;">
+                        <div style="padding:10px 12px 12px;display:flex;flex-direction:column;gap:6px;align-items:flex-start;">
+                          <div style="display:flex;justify-content:space-between;gap:8px;width:100%;"><div style="font-size:14px;font-weight:800;line-height:1.25;">{{M.map.pop.n}}</div><button onClick="{{closePop}}" style="border:none;background:none;font-size:18px;line-height:1;color:#8a93a3;cursor:pointer;padding:0 0 0 8px;">×</button></div>
+                          <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#6b7486;"><span style="width:8px;height:8px;border-radius:50%;background:{{M.map.pop.tc}};"></span>{{M.map.pop.tl}} · {{M.map.pop.q}}</div>
+                          <span style="padding:2px 9px;border-radius:12px;background:{{M.map.pop.sb}};color:{{M.map.pop.sf}};font-size:11px;font-weight:700;">{{M.map.pop.sl}}</span>
+                          <a href="#scheda" onClick="{{M.map.pop.open}}" style="font-size:13px;font-weight:800;">Apri scheda →</a>
+                        </div>
+                      </div>
+                    </sc-if>
+                    <div style="position:absolute;right:10px;top:10px;display:flex;flex-direction:column;background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.2);overflow:hidden;z-index:70;">
+                      <button onClick="{{M.map.zin}}" style="width:36px;height:36px;border:none;background:#fff;font-size:18px;font-weight:700;color:#3c4557;border-bottom:1px solid #eceef1;">+</button>
+                      <button onClick="{{M.map.zout}}" style="width:36px;height:36px;border:none;background:#fff;font-size:18px;font-weight:700;color:#3c4557;">−</button>
+                    </div>
+                    <div style="position:absolute;right:0;bottom:0;background:rgba(255,255,255,.85);padding:2px 6px;font-size:9px;color:#5b6475;z-index:70;">Cartografia CAI · © OSM</div>
+                  </div>
+                  <sc-if value="{{showLegend}}">
+                    <div style="display:flex;flex-wrap:wrap;gap:6px 12px;padding:10px 12px;border-top:1px solid #eceef1;">
+                      <sc-for list="{{legend}}" as="g"><div style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;"><span style="width:14px;height:14px;border-radius:50%;background:{{g.c}};color:#fff;font-size:8px;font-weight:800;display:flex;align-items:center;justify-content:center;">{{g.k}}</span>{{g.l}}</div></sc-for>
+                    </div>
+                  </sc-if>
+                </div>
+
+                <div style="display:flex;gap:6px;overflow-x:auto;margin:0 -16px;padding:0 16px 2px;">
+                  <button onClick="{{L.allTipi}}" style="flex:none;height:36px;padding:0 14px;border-radius:18px;border:1px solid {{L.allBd}};background:{{L.allBg}};color:{{L.allFg}};font-size:13px;font-weight:700;">Tutti</button>
+                  <sc-for list="{{L.chips}}" as="c"><button onClick="{{c.click}}" style="flex:none;display:flex;align-items:center;gap:6px;height:36px;padding:0 14px;border-radius:18px;border:1px solid {{c.bd}};background:{{c.bg}};color:{{c.fg}};font-size:13px;font-weight:700;white-space:nowrap;"><span style="width:9px;height:9px;border-radius:50%;background:{{c.dot}};"></span>{{c.l}}<span style="font-weight:600;color:#8a93a3;">{{c.n}}</span></button></sc-for>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                  <select value="{{L.stato}}" onChange="{{setStato}}" style="height:44px;padding:0 10px;border:1px solid #dfe3e8;border-radius:8px;background:#fff;color:#3c4557;font-size:14px;font-weight:700;">
+                    <option value="">Tutti gli stati</option>
+                    <sc-for list="{{statiOpts}}" as="o"><option value="{{o.k}}">{{o.l}}</option></sc-for>
+                  </select>
+                  <select value="{{L.sort}}" onChange="{{setSort}}" style="height:44px;padding:0 10px;border:1px solid #dfe3e8;border-radius:8px;background:#fff;color:#3c4557;font-size:14px;font-weight:700;">
+                    <option value="nome">Nome A–Z</option>
+                    <option value="nomeD">Nome Z–A</option>
+                    <option value="quotaD">Quota più alta</option>
+                    <option value="quota">Quota più bassa</option>
+                  </select>
+                </div>
+                <div style="font-size:12px;font-weight:700;color:#8a93a3;">{{L.count}}</div>
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                  <sc-for list="{{M.rows}}" as="r" hint-placeholder-count="4">
+                    <a href="#scheda" onClick="{{r.open}}" style="display:flex;gap:12px;padding:10px;background:#fff;border:1px solid #eceef1;border-radius:10px;color:#3c4557;">
+                      <sc-if value="{{r.foto}}"><img src="assets/hero-alpine.svg" alt="" style="width:72px;height:72px;border-radius:8px;object-fit:cover;object-position:{{r.pos}};flex:none;display:block;"></sc-if>
+                      <sc-if value="{{r.nofoto}}"><div style="width:72px;height:72px;border-radius:8px;background:#eef1f4;flex:none;display:flex;align-items:center;justify-content:center;"><svg width="24" height="24" viewBox="0 0 24 24" style="fill:none;stroke:#b4bbc6;stroke-width:1.6;stroke-linejoin:round;"><path d="M3 19l6-9 4 5 3-3 5 7z"></path></svg></div></sc-if>
+                      <div style="display:flex;flex-direction:column;gap:4px;min-width:0;flex:1;">
+                        <div style="font-size:15px;font-weight:800;line-height:1.25;">{{r.n}}</div>
+                        <sc-if value="{{r.alt}}"><div style="font-size:12px;color:#6b7486;margin-top:-2px;">{{r.alt}}</div></sc-if>
+                        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                          <span style="display:flex;align-items:center;gap:5px;font-size:12px;"><span style="width:8px;height:8px;border-radius:50%;background:{{r.tc}};"></span>{{r.tl}}</span>
+                          <span style="padding:2px 8px;border-radius:12px;background:{{r.sb}};color:{{r.sf}};font-size:11px;font-weight:700;">{{r.sl}}</span>
+                        </div>
+                        <div style="font-size:12px;color:#6b7486;">{{r.q}} m · {{r.c}} ({{r.p}}) · {{r.pl}} posti</div>
+                      </div>
+                    </a>
+                  </sc-for>
+                  <sc-if value="{{L.noMatch}}"><div style="padding:32px 12px;text-align:center;font-size:14px;color:#6b7486;background:#fff;border:1px solid #eceef1;border-radius:10px;">Nessun rifugio corrisponde ai filtri.<br><button onClick="{{resetF}}" style="margin-top:8px;border:none;background:none;color:#17a180;font-weight:700;font-size:14px;height:44px;">Azzera filtri</button></div></sc-if>
+                  <sc-if value="{{M.more}}"><button onClick="{{showAll}}" style="height:44px;border:1px solid #dfe3e8;border-radius:10px;background:#fff;color:#17a180;font-size:14px;font-weight:800;">{{M.moreL}}</button></sc-if>
+                </div>
+                <div style="font-size:11px;color:#8a93a3;">Fonte: rifugi.cai.it · aggiornato al 21/10/2026</div>
+              </div>
+            </sc-if>
+            <sc-if value="{{L.empty}}">
+              <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:48px 20px;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;">
+                <svg width="40" height="40" viewBox="0 0 24 24" style="fill:none;stroke:#b4bbc6;stroke-width:1.4;stroke-linejoin:round;stroke-linecap:round;"><path d="M3 11l9-7 9 7M5 9.5V20h14V9.5M10 20v-5h4v5"></path></svg>
+                <div style="font-size:15px;font-weight:800;text-wrap:pretty;">Nessun rifugio associato a questa Sezione nella banca dati rifugi.cai.it</div>
+                <a href="https://rifugi.cai.it" target="_blank" style="font-size:13px;font-weight:700;">Vai a rifugi.cai.it ↗</a>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="scheda" style="display:flex;flex-direction:column;gap:20px;">
+    <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+      <div style="font-size:18px;font-weight:800;">2 · Scheda rifugio</div>
+      <div style="display:flex;gap:4px;padding:4px;background:#fff;border:1px solid #dfe3e8;border-radius:10px;">
+        <sc-for list="{{schedaBtns}}" as="b" hint-placeholder-count="3">
+          <button onClick="{{b.click}}" style="height:32px;padding:0 14px;border:none;border-radius:7px;background:{{b.bg}};color:{{b.fg}};font-size:13px;font-weight:700;cursor:pointer;">{{b.l}}</button>
+        </sc-for>
+      </div>
+    </div>
+    <div style="display:flex;gap:48px;align-items:flex-start;flex-wrap:wrap;">
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#8a93a3;">Desktop · 1440</div>
+        <div data-screen-label="Scheda desktop" style="width:1440px;background:#f4f6f8;border-radius:12px;box-shadow:0 1px 2px rgba(20,30,40,.06),0 8px 28px rgba(20,30,40,.08);overflow:hidden;">
+          <div style="padding:36px 40px 56px;display:flex;flex-direction:column;gap:20px;">
+            <div style="display:flex;gap:16px;align-items:center;font-size:13px;font-weight:700;">
+              <a href="#dashboard" style="color:#17a180;">← Dashboard</a>
+              <span style="color:#c3c8d0;">/</span>
+              <a href="#elenco" style="color:#17a180;">Rifugi di Sezione</a>
+              <span style="color:#c3c8d0;">/</span>
+              <span style="color:#6b7486;">{{S.n}}</span>
+            </div>
+            <div style="position:relative;height:340px;border-radius:10px;overflow:hidden;background:#e3e8ed;">
+              <sc-if value="{{S.foto}}"><img src="assets/hero-alpine.svg" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"><div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(18,26,36,0) 30%,rgba(18,26,36,.8) 100%);"></div></sc-if>
+              <sc-if value="{{S.nofoto}}"><div style="position:absolute;top:32px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:8px;color:#8a93a3;font-size:13px;font-weight:700;"><svg width="44" height="44" viewBox="0 0 24 24" style="fill:none;stroke:#a6aebb;stroke-width:1.4;stroke-linejoin:round;"><path d="M3 19l6-9 4 5 3-3 5 7z"></path></svg>Nessuna foto disponibile su rifugi.cai.it</div></sc-if>
+              <div style="position:absolute;left:32px;right:32px;bottom:28px;display:flex;justify-content:space-between;align-items:flex-end;gap:24px;">
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                  <div style="display:flex;gap:8px;align-items:center;">
+                    <span style="display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:12px;background:#fff;color:#3c4557;font-size:12px;font-weight:800;"><span style="width:9px;height:9px;border-radius:50%;background:{{S.tc}};"></span>{{S.tl}}</span>
+                    <span style="padding:4px 10px;border-radius:12px;background:{{S.sb}};color:{{S.sf}};font-size:12px;font-weight:800;">{{S.sl}}</span>
+                  </div>
+                  <div style="font-size:34px;font-weight:800;letter-spacing:-0.01em;line-height:1.1;color:{{S.hfg}};">{{S.n}}</div>
+                  <div style="font-size:16px;font-weight:600;color:{{S.hfg2}};">{{S.alt}}</div>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;"><span style="font-size:12px;font-weight:700;color:{{S.hfg2}};">Quota</span><span style="font-size:30px;font-weight:800;color:{{S.hfg}};">{{S.q}} m</span></div>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) 440px;gap:20px;align-items:start;">
+              <div style="display:flex;flex-direction:column;gap:20px;">
+                <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:22px 24px;display:flex;flex-direction:column;gap:14px;">
+                  <div style="font-size:16px;font-weight:800;">Dove si trova</div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;column-gap:32px;">
+                    <sc-for list="{{S.dove}}" as="f"><div style="display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-top:1px solid #f1f3f5;font-size:14px;"><span style="color:#6b7486;">{{f.k}}</span><span style="font-weight:700;text-align:right;color:{{f.c}};">{{f.v}}</span></div></sc-for>
+                  </div>
+                </div>
+                <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:22px 24px;display:flex;flex-direction:column;gap:16px;">
+                  <div style="font-size:16px;font-weight:800;">Ospitalità e servizi</div>
+                  <div style="display:flex;gap:12px;">
+                    <div style="flex:1;background:#f4f6f8;border-radius:8px;padding:12px 16px;"><div style="font-size:12px;font-weight:700;color:#6b7486;">Posti letto totali</div><div style="font-size:26px;font-weight:800;">{{S.pl}}</div></div>
+                    <div style="flex:1;background:#f4f6f8;border-radius:8px;padding:12px 16px;"><div style="font-size:12px;font-weight:700;color:#6b7486;">Posti invernali</div><div style="font-size:26px;font-weight:800;">{{S.inv}}</div></div>
+                  </div>
+                  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;">
+                    <sc-for list="{{S.serv}}" as="s" hint-placeholder-count="15"><div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid #eceef1;border-radius:8px;background:{{s.bg}};"><svg width="20" height="20" viewBox="0 0 24 24" style="flex:none;fill:none;stroke:{{s.ic}};stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;"><path d="{{s.d}}"></path></svg><span style="flex:1;font-size:13px;color:{{s.tc}};">{{s.l}}</span><span style="font-size:12px;font-weight:800;color:{{s.vc}};">{{s.v}}</span></div></sc-for>
+                  </div>
+                </div>
+                <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:22px 24px;display:flex;flex-direction:column;gap:14px;">
+                  <div style="font-size:16px;font-weight:800;">Contatti</div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;column-gap:32px;">
+                    <sc-for list="{{S.cont}}" as="f"><div style="display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-top:1px solid #f1f3f5;font-size:14px;"><span style="color:#6b7486;flex:none;">{{f.k}}</span><sc-if value="{{f.href}}"><a href="{{f.href}}" target="_blank" style="font-weight:700;text-align:right;">{{f.v}}</a></sc-if><sc-if value="{{f.plain}}"><span style="font-weight:700;text-align:right;color:{{f.c}};">{{f.v}}</span></sc-if></div></sc-for>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;gap:16px;padding:10px 0 0;border-top:1px solid #f1f3f5;font-size:14px;"><span style="color:#6b7486;flex:none;">Orari di apertura</span><span style="font-weight:700;text-align:right;color:{{S.orari.c}};">{{S.orari.v}}</span></div>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:20px;">
+                <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;overflow:hidden;">
+                  <div style="position:relative;width:{{S.map.w}}px;height:{{S.map.h}}px;overflow:hidden;background:#f4f1e8 url(assets/mappa-cai-segnaposto.svg) center/cover;">
+                    <sc-for list="{{S.map.tiles}}" as="t"><img src="{{t.src}}" alt="" draggable="false" style="position:absolute;left:{{t.l}}px;top:{{t.t}}px;width:256px;height:256px;max-width:none;user-select:none;"></sc-for>
+                    <sc-for list="{{S.map.markers}}" as="m"><div style="position:absolute;left:{{m.x}}px;top:{{m.y}}px;width:34px;height:34px;margin-left:-17px;margin-top:-17px;border-radius:50%;background:{{m.c}};border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:800;z-index:5;">{{m.k}}</div></sc-for>
+                    <div style="position:absolute;right:12px;top:12px;display:flex;flex-direction:column;background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.2);overflow:hidden;z-index:70;">
+                      <button onClick="{{S.map.zin}}" style="width:32px;height:32px;border:none;background:#fff;font-size:18px;font-weight:700;color:#3c4557;cursor:pointer;border-bottom:1px solid #eceef1;">+</button>
+                      <button onClick="{{S.map.zout}}" style="width:32px;height:32px;border:none;background:#fff;font-size:18px;font-weight:700;color:#3c4557;cursor:pointer;">−</button>
+                    </div>
+                    <div style="position:absolute;right:0;bottom:0;background:rgba(255,255,255,.85);padding:2px 6px;font-size:10px;color:#5b6475;z-index:70;">Cartografia CAI · osm2cai · © OpenStreetMap</div>
+                  </div>
+                  <div style="padding:12px 16px;font-size:13px;color:#6b7486;display:flex;justify-content:space-between;gap:12px;"><span>{{S.coord}}</span><span style="font-weight:700;color:#3c4557;">WGS84</span></div>
+                </div>
+                <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:18px 20px;display:flex;flex-direction:column;gap:6px;">
+                  <div style="font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#8a93a3;">Fonte</div>
+                  <a href="https://rifugi.cai.it" target="_blank" style="font-size:15px;font-weight:800;">Vedi su rifugi.cai.it ↗</a>
+                  <div style="font-size:13px;color:#6b7486;">Ultimo aggiornamento del dato: <span style="font-weight:700;color:#3c4557;">{{S.upd}}</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top:16px;background:#e6eaee;border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
+                <div style="display:flex;align-items:center;gap:12px;">
+                  <svg width="22" height="22" viewBox="0 0 24 24" style="fill:none;stroke:#3c4557;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;"><path d="M6 11h12v9H6zM8.5 11V8a3.5 3.5 0 0 1 7 0v3"></path></svg>
+                  <div style="font-size:20px;font-weight:800;">Gestione</div>
+                  <span style="padding:4px 10px;border-radius:12px;background:#3c4557;color:#fff;font-size:12px;font-weight:800;">Riservato alla Sezione</span>
+                </div>
+                <sc-if value="{{S.alert}}"><span style="padding:6px 12px;border-radius:14px;background:{{S.scad.bg}};color:{{S.scad.fg}};border:1px solid {{S.scad.bd}};font-size:13px;font-weight:800;">{{S.scad.pill}}</span></sc-if>
+              </div>
+              <div style="font-size:13px;color:#5b6475;margin-top:-6px;">Informazioni visibili solo agli amministratori della Sezione, non mostrate nelle pagine pubbliche.</div>
+              <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;">
+                <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:20px 22px;display:flex;flex-direction:column;gap:10px;">
+                  <div style="font-size:15px;font-weight:800;">Gestore</div>
+                  <sc-if value="{{S.noGest}}"><div style="font-size:13px;color:#6b7486;background:#f4f6f8;border-radius:8px;padding:8px 10px;">Nessun gestore registrato nella banca dati.</div></sc-if>
+                  <div><sc-for list="{{S.gest}}" as="f"><div style="display:flex;justify-content:space-between;gap:16px;padding:9px 0;border-top:1px solid #f1f3f5;font-size:13px;"><span style="color:#6b7486;flex:none;">{{f.k}}</span><span style="font-weight:700;text-align:right;color:{{f.c}};word-break:break-word;">{{f.v}}</span></div></sc-for></div>
+                </div>
+                <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:20px 22px;display:flex;flex-direction:column;gap:10px;">
+                  <div style="font-size:15px;font-weight:800;">Contratto</div>
+                  <div>
+                    <div style="display:flex;justify-content:space-between;gap:16px;padding:9px 0;border-top:1px solid #f1f3f5;font-size:13px;"><span style="color:#6b7486;">Tipo di possesso</span><span style="font-weight:700;text-align:right;color:{{S.poss.c}};">{{S.poss.v}}</span></div>
+                    <div style="display:flex;justify-content:space-between;gap:16px;padding:9px 0;border-top:1px solid #f1f3f5;font-size:13px;"><span style="color:#6b7486;">Data di inizio</span><span style="font-weight:700;color:{{S.inizio.c}};">{{S.inizio.v}}</span></div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;padding:9px 10px;margin:0 -10px;border-radius:8px;background:{{S.scad.bg}};border:1px solid {{S.scad.bd}};font-size:13px;">
+                      <span style="color:{{S.scad.lc}};font-weight:{{S.scad.lw}};">Data di scadenza</span>
+                      <span style="display:flex;flex-direction:column;align-items:flex-end;"><span style="font-weight:800;color:{{S.scad.fg}};">{{S.scad.v}}</span><sc-if value="{{S.alert}}"><span style="font-size:12px;font-weight:700;color:{{S.scad.fg}};">{{S.scad.note}}</span></sc-if></span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;gap:16px;padding:9px 0;border-top:1px solid #f1f3f5;font-size:13px;"><span style="color:#6b7486;">Canone annuo</span><span style="font-weight:700;color:{{S.canone.c}};">{{S.canone.v}}</span></div>
+                  </div>
+                </div>
+                <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:20px 22px;display:flex;flex-direction:column;gap:10px;">
+                  <div style="font-size:15px;font-weight:800;">Proprietà</div>
+                  <div><sc-for list="{{S.prop}}" as="f"><div style="display:flex;justify-content:space-between;gap:16px;padding:9px 0;border-top:1px solid #f1f3f5;font-size:13px;"><span style="color:#6b7486;flex:none;">{{f.k}}</span><span style="font-weight:700;text-align:right;color:{{f.c}};word-break:break-word;">{{f.v}}</span></div></sc-for></div>
+                </div>
+              </div>
+              <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:20px 22px;display:flex;flex-direction:column;gap:12px;">
+                <div style="font-size:15px;font-weight:800;">Certificazioni e impianti</div>
+                <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;">
+                  <sc-for list="{{S.cert}}" as="s"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid #eceef1;border-radius:8px;background:{{s.bg}};"><span style="font-size:13px;color:{{s.tc}};">{{s.l}}</span><span style="font-size:12px;font-weight:800;color:{{s.vc}};">{{s.v}}</span></div></sc-for>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#8a93a3;">Mobile · 390</div>
+        <div data-screen-label="Scheda mobile" style="width:390px;background:#f4f6f8;border-radius:28px;box-shadow:0 1px 2px rgba(20,30,40,.06),0 8px 28px rgba(20,30,40,.08);overflow:hidden;">
+          <div style="padding:20px 16px 14px;"><a href="#elenco" style="font-size:13px;font-weight:700;color:#17a180;">← Rifugi di Sezione</a></div>
+          <div style="position:relative;height:250px;background:#e3e8ed;overflow:hidden;">
+            <sc-if value="{{S.foto}}"><img src="assets/hero-alpine.svg" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"><div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(18,26,36,0) 25%,rgba(18,26,36,.82) 100%);"></div></sc-if>
+            <sc-if value="{{S.nofoto}}"><div style="position:absolute;top:24px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:6px;color:#8a93a3;font-size:12px;font-weight:700;"><svg width="36" height="36" viewBox="0 0 24 24" style="fill:none;stroke:#a6aebb;stroke-width:1.4;stroke-linejoin:round;"><path d="M3 19l6-9 4 5 3-3 5 7z"></path></svg>Nessuna foto disponibile</div></sc-if>
+            <div style="position:absolute;left:16px;right:16px;bottom:16px;display:flex;flex-direction:column;gap:6px;">
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <span style="display:flex;align-items:center;gap:5px;padding:3px 9px;border-radius:12px;background:#fff;color:#3c4557;font-size:11px;font-weight:800;"><span style="width:8px;height:8px;border-radius:50%;background:{{S.tc}};"></span>{{S.tl}}</span>
+                <span style="padding:3px 9px;border-radius:12px;background:{{S.sb}};color:{{S.sf}};font-size:11px;font-weight:800;">{{S.sl}}</span>
+              </div>
+              <div style="font-size:24px;font-weight:800;line-height:1.15;color:{{S.hfg}};">{{S.n}}</div>
+              <div style="font-size:14px;font-weight:600;color:{{S.hfg2}};">{{S.alt}} · {{S.q}} m</div>
+            </div>
+          </div>
+          <div style="padding:16px 16px 32px;display:flex;flex-direction:column;gap:12px;">
+            <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;overflow:hidden;">
+              <div style="position:relative;width:{{T.map.w}}px;height:{{T.map.h}}px;overflow:hidden;background:#f4f1e8 url(assets/mappa-cai-segnaposto.svg) center/cover;">
+                <sc-for list="{{T.map.tiles}}" as="t"><img src="{{t.src}}" alt="" draggable="false" style="position:absolute;left:{{t.l}}px;top:{{t.t}}px;width:256px;height:256px;max-width:none;user-select:none;"></sc-for>
+                <sc-for list="{{T.map.markers}}" as="m"><div style="position:absolute;left:{{m.x}}px;top:{{m.y}}px;width:30px;height:30px;margin-left:-15px;margin-top:-15px;border-radius:50%;background:{{m.c}};border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:800;z-index:5;">{{m.k}}</div></sc-for>
+                <div style="position:absolute;right:0;bottom:0;background:rgba(255,255,255,.85);padding:2px 6px;font-size:9px;color:#5b6475;">Cartografia CAI · © OSM</div>
+              </div>
+              <div style="padding:10px 14px;font-size:12px;color:#6b7486;">{{S.coord}}</div>
+            </div>
+            <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px;">
+              <div style="font-size:15px;font-weight:800;">Dove si trova</div>
+              <div><sc-for list="{{S.dove}}" as="f"><div style="display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid #f1f3f5;font-size:13px;"><span style="color:#6b7486;flex:none;">{{f.k}}</span><span style="font-weight:700;text-align:right;color:{{f.c}};">{{f.v}}</span></div></sc-for></div>
+            </div>
+            <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:12px;">
+              <div style="font-size:15px;font-weight:800;">Ospitalità e servizi</div>
+              <div style="display:flex;gap:8px;">
+                <div style="flex:1;background:#f4f6f8;border-radius:8px;padding:10px 12px;"><div style="font-size:11px;font-weight:700;color:#6b7486;">Posti letto totali</div><div style="font-size:22px;font-weight:800;">{{S.pl}}</div></div>
+                <div style="flex:1;background:#f4f6f8;border-radius:8px;padding:10px 12px;"><div style="font-size:11px;font-weight:700;color:#6b7486;">Posti invernali</div><div style="font-size:22px;font-weight:800;">{{S.inv}}</div></div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+                <sc-for list="{{S.serv}}" as="s"><div style="display:flex;align-items:center;gap:8px;padding:9px 10px;border:1px solid #eceef1;border-radius:8px;background:{{s.bg}};"><svg width="18" height="18" viewBox="0 0 24 24" style="flex:none;fill:none;stroke:{{s.ic}};stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;"><path d="{{s.d}}"></path></svg><span style="flex:1;font-size:12px;line-height:1.2;color:{{s.tc}};">{{s.l}}</span><span style="font-size:11px;font-weight:800;color:{{s.vc}};">{{s.v}}</span></div></sc-for>
+              </div>
+            </div>
+            <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px;">
+              <div style="font-size:15px;font-weight:800;">Contatti</div>
+              <div>
+                <sc-for list="{{S.cont}}" as="f"><div style="display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid #f1f3f5;font-size:13px;min-height:44px;align-items:center;"><span style="color:#6b7486;flex:none;">{{f.k}}</span><sc-if value="{{f.href}}"><a href="{{f.href}}" target="_blank" style="font-weight:700;text-align:right;word-break:break-all;">{{f.v}}</a></sc-if><sc-if value="{{f.plain}}"><span style="font-weight:700;text-align:right;color:{{f.c}};">{{f.v}}</span></sc-if></div></sc-for>
+                <div style="display:flex;flex-direction:column;gap:2px;padding:9px 0 0;border-top:1px solid #f1f3f5;font-size:13px;"><span style="color:#6b7486;">Orari di apertura</span><span style="font-weight:700;color:{{S.orari.c}};">{{S.orari.v}}</span></div>
+              </div>
+            </div>
+
+            <div style="margin-top:12px;background:#e6eaee;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:12px;">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <svg width="20" height="20" viewBox="0 0 24 24" style="fill:none;stroke:#3c4557;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;"><path d="M6 11h12v9H6zM8.5 11V8a3.5 3.5 0 0 1 7 0v3"></path></svg>
+                <div style="font-size:17px;font-weight:800;">Gestione</div>
+                <span style="padding:3px 9px;border-radius:12px;background:#3c4557;color:#fff;font-size:11px;font-weight:800;">Riservato alla Sezione</span>
+              </div>
+              <sc-if value="{{S.alert}}"><div style="padding:10px 12px;border-radius:8px;background:{{S.scad.bg}};border:1px solid {{S.scad.bd}};color:{{S.scad.fg}};font-size:13px;font-weight:800;">{{S.scad.pill}} · {{S.scad.v}}</div></sc-if>
+              <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:8px;">
+                <div style="font-size:14px;font-weight:800;">Gestore</div>
+                <sc-if value="{{S.noGest}}"><div style="font-size:12px;color:#6b7486;background:#f4f6f8;border-radius:8px;padding:8px 10px;">Nessun gestore registrato nella banca dati.</div></sc-if>
+                <div><sc-for list="{{S.gest}}" as="f"><div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid #f1f3f5;font-size:13px;"><span style="color:#6b7486;flex:none;">{{f.k}}</span><span style="font-weight:700;text-align:right;color:{{f.c}};word-break:break-word;">{{f.v}}</span></div></sc-for></div>
+              </div>
+              <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:8px;">
+                <div style="font-size:14px;font-weight:800;">Contratto</div>
+                <div>
+                  <div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid #f1f3f5;font-size:13px;"><span style="color:#6b7486;">Tipo di possesso</span><span style="font-weight:700;text-align:right;color:{{S.poss.c}};">{{S.poss.v}}</span></div>
+                  <div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid #f1f3f5;font-size:13px;"><span style="color:#6b7486;">Data di inizio</span><span style="font-weight:700;color:{{S.inizio.c}};">{{S.inizio.v}}</span></div>
+                  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 10px;margin:0 -10px;border-radius:8px;background:{{S.scad.bg}};border:1px solid {{S.scad.bd}};font-size:13px;"><span style="color:{{S.scad.lc}};font-weight:{{S.scad.lw}};">Data di scadenza</span><span style="display:flex;flex-direction:column;align-items:flex-end;"><span style="font-weight:800;color:{{S.scad.fg}};">{{S.scad.v}}</span><sc-if value="{{S.alert}}"><span style="font-size:11px;font-weight:700;color:{{S.scad.fg}};">{{S.scad.note}}</span></sc-if></span></div>
+                  <div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid #f1f3f5;font-size:13px;"><span style="color:#6b7486;">Canone annuo</span><span style="font-weight:700;color:{{S.canone.c}};">{{S.canone.v}}</span></div>
+                </div>
+              </div>
+              <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:8px;">
+                <div style="font-size:14px;font-weight:800;">Proprietà</div>
+                <div><sc-for list="{{S.prop}}" as="f"><div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid #f1f3f5;font-size:13px;"><span style="color:#6b7486;flex:none;">{{f.k}}</span><span style="font-weight:700;text-align:right;color:{{f.c}};word-break:break-word;">{{f.v}}</span></div></sc-for></div>
+              </div>
+              <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:8px;">
+                <div style="font-size:14px;font-weight:800;">Certificazioni e impianti</div>
+                <div><sc-for list="{{S.cert}}" as="s"><div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid #f1f3f5;font-size:13px;"><span style="color:{{s.tc}};">{{s.l}}</span><span style="font-weight:800;color:{{s.vc}};">{{s.v}}</span></div></sc-for></div>
+              </div>
+            </div>
+            <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:4px;">
+              <a href="https://rifugi.cai.it" target="_blank" style="font-size:15px;font-weight:800;min-height:28px;">Vedi su rifugi.cai.it ↗</a>
+              <div style="font-size:12px;color:#6b7486;">Ultimo aggiornamento del dato: <span style="font-weight:700;color:#3c4557;">{{S.upd}}</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;scenario&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;uno&quot;,&quot;molti&quot;,&quot;nessuno&quot;],&quot;default&quot;:&quot;molti&quot;,&quot;tsType&quot;:&quot;'uno'|'molti'|'nessuno'&quot;},&quot;scheda&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;tosa&quot;,&quot;bonvecchio&quot;,&quot;rossi&quot;],&quot;default&quot;:&quot;tosa&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;legenda&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  state = { scen: this.props.scenario ?? 'molti', tipi: [], stato: '', sort: 'nome', sel: null, hover: null, mAll: false, sid: this.props.scheda ?? 'tosa', z: {} };
+
+  db() {
+    if (Component._db) return Component._db;
+    const T = { cu: { l: 'Rifugio custodito', c: '#17a180', k: 'R' }, in: { l: 'Rifugio incustodito', c: '#2f6fb0', k: 'I' }, bi: { l: 'Bivacco', c: '#d9822b', k: 'B' }, ca: { l: 'Capanna sociale', c: '#8a5cc2', k: 'C' }, pa: { l: "Punto d'appoggio", c: '#5b6475', k: 'P' } };
+    const S = { at: { l: 'In attività', bg: '#e3f4ee', fg: '#0f7d63' }, mc: { l: 'Momentaneamente chiuso', bg: '#fdf1dc', fg: '#8a5600' }, ri: { l: 'In ristrutturazione', bg: '#e5eef8', fg: '#2f5f93' }, na: { l: 'Immobile non agibile', bg: '#fbe7e5', fg: '#b42318' }, ce: { l: 'Cessazione affido', bg: '#f0ebf7', fg: '#6a4a99' }, al: { l: 'Alienato', bg: '#eef0f3', fg: '#5b6475' } };
+    const raw = [
+      ['tosa','Rifugio Tosa e Tommaso Pedrotti','Rifugio della Tosa','cu','at',2491,46.1697,10.8764,'San Lorenzo Dorsino',150,1],
+      ['brentei','Rifugio Maria e Alberto ai Brentei','','cu','at',2182,46.186,10.865,'Tre Ville',94,1],
+      ['apostoli','Rifugio XII Apostoli','Fratelli Garbari','cu','at',2489,46.138,10.818,'Stenico',40,1],
+      ['agostini','Rifugio Silvio Agostini','','cu','at',2410,46.141,10.855,'San Lorenzo Dorsino',60,1],
+      ['tuckett','Rifugio Tuckett e Quintino Sella','','cu','at',2272,46.196,10.868,'Tre Ville',110,1],
+      ['graffer','Rifugio Giorgio Graffer','Rifugio al Grostè','cu','at',2261,46.214,10.885,'Tre Ville',80,1],
+      ['peller','Rifugio Peller','','cu','ri',2022,46.33,10.983,'Cles',40,1],
+      ['mandron','Rifugio Città di Trento','Rifugio al Mandrone','cu','at',2449,46.197,10.59,'Spiazzo',100,1],
+      ['carealto','Rifugio Carè Alto','Dante Ongari','cu','at',2459,46.11,10.62,'Spiazzo',35,0],
+      ['caduti',"Rifugio ai Caduti dell'Adamello",'Lobbia Alta','cu','at',3040,46.161,10.548,'Spiazzo',80,1],
+      ['vioz','Rifugio Vioz','Mantova al Vioz','cu','at',3535,46.395,10.64,'Peio',70,1],
+      ['larcher','Rifugio Guido Larcher','Larcher al Cevedale','cu','at',2608,46.43,10.657,'Peio',70,1],
+      ['denza','Rifugio Francesco Denza','Rifugio Stavel','cu','at',2298,46.271,10.635,'Vermiglio',50,1],
+      ['segantini','Rifugio Giovanni Segantini','','cu','mc',2373,46.215,10.692,'Pinzolo',30,1],
+      ['pradidali','Rifugio Pradidali','','cu','at',2278,46.247,11.876,'Primiero San Martino di Castrozza',62,1],
+      ['rosetta','Rifugio Rosetta','Giovanni Pedrotti','cu','at',2581,46.268,11.835,'Primiero San Martino di Castrozza',80,1],
+      ['velo','Rifugio Velo della Madonna','','cu','at',2358,46.233,11.858,'Primiero San Martino di Castrozza',50,0],
+      ['rodavael','Rifugio Roda di Vaèl','','cu','at',2283,46.418,11.633,'San Giovanni di Fassa',40,1],
+      ['antermoia','Rifugio Antermoia','','cu','at',2497,46.473,11.66,'San Giovanni di Fassa',47,1],
+      ['vajolet','Rifugio Vajolet','','cu','at',2243,46.459,11.623,'San Giovanni di Fassa',90,1],
+      ['bindesi','Rifugio Bindesi','Pino Prati','cu','at',616,46.07,11.165,'Trento',null,0],
+      ['marchetti','Rifugio Prospero Marchetti','al Monte Stivo','cu','at',2012,45.917,10.978,'Arco',30,1],
+      ['altissimo','Rifugio Damiano Chiesa','Altissimo','cu','at',2060,45.808,10.885,'Nago-Torbole',30,1],
+      ['lancia','Rifugio Vincenzo Lancia','Alpe Pozza','cu','ce',1825,45.808,11.13,'Trambileno',40,0],
+      ['pernici','Rifugio Nino Pernici','','cu','at',1600,45.925,10.8,'Riva del Garda',30,1],
+      ['sanpietro','Rifugio San Pietro','','cu','mc',976,45.92,10.86,'Tenno',16,0],
+      ['setteselle','Rifugio Sette Selle','','cu','at',2014,46.11,11.38,'Palù del Fersina',25,1],
+      ['erdemolo','Rifugio Lago Erdemolo','','cu','ri',2050,46.098,11.357,'Palù del Fersina',null,0],
+      ['brentari','Rifugio Ottone Brentari',"alla Cima d'Asta",'cu','at',2473,46.17,11.612,'Pieve Tesino',40,1],
+      ['caldenave','Rifugio Caldenave','Claudio e Renzo','in','at',1792,46.135,11.52,'Scurelle',20,0],
+      ['valdifumo','Rifugio Val di Fumo','','cu','at',1997,46.07,10.58,'Valdaone',35,1],
+      ['tonini','Rifugio Tonini','','in','na',1900,46.15,11.32,'Baselga di Pinè',null,0],
+      ['bonvecchio','Bivacco Fratelli Bonvecchio','','bi','at',2790,46.183,10.604,'Spiazzo',9,0]
+    ];
+    const mk = (a, p) => ({ id: a[0], n: a[1], alt: a[2], t: a[3], s: a[4], q: a[5], lat: a[6], lon: a[7], c: a[8], pl: a[9], foto: !!a[10], p, pos: ((a[5] * 7) % 100) + '% 50%' });
+    const sat = raw.map(a => mk(a, 'TN'));
+    let sd = 11; const r = () => { sd = (sd * 16807) % 2147483647; return sd / 2147483647; };
+    const pick = a => a[Math.floor(r() * a.length)];
+    const sur = ['Castiglioni','Bontadini','Dellai','Costi','Gorza','Zeni','Frizzi','Slaghenaufi','Ceschini','Baroldi','Cavinato','Meneghello','Paoli','Leonardi','Tomasi','Bertoldi','Moser','Pisoni','Gabrielli','Detassis'];
+    const plc = ['Cima Verde','Malga Sass','Busa di Brenta','Col dei Bechi','Prà del Fabbro','Val Genova','Lago Nambino','Malga Boai','Cinque Croci','Monte Calisio','Doss del Sabion','Val Cadino','Monte Bondone','Corno di Tres','Monte Zugna','Palon della Mare','Lago Scuro','Malga Spora','Val Duron','Monte Gazza'];
+    const com = ['Pinzolo','Strembo','Tione di Trento',"Ville d'Anaunia",'Borgo Valsugana','Castello Tesino','Canazei','Moena','Predazzo','Ziano di Fiemme','Ala','Rovereto','Folgaria','Lavarone','Mezzana','Rabbi','Molveno','Ledro'];
+    let i = 0;
+    while (sat.length < 70) {
+      const x = r(); const t = x < .45 ? 'bi' : x < .7 ? 'ca' : x < .85 ? 'pa' : 'in';
+      const y = r(); const s = y < .75 ? 'at' : y < .83 ? 'mc' : y < .89 ? 'ri' : y < .93 ? 'na' : y < .97 ? 'ce' : 'al';
+      const n = t === 'bi' ? 'Bivacco ' + sur[i % sur.length] : t === 'ca' ? 'Capanna ' + pick(plc) : t === 'pa' ? "Punto d'appoggio " + pick(plc) : 'Rifugio ' + pick(plc);
+      const q = Math.round((t === 'bi' ? 2300 + r() * 800 : 1100 + r() * 1300));
+      const pl = t === 'bi' ? 4 + Math.floor(r() * 9) : t === 'ca' ? (r() < .2 ? null : 10 + Math.floor(r() * 20)) : t === 'pa' ? (r() < .5 ? null : 6) : 8 + Math.floor(r() * 12);
+      if (sat.some(o => o.n === n)) { i++; continue; }
+      sat.push(mk(['g' + i, n, '', t, s, q, 45.85 + r() * .6, 10.6 + r() * 1.25, pick(com), pl, r() < .4 ? 1 : 0], 'TN'));
+      i++;
+    }
+    const lucca = [mk(['rossi','Rifugio Enrico Rossi alla Pania','Rifugio Rossi','cu','at',1609,44.033,10.392,'Molazzana',26,1], 'LU')];
+    const det = {
+      tosa: { loc: 'Bocca di Brenta', reg: 'Trentino-Alto Adige', valle: 'Val Brenta', mass: 'Dolomiti di Brenta', area: 'Parco Naturale Adamello Brenta', inv: 12,
+        serv: { acqua: 1, acquaExt: 1, ele: 1, wifi: 0, gsm: 1, pos: 1, dae: 1, rist: 1, cucina: 0, docce: 1, disab: 0, fam: 1, mtb: 0, auto: 0, anim: 1 },
+        tel: '+39 0465 441244', email: 'info@rifugiotosapedrotti.it', web: 'www.rifugiotosapedrotti.it', fb: 'rifugiotosapedrotti', ig: '@rifugio_tosa_pedrotti', orari: '20 giugno – 20 settembre · locale invernale sempre aperto',
+        gest: { soc: 'Rifugi Brenta S.n.c.', nome: 'Luca Dallapè', tel: '+39 347 551 2093', email: 'luca.dallape@rifugibrenta.it', pec: 'rifugibrenta@pec.it' },
+        poss: "Affitto ramo d'azienda", inizio: '2021-04-01', scad: '2027-03-31', canone: 48500, prop: { nome: 'Società degli Alpinisti Tridentini', cf: '80003770222' },
+        cert: { iso: 1, fv: 1, gen: 1, idro: 0, diff: 1, dep: 1, sol: 1, eco: 0 }, cin: 'IT022165B4K7TQ2ZP9', upd: '2026-09-12' },
+      bonvecchio: { mass: 'Adamello', area: 'Parco Naturale Adamello Brenta', serv: { acqua: 0, ele: 0 }, prop: { nome: 'Società degli Alpinisti Tridentini' }, upd: '2024-07-03' },
+      rossi: { loc: 'Pania della Croce, versante sud', reg: 'Toscana', valle: 'Garfagnana', mass: 'Alpi Apuane', area: 'Parco Regionale delle Alpi Apuane', inv: 4,
+        serv: { acqua: 1, acquaExt: 1, ele: 1, wifi: 0, gsm: 1, pos: 0, dae: 0, rist: 1, cucina: 0, docce: 0, disab: 0, fam: 1, mtb: 0, auto: 0, anim: 1 },
+        tel: '+39 0583 710386', email: 'rifugiorossi@cailucca.it', fb: 'rifugiorossipania', orari: 'Maggio – ottobre · fine settimana in inverno su prenotazione',
+        gest: { nome: 'Giulia Bertolucci', tel: '+39 340 118 7744', email: 'giulia.bertolucci@gmail.com' },
+        poss: 'Concessione in comodato', inizio: '2020-07-01', scad: '2026-06-30', canone: 6000, prop: { nome: 'Comune di Molazzana', cf: '00379850465' },
+        cert: { iso: 0, fv: 1, gen: 1, idro: 0, diff: 1, sol: 0, eco: 0 }, upd: '2026-10-02' }
+    };
+    Component._db = { T, S, det, all: [...sat, ...lucca], scen: { uno: { sez: 'CAI Sezione di Lucca', list: lucca }, molti: { sez: 'SAT – Società degli Alpinisti Tridentini', list: sat }, nessuno: { sez: 'CAI Sezione di Livorno', list: [] } } };
+    return Component._db;
+  }
+
+  num(n) { return n == null ? '—' : String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+  dash(v) { return (v == null || v === '') ? { v: '—', c: '#9aa1ad' } : { v, c: '#3c4557' }; }
+  fd(s) { if (!s) return '—'; const [y, m, d] = s.split('-'); return `${d}/${m}/${y}`; }
+  fl(s) { if (!s) return '—'; const M = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre']; const [y, m, d] = s.split('-'); return `${+d} ${M[+m - 1]} ${y}`; }
+
+  open(id) { this.setState({ sid: id }); location.hash = 'scheda'; }
+  zoom(k, d) { this.setState(s => ({ z: { ...s.z, [k]: (s.z[k] || 0) + d } })); }
+
+  mapView(key, pts, W, H, maxZ, opts = {}) {
+    const P = (lat, lon, z) => { const n = 256 * 2 ** z, r = lat * Math.PI / 180; return [(lon + 180) / 360 * n, (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * n]; };
+    const bb = z => { const xs = pts.map(p => P(p.lat, p.lon, z)); const X = xs.map(a => a[0]), Y = xs.map(a => a[1]); return { xs, x0: Math.min(...X), x1: Math.max(...X), y0: Math.min(...Y), y1: Math.max(...Y) }; };
+    let z = maxZ;
+    if (pts.length > 1) for (; z > 5; z--) { const b = bb(z); if (b.x1 - b.x0 <= W - 60 && b.y1 - b.y0 <= H - 80) break; }
+    z = Math.max(5, Math.min(17, z + (this.state.z[key] || 0)));
+    const b = bb(z); const ox = (b.x0 + b.x1) / 2 - W / 2, oy = (b.y0 + b.y1) / 2 - H / 2;
+    const tiles = [];
+    for (let tx = Math.floor(ox / 256); tx <= Math.floor((ox + W - 1) / 256); tx++) for (let ty = Math.floor(oy / 256); ty <= Math.floor((oy + H - 1) / 256); ty++)
+      tiles.push({ src: `https://r3-it.storage.cloud.it/tiles/${z}/${tx}/${ty}.png`, l: Math.round(tx * 256 - ox), t: Math.round(ty * 256 - oy) });
+    const { T, S } = this.db();
+    const markers = pts.map((p, i) => { const on = p.id === this.state.sel || p.id === this.state.hover; const s = on ? 34 : 24; return { n: p.n, x: Math.round(b.xs[i][0] - ox), y: Math.round(b.xs[i][1] - oy), s, o: -s / 2, fs: on ? 14 : 11, z: on ? 40 : 10, c: T[p.t].c, k: T[p.t].k, click: () => this.setState({ sel: p.id }) }; });
+    let pop = null;
+    if (opts.pop) { const i = pts.findIndex(p => p.id === this.state.sel); if (i >= 0) { const p = pts[i], m = markers[i]; const ph = opts.foto && p.foto ? 196 : 112;
+      pop = { x: Math.max(8, Math.min(W - 248, m.x - 120)), y: m.y > ph + 30 ? m.y - ph - 22 : m.y + 22, foto: opts.foto && p.foto, n: p.n, tl: T[p.t].l, tc: T[p.t].c, q: this.num(p.q) + ' m', sl: S[p.s].l, sb: S[p.s].bg, sf: S[p.s].fg, open: () => this.open(p.id) }; } }
+    return { w: W, h: H, tiles, markers, hasPop: !!pop, pop: pop || {}, zin: () => this.zoom(key, 1), zout: () => this.zoom(key, -1) };
+  }
+
+  renderVals() {
+    const { T, S, det, all, scen } = this.db();
+    const st = this.state, sc = scen[st.scen];
+    const list = sc.list;
+    const chips = Object.keys(T).map(k => { const n = list.filter(r => r.t === k).length; const on = st.tipi.includes(k);
+      return { l: T[k].l, dot: T[k].c, n: n || '—', bd: on ? '#17a180' : '#dfe3e8', bg: on ? '#e3f4ee' : '#fff', fg: on ? '#0f7d63' : '#3c4557', click: () => this.setState(s => ({ tipi: s.tipi.includes(k) ? s.tipi.filter(x => x !== k) : [...s.tipi, k], sel: null })) }; });
+    let f = list.filter(r => (!st.tipi.length || st.tipi.includes(r.t)) && (!st.stato || r.s === st.stato));
+    const so = st.sort;
+    f = [...f].sort((a, b) => so === 'nome' ? a.n.localeCompare(b.n, 'it') : so === 'nomeD' ? b.n.localeCompare(a.n, 'it') : so === 'quota' ? a.q - b.q : b.q - a.q);
+    const row = r => ({ ...r, foto: r.foto, nofoto: !r.foto, alt: r.alt || null, tl: T[r.t].l, tc: T[r.t].c, sl: S[r.s].l, sb: S[r.s].bg, sf: S[r.s].fg, q: this.num(r.q), pl: this.num(r.pl), bg: (r.id === st.sel || r.id === st.hover) ? '#eef8f5' : '#fff', open: () => this.open(r.id), hover: () => this.setState({ hover: r.id }) });
+    const rows = f.map(row);
+    const attivi = list.filter(r => r.s === 'at').length, posti = list.reduce((a, r) => a + (r.pl || 0), 0);
+    const allOn = !st.tipi.length;
+    const L = {
+      sez: sc.sez, has: list.length > 0, empty: list.length === 0,
+      kA: list.length ? String(attivi) : '—', kT: list.length ? '/ ' + list.length : '', kP: posti ? this.num(posti) : '—',
+      chips, allBd: allOn ? '#17a180' : '#dfe3e8', allBg: allOn ? '#e3f4ee' : '#fff', allFg: allOn ? '#0f7d63' : '#3c4557', allTipi: () => this.setState({ tipi: [] }),
+      stato: st.stato, sort: so, rows, noMatch: list.length > 0 && rows.length === 0,
+      count: rows.length === list.length ? `${list.length} ${list.length === 1 ? 'struttura' : 'strutture'}` : `${rows.length} di ${list.length} strutture`,
+      hN: so.startsWith('nome') ? '#17a180' : '#6b7486', aN: so === 'nome' ? '↑' : so === 'nomeD' ? '↓' : '', hQ: so.startsWith('quota') ? '#17a180' : '#6b7486', aQ: so === 'quotaD' ? '↓' : so === 'quota' ? '↑' : '',
+      maxH: 620,
+      map: f.length ? this.mapView('dl', f, 500, Math.max(440, Math.min(767, 150 + rows.length * 67)), 13, { pop: true, foto: true }) : this.mapView('dl', list.length ? list : [{ lat: 46.07, lon: 11.12, id: 'x', t: 'cu' }], 500, 440, 13, {})
+    };
+    if (!f.length) L.map.markers = [];
+    const lim = st.mAll ? rows.length : 12;
+    const M = { rows: rows.slice(0, lim), more: rows.length > lim, moreL: `Mostra altri ${rows.length - lim}`, map: f.length ? this.mapView('ml', f, 358, 260, 13, { pop: true }) : this.mapView('ml', list.length ? list : [{ lat: 46.07, lon: 11.12, id: 'x', t: 'cu' }], 358, 260, 13, {}) };
+    if (!f.length) M.map.markers = [];
+
+    const r = all.find(x => x.id === st.sid) || all[0];
+    const d = det[r.id] || {};
+    const ds = this.dash.bind(this);
+    const coord = `${r.lat.toFixed(5).replace('.', ',')}° N · ${r.lon.toFixed(5).replace('.', ',')}° E`;
+    const regDef = r.p === 'TN' ? 'Trentino-Alto Adige' : r.p === 'LU' ? 'Toscana' : null;
+    const kv = (k, v) => ({ k, ...ds(v) });
+    const SV = [['acqua','Acqua in rifugio','M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z'],['acquaExt','Acqua esterna','M4 9h9a3 3 0 0 1 3 3v2M8 9V5h4M16 18v.01M16 21v.01'],['ele','Elettricità','M13 2L4 14h7l-1 8 9-12h-7z'],['wifi','Wi-Fi','M2 9a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0M12 19.5v.01'],['gsm','Segnale GSM','M5 20v-4M10 20v-8M15 20V8M20 20V4'],['pos','Pagamento POS','M3 6h18v12H3zM3 10h18M7 15h4'],['dae','Defibrillatore','M12 20s-8-5-8-11a4 4 0 0 1 8-1 4 4 0 0 1 8 1c0 6-8 11-8 11zM12.5 8l-2 4h3l-2 4'],['rist','Ristorante','M7 3v18M4 3v5a3 3 0 0 0 6 0V3M17 3c-2 0-3 3-3 6s1 4 3 4v8'],['cucina','Accesso cucina','M4 10h16v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4zM2 10h20M9 5v2M12 4v3M15 5v2'],['docce','Docce','M4 20V8a4 4 0 0 1 4-4h2a4 4 0 0 1 4 4M10 10h8M12 14v.01M15 14v.01M18 14v.01M12 17v.01M15 17v.01M18 17v.01'],['disab','Accessibilità disabili','M10 4v.01M10 8v6h6l2 5M14 18a4 4 0 1 1-6-5'],['fam','Famiglie con bambini','M8 5v.01M16 8v.01M5 21v-7l3-4 3 4v7M14 21v-5l2-3 2 3v5'],['mtb','Mountain bike','M2 17a3 3 0 1 0 6 0a3 3 0 1 0-6 0M16 17a3 3 0 1 0 6 0a3 3 0 1 0-6 0M5 17l4-7h6l4 7M9 10l3 7M13 6h3'],['auto','Raggiungibile in auto','M3 16v-3l2-5h14l2 5v3zM4 16v2M20 16v2M7 13v.01M17 13v.01'],['anim','Animali ammessi','M8 9v.01M12 7v.01M16 9v.01M6 13v.01M18 13v.01M12 12c-3 0-5 4-5 6s2 2 5 2 5 0 5-2-2-6-5-6z']];
+    const tri = (v, l, dd) => v === 1 ? { l, d: dd, v: 'Sì', ic: '#17a180', tc: '#3c4557', vc: '#0f7d63', bg: '#fff' } : v === 0 ? { l, d: dd, v: 'No', ic: '#9aa1ad', tc: '#6b7486', vc: '#6b7486', bg: '#fafbfc' } : { l, d: dd, v: '—', ic: '#c8cdd4', tc: '#9aa1ad', vc: '#9aa1ad', bg: '#fafbfc' };
+    const sv = d.serv || {}, ce = d.cert || {}, g = d.gest || {}, pr = d.prop || {};
+    const cl = (k, v, href) => v ? { k, v, href, plain: false } : { k, v: '—', c: '#9aa1ad', href: null, plain: true };
+    let scad = { v: this.fd(d.scad), bg: 'transparent', bd: 'transparent', fg: d.scad ? '#3c4557' : '#9aa1ad', lc: '#6b7486', lw: 400 }, alert = false;
+    if (d.scad) {
+      const TODAY = new Date(2026, 9, 23), [y, m, dd] = d.scad.split('-').map(Number), days = Math.round((new Date(y, m - 1, dd) - TODAY) / 864e5), mo = Math.round(Math.abs(days) / 30.44);
+      const span = mo >= 1 ? `${mo} ${mo === 1 ? 'mese' : 'mesi'}` : `${Math.abs(days)} giorni`;
+      if (days < 0) { alert = true; scad = { ...scad, bg: '#fbe7e5', bd: '#f3c4bf', fg: '#b42318', lc: '#b42318', lw: 700, note: `Scaduto da ${span}`, pill: 'Contratto scaduto' }; }
+      else if (days <= 183) { alert = true; scad = { ...scad, bg: '#fdf1dc', bd: '#f3d9a6', fg: '#8a5600', lc: '#8a5600', lw: 700, note: `Scade tra ${span}`, pill: 'Contratto in scadenza' }; }
+    }
+    const foto = r.foto;
+    const SC = {
+      n: r.n, alt: r.alt || '—', tl: T[r.t].l, tc: T[r.t].c, sl: S[r.s].l, sb: S[r.s].bg, sf: S[r.s].fg, q: this.num(r.q), foto, nofoto: !foto,
+      hfg: foto ? '#fff' : '#3c4557', hfg2: foto ? 'rgba(255,255,255,.88)' : '#5b6475',
+      dove: [kv('Località', d.loc), kv('Comune', r.c), kv('Provincia', r.p), kv('Regione', d.reg || regDef), kv('Valle', d.valle), kv('Massiccio', d.mass), kv('Area protetta', d.area), kv('Coordinate', coord)],
+      pl: this.num(r.pl), inv: this.num(d.inv), coord,
+      serv: SV.map(([k, l, dd]) => tri(sv[k], l, dd)),
+      cont: [cl('Telefono', d.tel, d.tel && 'tel:' + d.tel.replace(/\s/g, '')), cl('Email', d.email, d.email && 'mailto:' + d.email), cl('Sito web', d.web, d.web && 'https://' + d.web), cl('Facebook', d.fb, d.fb && 'https://facebook.com/' + d.fb), cl('Instagram', d.ig, d.ig && 'https://instagram.com/' + (d.ig || '').replace('@', ''))],
+      orari: ds(d.orari),
+      noGest: !d.gest, gest: [kv('Società', g.soc), kv('Nome e cognome', g.nome), kv('Telefono', g.tel), kv('Email', g.email), kv('PEC', g.pec)],
+      poss: ds(d.poss), inizio: ds(d.inizio && this.fd(d.inizio)), canone: ds(d.canone != null ? '€ ' + this.num(d.canone) : null), scad, alert,
+      prop: [kv('Nome', pr.nome), kv('Codice fiscale', pr.cf), kv('Codice CIN', d.cin)],
+      cert: [['iso','ISO 14001'],['fv','Fotovoltaico'],['gen','Generatore'],['idro','Idroelettrico'],['diff','Raccolta differenziata'],['dep','Depuratore acque reflue'],['sol','Solare termico'],['eco','Ecolabel UE']].map(([k, l]) => tri(ce[k], l, '')),
+      upd: this.fl(d.upd),
+      map: this.mapView('ds', [r], 440, 340, 14, {})
+    };
+    const TT = { map: this.mapView('ms', [r], 358, 200, 14, {}) };
+
+    const btn = (l, on, click) => ({ l, click, bg: on ? '#17a180' : 'transparent', fg: on ? '#fff' : '#3c4557' });
+    return {
+      L, M, S: SC, T: TT,
+      scenBtns: [btn('Un rifugio · CAI Lucca', st.scen === 'uno', () => this.setState({ scen: 'uno', sel: null, tipi: [], stato: '' })), btn('Molti rifugi · SAT (70)', st.scen === 'molti', () => this.setState({ scen: 'molti', sel: null })), btn('Nessun rifugio · CAI Livorno', st.scen === 'nessuno', () => this.setState({ scen: 'nessuno', sel: null }))],
+      schedaBtns: [btn('Custodito · contratto in scadenza', st.sid === 'tosa', () => this.setState({ sid: 'tosa' })), btn('Bivacco · dati mancanti', st.sid === 'bonvecchio', () => this.setState({ sid: 'bonvecchio' })), btn('Contratto scaduto', st.sid === 'rossi', () => this.setState({ sid: 'rossi' }))],
+      statiOpts: Object.keys(S).map(k => ({ k, l: S[k].l })),
+      legend: Object.keys(T).map(k => T[k]),
+      showLegend: this.props.legenda ?? true,
+      setStato: e => this.setState({ stato: e.target.value, sel: null }),
+      setSort: e => this.setState({ sort: e.target.value }),
+      sortNome: () => this.setState(s => ({ sort: s.sort === 'nome' ? 'nomeD' : 'nome' })),
+      sortQuota: () => this.setState(s => ({ sort: s.sort === 'quotaD' ? 'quota' : 'quotaD' })),
+      resetF: () => this.setState({ tipi: [], stato: '' }),
+      showAll: () => this.setState({ mAll: true }),
+      closePop: e => { e && e.stopPropagation && e.stopPropagation(); this.setState({ sel: null }); },
+      unhover: () => this.setState({ hover: null })
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -187,3 +187,19 @@ test('balance badge without the year note keeps the plain fiscal year line', fun
     $view->assertSee('Esercizio 2025</span>', false)
         ->assertDontSee(' · ');
 });
+
+test('a pending simple badge shows "In attesa" with the same muted style', function (): void {
+    test()->blade('<x-cai.metric-badge href="/admin/tappe" label="Tappe SICAI" :value="null" pending />')
+        ->assertSee('ms-metric-badge--unavailable', false)
+        ->assertSee('ms-metric-badge--pending', false)
+        ->assertSee('In attesa')
+        ->assertDontSee('Non disponibile');
+});
+
+test('a pending badge with a value shows the value', function (): void {
+    test()->blade('<x-cai.metric-badge href="/admin/tappe" label="Tappe SICAI" :value="12" pending />')
+        ->assertSee('12')
+        ->assertDontSee('In attesa')
+        ->assertDontSee('ms-metric-badge--pending', false)
+        ->assertDontSee('ms-metric-badge--unavailable', false);
+});

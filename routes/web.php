@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\ActivityReportPdfDownloadController;
 use App\Http\Controllers\CaiDocumentDownloadController;
+use App\Http\Controllers\CaiRegionalGroupTrailsMapController;
 use App\Http\Controllers\DocumentationPagePdfDownloadController;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\TicketAttachmentDownloadController;
@@ -37,3 +38,9 @@ Route::get('/activity-reports/{activityReport}/pdf', ActivityReportPdfDownloadCo
 Route::get('/cai-documents/{caiDocument}/download', CaiDocumentDownloadController::class)
     ->middleware('auth')
     ->name('cai-documents.download');
+
+// Sentieri della mappa del GR nell'area visibile (US-1064), JSON per `x-cai.map` da zoom 11; l'autorizzazione vive nel
+// controller (`CaiTrailRegionPolicy::view`: GR della regione o staff).
+Route::get('/cai-trail-regions/{caiTrailRegion}/map-trails', CaiRegionalGroupTrailsMapController::class)
+    ->middleware('auth')
+    ->name('cai-trail-regions.map-trails');

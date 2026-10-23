@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\CaiDirectory\Enums\CaiHutStatus;
 use App\Domain\CaiDirectory\Enums\CaiRuntsPresenceStatus;
 use App\Domain\CaiDirectory\Models\CaiFinancialStatement;
 use App\Domain\CaiDirectory\Models\CaiSubsection;
@@ -79,13 +80,13 @@ test('the typical section shows members and income statement, the rest is not av
         ->assertSeeText('Esercizio 2025')
         ->html();
 
-    // Stato patrimoniale + rifugi + sentieri + tappe SICAI.
-    expect(substr_count($html, 'ms-metric-badge--unavailable'))->toBe(4)
+    // Stato patrimoniale + tappe SICAI; rifugi e sentieri sono un dato noto anche a zero.
+    expect(substr_count($html, 'ms-metric-badge--unavailable'))->toBe(2)
         ->and(substr_count($html, 'Esercizio '))->toBe(1)
-        ->and($html)->not->toContain('>0<');
+        ->and(substr_count($html, 'ms-metric-badge__number">0<'))->toBe(1);
 });
 
-test('an empty section shows every badge as not available, never 0', function (): void {
+test('an empty section shows every badge as not available except huts and trails, shown as 0', function (): void {
     $user = sectionDashboardCustomer();
     caiSection(['name' => 'SEZ. VUOTA', 'region' => '', 'codice_cai' => '9999', 'members_count' => null, 'user_id' => $user->id]);
 
@@ -98,8 +99,40 @@ test('an empty section shows every badge as not available, never 0', function ()
         ->assertDontSeeText('Esercizio')
         ->html();
 
-    expect(substr_count($html, 'ms-metric-badge--unavailable'))->toBe(6)
-        ->and(substr_count($html, 'Non disponibile'))->toBe(6);
+    // Tappe SICAI: "In attesa" (stesso stile attenuato), non "Non disponibile".
+    expect(substr_count($html, 'ms-metric-badge--unavailable'))->toBe(4)
+        ->and(substr_count($html, 'Non disponibile'))->toBe(3)
+        ->and(substr_count($html, 'ms-metric-badge--pending'))->toBe(1)
+        ->and(substr_count($html, 'ms-metric-badge__number">0<'))->toBe(1)
+        ->and(substr_count($html, 'ms-metric-badge__number">0,0<'))->toBe(1);
+});
+
+test('the huts badge counts every hut of the section', function (): void {
+    $user = sectionDashboardCustomer();
+    $section = caiSection(['user_id' => $user->id, 'members_count' => null]);
+    caiHut(['branch_code' => $section->codice_cai]);
+    caiHut(['branch_code' => $section->codice_cai, 'status' => CaiHutStatus::Sold]);
+    caiHut(['branch_code' => caiSection()->codice_cai]);
+
+    $this->actingAs($user);
+
+    $html = Livewire::test(SectionDashboard::class)->html();
+
+    expect(substr_count($html, 'ms-metric-badge__number">2<'))->toBe(1);
+});
+
+test('the trails badge sums the km of the section trails, a shared trail counted in full', function (): void {
+    $user = sectionDashboardCustomer();
+    $section = caiSection(['user_id' => $user->id]);
+    caiTrail(['length_km' => 1234.5], [$section->codice_cai]);
+    caiTrail(['length_km' => 10.04], [$section->codice_cai, caiSection()->codice_cai]);
+    caiTrail(['length_km' => 99], [caiSection()->codice_cai]);
+
+    $this->actingAs($user);
+
+    $html = Livewire::test(SectionDashboard::class)->html();
+
+    expect($html)->toContain('ms-metric-badge__number">1.244,5<');
 });
 
 test('a subsection user sees the subsection name, code and members with the parent region', function (): void {
@@ -212,4 +245,16 @@ test('each badge link is labelled with the name of its detail page', function ()
         ->assertSeeTextInOrder(['Conto economico', 'Bilancio', 'Stato patrimoniale', 'Bilancio',
             'Soci', 'Soci', 'Rifugi', 'Rifugi di Sezione', 'Sentieri', 'Sentieri di Sezione', 'Tappe SICAI', 'Tappe SICAI'])
         ->assertDontSeeText('Vedi dettaglio');
+});
+
+test('the SICAI stages badge is pending, not "not available"', function (): void {
+    $user = sectionDashboardCustomer();
+    caiSection(['user_id' => $user->id]);
+
+    $this->actingAs($user);
+
+    $text = (string) preg_replace('/\s+/u', ' ', strip_tags(Livewire::test(SectionDashboard::class)->html()));
+
+    expect(str($text)->after('Sentieri di Sezione')->value())->toContain('Tappe SICAI — In attesa Tappe SICAI')
+        ->not->toContain('Non disponibile');
 });

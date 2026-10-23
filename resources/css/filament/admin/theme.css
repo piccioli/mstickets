@@ -23,3 +23,30 @@
 
 /* Bilancio consolidato delle Sezioni del Gruppo Regionale (Fase 10.3). */
 @import './regional-group-financial-statements.css';
+
+/* Mappa con cartografia CAI per rifugi, sentieri e tappe SICAI (Fase 10.4). */
+@import './cai-map.css';
+
+/* Segnavia e pillole comuni ai sentieri osm2cai (Fase 10.6). */
+@import './cai-trails.css';
+
+/* Rifugi di Sezione (Fase 10.4). */
+@import './section-huts.css';
+
+/* Sentieri di Sezione (Fase 10.6). */
+@import './section-trails.css';
+
+/* Scheda del rifugio (Fase 10.4). */
+@import './cai-hut-detail.css';
+
+/* Scheda del sentiero (Fase 10.6). */
+@import './cai-trail-detail.css';
+
+/* Rifugi del GR (Fase 10.5). */
+@import './regional-group-huts.css';
+
+/* Sentieri del GR (Fase 10.7). */
+@import './regional-group-trails.css';
+
+/* Tappe SICAI del GR (Fase 10.9). */
+@import './regional-group-sicai-stages.css';

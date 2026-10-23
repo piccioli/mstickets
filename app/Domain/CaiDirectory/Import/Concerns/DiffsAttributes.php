@@ -43,6 +43,25 @@ trait DiffsAttributes
 
     private function comparable(mixed $value): string
     {
-        return $value instanceof BackedEnum ? (string) $value->value : (string) ($value ?? '');
+        return match (true) {
+            $value instanceof BackedEnum => (string) $value->value,
+            is_array($value) => (string) json_encode($this->sortedKeys($value)),
+            default => (string) ($value ?? ''),
+        };
+    }
+
+    /**
+     * Colonne json (cast `array`): stesso contenuto con chiavi in ordine diverso non è una differenza.
+     *
+     * @param  array<mixed>  $value
+     * @return array<mixed>
+     */
+    private function sortedKeys(array $value): array
+    {
+        if (! array_is_list($value)) {
+            ksort($value);
+        }
+
+        return array_map(fn (mixed $item): mixed => is_array($item) ? $this->sortedKeys($item) : $item, $value);
     }
 }

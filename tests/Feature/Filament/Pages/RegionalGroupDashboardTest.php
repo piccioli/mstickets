@@ -70,10 +70,11 @@ test('a regional group with sections shows the GR code, consolidated statements 
         ->assertDontSeeText('Nessuna regione associata');
 });
 
-test('the GR own statements, huts, trails and SICAI stages are not available, never 0', function (): void {
+test('the GR own statements are not available, never 0', function (): void {
     caiSection(['codice_cai' => '9226001', 'region' => 'TOSCANA', 'members_count' => 1]);
     CaiFinancialStatement::create(['cai_section_id' => '9226001', 'year' => 2024,
         'net_result' => -500, 'net_equity' => 10, 'total_assets' => 20]);
+    caiHut(['branch_code' => '9226001']);
 
     $this->actingAs(regionalGroupDashboardCustomer());
 
@@ -83,9 +84,91 @@ test('the GR own statements, huts, trails and SICAI stages are not available, ne
         ->assertSeeText('Esercizio 2024 · Somma di 1 Sezione su 1')
         ->html();
 
-    // Conto economico + stato patrimoniale del GR, rifugi, sentieri, tappe SICAI.
-    expect(substr_count($html, 'ms-metric-badge--unavailable'))->toBe(5)
-        ->and($html)->not->toContain('>0<');
+    // Conto economico + stato patrimoniale del GR (sentieri 0,0 km e tappe SICAI 0 sono dati noti).
+    expect(substr_count($html, 'ms-metric-badge--unavailable'))->toBe(2);
+});
+
+test('the SICAI stages badge shows the number of stages and the km of the main ones', function (): void {
+    caiSection(['codice_cai' => '9226001', 'region' => 'TOSCANA']);
+    grSicaiStage('L01', ['length_km' => 12.25]);
+    grSicaiStage('L01S', ['length_km' => 4]);
+    grSicaiStage('L02', ['length_km' => 10.5]);
+
+    $this->actingAs(regionalGroupDashboardCustomer());
+
+    Livewire::test(RegionalGroupDashboard::class)
+        ->assertSeeTextInOrder(['Tappe SICAI', '3', '22,8 km', 'Tappe SICAI']);
+});
+
+test('the SICAI stages badge shows 0 without a km note when the region has no stages', function (): void {
+    caiSection(['codice_cai' => '9226001', 'region' => 'TOSCANA']);
+
+    $this->actingAs(regionalGroupDashboardCustomer());
+
+    $text = (string) preg_replace('/\s+/u', ' ', strip_tags(Livewire::test(RegionalGroupDashboard::class)->html()));
+    $badge = str($text)->after('Sentieri del GR')->value();
+
+    expect($badge)->toContain('Tappe SICAI 0 Tappe SICAI')
+        ->and($badge)->not->toContain('km');
+});
+
+test('the huts badge counts the huts of the sections and those owned by the GR', function (): void {
+    caiSection(['codice_cai' => '9226001', 'region' => 'TOSCANA']);
+    caiSection(['codice_cai' => '9226002', 'region' => 'TOSCANA']);
+    caiSection(['codice_cai' => '9226003', 'region' => 'TOSCANA']);
+    caiHut(['branch_code' => '9226001']);
+    caiHut(['branch_code' => '9226001']);
+    caiHut(['branch_code' => '9226002']);
+    caiHut(['branch_code' => '9500010', 'branch_name' => 'GR TOSCANA']);
+    caiHut(['branch_code' => '9216001']);
+
+    $this->actingAs(regionalGroupDashboardCustomer());
+
+    Livewire::test(RegionalGroupDashboard::class)
+        ->assertSeeTextInOrder(['Rifugi', '4', 'Somma di 2 Sezioni', 'Rifugi del GR']);
+});
+
+test('the huts badge uses the singular for a single section', function (): void {
+    caiSection(['codice_cai' => '9226001', 'region' => 'TOSCANA']);
+    caiSection(['codice_cai' => '9226002', 'region' => 'TOSCANA']);
+    caiHut(['branch_code' => '9226002']);
+
+    $this->actingAs(regionalGroupDashboardCustomer());
+
+    Livewire::test(RegionalGroupDashboard::class)
+        ->assertSeeTextInOrder(['Rifugi', '1', 'Somma di 1 Sezione', 'Rifugi del GR']);
+});
+
+test('a regional group without huts shows 0 as a known value, without the note', function (): void {
+    caiSection(['codice_cai' => '9226001', 'region' => 'TOSCANA']);
+
+    $this->actingAs(regionalGroupDashboardCustomer());
+
+    $html = Livewire::test(RegionalGroupDashboard::class)
+        ->assertSeeTextInOrder(['Rifugi', '0', 'Rifugi del GR'])
+        ->assertDontSeeText('Somma di')
+        ->html();
+
+    // Senza i marcatori di Livewire (`<!--[if BLOCK]>…`) fra gli elementi.
+    expect(preg_replace('/<!--.*?-->/s', '', $html))->toMatch('/ms-metric-badge__label">Rifugi<\/span>\s*<span class="ms-metric-badge__value">\s*<span class="ms-metric-badge__number">0<\/span>/');
+});
+
+test('the trails badge shows the km in the regional territory', function (): void {
+    grTrailsFixture();
+
+    $this->actingAs(regionalGroupDashboardCustomer(region: Region::Lombardia, name: 'GR Lombardia'));
+
+    Livewire::test(RegionalGroupDashboard::class)
+        ->assertSeeTextInOrder(['Sentieri', '30,7', 'km', 'nel territorio regionale', 'Sentieri del GR']);
+});
+
+test('a regional group whose region has no trails data shows 0,0 km', function (): void {
+    caiSection(['codice_cai' => '9226001', 'region' => 'TOSCANA']);
+
+    $this->actingAs(regionalGroupDashboardCustomer());
+
+    Livewire::test(RegionalGroupDashboard::class)
+        ->assertSeeTextInOrder(['Sentieri', '0,0', 'km', 'nel territorio regionale', 'Sentieri del GR']);
 });
 
 test('a regional group whose region has no sections shows only the region and no data', function (): void {

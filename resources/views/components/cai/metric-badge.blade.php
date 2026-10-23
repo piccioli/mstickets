@@ -3,7 +3,9 @@
      né hover. Un valore `null` si mostra sempre come "—" + "Non disponibile", mai come 0.
      Varianti:
      - `semplice`: `label`, `value` (int|float|null), `unit` facoltativa, `decimals`, `note` facoltativa sotto il
-       numero (es. "Somma di 42 Sezioni", mai mostrata se il valore manca);
+       numero (es. "Somma di 42 Sezioni", mai mostrata se il valore manca); `pending` (10.9) mostra "In attesa" al posto
+       di "Non disponibile" per un dato che non ha ancora una sorgente (stesso stile attenuato, classe in più
+       `ms-metric-badge--pending`);
      - `bilancio`: `title`, `mainLabel`, `mainValue`, `year`, `secondary` (1 o 2 voci `['label' => ..., 'value' => ...]`)
        e `result` (true solo per il conto economico: segno, pill Avanzo/Disavanzo, rosso se negativo); `yearNote`
        facoltativa accodata a "Esercizio {year}" con " · " (solo se l'esercizio è mostrato). Senza dati ma con `year`
@@ -25,6 +27,7 @@
     'result' => false,
     'secondary' => [],
     'linkLabel' => 'Vedi dettaglio',
+    'pending' => false,
 ])
 @use('App\Support\Formatting\ItalianNumberFormatter')
 @php
@@ -33,6 +36,7 @@
         ? $mainValue !== null || collect($secondary)->contains(fn (array $item): bool => $item['value'] !== null)
         : $value !== null;
     $isNegative = $isBalance && $result && $mainValue !== null && round((float) $mainValue) < 0;
+    $isPending = ! $isBalance && $pending && ! $hasData;
     $tag = $href === null ? 'div' : 'a';
 @endphp
 <{{ $tag }}
@@ -42,6 +46,7 @@
         'ms-metric-badge--balance' => $isBalance,
         'ms-metric-badge--static' => $href === null,
         'ms-metric-badge--unavailable' => ! $hasData,
+        'ms-metric-badge--pending' => $isPending,
     ]) }}
 >
     @if ($isBalance)
@@ -96,7 +101,7 @@
             <span class="ms-metric-badge__value">
                 <span class="ms-metric-badge__number ms-metric-badge__dash">—</span>
             </span>
-            <span class="ms-metric-badge__missing">Non disponibile</span>
+            <span class="ms-metric-badge__missing">{{ $isPending ? 'In attesa' : 'Non disponibile' }}</span>
         @endif
     @endif
     @if ($href !== null)

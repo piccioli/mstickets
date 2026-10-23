@@ -7,10 +7,8 @@ use App\Domain\Identity\Enums\UserRole;
 use App\Domain\Identity\Models\User;
 use App\Filament\Pages\Dashboard;
 use App\Filament\Pages\SectionFinancialStatements;
-use App\Filament\Pages\SectionHuts;
 use App\Filament\Pages\SectionMembers;
 use App\Filament\Pages\SectionSicaiStages;
-use App\Filament\Pages\SectionTrails;
 use Database\Seeders\RolePermissionSeeder;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -23,11 +21,9 @@ beforeEach(function (): void {
 });
 
 dataset('section coming soon pages', [
-    'Soci' => [SectionMembers::class, 'Soci'],
-    'Bilancio' => [SectionFinancialStatements::class, 'Bilancio'],
-    'Rifugi di Sezione' => [SectionHuts::class, 'Rifugi di Sezione'],
-    'Sentieri di Sezione' => [SectionTrails::class, 'Sentieri di Sezione'],
-    'Tappe SICAI' => [SectionSicaiStages::class, 'Tappe SICAI'],
+    'Soci' => [SectionMembers::class, 'Soci', 'Questa sezione è in arrivo.'],
+    'Bilancio' => [SectionFinancialStatements::class, 'Bilancio', 'Questa sezione è in arrivo.'],
+    'Tappe SICAI' => [SectionSicaiStages::class, 'Tappe SICAI', 'In attesa dei dati sull\'assegnazione delle tappe alle Sezioni.'],
 ]);
 
 function comingSoonCustomer(?CustomerType $type): User
@@ -38,12 +34,12 @@ function comingSoonCustomer(?CustomerType $type): User
     return $customer;
 }
 
-test('a sezione customer sees the coming soon page', function (string $page, string $title): void {
+test('a sezione customer sees the coming soon page', function (string $page, string $title, string $message): void {
     $this->actingAs(comingSoonCustomer(CustomerType::Sezione))
         ->get($page::getUrl())
         ->assertSuccessful()
         ->assertSee($title)
-        ->assertSee('Questa sezione è in arrivo.')
+        ->assertSeeText($message)
         ->assertSee('Torna alla dashboard')
         ->assertSee(Dashboard::getUrl(), escape: false);
 })->with('section coming soon pages');
@@ -54,7 +50,7 @@ test('a staff user cannot access the coming soon page', function (string $page):
         ->assertForbidden();
 })->with('section coming soon pages');
 
-test('a customer of another type cannot access the coming soon page', function (string $page, string $title, ?CustomerType $type): void {
+test('a customer of another type cannot access the coming soon page', function (string $page, string $title, string $message, ?CustomerType $type): void {
     $this->actingAs(comingSoonCustomer($type))
         ->get($page::getUrl())
         ->assertForbidden();

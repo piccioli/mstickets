@@ -1,0 +1,938 @@
+/*
+ * Rifugi del GR (Fase 10.5, US-1043) — resources/views/filament/pages/regional-group-huts.blade.php.
+ * Misure dal design docs/project/design/fase-10/rifugi-del-gr.dc.html §1; colori solo da token --ms-*, tranne quelli di
+ * tipo e stato che arrivano dagli enum (stile inline). Pallino, pillola di stato, stato vuoto, legenda della mappa e
+ * "Azzera filtri" sono le classi ms-huts__* di section-huts.css (stessi elementi di "Rifugi di Sezione").
+ * Layout: riepilogo, mappa a tutta larghezza, elenco sotto; container query sull'area contenuti (che dipende dalla
+ * sidebar) per il riepilogo; sotto i 640px di viewport (mobile) la tabella lascia il
+ * posto alle card e i filtri escono dal riquadro dell'elenco.
+ */
+.ms-gr-huts {
+  --ms-gr-huts-map-height: 480px;
+
+  container: gr-huts / inline-size;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-12); /* 24px */
+  font-family: var(--ms-font-sans);
+  color: var(--ms-text-strong);
+}
+
+.ms-gr-huts__short {
+  display: none;
+}
+
+/* ---- Intestazione ---- */
+.ms-gr-huts__top {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-7); /* 14px */
+}
+
+.ms-gr-huts__title-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-2);
+}
+
+.ms-gr-huts__title {
+  margin: 0;
+  font-size: var(--ms-text-3xl); /* 28px */
+  font-weight: var(--ms-fw-extrabold);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.ms-gr-huts__subtitle {
+  margin: 0;
+  font-size: var(--ms-text-lg); /* 15px */
+  font-weight: var(--ms-fw-semibold);
+  color: var(--ms-text-secondary);
+}
+
+/* ---- Riepilogo ---- */
+.ms-gr-huts__kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(0, 1.5fr);
+  gap: var(--ms-space-6); /* 12px */
+}
+
+.ms-gr-huts__kpi {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-1);
+  min-width: 0;
+  padding: 14px 18px;
+  background: var(--ms-surface-card);
+  border: var(--ms-border-width) solid var(--ms-border-subtle);
+  border-radius: var(--ms-radius-card);
+  font-family: inherit;
+  color: var(--ms-text-strong);
+  text-align: left;
+}
+
+button.ms-gr-huts__kpi {
+  gap: var(--ms-space-3);
+  cursor: pointer;
+  transition: border-color var(--ms-dur-fast) var(--ms-ease-standard), box-shadow var(--ms-dur-fast) var(--ms-ease-standard);
+}
+
+button.ms-gr-huts__kpi:hover {
+  border-color: var(--ms-brand);
+  box-shadow: var(--ms-shadow-card-hover);
+}
+
+button.ms-gr-huts__kpi:focus-visible {
+  outline: 2px solid var(--ms-brand-focus-ring);
+  outline-offset: 1px;
+}
+
+.ms-gr-huts__kpi--active {
+  background: var(--ms-chip-active-bg);
+  border-color: var(--ms-brand);
+}
+
+.ms-gr-huts__kpi-head {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--ms-space-4);
+  width: 100%;
+}
+
+.ms-gr-huts__kpi-label {
+  font-size: 12px;
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-text-secondary);
+}
+
+.ms-gr-huts__kpi-link {
+  font-size: 12px;
+  font-weight: var(--ms-fw-extrabold);
+  color: var(--ms-brand);
+  white-space: nowrap;
+}
+
+.ms-gr-huts__kpi-value {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  font-size: 26px;
+  font-weight: var(--ms-fw-extrabold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25;
+}
+
+.ms-gr-huts__kpi-value--none {
+  color: var(--ms-value-missing);
+}
+
+.ms-gr-huts__kpi-of {
+  font-size: var(--ms-text-md);
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-text-muted);
+}
+
+.ms-gr-huts__kpi-contracts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 20px;
+}
+
+.ms-gr-huts__kpi-contract {
+  display: flex;
+  align-items: baseline;
+  gap: var(--ms-space-3);
+  font-size: var(--ms-text-sm);
+  font-weight: var(--ms-fw-bold);
+}
+
+.ms-gr-huts__kpi-contract--expiring {
+  color: var(--ms-contract-expiring-text);
+}
+
+.ms-gr-huts__kpi-contract--expired {
+  color: var(--ms-contract-expired-text);
+}
+
+.ms-gr-huts__empty-text {
+  max-width: 520px;
+  margin: 0;
+  font-size: var(--ms-text-md);
+  color: var(--ms-text-secondary);
+  text-wrap: pretty;
+}
+
+/* ---- Mappa ed elenco ---- */
+.ms-gr-huts__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-10); /* 20px */
+}
+
+/* Senza rifugi la mappa resta nel DOM (va resa sempre, vedi x-cai.map) ma non si vede. */
+.ms-gr-huts__body--hidden {
+  display: none;
+}
+
+.ms-gr-huts__map-card,
+.ms-gr-huts__panel,
+.ms-gr-huts__without {
+  overflow: hidden;
+  background: var(--ms-surface-card);
+  border: var(--ms-border-width) solid var(--ms-border-subtle);
+  border-radius: var(--ms-radius-card);
+}
+
+.ms-gr-huts__map-card {
+  position: relative;
+}
+
+.ms-gr-huts__legend-cluster-marker {
+  background: var(--ms-map-cluster-bg);
+  box-shadow: var(--ms-shadow-map-legend-cluster);
+  font-size: 8px;
+}
+
+/* ---- Filtri ---- */
+.ms-gr-huts__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ms-space-8);
+  padding: 14px 20px;
+  border-bottom: var(--ms-border-width) solid var(--ms-border-subtle);
+}
+
+.ms-gr-huts__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ms-space-4); /* 8px */
+}
+
+.ms-gr-huts__select {
+  flex: none;
+  width: auto;
+  height: 34px;
+  padding: 0 28px 0 10px;
+  border: var(--ms-border-width) solid var(--ms-border-default);
+  border-radius: var(--ms-radius-lg);
+  background-color: var(--ms-surface-card);
+  font-family: inherit;
+  font-size: var(--ms-text-sm);
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-text-strong);
+}
+
+.ms-gr-huts__select--section {
+  max-width: 260px;
+}
+
+.ms-gr-huts__select--active {
+  border-color: var(--ms-brand);
+}
+
+.ms-gr-huts__pill {
+  display: flex;
+  align-items: center;
+  gap: var(--ms-space-3);
+  height: 34px;
+  padding: 0 12px;
+  border: var(--ms-border-width) solid var(--ms-border-default);
+  border-radius: 17px;
+  background: var(--ms-surface-card);
+  font-family: inherit;
+  font-size: var(--ms-text-sm);
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-text-strong);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.ms-gr-huts__pill--active {
+  border-color: var(--ms-brand);
+  background: var(--ms-chip-active-bg);
+  color: var(--ms-brand-link-hover);
+}
+
+.ms-gr-huts__pill-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: var(--ms-radius-circle);
+  background: var(--ms-review-icon);
+}
+
+.ms-gr-huts__pill-count {
+  font-weight: var(--ms-fw-semibold);
+  color: var(--ms-text-muted);
+}
+
+.ms-gr-huts__select:focus-visible,
+.ms-gr-huts__pill:focus-visible,
+.ms-gr-huts__switch:focus-visible,
+.ms-gr-huts__sort:focus-visible,
+.ms-gr-huts__row:focus-visible,
+.ms-gr-huts__without-toggle:focus-visible {
+  outline: 2px solid var(--ms-brand-focus-ring);
+  outline-offset: 1px;
+}
+
+.ms-gr-huts__switch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: var(--ms-text-sm);
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-text-strong);
+  cursor: pointer;
+}
+
+.ms-gr-huts__switch-track {
+  position: relative;
+  flex: none;
+  width: 34px;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--ms-flag-unknown-icon);
+  transition: background var(--ms-dur-fast) var(--ms-ease-standard);
+}
+
+.ms-gr-huts__switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--ms-radius-circle);
+  background: var(--ms-surface-card);
+  box-shadow: var(--ms-shadow-switch-knob);
+  transition: left var(--ms-dur-fast) var(--ms-ease-standard);
+}
+
+.ms-gr-huts__switch--on .ms-gr-huts__switch-track {
+  background: var(--ms-brand);
+}
+
+.ms-gr-huts__switch--on .ms-gr-huts__switch-knob {
+  left: 16px;
+}
+
+/* Su desktop l'ordinamento si fa dalle intestazioni e l'interruttore sta a destra dei filtri. */
+.ms-gr-huts__select--sort,
+.ms-gr-huts__switch--mobile,
+.ms-gr-huts__count-mobile {
+  display: none;
+}
+
+/* ---- Tabella (desktop) ---- */
+.ms-gr-huts__row {
+  display: grid;
+  grid-template-columns: minmax(0, 2.4fr) minmax(0, 1.5fr) minmax(0, 1.35fr) minmax(0, 1.5fr) 84px 88px 170px;
+  gap: var(--ms-space-7); /* 14px */
+  align-items: center;
+  padding: 11px 20px;
+  border-bottom: var(--ms-border-width) solid var(--ms-surface-muted);
+  font-size: var(--ms-text-sm);
+  color: var(--ms-text-strong);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.ms-gr-huts__row--active,
+.ms-gr-huts__rows .ms-gr-huts__row:hover {
+  background: var(--ms-row-highlight-bg);
+}
+
+.ms-gr-huts__row--head {
+  padding-top: 10px;
+  padding-bottom: 10px;
+  border-bottom-color: var(--ms-border-subtle);
+  background: var(--ms-surface-hover-row);
+  font-size: 12px;
+  font-weight: var(--ms-fw-extrabold);
+  letter-spacing: 0.02em;
+  color: var(--ms-text-secondary);
+  cursor: default;
+}
+
+.ms-gr-huts__rows {
+  position: relative;
+  max-height: 640px;
+  overflow: auto;
+}
+
+.ms-gr-huts__sort {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+
+.ms-gr-huts__sort--active {
+  color: var(--ms-brand);
+}
+
+.ms-gr-huts__group {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 10px 20px;
+  background: var(--ms-group-header-bg);
+  border-bottom: var(--ms-border-width) solid var(--ms-group-header-border);
+}
+
+.ms-gr-huts__group-name {
+  font-size: var(--ms-text-md);
+  font-weight: var(--ms-fw-extrabold);
+}
+
+.ms-gr-huts__group-count {
+  font-size: 12px;
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-text-secondary);
+}
+
+.ms-gr-huts__numeric {
+  text-align: right;
+}
+
+.ms-gr-huts__strong {
+  font-size: var(--ms-text-md);
+  font-weight: var(--ms-fw-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.ms-gr-huts__missing {
+  color: var(--ms-value-missing);
+}
+
+.ms-gr-huts__name-cell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-1);
+  min-width: 0;
+}
+
+.ms-gr-huts__name {
+  font-size: var(--ms-text-md);
+  font-weight: var(--ms-fw-extrabold);
+  line-height: 1.25;
+}
+
+.ms-gr-huts__alias {
+  font-size: 12px;
+  color: var(--ms-text-secondary);
+}
+
+.ms-gr-huts__section {
+  font-weight: var(--ms-fw-semibold);
+}
+
+.ms-gr-huts__type {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.ms-gr-huts__contract {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.ms-gr-huts__contract-date {
+  font-weight: var(--ms-fw-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.ms-gr-huts__contract-date--expiring,
+.ms-gr-huts__contract-date--expired {
+  padding: 3px 10px;
+  border: var(--ms-border-width) solid;
+  border-radius: var(--ms-radius-xl);
+  font-weight: var(--ms-fw-extrabold);
+}
+
+.ms-gr-huts__contract-date--expiring {
+  background: var(--ms-contract-expiring-bg);
+  border-color: var(--ms-contract-expiring-border);
+  color: var(--ms-contract-expiring-text);
+}
+
+.ms-gr-huts__contract-date--expired {
+  background: var(--ms-contract-expired-bg);
+  border-color: var(--ms-contract-expired-border);
+  color: var(--ms-contract-expired-text);
+}
+
+.ms-gr-huts__contract-note {
+  padding-left: 2px;
+  font-size: 11px;
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-contract-expiring-text);
+}
+
+.ms-gr-huts__contract-note--expired {
+  color: var(--ms-contract-expired-text);
+}
+
+.ms-gr-huts__footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--ms-space-4);
+  padding: 12px 20px;
+  border-top: var(--ms-border-width) solid var(--ms-border-subtle);
+  font-size: 12px;
+  color: var(--ms-text-muted);
+}
+
+.ms-gr-huts__footer a,
+.ms-gr-huts__without-text a {
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-brand);
+  text-decoration: none;
+}
+
+/* ---- Card (mobile) ---- */
+.ms-gr-huts__cards {
+  display: none;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ---- Sezioni senza rifugi ---- */
+.ms-gr-huts__without-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ms-space-8);
+  width: 100%;
+  padding: 16px 20px;
+  border: 0;
+  background: var(--ms-surface-card);
+  font-family: inherit;
+  color: var(--ms-text-strong);
+  text-align: left;
+  cursor: pointer;
+}
+
+.ms-gr-huts__without-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.ms-gr-huts__without-title {
+  font-size: var(--ms-text-xl);
+  font-weight: var(--ms-fw-extrabold);
+}
+
+.ms-gr-huts__without-count {
+  font-size: var(--ms-text-sm);
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-text-secondary);
+}
+
+.ms-gr-huts__without-action {
+  display: flex;
+  align-items: center;
+  gap: var(--ms-space-4);
+  font-size: var(--ms-text-sm);
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-brand);
+}
+
+.ms-gr-huts__chevron {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  fill: none;
+  stroke: var(--ms-brand);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform var(--ms-dur-fast) var(--ms-ease-standard);
+}
+
+.ms-gr-huts__chevron--open {
+  transform: rotate(180deg);
+}
+
+.ms-gr-huts__without-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-7);
+  padding: 0 20px 20px;
+}
+
+.ms-gr-huts__without-text {
+  max-width: 820px;
+  margin: 0;
+  font-size: var(--ms-text-sm);
+  line-height: 1.5;
+  color: var(--ms-text-secondary);
+  text-wrap: pretty;
+}
+
+.ms-gr-huts__without-list {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px 20px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ms-gr-huts__without-list li {
+  padding: 7px 0;
+  border-top: var(--ms-border-width) solid var(--ms-surface-muted);
+  font-size: var(--ms-text-sm);
+  font-weight: var(--ms-fw-semibold);
+}
+
+/* Area contenuti stretta (con la sidebar del pannello già a 1440px): la card dei contratti va su una riga sua. */
+@container gr-huts (max-width: 1199.98px) {
+  .ms-gr-huts__kpis {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .ms-gr-huts__kpi--contracts {
+    grid-column: 1 / -1;
+  }
+
+  .ms-gr-huts__without-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* ---- Mobile (< 640px) ---- */
+@media (max-width: 639.98px) {
+  .ms-gr-huts {
+    --ms-gr-huts-map-height: 300px;
+
+    gap: var(--ms-space-8);
+  }
+
+  .ms-gr-huts__long {
+    display: none;
+  }
+
+  .ms-gr-huts__short {
+    display: inline;
+  }
+
+  .ms-gr-huts__title {
+    font-size: 1.375rem; /* 22px */
+  }
+
+  .ms-gr-huts__subtitle {
+    font-size: var(--ms-text-md);
+  }
+
+  .ms-gr-huts__kpis {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--ms-space-5); /* 10px */
+  }
+
+  .ms-gr-huts__kpi {
+    padding: 10px 14px;
+  }
+
+  .ms-gr-huts__kpi--contracts {
+    grid-column: 1 / -1;
+    min-height: 44px;
+  }
+
+  .ms-gr-huts__kpi-label {
+    font-size: 11px;
+  }
+
+  .ms-gr-huts__kpi-value {
+    font-size: 20px;
+  }
+
+  .ms-gr-huts__kpi-of {
+    font-size: var(--ms-text-sm);
+  }
+
+  .ms-gr-huts__kpi-contracts {
+    gap: 4px 16px;
+  }
+
+  .ms-gr-huts__kpi-contract {
+    font-size: 12px;
+  }
+
+  .ms-gr-huts__body {
+    gap: var(--ms-space-7);
+  }
+
+  /* Filtri e card stanno direttamente sulla pagina, non in un riquadro. */
+  .ms-gr-huts__panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ms-space-7);
+    overflow: visible;
+    background: none;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .ms-gr-huts__toolbar {
+    display: block;
+    padding: 0;
+    border: 0;
+  }
+
+  .ms-gr-huts__filters {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .ms-gr-huts__select {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    height: 44px;
+    font-size: var(--ms-text-md);
+  }
+
+  .ms-gr-huts__select--section,
+  .ms-gr-huts__pill {
+    grid-column: 1 / -1;
+  }
+
+  .ms-gr-huts__pill {
+    justify-content: center;
+    height: 44px;
+    border-radius: 22px;
+  }
+
+  .ms-gr-huts__select--sort {
+    display: block;
+  }
+
+  .ms-gr-huts__switch--mobile {
+    display: flex;
+    gap: var(--ms-space-4);
+    height: 44px;
+    padding: 0 10px;
+    border: var(--ms-border-width) solid var(--ms-border-default);
+    border-radius: var(--ms-radius-lg);
+    background: var(--ms-surface-card);
+  }
+
+  .ms-gr-huts__switch--mobile .ms-gr-huts__switch-track {
+    width: 30px;
+    height: 18px;
+    border-radius: 9px;
+  }
+
+  .ms-gr-huts__switch--mobile .ms-gr-huts__switch-knob {
+    width: 14px;
+    height: 14px;
+  }
+
+  .ms-gr-huts__switch--mobile.ms-gr-huts__switch--on .ms-gr-huts__switch-knob {
+    left: 14px;
+  }
+
+  .ms-gr-huts__switch--desktop,
+  .ms-gr-huts__reset--desktop,
+  .ms-gr-huts__table,
+  .ms-gr-huts__footer-count {
+    display: none;
+  }
+
+  .ms-gr-huts__count-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 32px;
+    font-size: 12px;
+    font-weight: var(--ms-fw-bold);
+    color: var(--ms-text-muted);
+  }
+
+  .ms-gr-huts__cards {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ms-space-4);
+  }
+
+  .ms-gr-huts__card-group {
+    display: flex;
+    align-items: baseline;
+    gap: var(--ms-space-4);
+    padding: 10px 2px 2px;
+  }
+
+  .ms-gr-huts__card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ms-space-3);
+    padding: 12px 14px;
+    background: var(--ms-surface-card);
+    border: var(--ms-border-width) solid var(--ms-border-subtle);
+    border-radius: var(--ms-radius-card);
+    color: var(--ms-text-strong);
+    text-decoration: none;
+  }
+
+  .ms-gr-huts__card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .ms-gr-huts__card-name {
+    font-size: var(--ms-text-lg);
+    font-weight: var(--ms-fw-extrabold);
+    line-height: 1.25;
+  }
+
+  .ms-gr-huts__card-status {
+    flex: none;
+    padding: 2px 8px;
+    font-size: 11px;
+  }
+
+  .ms-gr-huts__card-section {
+    margin-top: -2px;
+    font-size: 12px;
+    font-weight: var(--ms-fw-bold);
+  }
+
+  .ms-gr-huts__card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ms-space-3);
+    font-size: 12px;
+    color: var(--ms-text-secondary);
+  }
+
+  .ms-gr-huts__card-meta .ms-huts__dot {
+    width: 8px;
+    height: 8px;
+  }
+
+  .ms-gr-huts__card-contract {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--ms-space-4);
+    margin: 2px -4px 0;
+    padding: 6px 10px;
+    border: var(--ms-border-width) solid var(--ms-border-subtle);
+    border-radius: var(--ms-radius-lg);
+    font-size: 12px;
+  }
+
+  .ms-gr-huts__card-contract-label {
+    font-weight: var(--ms-fw-bold);
+    color: var(--ms-text-secondary);
+  }
+
+  .ms-gr-huts__card-contract-value {
+    font-weight: var(--ms-fw-extrabold);
+  }
+
+  .ms-gr-huts__card-contract--expiring {
+    background: var(--ms-contract-expiring-bg);
+    border-color: var(--ms-contract-expiring-border);
+  }
+
+  .ms-gr-huts__card-contract--expired {
+    background: var(--ms-contract-expired-bg);
+    border-color: var(--ms-contract-expired-border);
+  }
+
+  .ms-gr-huts__card-contract--expiring > span {
+    color: var(--ms-contract-expiring-text);
+  }
+
+  .ms-gr-huts__card-contract--expired > span {
+    color: var(--ms-contract-expired-text);
+  }
+
+  .ms-gr-huts__no-match-card {
+    padding: 32px 12px;
+    background: var(--ms-surface-card);
+    border: var(--ms-border-width) solid var(--ms-border-subtle);
+    border-radius: var(--ms-radius-card);
+  }
+
+  .ms-gr-huts__more {
+    width: 100%;
+    height: 44px;
+    border: var(--ms-border-width) solid var(--ms-border-default);
+    border-radius: var(--ms-radius-card);
+    background: var(--ms-surface-card);
+    font-family: inherit;
+    font-size: var(--ms-text-md);
+    font-weight: var(--ms-fw-extrabold);
+    color: var(--ms-brand);
+    cursor: pointer;
+  }
+
+  .ms-gr-huts__footer {
+    padding: 0;
+    border: 0;
+    font-size: 11px;
+  }
+
+  .ms-gr-huts__without-toggle {
+    min-height: 52px;
+    padding: 12px 14px;
+  }
+
+  .ms-gr-huts__without-heading {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .ms-gr-huts__without-title {
+    font-size: var(--ms-text-lg);
+  }
+
+  .ms-gr-huts__without-count {
+    font-size: 12px;
+  }
+
+  .ms-gr-huts__chevron {
+    width: 18px;
+    height: 18px;
+  }
+
+  .ms-gr-huts__without-body {
+    gap: var(--ms-space-5);
+    padding: 0 14px 14px;
+  }
+
+  .ms-gr-huts__without-text {
+    font-size: 12px;
+  }
+
+  .ms-gr-huts__without-list {
+    grid-template-columns: 1fr 1fr;
+    gap: 0 14px;
+  }
+}

@@ -1,0 +1,8 @@
+territory_type,territory_id,status,km,present_routes
+region,1,1,0.4,0
+region,1,4,5.432,1
+region,3,2,12.005,1
+province,10,4,5.432,1
+province,12,2,12.005,1
+sector,100,4,5.432,1
+sector,102,2,12.005,1

@@ -44,6 +44,12 @@ final class CaiDatapackImporter
     public function __construct(
         private readonly CaiManualBilanciImporter $manualBilanciImporter,
         private readonly CaiSnapshotImporter $snapshotImporter,
+        private readonly CaiHutsImporter $hutsImporter,
+        private readonly CaiSicaiRestPointsImporter $sicaiRestPointsImporter,
+        private readonly CaiTrailsImporter $trailsImporter,
+        private readonly CaiTrailTerritoriesImporter $trailTerritoriesImporter,
+        private readonly CaiSicaiStagesImporter $sicaiStagesImporter,
+        private readonly CaiSicaiStageRestPointsCalculator $sicaiStageRestPointsCalculator,
     ) {}
 
     private const CONNECTION_NAME = 'cai_datapack';
@@ -117,6 +123,27 @@ final class CaiDatapackImporter
                 $results['documenti_manuali'] = $this->manualBilanciImporter->import($connection, $datapackDir, $dryRun, $analyzeManual);
                 // Snapshot completo (tabelle `snap_*`): dopo tutti gli step legacy, solo per l'import nazionale.
                 $results += $this->snapshotImporter->import($connection, $dryRun, $usersByLowerEmail, $datapackDir);
+
+                $huts = $this->hutsImporter->import($connection, $dryRun);
+
+                if ($huts !== null) {
+                    $results['snapshot_rifugi'] = $huts;
+                }
+
+                // Dopo i rifugi: il punto di appoggio si collega a un rifugio di `cai_huts`.
+                $restPoints = $this->sicaiRestPointsImporter->import($connection, $dryRun);
+
+                if ($restPoints !== null) {
+                    $results[CaiSicaiRestPointsImporter::RESULT_KEY] = $restPoints;
+                }
+
+                $results += $this->trailsImporter->import($connection, $dryRun);
+                // Dopo i sentieri: i legami sentiero–territorio puntano a `cai_trails`.
+                $results += $this->trailTerritoriesImporter->import($connection, $dryRun);
+                // Tappe SICAI: anche loro sono sentieri di `cai_trails`.
+                $results += $this->sicaiStagesImporter->import($connection, $dryRun);
+                // Dopo tappe e punti di appoggio: i punti vicini a ogni tappa si ricalcolano a ogni import.
+                $results += $this->sicaiStageRestPointsCalculator->import($dryRun);
             }
 
             return $results;

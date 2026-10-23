@@ -1,0 +1,953 @@
+/*
+ * Sentieri di Sezione (Fase 10.6, US-1054) — resources/views/filament/pages/section-trails.blade.php.
+ * Misure dal design docs/project/design/fase-10/sentieri-di-sezione.dc.html §1; colori solo da token --ms-*, tranne
+ * quelli di stato e percorribilità che arrivano dagli enum (stile inline). Segnavia e pillola dello stato in
+ * cai-trails.css.
+ * Layout (container query sull'area contenuti, che dipende anche dalla sidebar del pannello): da 1200px elenco a
+ * sinistra e mappa (480px) a destra come nel design; sotto, mappa sopra a tutta larghezza ed elenco sotto; sotto i
+ * 640px di viewport (mobile) la tabella lascia il posto alle card e i filtri escono dal riquadro dell'elenco.
+ */
+.ms-trails {
+  --ms-trails-map-height: 420px;
+
+  container: trails / inline-size;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-10); /* 20px */
+  font-family: var(--ms-font-sans);
+  color: var(--ms-text-strong);
+}
+
+/* ---- Intestazione ---- */
+.ms-trails__top {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-7); /* 14px */
+}
+
+.ms-trails__back {
+  align-self: flex-start;
+  font-size: var(--ms-text-sm);
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-brand);
+  text-decoration: none;
+}
+
+.ms-trails__back:hover {
+  color: var(--ms-brand-link-hover);
+  text-decoration: underline;
+}
+
+.ms-trails__heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--ms-space-12);
+}
+
+.ms-trails__title-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-2);
+}
+
+.ms-trails__title {
+  margin: 0;
+  font-size: var(--ms-text-3xl); /* 28px */
+  font-weight: var(--ms-fw-extrabold);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.ms-trails__subtitle {
+  margin: 0;
+  font-size: var(--ms-text-lg); /* 15px */
+  font-weight: var(--ms-fw-semibold);
+  color: var(--ms-text-secondary);
+}
+
+.ms-trails__kpis {
+  display: flex;
+  gap: var(--ms-space-6);
+}
+
+.ms-trails__kpi {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-1);
+  min-width: 140px;
+  padding: 12px 18px;
+  background: var(--ms-surface-card);
+  border: var(--ms-border-width) solid var(--ms-border-subtle);
+  border-radius: var(--ms-radius-card);
+}
+
+.ms-trails__kpi--km {
+  min-width: 170px;
+}
+
+.ms-trails__kpi-label {
+  font-size: 12px;
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-text-secondary);
+}
+
+.ms-trails__kpi-value {
+  font-size: 24px;
+  font-weight: var(--ms-fw-extrabold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Nessun sentiero ---- */
+.ms-trails__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ms-space-7);
+  padding: 80px 24px;
+  background: var(--ms-surface-card);
+  border: var(--ms-border-width) solid var(--ms-border-subtle);
+  border-radius: var(--ms-radius-card);
+  text-align: center;
+}
+
+.ms-trails__empty svg {
+  width: 48px;
+  height: 48px;
+  fill: none;
+  stroke: var(--ms-photo-placeholder-icon);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ms-trails__empty-title {
+  max-width: 520px;
+  margin: 0;
+  font-size: 17px;
+  font-weight: var(--ms-fw-extrabold);
+  text-wrap: pretty;
+}
+
+.ms-trails__empty-link,
+.ms-trails__footer a {
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-brand);
+  text-decoration: none;
+}
+
+.ms-trails__empty-link {
+  font-size: var(--ms-text-sm);
+}
+
+/* ---- Riepilogo ---- */
+.ms-trails__summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--ms-space-8);
+  padding: 20px 24px;
+  background: var(--ms-surface-card);
+  border: var(--ms-border-width) solid var(--ms-border-subtle);
+  border-radius: var(--ms-radius-card);
+}
+
+.ms-trails__summary-status,
+.ms-trails__summary-practicability {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-6);
+  min-width: 0;
+}
+
+.ms-trails__summary-practicability {
+  padding-top: var(--ms-space-8);
+  border-top: var(--ms-border-width) solid var(--ms-border-subtle);
+}
+
+@container trails (min-width: 1200px) {
+  .ms-trails__summary {
+    grid-template-columns: minmax(0, 1fr) 470px;
+    gap: 32px;
+  }
+
+  .ms-trails__summary-practicability {
+    padding-top: 0;
+    padding-left: 32px;
+    border-top: 0;
+    border-left: var(--ms-border-width) solid var(--ms-border-subtle);
+  }
+}
+
+.ms-trails__summary-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--ms-space-2) var(--ms-space-8);
+}
+
+.ms-trails__summary-title {
+  margin: 0;
+  font-size: var(--ms-text-lg);
+  font-weight: var(--ms-fw-extrabold);
+}
+
+.ms-trails__summary-hint {
+  font-size: 12px;
+  color: var(--ms-text-secondary);
+}
+
+.ms-trails__bar {
+  display: flex;
+  gap: 2px;
+  height: 28px;
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--ms-trail-bar-track);
+}
+
+.ms-trails__bar-segment {
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: var(--ms-fw-extrabold);
+  white-space: nowrap;
+}
+
+/* Un segmento a 0 km non deve lasciare lo spazio del `gap` né il padding. */
+.ms-trails__bar-segment[style^='width: 0%'] {
+  display: none;
+}
+
+.ms-trails__legend-grid,
+.ms-trails__practicability-grid {
+  display: grid;
+  gap: 10px 20px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ms-trails__legend-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.ms-trails__practicability-grid {
+  grid-template-columns: 1fr 1fr;
+}
+
+.ms-trails__legend-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ms-trails__legend-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-text-secondary);
+}
+
+.ms-trails__legend-value {
+  font-size: var(--ms-text-lg);
+  font-weight: var(--ms-fw-extrabold);
+  font-variant-numeric: tabular-nums;
+}
+
+.ms-trails__legend-note {
+  font-size: 12px;
+  font-weight: var(--ms-fw-semibold);
+  color: var(--ms-text-muted);
+}
+
+.ms-trails__swatch {
+  width: 14px;
+  height: 4px;
+  flex: none;
+  border-radius: 2px;
+}
+
+.ms-trails__dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: var(--ms-radius-circle);
+}
+
+/* ---- Corpo: elenco + mappa ---- */
+.ms-trails__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--ms-space-10); /* 20px */
+  align-items: start;
+}
+
+/* Senza sentieri la mappa resta nel DOM (va resa sempre, vedi x-cai.map) ma non si vede. */
+.ms-trails__body--hidden {
+  display: none;
+}
+
+.ms-trails__panel,
+.ms-trails__map-card {
+  overflow: hidden;
+  background: var(--ms-surface-card);
+  border: var(--ms-border-width) solid var(--ms-border-subtle);
+  border-radius: var(--ms-radius-card);
+}
+
+.ms-trails__map-card {
+  position: relative;
+  order: -1;
+}
+
+@container trails (min-width: 1200px) {
+  .ms-trails__body {
+    --ms-trails-map-height: 640px;
+
+    grid-template-columns: minmax(0, 1fr) 480px;
+  }
+
+  .ms-trails__map-card {
+    position: sticky;
+    top: var(--ms-space-12);
+    order: 0;
+  }
+}
+
+/* ---- Filtri ---- */
+.ms-trails__filters {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--ms-space-5);
+  padding: 14px 20px;
+  border-bottom: var(--ms-border-width) solid var(--ms-border-subtle);
+}
+
+.ms-trails__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ms-space-3); /* 6px */
+}
+
+.ms-trails__chip {
+  display: flex;
+  align-items: center;
+  gap: var(--ms-space-3);
+  height: 32px;
+  padding: 0 12px;
+  border: var(--ms-border-width) solid var(--ms-border-default);
+  border-radius: 16px;
+  background: var(--ms-surface-card);
+  font-family: inherit;
+  font-size: var(--ms-text-sm);
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-text-strong);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.ms-trails__chip .ms-trails__swatch {
+  width: 12px;
+}
+
+.ms-trails__chip--active {
+  border-color: var(--ms-brand);
+  background: var(--ms-chip-active-bg);
+  color: var(--ms-brand-link-hover);
+}
+
+.ms-trails__chip:focus-visible,
+.ms-trails__select:focus-visible,
+.ms-trails__sort:focus-visible,
+.ms-trails__open:focus-visible,
+.ms-trails__card:focus-visible {
+  outline: 2px solid var(--ms-brand-focus-ring);
+  outline-offset: 1px;
+}
+
+.ms-trails__chip-label--short {
+  display: none;
+}
+
+.ms-trails__chip-count {
+  font-weight: var(--ms-fw-semibold);
+  color: var(--ms-text-muted);
+}
+
+.ms-trails__selects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ms-space-4);
+}
+
+.ms-trails__select {
+  height: 32px;
+  max-width: 100%;
+  padding: 0 28px 0 10px;
+  border: var(--ms-border-width) solid var(--ms-border-default);
+  border-radius: var(--ms-radius-lg);
+  background-color: var(--ms-surface-card);
+  font-family: inherit;
+  font-size: var(--ms-text-sm);
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-text-strong);
+}
+
+/* L'ordinamento su desktop si fa dalle intestazioni della tabella. */
+.ms-trails__select--sort,
+.ms-trails__count--mobile {
+  display: none;
+}
+
+/* ---- Tabella (desktop) ---- */
+.ms-trails__row {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr) 58px 58px 128px 180px 18px;
+  gap: var(--ms-space-6);
+  align-items: center;
+  padding: 11px 20px;
+  border-bottom: var(--ms-border-width) solid var(--ms-surface-muted);
+  font-size: var(--ms-text-sm);
+  color: var(--ms-text-strong);
+  cursor: pointer;
+}
+
+.ms-trails__rows .ms-trails__row:hover,
+.ms-trails__row--hovered {
+  background: var(--ms-trail-row-hover-bg);
+}
+
+.ms-trails__row--selected,
+.ms-trails__rows .ms-trails__row--selected:hover {
+  background: var(--ms-trail-row-selected-bg);
+  box-shadow: inset 3px 0 0 var(--ms-brand);
+}
+
+.ms-trails__row--head {
+  padding-top: 10px;
+  padding-bottom: 10px;
+  border-bottom-color: var(--ms-border-subtle);
+  background: var(--ms-surface-hover-row);
+  font-size: 12px;
+  font-weight: var(--ms-fw-extrabold);
+  letter-spacing: 0.02em;
+  color: var(--ms-text-secondary);
+  cursor: default;
+}
+
+.ms-trails__rows {
+  max-height: 520px;
+  overflow: auto;
+}
+
+.ms-trails__sort {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.ms-trails__sort--active {
+  color: var(--ms-brand);
+}
+
+.ms-trails__numeric {
+  text-align: right;
+}
+
+.ms-trails__strong {
+  font-size: var(--ms-text-md);
+  font-weight: var(--ms-fw-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.ms-trails__name-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ms-trails__name {
+  font-size: var(--ms-text-md);
+  font-weight: var(--ms-fw-extrabold);
+  line-height: 1.25;
+}
+
+.ms-trails__missing {
+  color: var(--ms-value-missing);
+}
+
+.ms-trails__route {
+  font-size: 12px;
+  color: var(--ms-text-secondary);
+}
+
+.ms-trails__shared {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-trail-shared-text);
+}
+
+.ms-trails__shared svg {
+  width: 13px;
+  height: 13px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ms-trails__difficulty {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: var(--ms-trail-bar-track);
+  font-size: 12px;
+  font-weight: var(--ms-fw-extrabold);
+  white-space: nowrap;
+}
+
+.ms-trails__difficulty--missing {
+  background: transparent;
+  color: var(--ms-value-missing);
+}
+
+.ms-trails__practicability-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.ms-trails__practicability {
+  padding: 3px 10px;
+  border-radius: var(--ms-radius-xl);
+  font-size: 12px;
+  font-weight: var(--ms-fw-bold);
+  white-space: nowrap;
+}
+
+.ms-trails__practicability--sm {
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+.ms-trails__updated {
+  padding-left: 2px;
+  font-size: 11px;
+  color: var(--ms-text-muted);
+}
+
+.ms-trails__open {
+  font-size: 20px;
+  font-weight: var(--ms-fw-bold);
+  line-height: 1;
+  color: var(--ms-brand);
+  text-decoration: none;
+}
+
+.ms-trails__no-match {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ms-space-5);
+  padding: 48px 20px;
+  font-size: var(--ms-text-md);
+  color: var(--ms-text-secondary);
+  text-align: center;
+}
+
+.ms-trails__reset {
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: var(--ms-text-sm);
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-brand);
+  cursor: pointer;
+}
+
+.ms-trails__footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--ms-space-4);
+  padding: 12px 20px;
+  border-top: var(--ms-border-width) solid var(--ms-border-subtle);
+  font-size: 12px;
+  color: var(--ms-text-muted);
+}
+
+/* ---- Card (mobile) ---- */
+.ms-trails__cards {
+  display: none;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ---- Legenda della mappa ---- */
+.ms-trails__map-legend {
+  position: absolute;
+  bottom: 26px;
+  left: 12px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px 10px;
+  background: var(--ms-map-legend-surface);
+  border-radius: var(--ms-radius-lg);
+  box-shadow: var(--ms-shadow-map-control);
+}
+
+.ms-trails__map-legend-title {
+  font-size: 11px;
+  font-weight: var(--ms-fw-extrabold);
+  color: var(--ms-text-secondary);
+}
+
+.ms-trails__map-legend-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ms-trails__map-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: var(--ms-fw-semibold);
+}
+
+.ms-trails__map-legend-line {
+  width: 18px;
+  height: 4px;
+  flex: none;
+  border-radius: 2px;
+}
+
+/* ---- Mobile (< 640px) ---- */
+@media (max-width: 639.98px) {
+  .ms-trails {
+    --ms-trails-map-height: 280px;
+
+    gap: var(--ms-space-8);
+  }
+
+  .ms-trails__title {
+    font-size: 1.375rem; /* 22px */
+  }
+
+  .ms-trails__subtitle {
+    font-size: var(--ms-text-md);
+  }
+
+  .ms-trails__heading {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--ms-space-8);
+  }
+
+  .ms-trails__kpis {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--ms-space-5);
+  }
+
+  .ms-trails__kpi,
+  .ms-trails__kpi--km {
+    min-width: 0;
+    padding: 10px 14px;
+  }
+
+  .ms-trails__kpi-label {
+    font-size: 11px;
+  }
+
+  .ms-trails__kpi-value {
+    font-size: 20px;
+  }
+
+  .ms-trails__empty {
+    padding: 48px 20px;
+  }
+
+  .ms-trails__empty svg {
+    width: 40px;
+    height: 40px;
+  }
+
+  .ms-trails__empty-title {
+    font-size: var(--ms-text-lg);
+  }
+
+  .ms-trails__summary {
+    gap: var(--ms-space-6);
+    padding: 14px;
+  }
+
+  .ms-trails__summary-heading {
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .ms-trails__summary-title {
+    font-size: var(--ms-text-md);
+  }
+
+  .ms-trails__summary-hint {
+    font-size: 11px;
+  }
+
+  /* Su mobile la barra non porta le etichette dei km e la Percorribilità non ha titolo, come nel design. */
+  .ms-trails__bar {
+    height: 22px;
+    border-radius: 5px;
+  }
+
+  .ms-trails__bar-segment {
+    font-size: 0;
+  }
+
+  .ms-trails__summary-practicability {
+    padding-top: var(--ms-space-6);
+  }
+
+  .ms-trails__summary-practicability .ms-trails__summary-title,
+  .ms-trails__legend-count {
+    display: none;
+  }
+
+  .ms-trails__legend-grid,
+  .ms-trails__practicability-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 12px;
+  }
+
+  .ms-trails__legend-label {
+    gap: 6px;
+    font-size: 11px;
+  }
+
+  .ms-trails__legend-value {
+    font-size: var(--ms-text-md);
+  }
+
+  .ms-trails__legend-note {
+    font-size: 11px;
+  }
+
+  .ms-trails__body {
+    gap: var(--ms-space-8);
+  }
+
+  /* I filtri e le card stanno direttamente sulla pagina, non in un riquadro. */
+  .ms-trails__panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ms-space-8);
+    overflow: visible;
+    background: none;
+    border: 0;
+    border-radius: 0;
+  }
+
+  /* Senza `nowrap` la colonna multi-riga si allargherebbe quanto i chip (che scorrono in orizzontale). */
+  .ms-trails__filters {
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: var(--ms-space-8);
+    padding: 0;
+    border: 0;
+  }
+
+  .ms-trails__chips {
+    flex-wrap: nowrap;
+    margin: 0 -16px;
+    padding: 0 16px 2px;
+    overflow-x: auto;
+  }
+
+  .ms-trails__chip {
+    flex: none;
+    height: 36px;
+    padding: 0 14px;
+    border-radius: 18px;
+  }
+
+  .ms-trails__chip-label--long {
+    display: none;
+  }
+
+  .ms-trails__chip-label--short {
+    display: inline;
+  }
+
+  .ms-trails__selects {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .ms-trails__select {
+    width: 100%;
+    min-width: 0;
+    height: 44px;
+    font-size: var(--ms-text-md);
+  }
+
+  .ms-trails__select--sort {
+    display: block;
+    grid-column: 1 / -1;
+  }
+
+  .ms-trails__count--mobile {
+    display: block;
+    margin: 0;
+    font-size: 12px;
+    font-weight: var(--ms-fw-bold);
+    color: var(--ms-text-muted);
+  }
+
+  .ms-trails__table {
+    display: none;
+  }
+
+  .ms-trails__cards {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ms-space-4);
+  }
+
+  .ms-trails__card {
+    display: flex;
+    gap: var(--ms-space-6);
+    padding: 12px;
+    background: var(--ms-surface-card);
+    border: var(--ms-border-width) solid var(--ms-border-subtle);
+    border-radius: var(--ms-radius-card);
+    color: var(--ms-text-strong);
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .ms-trails__card-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+  }
+
+  .ms-trails__card-heading {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .ms-trails__card-name {
+    font-size: var(--ms-text-lg);
+    font-weight: var(--ms-fw-extrabold);
+    line-height: 1.25;
+  }
+
+  .ms-trails__card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ms-space-3);
+  }
+
+  .ms-trails__card-meta {
+    font-size: 12px;
+    color: var(--ms-text-secondary);
+  }
+
+  .ms-trails__card-chevron {
+    align-self: center;
+    font-size: 22px;
+    font-weight: var(--ms-fw-bold);
+    color: var(--ms-brand);
+  }
+
+  .ms-trails__no-match--card {
+    padding: 32px 12px;
+    background: var(--ms-surface-card);
+    border: var(--ms-border-width) solid var(--ms-border-subtle);
+    border-radius: var(--ms-radius-card);
+  }
+
+  .ms-trails__more {
+    width: 100%;
+    height: 44px;
+    border: var(--ms-border-width) solid var(--ms-border-default);
+    border-radius: var(--ms-radius-card);
+    background: var(--ms-surface-card);
+    font-family: inherit;
+    font-size: var(--ms-text-md);
+    font-weight: var(--ms-fw-extrabold);
+    color: var(--ms-brand);
+    cursor: pointer;
+  }
+
+  .ms-trails__footer {
+    padding: 0;
+    border: 0;
+    font-size: 11px;
+  }
+
+  .ms-trails__footer .ms-trails__count {
+    display: none;
+  }
+
+  /* La legenda esce dalla mappa e va sotto, su una riga che va a capo. */
+  .ms-trails__map-legend {
+    position: static;
+    padding: 10px 12px;
+    background: none;
+    border-top: var(--ms-border-width) solid var(--ms-border-subtle);
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .ms-trails__map-legend-title {
+    display: none;
+  }
+
+  .ms-trails__map-legend-list {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+  }
+
+  .ms-trails__map-legend-item {
+    gap: 5px;
+    font-size: 11px;
+  }
+
+  .ms-trails__map-legend-line {
+    width: 14px;
+  }
+}

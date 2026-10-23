@@ -64,7 +64,7 @@ final class CaiImportDatapackCommand extends Command
         $this->info($dryRun ? 'Import (dry-run) completato.' : 'Import completato.');
 
         foreach ($results as $table => $result) {
-            $this->line("- {$table}: letti {$result->read}, creati {$result->created}, aggiornati {$result->updated}, saltati {$result->skipped}".($result->bytes > 0 ? ', '.number_format($result->bytes / 1048576, 1, ',', '.').' MB '.($dryRun ? 'da copiare' : 'copiati') : ''));
+            $this->line("- {$table}: letti {$result->read}, creati {$result->created}, aggiornati {$result->updated}, saltati {$result->skipped}".($result->deleted > 0 ? ", eliminati {$result->deleted}" : '').($result->bytes > 0 ? ', '.number_format($result->bytes / 1048576, 1, ',', '.').' MB '.($dryRun ? 'da copiare' : 'copiati') : ''));
 
             if ($result->error !== null) {
                 $this->error("  {$result->error}");

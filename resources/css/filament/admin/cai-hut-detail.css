@@ -1,0 +1,767 @@
+/*
+ * Scheda del rifugio (Fase 10.4, US-1035) — resources/views/filament/pages/cai-hut-detail.blade.php.
+ * Misure dal design docs/project/design/fase-10/rifugi-di-sezione.dc.html §2; colori solo da token --ms-*, tranne
+ * quelli di tipo e stato che arrivano dagli enum (stile inline).
+ * Layout (container query sull'area contenuti): da 900px colonna principale + colonna laterale di 440px (mappa e
+ * fonte) come nel design, sotto una colonna sola. Sotto i 640px di viewport (mobile) l'ordine segue il design mobile:
+ * testata, mappa, schede, gestione, fonte (griglie in `display: contents` e `order`).
+ */
+.ms-hut {
+  --ms-hut-map-height: 340px;
+  --ms-hut-side-width: 440px;
+
+  container: hut / inline-size;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-10); /* 20px */
+  font-family: var(--ms-font-sans);
+  color: var(--ms-text-strong);
+}
+
+/* ---- Percorso ---- */
+.ms-hut__crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ms-space-8);
+  font-size: var(--ms-text-sm);
+  font-weight: var(--ms-fw-bold);
+}
+
+.ms-hut__crumb {
+  color: var(--ms-brand);
+  text-decoration: none;
+}
+
+.ms-hut__crumb:hover {
+  color: var(--ms-brand-link-hover);
+  text-decoration: underline;
+}
+
+.ms-hut__crumb-sep {
+  color: var(--ms-text-dash);
+}
+
+.ms-hut__crumb-current {
+  color: var(--ms-text-secondary);
+}
+
+.ms-hut__crumb--mobile {
+  display: none;
+}
+
+/* ---- Testata ---- */
+.ms-hut__hero {
+  position: relative;
+  height: 340px;
+  overflow: hidden;
+  border-radius: var(--ms-radius-card);
+  background: var(--ms-hero-surface);
+}
+
+.ms-hut__hero-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ms-hut__hero--photo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--ms-hero-overlay);
+}
+
+.ms-hut__hero-placeholder {
+  position: absolute;
+  top: 32px;
+  right: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ms-space-4);
+  font-size: var(--ms-text-sm);
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-text-muted);
+}
+
+.ms-hut__hero--photo .ms-hut__hero-placeholder {
+  display: none;
+}
+
+.ms-hut__hero-placeholder svg {
+  width: 44px;
+  height: 44px;
+  fill: none;
+  stroke: var(--ms-photo-placeholder-icon);
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+}
+
+.ms-hut__hero-placeholder-short {
+  display: none;
+}
+
+.ms-hut__hero-content {
+  position: absolute;
+  right: 32px;
+  bottom: 28px;
+  left: 32px;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--ms-space-12);
+  color: var(--ms-text-strong);
+}
+
+.ms-hut__hero--photo .ms-hut__hero-content {
+  color: var(--ms-surface-card);
+}
+
+.ms-hut__hero-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-4);
+  min-width: 0;
+}
+
+.ms-hut__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ms-space-4);
+}
+
+.ms-hut__type-pill,
+.ms-hut__status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ms-space-3);
+  padding: 4px 10px;
+  border-radius: var(--ms-radius-xl);
+  font-size: 0.75rem; /* 12px */
+  font-weight: var(--ms-fw-extrabold);
+}
+
+.ms-hut__type-pill {
+  background: var(--ms-surface-card);
+  color: var(--ms-text-strong);
+}
+
+.ms-hut__status-pill {
+  background: var(--ms-surface-muted);
+  color: var(--ms-text-secondary);
+}
+
+.ms-hut__dot {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: var(--ms-radius-circle);
+}
+
+.ms-hut__name {
+  margin: 0;
+  font-size: var(--ms-text-4xl); /* 34px */
+  font-weight: var(--ms-fw-extrabold);
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+
+.ms-hut__alias {
+  margin: 0;
+  font-size: var(--ms-text-xl);
+  font-weight: var(--ms-fw-semibold);
+  color: var(--ms-text-label);
+}
+
+.ms-hut__hero--photo .ms-hut__alias,
+.ms-hut__hero--photo .ms-hut__altitude-label {
+  color: var(--ms-hero-text-soft);
+}
+
+.ms-hut__alias-altitude {
+  display: none;
+}
+
+.ms-hut__altitude {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.ms-hut__altitude-label {
+  font-size: 0.75rem;
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-text-label);
+}
+
+.ms-hut__altitude-value {
+  font-size: var(--ms-space-15); /* 30px */
+  font-weight: var(--ms-fw-extrabold);
+}
+
+/* ---- Griglia ---- */
+.ms-hut__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--ms-space-10);
+  align-items: start;
+}
+
+@container hut (min-width: 900px) {
+  .ms-hut__grid {
+    grid-template-columns: minmax(0, 1fr) var(--ms-hut-side-width);
+  }
+}
+
+.ms-hut__main,
+.ms-hut__side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-10);
+  min-width: 0;
+}
+
+.ms-hut__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-7);
+  padding: 22px 24px;
+  background: var(--ms-surface-card);
+  border: var(--ms-border-width) solid var(--ms-border-subtle);
+  border-radius: var(--ms-radius-card);
+}
+
+.ms-hut__card--map {
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.ms-hut__card--source {
+  gap: var(--ms-space-3);
+  padding: 18px 20px;
+}
+
+.ms-hut__card--compact {
+  gap: var(--ms-space-5);
+  padding: 20px 22px;
+}
+
+.ms-hut__card-title {
+  margin: 0;
+  font-size: var(--ms-text-xl);
+  font-weight: var(--ms-fw-extrabold);
+}
+
+.ms-hut__subcard-title {
+  margin: 0;
+  font-size: var(--ms-text-lg);
+  font-weight: var(--ms-fw-extrabold);
+}
+
+/* ---- Coppie etichetta / valore ---- */
+.ms-hut__pairs {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  margin: 0;
+}
+
+@container hut (min-width: 700px) {
+  .ms-hut__pairs--two {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 32px;
+  }
+}
+
+.ms-hut__pair {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--ms-space-8);
+  padding: 10px 0;
+  border-top: var(--ms-border-width) solid var(--ms-surface-muted);
+  font-size: var(--ms-text-md);
+}
+
+.ms-hut__pairs--compact .ms-hut__pair {
+  padding: 9px 0;
+  font-size: var(--ms-text-sm);
+}
+
+.ms-hut__pair dt,
+.ms-hut__pair-label {
+  flex: none;
+  color: var(--ms-text-secondary);
+}
+
+.ms-hut__pair dd,
+.ms-hut__pair-value {
+  margin: 0;
+  font-weight: var(--ms-fw-bold);
+  text-align: right;
+  word-break: break-word;
+}
+
+.ms-hut__pair dd a {
+  color: var(--ms-brand);
+  text-decoration: none;
+}
+
+.ms-hut__pair dd a:hover {
+  color: var(--ms-brand-link-hover);
+  text-decoration: underline;
+}
+
+.ms-hut__pair--opening {
+  padding-bottom: 0;
+}
+
+.ms-hut .ms-hut__missing {
+  color: var(--ms-value-missing);
+}
+
+/* ---- Ospitalità e servizi ---- */
+.ms-hut__beds {
+  display: flex;
+  gap: var(--ms-space-6);
+}
+
+.ms-hut__bed-box {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 12px 16px;
+  background: var(--ms-surface-page);
+  border-radius: var(--ms-radius-lg);
+}
+
+.ms-hut__bed-label {
+  font-size: 0.75rem;
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-text-secondary);
+}
+
+.ms-hut__bed-value {
+  font-size: var(--ms-space-13); /* 26px */
+  font-weight: var(--ms-fw-extrabold);
+}
+
+.ms-hut__services,
+.ms-hut__certifications {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ms-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@container hut (min-width: 700px) {
+  .ms-hut__services {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .ms-hut__certifications {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.ms-hut__service,
+.ms-hut__certification {
+  display: flex;
+  align-items: center;
+  gap: var(--ms-space-5);
+  padding: 10px 12px;
+  background: var(--ms-surface-hover-row);
+  border: var(--ms-border-width) solid var(--ms-border-subtle);
+  border-radius: var(--ms-radius-lg);
+}
+
+.ms-hut__certification {
+  justify-content: space-between;
+}
+
+.ms-hut__service svg {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: var(--ms-flag-unknown-icon);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ms-hut__service-label {
+  flex: 1;
+  font-size: var(--ms-text-sm);
+  color: var(--ms-value-missing);
+}
+
+.ms-hut__certification .ms-hut__service-label {
+  flex: initial;
+}
+
+.ms-hut__service-value {
+  font-size: 0.75rem;
+  font-weight: var(--ms-fw-extrabold);
+  color: var(--ms-value-missing);
+}
+
+.ms-hut__service--yes {
+  background: var(--ms-surface-card);
+}
+
+.ms-hut__service--yes svg {
+  stroke: var(--ms-brand);
+}
+
+.ms-hut__service--yes .ms-hut__service-label {
+  color: var(--ms-text-strong);
+}
+
+.ms-hut__service--yes .ms-hut__service-value {
+  color: var(--ms-brand-link-hover);
+}
+
+.ms-hut__service--no svg {
+  stroke: var(--ms-value-missing);
+}
+
+.ms-hut__service--no .ms-hut__service-label,
+.ms-hut__service--no .ms-hut__service-value {
+  color: var(--ms-text-secondary);
+}
+
+/* ---- Mappa e fonte ---- */
+.ms-hut__coordinates {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--ms-space-6);
+  padding: 12px 16px;
+  font-size: var(--ms-text-sm);
+  color: var(--ms-text-secondary);
+}
+
+.ms-hut__coordinates-datum {
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-text-strong);
+}
+
+.ms-hut__eyebrow {
+  font-size: 0.75rem;
+  font-weight: var(--ms-fw-extrabold);
+  letter-spacing: var(--ms-tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--ms-text-muted);
+}
+
+.ms-hut__source-link {
+  font-size: var(--ms-text-lg);
+  font-weight: var(--ms-fw-extrabold);
+  color: var(--ms-brand);
+  text-decoration: none;
+}
+
+.ms-hut__source-link:hover {
+  color: var(--ms-brand-link-hover);
+  text-decoration: underline;
+}
+
+.ms-hut__updated {
+  font-size: var(--ms-text-sm);
+  color: var(--ms-text-secondary);
+}
+
+.ms-hut__updated strong {
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-text-strong);
+}
+
+/* ---- Gestione (riservata) ---- */
+.ms-hut__management {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-8);
+  margin-top: var(--ms-space-8);
+  padding: 24px;
+  background: var(--ms-management-surface);
+  border-radius: var(--ms-radius-xl);
+}
+
+.ms-hut__management-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ms-space-8);
+}
+
+.ms-hut__management-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ms-space-6);
+}
+
+.ms-hut__management-title svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: var(--ms-text-strong);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ms-hut__management-title h2 {
+  margin: 0;
+  font-size: var(--ms-space-10); /* 20px */
+  font-weight: var(--ms-fw-extrabold);
+}
+
+.ms-hut__reserved {
+  padding: 4px 10px;
+  border-radius: var(--ms-radius-xl);
+  background: var(--ms-text-strong);
+  color: var(--ms-surface-card);
+  font-size: 0.75rem;
+  font-weight: var(--ms-fw-extrabold);
+}
+
+.ms-hut__management-note {
+  margin: -6px 0 0;
+  font-size: var(--ms-text-sm);
+  color: var(--ms-text-label);
+}
+
+.ms-hut__management-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--ms-space-8);
+}
+
+@container hut (min-width: 900px) {
+  .ms-hut__management-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.ms-hut__empty-note {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--ms-radius-lg);
+  background: var(--ms-surface-page);
+  font-size: var(--ms-text-sm);
+  color: var(--ms-text-secondary);
+}
+
+.ms-hut__alert-pill {
+  padding: 6px 12px;
+  border: var(--ms-border-width) solid;
+  border-radius: 14px;
+  font-size: var(--ms-text-sm);
+  font-weight: var(--ms-fw-extrabold);
+}
+
+.ms-hut__alert-pill-date {
+  display: none;
+}
+
+.ms-hut__pair--expiry {
+  align-items: center;
+}
+
+/* Contratto scaduto / in scadenza: la riga diventa un riquadro colorato che sporge di 10px come nel design. */
+.ms-hut__pair--expiry.ms-hut__alert--expired,
+.ms-hut__pair--expiry.ms-hut__alert--expiring {
+  margin: 0 -10px;
+  padding: 9px 10px;
+  border-radius: var(--ms-radius-lg);
+}
+
+.ms-hut__pair--expiry dd {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.ms-hut__expiry-date {
+  font-weight: var(--ms-fw-extrabold);
+}
+
+.ms-hut__expiry-note {
+  font-size: 0.75rem;
+  font-weight: var(--ms-fw-bold);
+}
+
+.ms-hut__alert--expired {
+  background: var(--ms-contract-expired-bg);
+  border-color: var(--ms-contract-expired-border);
+  color: var(--ms-contract-expired-text);
+}
+
+.ms-hut__alert--expiring {
+  background: var(--ms-contract-expiring-bg);
+  border-color: var(--ms-contract-expiring-border);
+  color: var(--ms-contract-expiring-text);
+}
+
+.ms-hut__pair--expiry.ms-hut__alert--expired dt,
+.ms-hut__pair--expiry.ms-hut__alert--expiring dt {
+  font-weight: var(--ms-fw-bold);
+  color: inherit;
+}
+
+/* ---- Mobile (design 390px) ---- */
+@media (max-width: 639.98px) {
+  .ms-hut {
+    --ms-hut-map-height: 200px;
+
+    gap: var(--ms-space-6);
+  }
+
+  .ms-hut__grid,
+  .ms-hut__main,
+  .ms-hut__side {
+    display: contents;
+  }
+
+  .ms-hut__crumbs { order: 0; }
+  .ms-hut__hero { order: 1; }
+  .ms-hut__card--map { order: 2; }
+  .ms-hut__main > .ms-hut__card { order: 3; }
+  .ms-hut__management { order: 4; }
+  .ms-hut__card--source { order: 5; }
+
+  .ms-hut__crumb--desktop {
+    display: none;
+  }
+
+  .ms-hut__crumb--mobile {
+    display: inline;
+  }
+
+  .ms-hut__hero {
+    height: 250px;
+    margin: 0 calc(-1 * var(--ms-space-8));
+    border-radius: 0;
+  }
+
+  .ms-hut__hero-placeholder {
+    top: 24px;
+    font-size: var(--ms-text-xs);
+  }
+
+  .ms-hut__hero-placeholder svg {
+    width: 36px;
+    height: 36px;
+  }
+
+  .ms-hut__hero-placeholder-long {
+    display: none;
+  }
+
+  .ms-hut__hero-placeholder-short {
+    display: inline;
+  }
+
+  .ms-hut__hero-content {
+    right: 16px;
+    bottom: 16px;
+    left: 16px;
+  }
+
+  .ms-hut__altitude {
+    display: none;
+  }
+
+  .ms-hut__alias-altitude {
+    display: inline;
+  }
+
+  .ms-hut__name {
+    font-size: var(--ms-text-2xl);
+    line-height: 1.15;
+  }
+
+  .ms-hut__alias {
+    font-size: var(--ms-text-md);
+  }
+
+  .ms-hut__card {
+    padding: 16px;
+  }
+
+  .ms-hut__card--map {
+    padding: 0;
+  }
+
+  .ms-hut__card--source {
+    padding: 14px 16px;
+  }
+
+  .ms-hut__coordinates-datum {
+    display: none;
+  }
+
+  .ms-hut__pair {
+    padding: 9px 0;
+    font-size: var(--ms-text-sm);
+  }
+
+  .ms-hut__pair--opening {
+    flex-direction: column;
+    gap: var(--ms-space-1);
+  }
+
+  .ms-hut__pair--opening .ms-hut__pair-value {
+    text-align: left;
+  }
+
+  .ms-hut__bed-value {
+    font-size: 1.375rem; /* 22px */
+  }
+
+  .ms-hut__services {
+    gap: var(--ms-space-3);
+  }
+
+  .ms-hut__service {
+    padding: 9px 10px;
+  }
+
+  .ms-hut__service-label {
+    font-size: 0.75rem;
+    line-height: 1.2;
+  }
+
+  .ms-hut__certifications {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ms-hut__management {
+    margin-top: var(--ms-space-6);
+    padding: 14px;
+  }
+
+  .ms-hut__management-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ms-hut__alert-pill {
+    padding: 10px 12px;
+    border-radius: var(--ms-radius-lg);
+  }
+
+  .ms-hut__alert-pill-date {
+    display: inline;
+  }
+}

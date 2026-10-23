@@ -191,6 +191,44 @@ metric-badge.blade.php`, stili in `resources/css/filament/admin/metric-badge.css
 | `shadow-hover-brand-lift` | `0 6px 18px rgba(23,161,128,.12)` | Hover del badge (con `translateY(-2px)`) |
 | `dur-badge` / `ease-out` | `180ms` / `ease-out` | Transizioni del badge |
 
+## Mappa CAI (rifugi, sentieri, tappe SICAI, Fase 10.4)
+
+Token aggiunti in `resources/css/theme.css` dal design `docs/project/design/fase-10/rifugi-di-sezione.dc.html`.
+Componente: `resources/views/components/cai/map.blade.php`, stili in `resources/css/filament/admin/cai-map.css`.
+I colori dei marker vengono dagli enum del tipo (es. `CaiHutType::color()`), non da token.
+
+| Nome semantico | Valore | Uso |
+|---|---|---|
+| `map-surface` | `#e3e8ed` | Sfondo della mappa sotto le tile |
+| `map-marker-border` / `map-marker-text` | `#ffffff` / `#ffffff` | Bordo e lettera del marker |
+| `shadow-map-marker` / `shadow-map-marker-active` | `0 1px 4px rgba(0,0,0,.4)` / `0 2px 6px rgba(0,0,0,.4)` | Marker normale / selezionato o in hover |
+| `shadow-map-popup` | `0 8px 24px rgba(20,30,40,.25)` | Popup del marker |
+| `shadow-map-control` | `0 1px 4px rgba(0,0,0,.2)` | Pulsanti di zoom |
+| `map-legend-surface` | `rgba(255,255,255,.95)` | Legenda dei tipi sovrapposta alla mappa (desktop) |
+| `map-cluster-bg` / `map-cluster-border` / `shadow-map-cluster` | `#0f7d63` / `rgba(255,255,255,.9)` / `0 0 0 4px rgba(23,161,128,.28), 0 2px 6px rgba(0,0,0,.3)` | Gruppo di marker (`x-cai.map` con `cluster`, design "Rifugi del GR") |
+| `map-line-casing` | `#ffffff` | Bordo sotto la linea evidenziata/selezionata di `x-cai.map` (sentieri) |
+| `trail-sign-red` / `trail-sign-border` / `trail-sign-text` | `#d22630` / `#e1e4e8` / `#1f2633` | Segnavia bianco-rosso-bianco col numero del sentiero (`x-cai.trail-sign`) |
+| `trail-row-selected-bg` / `trail-row-hover-bg` | `#e6f5f0` / `#f3faf8` | Riga dell'elenco sentieri selezionata (con filetto `brand` a sinistra) / evidenziata |
+| `trail-shared-text` | `#2f5f93` | Nota "Condiviso con …" dell'elenco sentieri |
+| `trail-shared-bg` | `#e5eef8` | Fondo della nota "Sentiero gestito in comune da N Sezioni" della scheda (testo `trail-shared-text`) |
+| `trail-bar-track` | `#eef1f4` | Fondo della barra dei km per stato di accatastamento |
+| `map-area-label` / `map-area-label-halo` | `#1f2633` / `#ffffff` | Codice del settore al centro del poligono (da zoom 9), con alone bianco ("Sentieri del GR") |
+| `map-overlay-surface` / `shadow-map-overlay` | `rgba(255,255,255,.96)` / `0 1px 4px rgba(0,0,0,.15)` | Riquadro del modo ("Mostra i sentieri" / "Vista per settori") e legenda sopra la mappa per settori |
+| `map-empty-bg` / `map-empty-text` | `#fbe7e5` / `#b42318` | "Nessun sentiero censito in questo settore" nel riquadro del settore e messaggi di errore della mappa. Riempimento e bordo tratteggiato del settore vuoto e scala blu dei km consolidati vengono da `CaiMapArea` (`EMPTY_FILL`/`EMPTY_STROKE`/`CONSOLIDATED_RAMP`), non da token |
+| `chip-active-bg` | `#e3f4ee` | Chip di filtro selezionato (bordo `brand`, testo `brand-link-hover`) |
+| `row-highlight-bg` | `#eef8f5` | Riga dell'elenco evidenziata dal marker (hover/selezione) |
+| `photo-placeholder-bg` / `photo-placeholder-icon` | `#eef1f4` / `#b4bbc6` | Segnaposto della miniatura senza foto |
+| `hero-surface` / `hero-overlay` / `hero-text-soft` | `#e3e8ed` / gradiente verso `rgba(18,26,36,.8)` / `rgba(255,255,255,.88)` | Testata della scheda rifugio: sfondo senza foto, velatura sopra la foto, testo secondario sulla foto |
+| `value-missing` | `#9aa1ad` | Valore assente ("—") e servizio "No"/"—" nella scheda rifugio |
+| `flag-unknown-icon` | `#c8cdd4` | Icona di un servizio senza dato ("—") |
+| `management-surface` | `#e6eaee` | Riquadro "Gestione" (dati riservati) della scheda rifugio |
+| `contract-expired-bg` / `-border` / `-text` | `#fbe7e5` / `#f3c4bf` / `#b42318` | Contratto di gestione scaduto (pillola e riga "Data di scadenza") |
+| `contract-expiring-bg` / `-border` / `-text` | `#fdf1dc` / `#f3d9a6` / `#8a5600` | Contratto in scadenza entro 6 mesi |
+| `group-header-bg` / `group-header-border` | `#eef1f4` / `#e3e7ec` | Testata di gruppo dell'elenco raggruppato per Sezione ("Rifugi del GR") |
+| `shadow-card-hover` | `0 4px 14px rgba(20,30,40,.08)` | Card cliccabile del riepilogo al passaggio (card "Contratti di gestione") |
+| `shadow-map-legend-cluster` | `0 0 0 2px rgba(23,161,128,.3)` | Voce "Gruppo di rifugi" della legenda della mappa |
+| `shadow-switch-knob` | `0 1px 2px rgba(0,0,0,.25)` | Pomello dell'interruttore ("Raggruppa per Sezione") |
+
 ## Breakpoint
 
 **Il mockup non definisce alcun breakpoint responsive**: nessuna `@media query` è presente nel

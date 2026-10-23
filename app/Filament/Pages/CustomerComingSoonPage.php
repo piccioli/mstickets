@@ -36,6 +36,12 @@ abstract class CustomerComingSoonPage extends Page
             && $user->customer_type === static::allowedCustomerType();
     }
 
+    /** Il messaggio della pagina; una sottoclasse lo cambia se il dato non arriverà a breve (Tappe SICAI di Sezione). */
+    public function message(): string
+    {
+        return 'Questa sezione è in arrivo.';
+    }
+
     /**
      * La root del pannello ({@see Dashboard::mount()}) decide già l'atterraggio per ruolo: il link di ritorno
      * resta corretto anche quando la Dashboard V2 del cliente diventa la pagina di atterraggio.

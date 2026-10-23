@@ -20,6 +20,9 @@ return Application::configure(basePath: dirname(__DIR__))
         // X-Forwarded-Proto/Port e genera sempre URL http:// anche dietro HTTPS reale,
         // causando errori "mixed content" sugli asset (bug reale scoperto in UAT, v0.3.0).
         $middleware->trustProxies(at: '*');
+        // Rotte `auth` fuori dal pannello (download, JSON della mappa del GR): un ospite va al login di Filament. Senza,
+        // il middleware cerca la rotta `login` (inesistente) e risponde 500.
+        $middleware->redirectGuestsTo(fn (): string => route('filament.admin.auth.login'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

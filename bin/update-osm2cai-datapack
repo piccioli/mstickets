@@ -1,0 +1,144 @@
+#!/usr/bin/env bash
+#
+# Porta i sentieri dal dump del catasto osm2cai (osm2cai.cai.it) al datapack RUNTS-CAI (Fase 10.6, US-1051), nelle
+# tabelle `snap_osm2cai_*` che `cai:import-datapack` importa poi nel DB dell'applicazione. Nello stesso passaggio
+# calcola regioni, province, settori e le statistiche territoriali dei sentieri (Fase 10.7, US-1061): le intersezioni
+# geometriche si fanno solo qui, sul DB temporaneo, mai nell'applicazione.
+#
+# Il dump contiene dati personali (`users`, `cas_users`, `password_resets`) e milioni di `failed_jobs`: NON entra mai
+# nel DB dell'applicazione né in git. Si carica in un container PostGIS temporaneo e usa-e-getta (nome univoco, mai i
+# servizi di docker-compose.yml, nessuna porta pubblicata), si estraggono le sole colonne necessarie con
+# `database/osm2cai/extract.sql`, si scrivono nel datapack con `cai:import-osm2cai-extract` e il container si elimina
+# (anche in caso di errore, salvo `--keep-db`).
+#
+# Ordine operativo: questo script → `cai:import-datapack` in locale (verifica conteggi) → `bin/push-cai-datapack` →
+# deploy UAT. Servono Docker in locale e ~10 GB liberi; l'import del dump richiede qualche minuto.
+#
+# Uso: bin/update-osm2cai-datapack <percorso-dump.sql.gz> [--datapack=cai-datapack/runts-cai.sqlite] [--keep-db]
+#   --datapack  file SQLite del datapack, relativo alla root del repository (o assoluto ma dentro il repository)
+#   --keep-db   lascia in esecuzione il container PostGIS a fine script (per ispezionare il dump), da rimuovere a mano
+
+set -euo pipefail
+
+IMAGE="postgis/postgis:16-3.4-alpine"
+REQUIRED_FREE_KB=$((10 * 1024 * 1024))
+DATAPACK="cai-datapack/runts-cai.sqlite"
+KEEP_DB=0
+DUMP_PATH=""
+
+usage() {
+    echo "Uso: bin/update-osm2cai-datapack <percorso-dump.sql.gz> [--datapack=cai-datapack/runts-cai.sqlite] [--keep-db]" >&2
+    exit 1
+}
+
+for arg in "$@"; do
+    case "$arg" in
+        --datapack=*) DATAPACK="${arg#--datapack=}" ;;
+        --keep-db) KEEP_DB=1 ;;
+        -*) usage ;;
+        *) [ -z "$DUMP_PATH" ] || usage; DUMP_PATH="$arg" ;;
+    esac
+done
+
+[ -n "$DUMP_PATH" ] || usage
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO_ROOT"
+
+if [ ! -f "$DUMP_PATH" ]; then
+    echo "Errore: dump non trovato: $DUMP_PATH" >&2
+    exit 1
+fi
+DUMP_PATH="$(cd "$(dirname "$DUMP_PATH")" && pwd)/$(basename "$DUMP_PATH")"
+
+# Il comando artisan può girare nel container `app` (repository montato in /var/www/html): il datapack va quindi
+# indicato con un percorso relativo alla root del repository.
+case "$DATAPACK" in
+    "$REPO_ROOT"/*) DATAPACK="${DATAPACK#"$REPO_ROOT"/}" ;;
+    /*) echo "Errore: il datapack deve stare dentro il repository ($REPO_ROOT): $DATAPACK" >&2; exit 1 ;;
+esac
+
+if [ ! -f "$DATAPACK" ]; then
+    echo "Errore: datapack non trovato: $REPO_ROOT/$DATAPACK" >&2
+    exit 1
+fi
+
+if ! docker info >/dev/null 2>&1; then
+    echo "Errore: Docker non risponde. Avvia Docker e riprova." >&2
+    exit 1
+fi
+
+# Spazio libero sull'host (Docker Desktop tiene i volumi in un disco virtuale sullo stesso disco).
+FREE_KB="$(df -Pk "$REPO_ROOT" | awk 'NR==2 {print $4}')"
+if [ "$FREE_KB" -lt "$REQUIRED_FREE_KB" ]; then
+    echo "Errore: spazio libero insufficiente: $((FREE_KB / 1024 / 1024)) GB disponibili, ne servono almeno 10 per importare il dump. Libera spazio e riprova." >&2
+    exit 1
+fi
+
+if docker compose ps --status running --services 2>/dev/null | grep -qx app; then
+    ARTISAN=(docker compose exec -T app php artisan)
+else
+    ARTISAN=(php artisan)
+fi
+
+CONTAINER="osm2cai-extract-$(date +%Y%m%d%H%M%S)-$$"
+CSV_DIR="storage/app/osm2cai-extract-$(date +%Y%m%d%H%M%S)-$$"
+
+cleanup() {
+    local status=$?
+    rm -rf "$REPO_ROOT/$CSV_DIR"
+    if [ "$KEEP_DB" -eq 1 ]; then
+        echo "Container $CONTAINER lasciato in esecuzione (--keep-db). Rimuovilo con: docker rm -f $CONTAINER" >&2
+    else
+        docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
+    fi
+    exit "$status"
+}
+trap cleanup EXIT
+trap 'exit 130' INT TERM
+
+psql_exec() {
+    docker exec -i "$CONTAINER" psql -v ON_ERROR_STOP=1 -X -q -U postgres "$@"
+}
+
+echo "Avvio il container PostGIS temporaneo $CONTAINER ($IMAGE)..."
+docker run -d --platform linux/amd64 --name "$CONTAINER" \
+    -e POSTGRES_PASSWORD="$(LC_ALL=C tr -dc 'a-zA-Z0-9' </dev/urandom | head -c 24)" \
+    "$IMAGE" >/dev/null
+
+# Il server provvisorio dell'init dell'immagine ascolta solo sul socket: aspettare il TCP evita di partire troppo presto.
+echo "Attendo che PostgreSQL sia pronto..."
+for _ in $(seq 1 120); do
+    if docker exec "$CONTAINER" pg_isready -q -h 127.0.0.1 -U postgres 2>/dev/null; then
+        break
+    fi
+    sleep 1
+done
+docker exec "$CONTAINER" pg_isready -q -h 127.0.0.1 -U postgres || { echo "Errore: PostgreSQL non è partito." >&2; exit 1; }
+
+CONTAINER_FREE_KB="$(docker exec "$CONTAINER" df -Pk /var/lib/postgresql/data | awk 'NR==2 {print $4}')"
+if [ "$CONTAINER_FREE_KB" -lt "$REQUIRED_FREE_KB" ]; then
+    echo "Errore: spazio libero insufficiente nel disco di Docker: $((CONTAINER_FREE_KB / 1024 / 1024)) GB disponibili, ne servono almeno 10. Libera spazio (docker system df) e riprova." >&2
+    exit 1
+fi
+
+# Database da zero (template0: il dump crea da sé gli schemi tiger/topology) e ruolo proprietario degli oggetti del dump.
+psql_exec -d postgres -c 'CREATE ROLE osm2cai2 NOLOGIN' -c 'CREATE DATABASE osm2cai TEMPLATE template0'
+
+# I meta-comandi `\restrict`/`\unrestrict` dei pg_dump recenti non esistono nello psql 16.4 dell'immagine: si scartano.
+echo "Importo il dump $DUMP_PATH (qualche minuto)..."
+gunzip -c "$DUMP_PATH" | LC_ALL=C sed -E '/^\\(un)?restrict /d' | psql_exec -d osm2cai >/dev/null
+
+echo "Estraggo sentieri, territori e tappe SICAI (database/osm2cai/extract.sql, qualche minuto)..."
+psql_exec -d osm2cai < database/osm2cai/extract.sql
+
+mkdir -p "$CSV_DIR"
+for table in trails trail_sections regions provinces sectors territory_km trail_territory sicai_stages; do
+    psql_exec -d osm2cai -c "\\copy osm2cai_extract.$table TO STDOUT WITH (FORMAT csv, HEADER true)" > "$CSV_DIR/$table.csv"
+done
+
+echo "Scrivo le tabelle snap_osm2cai_* nel datapack $DATAPACK..."
+"${ARTISAN[@]}" cai:import-osm2cai-extract "$CSV_DIR" --datapack="$DATAPACK"
+
+echo "Peso del datapack: $(du -h "$DATAPACK" | cut -f1)"
+echo "Fatto. Prossimi passi: cai:import-datapack in locale → bin/push-cai-datapack → deploy UAT."

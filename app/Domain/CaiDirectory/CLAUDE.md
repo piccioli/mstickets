@@ -107,6 +107,96 @@ parametro di rotta) e `docs/collaudo/CLAUDE.md` per il metodo di generazione del
   calcolo dell'inquadratura iniziale. Verificare sempre con lo screenshot reale (non solo la fixture) prima
   di dichiarare completa una story che usa dati RUNTS-CAI.
 
+## Pagina elenco rifugi (`SectionHuts`, US-1034 — da riusare per i rifugi del GR)
+
+- Filtri/ordinamento in `Support\CaiHutFilters` (tipi in OR, stato, `Enums\CaiHutSort`) applicati in PHP sui rifugi
+  già caricati; nell'URL chiavi brevi `CaiHutType::key()` / `CaiHutStatus::key()` (`?tipo[]=bivacco&stato=chiuso`),
+  mai il testo della fonte (spazi/apostrofi). `fromKey()` → `null` per un valore sconosciuto (= filtro assente).
+- Layout desktop con **container query** (`container: huts / inline-size`), non media query: con la sidebar di Filament
+  a 1440px l'area contenuti è ~1050px e il design "elenco + mappa 500px" schiaccia la tabella; affiancati solo da 1200px
+  di contenuto, sotto mappa sopra. Altezza della mappa passata come `height="var(--ms-huts-map-height)"`.
+- Mobile: in un flex a colonna con `flex-wrap: wrap` i figli si allargano quanto la riga di chip scorrevole (nowrap):
+  sotto i 640px la colonna dei filtri va `nowrap`, i `<select>` in griglia con `width: 100%; min-width: 0`.
+- Test Livewire: dopo un `call()`/`set()` gli `assertSee*` lavorano sulla risposta JSON, dove i caratteri non ASCII sono
+  `\u00..`: nelle fixture che si riasseriscono dopo un update usare nomi ASCII (accenti → test unitario di `CaiHutSort`).
+  Per regex sull'HTML togliere prima i commenti `<!--[if BLOCK]>` di Livewire.
+
+## Scheda del rifugio (`CaiHutDetail`, US-1035 — da riusare dal GR e per sentieri/tappe)
+
+- Rotta `rifugi/{idCai}` (pagina Filament con parametro, vedi §US-807 sotto): `canAccess()` ammette staff
+  `CaiDirectoryView` e customer Sezione/GR, `mount()` verifica `CaiHutPolicy::view` sul rifugio (id non numerico o
+  inesistente → 404, rifugio di altri → 403). La sezione "Gestione" è dentro un `@if (canViewManagement())`: mai
+  nascosta con CSS. Test della gestione nascosta con `Gate::before(fn ($u, $a) => $a === 'viewManagement' ? false : null)`
+  (oggi la policy dà `view` = `viewManagement`, quindi non c'è un utente reale che vede la scheda senza gestione).
+- Formattazione in `Support\CaiHutSheet` (valore assente = `null`, la vista mette "—"): servizi (`SERVICES`, 15 chiavi
+  di `services`), certificazioni (`CERTIFICATIONS`), contatti con link, orari, canone.
+- **Scadenza del contratto: un solo punto, `Support\CaiHutContractExpiry`** (`of($hut)` → `endDate`, `status($today)`
+  = `Enums\CaiHutContractStatus` scaduto < 0 giorni / in scadenza ≤ 183, `note($today)` "Scaduto da N mesi/giorni" /
+  "Scade tra …" / "Scade oggi"). La usano `CaiHutSheet` (scheda) e `Queries\CaiRegionalGroupHuts` (10.5): mai
+  ricalcolare le soglie altrove. Oggi passato come argomento per i test con `Carbon::setTestNow`.
+- Rifugi del GR (10.5): `Queries\CaiRegionalGroupHuts::forRegion($region)` → `CaiRegionalGroupHutsData` (righe
+  `CaiRegionalGroupHutRow` con nome Sezione, flag `ownedByGroup`, scadenza; M, Sezioni con/senza rifugi, contatori).
+  Sezioni per prefisso (`sectionsOf()`) **più** i rifugi intestati al GR (`branch_code` `95…` e `branch_name` =
+  "GR {Region::label()}" senza maiuscole, oggi solo `9500046` GR Sicilia), con "GR {regione}" come Sezione; un rifugio
+  del GR non conta fra le "Sezioni con rifugi". Da riusare per pagina e badge della Dashboard GR. `CaiHutPolicy::view`
+  ammette il GR anche sui rifugi intestati a lui (stessa regola, `CaiRegionalGroupHuts::groupName()`): se cambia la
+  regola, cambiarla in entrambi i punti.
+- Pagina `RegionalGroupHuts` (10.5, slug `gr/rifugi`): filtri/ordinamento/raggruppamento in `Support\CaiRegionalGroupHutFilters`
+  (chiave Sezione = codice CAI o `gr`) ed `Enums\CaiRegionalGroupHutSortColumn` (mancanti sempre in fondo). URL
+  `sezione`/`tipo`/`stato`/`contratti`/`ordina`/`verso`/`raggruppa`, solo se diversi dal default; `listQuery()` è
+  l'elenco dei parametri da conservare e la riga apre `CaiHutDetail` con `da=gr` + quei parametri (il ritorno li legge
+  dalla query della scheda). La colonna di ordinamento di default dipende dal filtro contratti (scadenza) e il toggle
+  del filtro azzera l'ordinamento.
+- Certificazioni del design non presenti in rifugi.cai.it (depuratore, solare termico, Ecolabel): sostituite da chiavi
+  reali sì/no (`oilSeparator`, `rain_water`, `greenCertification`). Le altre chiavi `*_certification` sono testo libero
+  (anno di costruzione, classe catastale, ...), non vanno nella griglia Sì/No.
+- `?da=gr` → link "← Rifugi del GR" (anche senza parametro per un utente GR); staff → scheda della Sezione nella Resource.
+  I parametri dell'elenco li legge `mount()` dalla query (chiavi `RegionalGroupHuts::LIST_QUERY_KEYS`, solo stringhe)
+  in `$listQuery`, riportati nel link di ritorno solo con `da=gr`: aggiungendo un filtro all'elenco GR, aggiungere la
+  chiave a `LIST_QUERY_KEYS` oltre che a `listQuery()`.
+- Mobile: ordine del design (testata, mappa, schede, gestione, fonte) con griglie in `display: contents` + `order`.
+
+## Componente mappa `x-cai.map` (US-1033, rifugi / sentieri / tappe SICAI)
+
+- Unico componente mappa delle pagine Sezione/GR della Fase 10: `resources/views/components/cai/map.blade.php`, CSS
+  `resources/css/filament/admin/cai-map.css`. Dati come `Support\CaiMapMarker` (rifugio: `CaiMapMarker::forHut($hut,
+  $url)`, popup del design da `components.cai.map-popup`) e `Support\CaiMapLine` (GeoJSON + colore, sentiero:
+  `CaiMapLine::forTrail()`).
+- Legame con l'elenco della pagina **solo via eventi** (`detail.map` = prop `name`): la mappa emette
+  `cai-map-marker-selected` / `cai-map-marker-hovered`, ascolta su `window` `cai-map-highlight` / `cai-map-select`.
+  Esempio riga: `@mouseenter="$dispatch('cai-map-highlight', { map: 'huts', id: 12 })"`, elenco
+  `x-data="{ active: null }" @cai-map-marker-selected.window="active = $event.detail.id"`.
+- Aggiornamento Livewire (filtri): il riquadro Leaflet è `wire:ignore`; i dati stanno in un `<div hidden>` con
+  `wire:key` = hash dei dati, il cui `x-init` richiama `load()`. Verificato con Playwright che la sostituzione del nodo
+  ridisegna la mappa. Rendere il componente sempre (anche vuoto), mai solo dentro un `@if` che appare dopo un update.
+- Oggetti Leaflet tenuti in closure, non nello stato Alpine (un Proxy reattivo rompe la mappa). Configurazione e dati
+  passano da attributi `data-cai-map-config` / `data-cai-map-payload` (JSON leggibile nei test), non da `@js(...)`.
+- Verifica JS senza pannello: rendere il componente con `Blade::render` in tinker, avvolgerlo in una pagina HTML con
+  Alpine da CDN e il CSS di `public/build`, aprirla con Playwright (`file://`).
+- **Cluster (US-1042)**: prop `cluster` (+ `clusterNoun` per il tooltip) → `leaflet.markercluster` 1.5.3, caricato in un
+  `@once` separato solo se una mappa lo chiede (senza l'opzione l'HTML è quello della 10.4). Raggruppa fino allo zoom 11,
+  clic sul gruppo = zoom +2 (`zoomToBoundsOnClick: false` + `clusterclick`). Un marker dentro un gruppo non ha `_map`:
+  `cai-map-select` dall'elenco usa `zoomToShowLayer()` prima di aprire il popup. In Playwright i marker fuori vista
+  restano nel DOM: cliccarli via `element.click()` in `evaluate`, non con `locator.click()`.
+- Popup con la Sezione proprietaria: `CaiMapMarker::forHut($hut, $url, $sectionName)` (terzo argomento facoltativo).
+- **Aree e linee per area visibile (US-1064)**: prop `areas` (poligoni sullo STESSO canvas delle linee, aggiunti prima:
+  le linee restano sopra e vincono il clic; un renderer SVG separato sotto il canvas non riceverebbe mai i clic) e
+  `lines-url` (fetch da `linesMinZoom` con cache per riquadro+zoom e `AbortController`). Senza `areas` il payload resta
+  `{markers, lines}` (stesso `wire:key` delle mappe 10.4–10.6). Stato Alpine `mode`/`lineCount`/`linesTruncated`/… e
+  azioni `showLines()`/`showAreas()` leggibili dagli slot `overlay`/`footer`. Con `lines-url`, `cai-map-select` su una
+  linea non zooma mai sotto `linesMinZoom` (le linee sparirebbero). Verifica in browser con l'endpoint reale: login
+  Playwright su `localhost:8080`, poi `page.route('<origin>/__qualcosa', fulfill)` con la pagina HTML del componente reso
+  in tinker — stessa origine, il `fetch` porta il cookie di sessione.
+- **Linee / sentieri (US-1053)**: `CaiMapLine::forTrail($trail, $url)` (colore dello stato, spessore 3, anteprima
+  `components.cai.map-trail-popup` col segnavia `x-cai.trail-sign`, CSS comune dei sentieri in `cai-trails.css`).
+  Le linee hanno eventi propri `cai-map-line-selected` / `cai-map-line-hovered` (stesso `detail`); `cai-map-highlight` /
+  `cai-map-select` valgono per marker e linee (un solo spazio di id per mappa). Disegnate su `L.canvas` con `tolerance`
+  (niente tracciati SVG invisibili per l'area di clic); il bordo bianco della linea attiva è un secondo layer creato
+  solo quando serve. Verificato con Parma (380 linee): nessun blocco, ~16 ms per aggiornamento di evidenziazione.
+  **Peso**: 380 geometrie ≈ 2 MB di payload nel markup (rimandato a ogni update Livewire che cambia i dati): tenerne
+  conto nelle pagine con filtri. In Playwright una linea su canvas non ha un nodo DOM: trovarla col mouse
+  (`mouse.move` a griglia finché arriva `cai-map-line-hovered`) o selezionarla con `cai-map-select`.
+
 ## Riusare un Infolist Filament dentro una pagina custom non-Resource (US-806)
 
 - `Filament\Pages\Page` eredita già `InteractsWithSchemas` tramite `Filament\Pages\BasePage` — nessun
@@ -345,3 +435,296 @@ Operativo (ordine dei comandi e vincolo di spazio remoto): `deploy/CLAUDE.md` §
   → `env()` ritorna `""`, non il default, e rompe il disco). Confrontare i conteggi prima/dopo sul DB dev.
   I conteggi del PRD erano di uno stato precedente: confrontare sempre con il DB attuale, non con il documento.
 - L'opzione di `cai:import-datapack` è `--path`; quella di `cai:export-datapack-snapshot` è `--datapack`.
+
+## Rifugi da rifugi.cai.it (`cai_huts`, Fase 10.4, US-1031)
+
+- **In sintesi (feature 10.4)**: fonte = API pubblica `https://rifugi.cai.it/api/v1` (unica, nessun altro dato sui
+  rifugi) → script `cai:fetch-huts` (a mano, mai pianificato) → tabella `snap_cai_huts` del datapack →
+  `cai:import-datapack` → tabella `cai_huts` (PK `id_cai`, `branch_code` = `codice_cai` della Sezione, senza FK) →
+  pagine `SectionHuts` (elenco + mappa), `CaiHutDetail` (scheda), badge "Rifugi" della Dashboard Sezione. Visibilità:
+  scheda e "Gestione" (gestore, contratto, canone, proprietà, certificazioni, CIN) solo a staff `CaiDirectoryView`,
+  Sezione proprietaria e GR della sua regione (`CaiHutPolicy::view`/`viewManagement`, oggi coincidenti; per
+  restringere la gestione basta cambiare `viewManagement`, la vista non rende nulla senza permesso). Collaudo:
+  `docs/collaudo/fase-10.php` F10-134..F10-188, E2E `tests/Feature/EndToEnd/Fase10RifugiSezioneEndToEndTest.php`.
+- **In sintesi (feature 10.5, Rifugi del GR)**: rifugi del GR = quelli delle Sezioni per prefisso **più** quelli
+  intestati al GR (`branch_code` `95…` con `branch_name` = "GR {Region::label()}", confronto senza maiuscole; mostrati
+  con "GR {regione}" come Sezione, primi nel raggruppamento, mai contati fra le "Sezioni con rifugi"). Un'unica regola
+  in `CaiRegionalGroupHuts` (`hutsQuery()`/`groupName()`) usata da pagina `RegionalGroupHuts`, badge della Dashboard GR
+  e `CaiHutPolicy::view`: cambiarla lì e basta. Stato del contratto (scaduto < 0 giorni, in scadenza ≤ 183) solo da
+  `Support\CaiHutContractExpiry`, condiviso da scheda, righe dell'elenco GR e card "Contratti di gestione" (filtro
+  `contratti=1`, che il link di ritorno della scheda conserva). Collaudo: F10-189..F10-226, E2E
+  `tests/Feature/EndToEnd/Fase10RifugiGrEndToEndTest.php`.
+- **Fonte di verità esterna**, sola lettura: `snap_cai_huts` nel datapack (`id_cai`, `payload` = JSON grezzo del
+  dettaglio `GET /api/v1/shelters/{id_cai}`) → `Import\CaiHutsImporter` (chiamato da `CaiDatapackImporter` solo
+  nell'import nazionale, riga `snapshot_rifugi`). Crea/aggiorna/**elimina** (conteggio `deleted` di
+  `CaiImportTableResult`, stampato come "eliminati N"); senza la tabella `snap_cai_huts` non tocca nulla.
+- Parsing in `Import\CaiHutFieldMapper` (testato): la fonte è una lista `fields` `{name, value, data}` → tutti i valori
+  grezzi in `cai_huts.fields`, colonne normalizzate per le pagine. `services` = ogni `*_service` (tranne `posti_*`)
+  senza suffisso → 1/0/null (numeri > 0 e testo → 1, "Assente"/"Nessuna" → 0); `management.certifications` = ogni
+  `*_certification` (0/1 come int, il resto testo). Canone spesso testo libero ("7500 + IVA", "gratuita"):
+  `contract.fee` numerico o `null`, `contract.fee_text` grezzo sempre.
+- Dati reali (ott. 2026): 764 rifugi, 761 con `branch_code` = una Sezione; 4 con stato "Rudere" (non nell'enum
+  `CaiHutStatus` del design → `status` null, testo in `fields`); `openingTime_contact` ha il valore in `data`, non in `value`.
+- `DiffsAttributes` confronta le colonne json (cast `array`) come JSON a chiavi ordinate: Postgres `json` (non
+  `jsonb`) conserva l'ordine, ma il confronto non deve dipenderne.
+- `CaiHutPolicy`: `view` = `viewManagement` = staff `CaiDirectoryView`, customer collegato alla Sezione `branch_code`,
+  customer GR il cui `prefixOf(region)` è prefisso del `branch_code` o a cui il rifugio è intestato (10.5);
+  create/update/delete sempre `false`.
+- **Badge "Rifugi" (US-1036)**: unica eccezione alla regola "mancante = `null`, mai 0" delle dashboard — la banca
+  dati rifugi.cai.it è completa, quindi una Sezione senza rifugi ha `huts = 0` (mostrato "0"); solo la Sottosezione
+  resta `null`. Conta tutti i `cai_huts` della Sezione, qualunque `status`. Stessa eccezione per il badge "Rifugi"
+  della Dashboard GR (US-1045): `huts` = rifugi di `CaiRegionalGroupHuts::hutsQuery()` (Sezioni + intestati al GR, la
+  stessa regola della pagina "Rifugi del GR" — se cambia lì, cambia anche il badge), `hutsSectionsCount` per la nota
+  "Somma di N Sezioni" (i rifugi intestati al GR non contano come Sezione; nota assente con N = 0); `null` solo se la
+  regione non ha Sezioni.
+- **Aggiornamento dall'API (US-1032)**: `cai:fetch-huts [--datapack=] [--dry-run]` → `Import\CaiHutsFetcher`
+  (`fetch()` elenco paginato + dettagli con `Http::pool` a blocchi, `write()` DROP+CREATE+INSERT in una transazione,
+  tutto o niente) → riepilogo `CaiHutsFetchSummary` (collegati = `branch_id` presente in `sezioni_cai` del datapack).
+  Procedura: `cai:fetch-huts` → `cai:import-datapack` in locale → `bin/push-cai-datapack` → deploy UAT; mai l'API
+  durante il deploy o le richieste web. Parametri in `config('cai_directory.huts_api')`.
+- **Rate limit dell'API**: 1000 richieste per finestra, poi `429` con `Retry-After` (~60–100 s). Un run (~770
+  richieste) ci sta, due di fila no: il fetcher rispetta `Retry-After` (tetto `max_retry_after_seconds`) fra i
+  tentativi. I dettagli restano JSON grezzo (stringhe, ~12,6 MB): decodificati tutti insieme e con 764 risposte del
+  pool vive il comando sforava in silenzio il `memory_limit` CLI di 128M. Nei test la pausa si verifica con
+  `Sleep::fake()` (il fetcher usa `Illuminate\Support\Sleep`, non `usleep`).
+
+## Sentieri dal catasto osm2cai (`snap_osm2cai_*`, Fase 10.6, US-1051)
+
+- **Fonte**: dump PostgreSQL/PostGIS di osm2cai.cai.it (`pg_dump` testuale gzip, ~1,6 GB; oggi un file locale, URL di
+  download non ancora disponibile). **Contiene dati personali** (`users`, `cas_users`, `password_resets`): mai nel DB
+  dell'app, su UAT né in git — si carica solo in un container temporaneo.
+- **Procedura**: `bin/update-osm2cai-datapack <dump.sql.gz> [--datapack=] [--keep-db]` → `cai:import-datapack` in
+  locale → `bin/push-cai-datapack` → deploy UAT. Lo script avvia `postgis/postgis:16-3.4-alpine` (`--platform
+  linux/amd64`, emulato su Apple Silicon: import ~6 min) con nome univoco, crea il ruolo `osm2cai2`, importa, esegue
+  `database/osm2cai/extract.sql` (schema `osm2cai_extract`), esporta i CSV in `storage/app/osm2cai-extract-*` e chiama
+  `cai:import-osm2cai-extract` (nel container `app` se è su, altrimenti `php` dell'host: il datapack va quindi indicato
+  relativo alla root del repo). `trap` rimuove container e CSV anche in caso di errore; `--keep-db` lascia il container
+  per ispezionare il dump (`docker exec -it <nome> psql -U postgres -d osm2cai`).
+- **Riepilogo 10.6 (US-1057)** — fonte: solo il dump osm2cai, via script → datapack → `cai:import-datapack` (mai scritti
+  a mano, mai modificati dall'app); estratti solo i sentieri con `osm2cai_status` 1–4 e non `deleted_on_osm`. Tabelle:
+  `snap_osm2cai_trails`/`snap_osm2cai_trail_sections` (datapack) → `cai_trails`/`cai_trail_section` (app). **Regola dei
+  sentieri condivisi**: un sentiero appartiene a OGNI Sezione il cui `codice_cai` compare fra i suoi club osm2cai, e
+  conta per intero in ciascuna (elenco, km del riepilogo, badge "Sentieri" di `CaiSectionDashboardMetrics`): la somma dei
+  km di più Sezioni può quindi superare i km reali — chi aggrega più Sezioni (GR, 10.7) deve deduplicare per `id`.
+  **Stati** (`CaiTrailStatus`, colori `SDA` del design): 1 Difficoltà `#e8b500`, 2 Ricognizione `#f07c22`, 3
+  Pre-validato `#a24cc7`, 4 Validato `#2563c9`. **Percorribilità** (`CaiTrailPracticability`, `PER`): percorribile, con
+  difficoltà, non percorribile, sconosciuto. Checkpoint: `tests/Feature/EndToEnd/Fase10SentieriSezioneEndToEndTest.php`,
+  collaudo F10-227..F10-287.
+- **Gotcha del dump**: i `pg_dump` recenti scrivono `\restrict`/`\unrestrict`, che lo psql 16.4 dell'immagine non
+  conosce (`invalid command \restrict`): lo script li filtra con `sed`. `hiking_routes.name` è un JSON traducibile
+  (`{"it": "P69A - Partenza - Arrivo"}`), `hiking_routes.osmid` è vuoto (l'id OSM sta in
+  `osmfeatures_data.properties.osm_id`), `ascent`/`descent` dei tag OSM mancano in ~60% dei sentieri (restano `null`).
+  `issues_status` reali: `percorribile`, `percorribile parzialmente`, `non percorribile`, `sconosciuto`.
+- **Scrittura** (`Import\CaiOsm2caiExtractWriter`): DROP+CREATE+INSERT delle sole `snap_osm2cai_trails` /
+  `snap_osm2cai_trail_sections` in una transazione; intestazione dei CSV = `TRAIL_COLUMNS` / `TRAIL_SECTION_COLUMNS`
+  (se cambia `extract.sql`, cambiare anche le costanti, o il comando rifiuta il CSV). Cella vuota → `NULL`.
+- Geometria semplificata a 0.00002° (~1 pixel a zoom 16) e 6 decimali: 108 MB di GeoJSON invece di 200 MB.
+- **Territori (US-1061, 10.7)**: lo stesso `extract.sql` produce `regions`/`provinces`/`sectors`/`territory_km`/
+  `trail_territory` → `snap_osm2cai_*` omonime. Le intersezioni geometriche (km nel territorio, sentiero "presente" se
+  ≥ 50% della lunghezza dentro, regole di OSM2CAIReport) si calcolano **solo lì**: poligoni spezzati con `ST_Subdivide`
+  + indice GiST, ~1 min invece di decine. `regions` della fonte ha anche 11 regioni estere: il writer tiene solo quelle
+  abbinate all'enum da `Support\CaiOsm2caiRegionName` (nomi bilingui "Sardigna/Sardegna", "Trentino-Alto
+  Adige/Südtirol", "Valle d'Aosta / Vallée d'Aoste") e scarta in cascata province/settori/statistiche/legami; due regioni
+  sullo stesso enum → rollback. **Differenza voluta col report**: contano solo i sentieri estratti (non
+  `deleted_on_osm`, come l'elenco dell'app), OSM2CAIReport include anche i ~344 eliminati: i numeri per regione calano
+  dell'1–3% (Lombardia presenti 4.017 invece di 4.157). `trail_territory` usa le percentuali delle stesse intersezioni,
+  non le `percentage` precalcolate di `hiking_route_*` (così conteggi ed elenco coincidono); livello = id più profondo
+  valorizzato (regione / +provincia / +settore). `human_name` dei settori spesso vuoto → ripiego sul nome tecnico.
+- **Tabelle locali** (US-1052): `cai_trails` (modello `CaiTrail`, PK `id` = id osm2cai, `geometry` json GeoJSON, colonna
+  `practicability` ricavata all'import) e `cai_trail_section` (`cai_trail_id` FK in cascata, `section_code` **senza FK**:
+  i 22 codici osm2cai assenti da `cai_sections` restano nel legame). Relazioni `CaiSection::trails()` /
+  `CaiTrail::sections()` (belongsToMany: un sentiero condiviso appartiene a ogni sua Sezione). Enum `CaiTrailStatus`
+  (1–4, `getLabel()` "1 · Difficoltà"…, `color()`/`foreground()` di `SDA`) e `CaiTrailPracticability`
+  (`fromIssuesStatus()`: "percorribile parzialmente" → con difficoltà, vuoto/ignoto → sconosciuto; colori di `PER`).
+  `CaiTrailPolicy`: sola lettura, `view` = staff `CaiDirectoryView`, customer di una delle Sezioni, GR il cui prefisso
+  contiene una delle Sezioni.
+- **Import** (`Import\CaiTrailsImporter`, righe `snapshot_sentieri` / `snapshot_sentieri_sezioni` di `cai:import-datapack`):
+  query builder a blocchi da 500 in una transazione (~7 s per 26.000 sentieri), **mai** Eloquent riga per riga. La
+  geometria si scrive e si confronta come stringa della fonte: funziona perché la colonna è `json` (Postgres conserva il
+  testo), non `jsonb` — non cambiare il tipo senza rivedere l'idempotenza. Datapack senza `snap_osm2cai_*` → solo una
+  riga `snapshot_sentieri` con avviso, sentieri intatti.
+- **Territori locali** (US-1062): `cai_trail_regions` (`region_key` castato a `Region`) → `cai_trail_provinces` →
+  `cai_trail_sectors` (`geometry` json), FK in cascata; `cai_trail_territory_km` (chiave composta, `territory_type` =
+  `Enums\CaiTrailTerritoryType`, `territory_id` senza FK) e `cai_trail_territory` (`cai_trail_id` FK su `cai_trails`,
+  `CaiTrail::territories()`). Policy di sola lettura per i cinque modelli via `Policies\Concerns\AuthorizesTrailRegion`
+  (staff `CaiDirectoryView` o GR con `region` = `region_key`). Import `Import\CaiTrailTerritoriesImporter` (riga
+  `snapshot_territori_sentieri`), **dopo** `CaiTrailsImporter`: sostituisce in blocco le cinque tabelle solo se una riga
+  normalizzata cambia (confronto per contenuto, nessuna identità riga per riga), altrimenti non scrive (id dei legami
+  stabili). ~88.600 righe in ~3 s su Postgres. Una qualunque delle cinque `snap_*` assente → avviso, tabelle intatte.
+  Il writer della 10.6 scarta già i territori sconosciuti: all'importer arrivano come orfani solo stati fuori da 1–4 e
+  sentieri non importati. Helper di test `makeTrailTerritoriesDatapack($overrides)` (writer reale sui CSV fixture).
+- **Dati "Sentieri del GR"** (`Queries\CaiRegionalGroupTrails`, US-1063): `forRegion($region)` → `CaiRegionalGroupTrailsData`
+  (riepilogo, province con settori, Sezioni del GR), `trails($region, CaiRegionalGroupTrailFilters, $perPage, $page)` →
+  paginatore SQL di `CaiRegionalGroupTrailRow` (sentiero senza geometria + Sezioni + provincia/settore con la quota
+  maggiore). Km per stato in `Support\CaiTrailKmStats` (km + conteggi, `consolidatedShare()` null senza km). **L'id della
+  regione osm2cai NON è prevedibile** (Lombardia = 20 sul dev): sempre `CaiRegionalGroupTrails::regionId($region)`.
+  "Presente" = riga di livello regione (provincia/settore null) con `percentage >= 50`; i filtri provincia/settore usano
+  la stessa soglia sul loro livello. "Senza Sezione"/"condiviso" contano solo codici esistenti in `cai_sections`.
+  Settori ordinati per `full_code` ("LBG01"): `code` della fonte è solo il progressivo ("1", "6").
+  In `extract.sql` `percentage` (troncata a 2 decimali) e `present_routes` usano la STESSA espressione: con `round` e
+  `inside_m >= 0.5 * length_m` in virgola mobile l'elenco contava sentieri in più di `present_routes` (Lombardia 4.017
+  contro 4.016). Se si tocca una delle due, toccare anche l'altra.
+- **Mappa per settori del GR (US-1064)**: `x-cai.trail-sectors-map` (wrapper del design su `x-cai.map`: riquadro del modo,
+  "Vista regione", legende desktop/mobile) con `areas` = `CaiRegionalGroupTrails::sectorAreas($data)` (`Support\CaiMapArea`,
+  id `settore-{id}`, colore dalla quota consolidata, vuoti = `! hasTrails`; ~430 KB per gli 83 settori lombardi) e
+  `lines-url` = `route('cai-trail-regions.map-trails', ['caiTrailRegion' => $data->regionId])`. L'endpoint
+  (`CaiRegionalGroupTrailsMapController`, `CaiTrailRegionPolicy::view`) usa `CaiRegionalGroupTrails::inBounds()` sulle
+  colonne `min_lat…max_lng` di `cai_trails` (le valorizza `CaiTrailsImporter` con `Support\CaiGeoJsonBounds`: **dopo una
+  migrazione che tocca il riquadro serve un `cai:import-datapack`**, il dev locale le ha già) e semplifica le geometrie per
+  lo `zoom` chiesto (`Support\CaiGeoJsonSimplifier`, mezzo pixel: 400 linee lombarde 3,5 MB → 1,2 MB a zoom 11). Limite
+  `cai_directory.trails_map.limit` (600, i più lunghi): a zoom 11 nelle valli lombarde il riquadro allargato ne contiene
+  700–1.100, quindi il messaggio "Mostrati i 600 sentieri più lunghi" è uno stato normale, non un errore. Il riquadro del
+  settore emette `cai-map-area-listed` ("Elenco sentieri →"): la pagina (US-1065) lo ascolta per filtrare l'elenco.
+  Nessun gzip configurato in `docker/`: le risposte JSON viaggiano non compresse.
+- **Pagina "Sentieri del GR"** (`RegionalGroupTrails`, US-1065): elenco paginato in SQL (`CaiRegionalGroupTrails::trails()`,
+  25 righe, `?pagina=`), filtri/ricerca/ordinamento/provincia aperta in `#[Url]`; la tabella "Per Sezione" filtra in PHP
+  (stato locale). La mappa è il **widget `Filament\Widgets\RegionalGroupTrailsMap`** (componente Livewire figlio,
+  `$isDiscovered = false`, `$isLazy = false`): così i 300–600 KB di settori non tornano a ogni filtro (Livewire non
+  ridisegna i figli col padre). Pattern da riusare per le tappe SICAI (10.9). Memo per richiesta (`$this->trails`):
+  un'azione che lo calcola PRIMA di cambiare la pagina deve azzerarlo (vedi `goToPage()`).
+  `RegionalGroupSectionTrails` (`gr/sentieri/sezioni/{codice}`) estende `SectionTrails` (stessa vista, `backLink()`,
+  `section()` dal codice `#[Locked]`): 404 se la Sezione non esiste, 403 se fuori dal prefisso del GR.
+- **`CaiTrailPolicy::view` per il GR** ammette anche i sentieri **presenti** (≥ 50%) nella sua regione osm2cai, senza
+  Sezione o di Sezioni di altri GR: sono nell'elenco del GR e la scheda deve aprirsi.
+- **Riepilogo 10.7 (US-1067)** — **due totali, mai confonderli**: "Km nel territorio regionale" = km di
+  `cai_trail_territory_km` della regione (tutti gli stati, sentieri tagliati sul confine, compresi quelli senza
+  Sezione; è anche il badge "Sentieri" della Dashboard GR, `CaiRegionalGroupTrails::territoryKm()`, 0 e mai null se la
+  regione manca dal datapack) e "Km gestiti dalle Sezioni del GR" = lunghezza intera dei sentieri di almeno una Sezione
+  del prefisso, **deduplicati per `id`** (un condiviso una volta sola): può superare il primo (sentieri che escono dalla
+  regione). Solo la tabella "Per Sezione" conta un condiviso per ogni Sezione, e lo dice con la riga "Somma delle
+  Sezioni". **Sentieri presenti** = ≥ 50% della lunghezza nella regione (stessa soglia per provincia/settore): sono
+  l'elenco del GR, la mappa e l'accesso alla scheda. **Abbinamento regioni**: osm2cai ↔ `Region` per nome con
+  `Support\CaiOsm2caiRegionName` (nomi bilingui; estere scartate; due sullo stesso enum → rollback), salvato in
+  `cai_trail_regions.region_key`; l'id osm2cai non è stabile (vedi sopra). Checkpoint:
+  `tests/Feature/EndToEnd/Fase10SentieriGrEndToEndTest.php`, collaudo F10-288..F10-363.
+- **Blade**: in una vista con blocchi `@php … @endphp` NON usare la forma inline `@php($x = …)` — Blade non la chiude e
+  la vista dà "syntax error" (successo in `section-trails.blade.php`).
+- **Dato della fonte**: nel dump di settembre 2026 nessun sentiero è legato a codici `9218…` (SAT/Trentino): la SAT
+  risulta senza sentieri. Per verifiche "molti sentieri" usare p.es. Parma (9224001, 380) o Sulmona (9234004, 382).
+- **Pagina "Sentieri di Sezione"** (`SectionTrails`, US-1054, slug `sezione/sentieri` della vecchia pagina "in arrivo"):
+  filtri/ordinamento in `Support\CaiTrailFilters` (riusabili dal GR) con `Enums\CaiTrailSort` (`?ordina=`, numero in
+  ordine naturale, mancanti in fondo), `Enums\CaiTrailDifficulty` (`?difficolta=`, conta la prima sigla di `cai_scale`:
+  "EEA:PD" → EEA, "T/E" → T) e `CaiTrailPracticability::key()` (`?percorribilita=`); stati in `?stato[]=`. Nota
+  "Condiviso con …" con `Support\CaiSectionShortName` ("SEZ. PARMA" → "CAI Parma", "SEZ. S.A.T." → "SAT"). La mappa
+  riceve le sole linee filtrate (Parma: ~1 s a filtro sul dev locale). La riga seleziona la linea, "›" (e la card
+  mobile) apre la scheda con `trailUrl()` = `CaiTrailDetail` + `listQuery()` (filtri e ordinamento correnti).
+- **Scheda del sentiero** (`Filament\Pages\CaiTrailDetail`, US-1055, slug `sentieri/{trailId}`): stessa struttura di
+  `CaiHutDetail` (`canAccess()` per profilo + `CaiTrailPolicy::view` in `mount()`, 404 su id non numerico). Il link di
+  ritorno riporta le chiavi `SectionTrails::LIST_QUERY_KEYS` (`stato` è una LISTA: `listQueryFrom()` accetta stringhe e
+  array di stringhe); con `?da=gr` legge invece `RegionalGroupTrails::LIST_QUERY_KEYS` e torna a "Sentieri del GR", con
+  `?da=sezione-gr&codice=…` torna a `RegionalGroupSectionTrails` (10.7). Mappa: il tracciato come linea `selected`
+  senza popup (spessore/bordo della linea selezionata) + marker `start`/`end` (A/B, primo e ultimo punto della
+  geometria, `CaiTrailDetail::endpoints()`), `x-cai.map` con `fit-max-zoom` 15. Avviso di percorribilità e suoi colori
+  da `CaiTrailPracticability::alertTitle()`/`alertBorder()`.
+- **`Livewire::withQueryParams()` resta attivo per i `Livewire::test` successivi dello stesso test**: azzerarlo con
+  `withQueryParams([])` prima di un secondo componente senza parametri.
+- **Test Livewire dopo un `call()`**: `assertSeeTextInOrder` lavora sulla risposta JSON, dove "→" non si trova:
+  verificare l'ordine sullo `strip_tags($component->html())` (vedi `SectionTrailsTest`).
+
+## Tappe SICAI (`cai_sicai_stages`, Fase 10.9, US-1091)
+
+- **Fonte**: stesso dump osm2cai e stesso script dei sentieri. `extract.sql` → `sicai_stages.csv` (sentieri degli 18
+  itinerari "Sentiero Italia - … X00" via `hiking_route_itinerary`, 525 sul dump di settembre 2026, tutte già in `trails`)
+  → `snap_osm2cai_sicai_stages` (`trail_id`, `itinerary_name`, `letter`, `number`, `variant`, `code`, `sort_key`).
+- **Il codice della tappa NON è in `hiking_routes.name`** (lì c'è "SI - Partenza - Arrivo", 0 corrispondenze): sta nel tag
+  OSM `osmfeatures_data.properties.name` ("Sentiero Italia - Tappa D17S", 451) o, se manca, in `osm_tags.description`
+  (altre 42). Le 32 restanti sono i tratti "AVxx" dell'Alta Via dei Monti Liguri: lettera G dall'itinerario, codice =
+  `ref` ("AV16"), numero/variante null. Il tag `stage` non si usa (in un caso dice Q13 dove il nome dice Q12).
+- **Parsing in PHP** al momento della scrittura del datapack: `Support\CaiSicaiStageCode::parse($osmName, $osmDescription,
+  $itinerary, $ref)` (regex del PRD; `sortKey` "D018S", senza numero "G999 AV16", senza lettera "~999 …"). Ordinare per
+  `sort_key`, poi `cai_trail_id`. La lettera dal codice non sempre coincide con l'itinerario (Puglia R: 21 tappe contro 18
+  dell'itinerario R00, Basilicata T: 8 contro 11): il GR si sceglie per lettera della tappa, non per itinerario.
+- **Import** `Import\CaiSicaiStagesImporter` (riga `snapshot_tappe_sicai`), dopo sentieri e territori: crea/aggiorna/
+  elimina per `cai_trail_id`, FK in cascata su `cai_trails`; tappe di sentieri non importati → avviso; tabella assente →
+  avviso, tappe intatte. Modello `CaiSicaiStage` (`CaiTrail::sicaiStage()`), `CaiSicaiStagePolicy` di sola lettura
+  (staff e, per `view`, il GR la cui regione ha la lettera della tappa — US-1096).
+
+## Punti di appoggio SICAI (`cai_sicai_rest_points`, Fase 10.9, US-1092)
+
+- **Fonte**: API rifugi.cai.it, `GET /api/v1/sicaiRestPoints?page=N` (15 per pagina, `per_page` ignorato; ott. 2026: 307
+  punti, 21 pagine) + dettaglio `/sicaiRestPoints/{id}` (stessa forma dei rifugi: `geo` Point, lista `fields`).
+- **Download**: comando gemello `cai:fetch-sicai-rest-points [--datapack=] [--dry-run]` → `Import\CaiSicaiRestPointsFetcher`
+  → `snap_cai_sicai_rest_points` (`id`, `payload` grezzo). Logica comune a `CaiHutsFetcher` in `Import\CaiRifugiApiFetcher`
+  (astratta: `table()`/`listPath()`/`idKey()`/`label()`/`listQuery()`): stessa robustezza, tutto o niente. Comando separato
+  perché rifugi (~770) + punti (~330) superano le 1000 richieste della finestra del rate limit.
+- **`shelter_id` è l'`id` interno del rifugio nella fonte, NON `id_cai`** (`/shelters/163` → 404; il rifugio ha `id` 163,
+  `id_cai` 921600507). L'importer lo traduce con `json_extract(payload, '$.id')` di `snap_cai_huts` e lo tiene solo se il
+  rifugio è in `cai_huts` (FK `cai_hut_id_cai` → `cai_huts`, `nullOnDelete`); altrimenti `null` con avviso. 53/53 collegati.
+- **Il PRD dice che `stages` è sempre vuoto: falso**. 294/307 punti hanno in `fields.stages` (dal `data`, non dal `value`)
+  la lista dei codici, es. `["SI E03","SI E04"]`, `["SI C01","SI D30S","SI D38N"]`. Resta in `fields`; la vicinanza
+  geometrica di US-1093 è comunque la regola del committente.
+- Colonne di testo libero (`address`, `operator`, `website`, `email`, `phone`) sono `text`: un `website` reale è un link
+  "safelinks" di ~350 caratteri. `phone` = cellulare, altrimenti fisso. `fields` contiene anche dati del gestore (nome,
+  codice fiscale, PEC): non mostrarli nelle pagine.
+- **Import** `Import\CaiSicaiRestPointsImporter` (riga `snapshot_punti_appoggio_sicai`), subito dopo i rifugi, in una
+  transazione: crea/aggiorna/elimina, idempotente; senza tabella nessuna riga di risultato e punti intatti. Mapper
+  `CaiSicaiRestPointFieldMapper` (riusa gli helper pubblici di `CaiHutFieldMapper`). Modello `CaiSicaiRestPoint`
+  (`hut()`), `CaiSicaiRestPointPolicy` di sola lettura e solo staff: il GR non apre un punto da solo, lo vede dentro "Tappe SICAI"
+  e la scheda della tappa, già autorizzate per regione/lettera.
+
+## Punti di appoggio vicini alle tappe (`cai_sicai_stage_rest_point`, Fase 10.9, US-1093)
+
+- **Calcolo**, non import: `Import\CaiSicaiStageRestPointsCalculator` (riga `punti_appoggio_vicini_sicai`), ultimo passo di
+  `cai:import-datapack`, legge `cai_sicai_stages` + `cai_trails.geometry` + `cai_sicai_rest_points` dell'app (mai il
+  datapack) e diffa con la tabella: crea/aggiorna/elimina in transazione, secondo run 0 scritture. Gira anche se il
+  datapack non ha tappe o punti (ricalcola sui dati già importati). Dati reali: ~0,2 s, 464 legami, 291/525 tappe, 261/307 punti.
+- Geometria in `Support\CaiPolylineDistance::of($geojson, $lat, $lng)` (`LineString`/`MultiLineString`): `distanceM` con
+  proiezione equirettangolare centrata sul punto, `positionM` = metri dall'inizio del tracciato (parti del `MultiLineString`
+  nell'ordine della fonte). Prefiltro col riquadro `cai_trails.min_lat…max_lng` + 1,5 km. Soglia `MAX_DISTANCE_M = 1500`.
+- Relazioni: `CaiSicaiStage::restPoints()` (già ordinata per `position`, pivot `distance_m`/`position`) e
+  `CaiSicaiRestPoint::stages()`. Le FK sono in cascata: un punto o una tappa eliminati dall'import si portano via i legami
+  PRIMA del calcolo (il conteggio `deleted` del calcolo conta solo i punti che si sono allontanati).
+- Controllo incrociato con `fields.stages` (ott. 2026): 405/489 codici dichiarati dalla fonte cadono entro 1,5 km; gli altri
+  sono punti di fondovalle più lontani. 43 legami geometrici non sono dichiarati dalla fonte. La regola resta geometrica.
+
+## Tappe e punti di appoggio di un GR (`Queries\CaiRegionalGroupSicai`, Fase 10.9, US-1094)
+
+- `CaiRegionalGroupSicai::forRegion($region)` → `Support\CaiRegionalGroupSicaiData`; tappe per lettera da
+  `Region::sicaiLetters()` (L/N/C condivise: Toscana ed Emilia-Romagna, Umbria e Marche vedono le stesse tappe), ordine
+  `sort_key`. Le righe (`CaiRegionalGroupSicaiStageRow`) hanno il sentiero senza geometria: per la mappa caricarla a parte.
+- **Variante** = tappa con lo stesso `letter`+`number` di una precedente (non "ha un suffisso"): in Lombardia/Trentino i
+  tratti N/S (D10N/D10S) non hanno un codice "puro", la prima è la principale. Km/dislivelli del riepilogo solo sulle
+  principali; non percorribili/con difficoltà includono le varianti.
+- `ascent`/`descent` di osm2cai ci sono solo per 40 tappe su 525: mostrare il dislivello con `mainWithAscentCount`, mai
+  come se fosse completo.
+- Punti del GR = `region` della fonte (confronto `CaiOsm2caiRegionName::toRegion`, la fonte scrive "Friuli Venezia Giulia")
+  **oppure** vicini a una tappa del GR; gruppi per `type` della fonte (ordine del design, poi alfabetico, vuoto → "Altro").
+  Non si carica `fields` (dati personali del gestore).
+
+## Pagina "Tappe SICAI del GR" (`RegionalGroupSicaiStages`, US-1095)
+
+- Mappa nel widget figlio `RegionalGroupSicaiStagesMap` (come i sentieri del GR): tracciati da
+  `CaiRegionalGroupSicai::geometries($rows, 12)` (semplificati, Piemonte ~240 KB invece di ~940 KB), linee da
+  `CaiMapLine::forSicaiStage()`, punti da `CaiMapMarker::forSicaiRestPoint()` con `cluster` attivo: senza, a zoom regionale
+  i marker coprono tutto il tracciato.
+- `x-cai.map` accetta ora `dash` sulle linee (tratteggio SVG) e `icon` sui marker (path SVG al posto della lettera); entrambi
+  entrano nel payload solo se valorizzati, così le mappe precedenti non cambiano `wire:key`.
+- Aspetto dei tipi di punto (colore, icona, plurale, chiave URL): `Support\CaiSicaiRestPointType`, tipo = testo libero
+  della fonte ("Camping" → "Campeggio"). Link "Vedi su rifugi.cai.it": `CaiSicaiRestPoint::hutUrl()`.
+- Clic su una tappa → `CaiTrailDetail` con `?da=sicai` (`CaiTrailDetail::FROM_SICAI`).
+- Helper di test `grSicaiStage()` / `grSicaiRestPoint()` in `tests/Pest.php`.
+
+## Scheda della tappa (`CaiTrailDetail` con `sicaiStage`, US-1096)
+
+- Navigazione: `Support\CaiSicaiStageNavigation::for($stage)` sulle righe di
+  `CaiRegionalGroupSicai::stageRowsForLetters([$stage->letter])` (sempre la sola lettera della tappa, anche per le
+  condivise). Precedente/successiva sono solo tappe **principali**: una variante naviga come la sua principale.
+- Accesso in più nel `CaiTrailPolicy::view()` (e `CaiSicaiStagePolicy::view()`): GR la cui regione ha la lettera della
+  tappa. Il link "Tappe SICAI" compare solo con `?da=sicai` **e** utente GR (la pagina è riservata al GR); `?da=sicai`
+  resta nei link fra le tappe solo se la scheda è stata aperta così.
+- Nome della regione nei testi: quella del GR se ha la lettera, altrimenti `Region::forSicaiLetter()` unite con " e ".
+- Nei test HTTP della scheda il testo desktop e quello mobile (`ms-trail__mobile-inline`) sono entrambi nell'HTML:
+  toglierli prima di cercare frasi intere (vedi `sicaiSheetText()` in `CaiTrailDetailSicaiTest`).
+
+## Tappe SICAI del GR (10.9) — riepilogo per chi riprende il dominio
+
+- **Fonti**: tappe dal dump osm2cai (stesso script/estratto dei sentieri, `snap_osm2cai_sicai_stages`), punti di appoggio
+  dall'API rifugi.cai.it (`cai:fetch-sicai-rest-points`, `snap_cai_sicai_rest_points`); entrambi arrivano all'app SOLO via
+  datapack (`cai:import-datapack`), mai chiamate esterne durante le richieste web o il deploy.
+- **Codice della tappa**: `Support\CaiSicaiStageCode::parse()` (nome OSM → descrizione OSM → lettera dall'itinerario + `ref`).
+- **Lettere condivise**: `Region::sicaiLetters()` / `Region::forSicaiLetter()` — L Toscana+Emilia-Romagna, N Umbria+Marche,
+  C Trentino-Alto Adige; per decisione del committente entrambi i GR vedono TUTTE le tappe della lettera (niente geometria).
+- **Punti vicini**: entro 1,5 km (`CaiSicaiStageRestPointsCalculator::MAX_DISTANCE_M`) dal tracciato, in ordine di percorrenza.
+- **10.8 (Tappe SICAI di Sezione) non prevista**: solo 29/525 tappe hanno una Sezione in osm2cai; il badge della Sezione
+  resta "In attesa" (`x-cai.metric-badge` con `pending`), mai "Non disponibile" né 0.
+- Percorso end-to-end di collaudo: `tests/Feature/EndToEnd/Fase10TappeSicaiGrEndToEndTest.php` (manifest F10-364..F10-442).

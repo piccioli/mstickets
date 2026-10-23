@@ -6,6 +6,7 @@
 @use('App\Filament\Pages\RegionalGroupMembers')
 @use('App\Filament\Pages\RegionalGroupSicaiStages')
 @use('App\Filament\Pages\RegionalGroupTrails')
+@use('App\Support\Formatting\ItalianNumberFormatter')
 @php
     $region = $this->region();
     $data = $this->metrics();
@@ -109,16 +110,29 @@
                 :href="RegionalGroupMembers::getUrl()"
                 link-label="Soci"
             />
-            <x-cai.metric-badge label="Rifugi" :value="$data?->huts" :href="RegionalGroupHuts::getUrl()" link-label="Rifugi del GR" />
+            <x-cai.metric-badge
+                label="Rifugi"
+                :value="$data?->huts"
+                :note="($data?->hutsSectionsCount ?? 0) === 0 ? null : RegionalGroupDashboard::sumNote($data->hutsSectionsCount)"
+                :href="RegionalGroupHuts::getUrl()"
+                link-label="Rifugi del GR"
+            />
             <x-cai.metric-badge
                 label="Sentieri"
                 :value="$data?->trailsKm"
+                :note="$data?->trailsKm === null ? null : 'nel territorio regionale'"
                 unit="km"
                 :decimals="1"
                 :href="RegionalGroupTrails::getUrl()"
                 link-label="Sentieri del GR"
             />
-            <x-cai.metric-badge label="Tappe SICAI" :value="$data?->sicaiStages" :href="RegionalGroupSicaiStages::getUrl()" link-label="Tappe SICAI" />
+            <x-cai.metric-badge
+                label="Tappe SICAI"
+                :value="$data?->sicaiStages"
+                :note="($data?->sicaiStages ?? 0) === 0 ? null : ItalianNumberFormatter::decimal((float) $data->sicaiStagesKm, 1).' km'"
+                :href="RegionalGroupSicaiStages::getUrl()"
+                link-label="Tappe SICAI"
+            />
         </div>
     </div>
 </x-filament-panels::page>

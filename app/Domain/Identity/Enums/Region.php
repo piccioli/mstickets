@@ -52,4 +52,45 @@ enum Region: string
             self::Veneto => 'Veneto',
         };
     }
+
+    /**
+     * Lettere delle tappe del Sentiero Italia CAI della regione (US-1094). L, N e C sono condivise: per decisione del
+     * committente Toscana ed Emilia-Romagna vedono entrambe tutte le tappe L, Umbria e Marche tutte le N.
+     *
+     * @return list<string>
+     */
+    public function sicaiLetters(): array
+    {
+        return match ($this) {
+            self::FriuliVeneziaGiulia => ['A'],
+            self::Veneto => ['B'],
+            self::TrentinoAltoAdige => ['C'],
+            self::Lombardia => ['D'],
+            self::Piemonte => ['E'],
+            self::ValleDAosta => ['F'],
+            self::Liguria => ['G'],
+            self::Toscana, self::EmiliaRomagna => ['L'],
+            self::Umbria, self::Marche => ['N'],
+            self::Lazio => ['O'],
+            self::Abruzzo => ['P'],
+            self::Molise => ['Q'],
+            self::Puglia => ['R'],
+            self::Campania => ['S'],
+            self::Basilicata => ['T'],
+            self::Calabria => ['U'],
+            self::Sicilia => ['V'],
+            self::Sardegna => ['Z'],
+        };
+    }
+
+    /**
+     * Regioni che vedono le tappe SICAI della lettera (inverso di {@see sicaiLetters()}): due per le lettere condivise,
+     * nessuna per una lettera sconosciuta.
+     *
+     * @return list<self>
+     */
+    public static function forSicaiLetter(string $letter): array
+    {
+        return array_values(array_filter(self::cases(), fn (self $region): bool => in_array($letter, $region->sicaiLetters(), true)));
+    }
 }

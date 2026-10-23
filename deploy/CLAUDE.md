@@ -48,3 +48,11 @@ per la pipeline ETL che gira ad ogni deploy.
   (prova a secco: `bin/push-cai-datapack local /tmp/prova`).
 - UAT **non** esegue scraper né analisi dei documenti: importa solo ciò che il datapack contiene.
 - `cai-datapack/` non è mai tracciato da git (`git ls-files cai-datapack` deve restare vuoto).
+- **Rifugi (Fase 10.4)**: `cai:fetch-huts` (scarica da rifugi.cai.it in `snap_cai_huts`, **solo in locale**) →
+  `cai:import-datapack` in locale (verifica conteggi) → `bin/push-cai-datapack` → deploy UAT. Il deploy non chiama
+  **mai** l'API: importa solo `snap_cai_huts` già presente nel datapack.
+- **Sentieri osm2cai (Fase 10.6)**: `bin/update-osm2cai-datapack <dump.sql.gz>` (**solo in locale**, Docker + ~10 GB
+  liberi: carica il dump in un container PostGIS usa-e-getta, estrae con `database/osm2cai/extract.sql`, scrive
+  `snap_osm2cai_*` con `cai:import-osm2cai-extract`, rimuove il container) → `cai:import-datapack` in locale (verifica
+  conteggi) → `bin/push-cai-datapack` → deploy UAT. Il dump osm2cai contiene dati personali: non entra **mai** nel DB
+  dell'app, su UAT né in git; su UAT arriva solo il datapack (le geometrie semplificate pesano ~100 MB).

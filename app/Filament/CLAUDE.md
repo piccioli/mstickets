@@ -113,6 +113,8 @@ trasversali di test Filament (`fillForm()` rotto, notifiche Postgres `text ->> u
   (10.2) lo riusa così com'è, passando i propri numeri; `result: true` solo per un conto economico.
   Senza `href` il badge è una card statica (`<div>`, modificatore `--static`, niente link né hover; senza dati
   mostra "Non disponibile · Esercizio {year}" se riceve `year`): così lo usa la pagina del consolidato GR (10.3).
+  Prop `pending` (10.9): un dato senza sorgente prevista mostra "In attesa" invece di "Non disponibile" (stesse classi
+  `--unavailable` + `--pending`, quindi i conteggi `--unavailable` nei test lo includono): badge Tappe SICAI di Sezione.
   **Gotcha Blade**: una direttiva attaccata a una parola (`disponibile@if (...)`) NON viene compilata (Blade la
   scambia per un'email) mentre il suo `@endif` sì → "syntax error, unexpected token else". Usare un'espressione
   `{{ ... ? ... : ... }}` o uno spazio; dopo `}}` (`{{ $x }}@if`) invece funziona.
@@ -126,7 +128,8 @@ trasversali di test Filament (`fillForm()` rotto, notifiche Postgres `text ->> u
   `gr/{soci,rifugi,sentieri,tappe-sicai}` (`RegionalGroup{Members,Huts,Trails,SicaiStages}`; `gr/bilancio` =
   `RegionalGroupFinancialStatements` è diventata la pagina reale del consolidato in US-1023, con l'esercizio in
   `#[Url(as: 'esercizio')]`). Un nuovo tipo cliente = una nuova base che implementa solo `allowedCustomerType()`. Quando una feature della Fase 10 porta il contenuto reale, sostituire la sottoclasse
-  con una pagina vera mantenendo nome di classe e slug (i badge e i test di link puntano a quelli).
+  con una pagina vera mantenendo nome di classe e slug (i badge e i test di link puntano a quelli). Una sottoclasse
+  può cambiare il testo con `message()` (es. `SectionSicaiStages`: "In attesa dei dati…").
   `discoverPages()` ignora le classi astratte, quindi una base astratta in `app/Filament/Pages` è sicura.
 - **Dashboard V2 Sezione** (US-1004, `SectionDashboard`, slug `sezione/dashboard`): intestazione propria nella
   vista (`getHeading()` restituisce `''`, così l'header standard di Filament non viene reso; `$title` resta

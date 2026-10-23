@@ -151,6 +151,84 @@
   --ms-shadow-hover-brand-lift: 0 6px 18px rgba(23, 161, 128, 0.12);
   --ms-shadow-modal: 0 20px 60px rgba(0, 0, 0, 0.25);
 
+  /* ---- Mappa CAI (x-cai.map, Fase 10.4) ---- */
+  --ms-map-surface: #e3e8ed;
+  --ms-map-marker-border: #ffffff;
+  --ms-map-marker-text: #ffffff;
+  --ms-shadow-map-marker: 0 1px 4px rgba(0, 0, 0, 0.4);
+  --ms-shadow-map-marker-active: 0 2px 6px rgba(0, 0, 0, 0.4);
+  --ms-shadow-map-popup: 0 8px 24px rgba(20, 30, 40, 0.25);
+  --ms-shadow-map-control: 0 1px 4px rgba(0, 0, 0, 0.2);
+  --ms-map-legend-surface: rgba(255, 255, 255, 0.95);
+  --ms-map-cluster-bg: #0f7d63;
+  --ms-map-cluster-border: rgba(255, 255, 255, 0.9);
+  --ms-shadow-map-cluster: 0 0 0 4px rgba(23, 161, 128, 0.28), 0 2px 6px rgba(0, 0, 0, 0.3);
+  --ms-map-line-casing: #ffffff;
+
+  /* ---- Sentieri osm2cai (Fase 10.6) ---- */
+  --ms-trail-sign-red: #d22630;
+  --ms-trail-sign-border: #e1e4e8;
+  --ms-trail-sign-text: #1f2633;
+  --ms-trail-row-selected-bg: #e6f5f0;
+  --ms-trail-row-hover-bg: #f3faf8;
+  --ms-trail-shared-text: #2f5f93;
+  --ms-trail-bar-track: #eef1f4;
+  --ms-trail-shared-bg: #e5eef8;
+
+  /* ---- Sentieri del GR, mappa per settori (Fase 10.7) ---- */
+  --ms-map-area-label: #1f2633;
+  --ms-map-area-label-halo: #ffffff;
+  --ms-map-overlay-surface: rgba(255, 255, 255, 0.96);
+  --ms-shadow-map-overlay: 0 1px 4px rgba(0, 0, 0, 0.15);
+  --ms-map-empty-bg: #fbe7e5;
+  --ms-map-empty-text: #b42318;
+
+  /* ---- Sentieri del GR, pagina (Fase 10.7) ---- */
+  --ms-gr-trails-empty-row-bg: #fdf3f2;
+  --ms-gr-trails-zero: #b4bbc6;
+  --ms-gr-trails-bracket: #1f2633;
+  --ms-neutral-pill-bg: #eef0f3;
+  --ms-neutral-pill-text: #5b6475;
+
+  /* ---- Tappe SICAI del GR (Fase 10.9) ---- */
+  --ms-sicai-line: #17a180;
+  --ms-sicai-line-alternate: #0b5c49;
+  --ms-sicai-line-difficulty: #e0a526;
+  --ms-sicai-line-not-practicable: #d64545;
+  --ms-sicai-danger-bg: #fdf3f2;
+  --ms-sicai-danger-border: #f3c9c4;
+  --ms-sicai-danger-chip-border: #f0b8b1;
+  --ms-sicai-warning-bg: #fdf8ee;
+  --ms-sicai-warning-border: #f0dcb4;
+  --ms-sicai-warning-chip-border: #ecd3a3;
+
+  /* ---- Elenco rifugi (Fase 10.4) ---- */
+  --ms-chip-active-bg: #e3f4ee;
+  --ms-row-highlight-bg: #eef8f5;
+  --ms-photo-placeholder-bg: #eef1f4;
+  --ms-photo-placeholder-icon: #b4bbc6;
+
+  /* ---- Rifugi del GR (Fase 10.5) ---- */
+  --ms-group-header-bg: #eef1f4;
+  --ms-group-header-border: #e3e7ec;
+  --ms-shadow-card-hover: 0 4px 14px rgba(20, 30, 40, 0.08);
+  --ms-shadow-map-legend-cluster: 0 0 0 2px rgba(23, 161, 128, 0.3);
+  --ms-shadow-switch-knob: 0 1px 2px rgba(0, 0, 0, 0.25);
+
+  /* ---- Scheda rifugio (Fase 10.4) ---- */
+  --ms-hero-surface: #e3e8ed;
+  --ms-hero-overlay: linear-gradient(180deg, rgba(18, 26, 36, 0) 30%, rgba(18, 26, 36, 0.8) 100%);
+  --ms-hero-text-soft: rgba(255, 255, 255, 0.88);
+  --ms-value-missing: #9aa1ad;
+  --ms-flag-unknown-icon: #c8cdd4;
+  --ms-management-surface: #e6eaee;
+  --ms-contract-expired-bg: #fbe7e5;
+  --ms-contract-expired-border: #f3c4bf;
+  --ms-contract-expired-text: #b42318;
+  --ms-contract-expiring-bg: #fdf1dc;
+  --ms-contract-expiring-border: #f3d9a6;
+  --ms-contract-expiring-text: #8a5600;
+
   /* ---- Motion ---- */
   --ms-dur-fast: 150ms;
   --ms-ease-standard: ease;

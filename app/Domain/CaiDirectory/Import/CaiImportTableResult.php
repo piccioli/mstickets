@@ -26,5 +26,6 @@ final readonly class CaiImportTableResult
         public array $warnings = [],
         public int $bytes = 0,
         public ?string $error = null,
+        public int $deleted = 0,
     ) {}
 }

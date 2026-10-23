@@ -9,7 +9,8 @@ use App\Domain\CaiDirectory\Queries\CaiSectionDashboardMetrics;
 /**
  * Metriche della Dashboard V2 di una Sezione o Sottosezione (Fase 10.1), calcolate da
  * {@see CaiSectionDashboardMetrics}. Ogni dato mancante è `null`, mai 0: la vista lo mostra come "Non disponibile".
- * `huts`, `trailsKm` e `sicaiStages` restano `null` finché non esiste una sorgente dati (feature 10.4/10.6/10.8).
+ * `huts` e `trailsKm` sono sempre valorizzati per una Sezione (anche 0, dato noto) e `null` per una Sottosezione
+ * (10.4/10.6); `sicaiStages` resta `null`: la 10.8 non si fa, la vista mostra "In attesa".
  * `thirdSectorRegistered` è `null` solo per una Sottosezione (nessun dato RUNTS proprio): la pillola non compare.
  */
 final readonly class CaiSectionDashboardData

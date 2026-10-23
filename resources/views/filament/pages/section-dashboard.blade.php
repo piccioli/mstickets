@@ -73,7 +73,7 @@
                 :href="SectionTrails::getUrl()"
                 link-label="Sentieri di Sezione"
             />
-            <x-cai.metric-badge label="Tappe SICAI" :value="$data?->sicaiStages" :href="SectionSicaiStages::getUrl()" link-label="Tappe SICAI" />
+            <x-cai.metric-badge label="Tappe SICAI" :value="$data?->sicaiStages" :href="SectionSicaiStages::getUrl()" link-label="Tappe SICAI" pending />
         </div>
     </div>
 </x-filament-panels::page>
