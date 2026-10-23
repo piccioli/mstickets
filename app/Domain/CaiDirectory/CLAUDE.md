@@ -637,7 +637,7 @@ Operativo (ordine dei comandi e vincolo di spazio remoto): `deploy/CLAUDE.md` §
 - **Import** `Import\CaiSicaiStagesImporter` (riga `snapshot_tappe_sicai`), dopo sentieri e territori: crea/aggiorna/
   elimina per `cai_trail_id`, FK in cascata su `cai_trails`; tappe di sentieri non importati → avviso; tabella assente →
   avviso, tappe intatte. Modello `CaiSicaiStage` (`CaiTrail::sicaiStage()`), `CaiSicaiStagePolicy` di sola lettura
-  (per ora solo staff: il GR per lettera arriva con US-1094/1096).
+  (staff e, per `view`, il GR la cui regione ha la lettera della tappa — US-1096).
 
 ## Punti di appoggio SICAI (`cai_sicai_rest_points`, Fase 10.9, US-1092)
 
@@ -659,7 +659,8 @@ Operativo (ordine dei comandi e vincolo di spazio remoto): `deploy/CLAUDE.md` §
 - **Import** `Import\CaiSicaiRestPointsImporter` (riga `snapshot_punti_appoggio_sicai`), subito dopo i rifugi, in una
   transazione: crea/aggiorna/elimina, idempotente; senza tabella nessuna riga di risultato e punti intatti. Mapper
   `CaiSicaiRestPointFieldMapper` (riusa gli helper pubblici di `CaiHutFieldMapper`). Modello `CaiSicaiRestPoint`
-  (`hut()`), `CaiSicaiRestPointPolicy` di sola lettura (solo staff, il GR con US-1094/1095).
+  (`hut()`), `CaiSicaiRestPointPolicy` di sola lettura e solo staff: il GR non apre un punto da solo, lo vede dentro "Tappe SICAI"
+  e la scheda della tappa, già autorizzate per regione/lettera.
 
 ## Punti di appoggio vicini alle tappe (`cai_sicai_stage_rest_point`, Fase 10.9, US-1093)
 
@@ -714,3 +715,16 @@ Operativo (ordine dei comandi e vincolo di spazio remoto): `deploy/CLAUDE.md` §
 - Nome della regione nei testi: quella del GR se ha la lettera, altrimenti `Region::forSicaiLetter()` unite con " e ".
 - Nei test HTTP della scheda il testo desktop e quello mobile (`ms-trail__mobile-inline`) sono entrambi nell'HTML:
   toglierli prima di cercare frasi intere (vedi `sicaiSheetText()` in `CaiTrailDetailSicaiTest`).
+
+## Tappe SICAI del GR (10.9) — riepilogo per chi riprende il dominio
+
+- **Fonti**: tappe dal dump osm2cai (stesso script/estratto dei sentieri, `snap_osm2cai_sicai_stages`), punti di appoggio
+  dall'API rifugi.cai.it (`cai:fetch-sicai-rest-points`, `snap_cai_sicai_rest_points`); entrambi arrivano all'app SOLO via
+  datapack (`cai:import-datapack`), mai chiamate esterne durante le richieste web o il deploy.
+- **Codice della tappa**: `Support\CaiSicaiStageCode::parse()` (nome OSM → descrizione OSM → lettera dall'itinerario + `ref`).
+- **Lettere condivise**: `Region::sicaiLetters()` / `Region::forSicaiLetter()` — L Toscana+Emilia-Romagna, N Umbria+Marche,
+  C Trentino-Alto Adige; per decisione del committente entrambi i GR vedono TUTTE le tappe della lettera (niente geometria).
+- **Punti vicini**: entro 1,5 km (`CaiSicaiStageRestPointsCalculator::MAX_DISTANCE_M`) dal tracciato, in ordine di percorrenza.
+- **10.8 (Tappe SICAI di Sezione) non prevista**: solo 29/525 tappe hanno una Sezione in osm2cai; il badge della Sezione
+  resta "In attesa" (`x-cai.metric-badge` con `pending`), mai "Non disponibile" né 0.
+- Percorso end-to-end di collaudo: `tests/Feature/EndToEnd/Fase10TappeSicaiGrEndToEndTest.php` (manifest F10-364..F10-442).
