@@ -46,6 +46,32 @@ final class CaiSectionFinancialYearQuery
     }
 
     /**
+     * I file di bilancio dell'anno di un insieme di Sezioni, in UNA query: stessa definizione di
+     * `has_income_statement_file`/`has_balance_sheet_file` (anno, tipo/titolo di {@see CaiDocument::scopeIncomeStatement()}
+     * o {@see CaiDocument::scopeBalanceSheet()}, collegamento diretto o via iscrizione RUNTS). Ogni riga espone
+     * `owner_section_code`; ordine: prima i documenti RUNTS, poi per id.
+     *
+     * @param  list<string>  $sectionCodes
+     * @return Builder<CaiDocument>
+     */
+    public static function financialDocumentsOf(array $sectionCodes, int $year): Builder
+    {
+        return CaiDocument::query()
+            ->select('cai_documents.*')
+            ->selectRaw('COALESCE(cai_documents.cai_section_id, (SELECT r.cai_section_id FROM cai_runts_registrations r WHERE r.id_runts = cai_documents.cai_runts_registration_id)) as owner_section_code')
+            ->forYear($year)
+            ->where(fn (Builder $q) => $q->incomeStatement()->orWhere(fn (Builder $q) => $q->balanceSheet()))
+            ->where(function (Builder $q) use ($sectionCodes): void {
+                $q->whereIn('cai_documents.cai_section_id', $sectionCodes)
+                    ->orWhereIn('cai_documents.cai_runts_registration_id', function (QueryBuilder $sub) use ($sectionCodes): void {
+                        $sub->select('id_runts')->from('cai_runts_registrations')->whereIn('cai_section_id', $sectionCodes);
+                    });
+            })
+            ->orderByRaw('CASE WHEN cai_documents.cai_runts_registration_id IS NULL THEN 1 ELSE 0 END')
+            ->orderBy('cai_documents.id');
+    }
+
+    /**
      * @param  Builder<CaiSection>  $query
      * @return Builder<CaiSection>
      */

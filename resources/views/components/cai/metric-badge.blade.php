@@ -1,15 +1,17 @@
 {{-- Badge metrica della Dashboard V2 della Sezione (Fase 10.1, US-1002), riusabile dalla Dashboard GR (10.2).
-     Tutta la card è un link. Un valore `null` si mostra sempre come "—" + "Non disponibile", mai come 0.
+     Tutta la card è un link; con `href` null (pagina del bilancio consolidato GR, 10.3) è una card statica senza link
+     né hover. Un valore `null` si mostra sempre come "—" + "Non disponibile", mai come 0.
      Varianti:
      - `semplice`: `label`, `value` (int|float|null), `unit` facoltativa, `decimals`, `note` facoltativa sotto il
        numero (es. "Somma di 42 Sezioni", mai mostrata se il valore manca);
      - `bilancio`: `title`, `mainLabel`, `mainValue`, `year`, `secondary` (1 o 2 voci `['label' => ..., 'value' => ...]`)
        e `result` (true solo per il conto economico: segno, pill Avanzo/Disavanzo, rosso se negativo); `yearNote`
-       facoltativa accodata a "Esercizio {year}" con " · " (solo se l'esercizio è mostrato).
+       facoltativa accodata a "Esercizio {year}" con " · " (solo se l'esercizio è mostrato). Senza dati ma con `year`
+       la card mostra "Non disponibile · Esercizio {year}".
      Importi in euro, formattati da ItalianNumberFormatter; stili in resources/css/filament/admin/metric-badge.css. --}}
 @props([
     'variant' => 'semplice',
-    'href',
+    'href' => null,
     'label' => null,
     'value' => null,
     'unit' => null,
@@ -31,12 +33,14 @@
         ? $mainValue !== null || collect($secondary)->contains(fn (array $item): bool => $item['value'] !== null)
         : $value !== null;
     $isNegative = $isBalance && $result && $mainValue !== null && round((float) $mainValue) < 0;
+    $tag = $href === null ? 'div' : 'a';
 @endphp
-<a
-    href="{{ $href }}"
+<{{ $tag }}
+    @if ($href !== null) href="{{ $href }}" @endif
     {{ $attributes->class([
         'ms-metric-badge',
         'ms-metric-badge--balance' => $isBalance,
+        'ms-metric-badge--static' => $href === null,
         'ms-metric-badge--unavailable' => ! $hasData,
     ]) }}
 >
@@ -56,7 +60,7 @@
             </span>
         @else
             <span class="ms-metric-badge__main-value ms-metric-badge__dash">—</span>
-            <span class="ms-metric-badge__missing">Non disponibile</span>
+            <span class="ms-metric-badge__missing">{{ ! $hasData && $year !== null ? 'Non disponibile · Esercizio '.$year : 'Non disponibile' }}</span>
         @endif
         @if ($hasData && $year !== null)
             <span class="ms-metric-badge__year">Esercizio {{ $year }}@if ($yearNote !== null) · {{ $yearNote }}@endif</span>
@@ -95,8 +99,10 @@
             <span class="ms-metric-badge__missing">Non disponibile</span>
         @endif
     @endif
-    <span class="ms-metric-badge__link">
-        {{ $linkLabel }}
-        <span class="ms-metric-badge__arrow" aria-hidden="true">→</span>
-    </span>
-</a>
+    @if ($href !== null)
+        <span class="ms-metric-badge__link">
+            {{ $linkLabel }}
+            <span class="ms-metric-badge__arrow" aria-hidden="true">→</span>
+        </span>
+    @endif
+</{{ $tag }}>

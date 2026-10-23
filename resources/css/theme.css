@@ -64,6 +64,14 @@
   --ms-deficit-text: #b83c2a;
   --ms-deficit-border: #f4d3cd;
 
+  /* ---- Bilancio consolidato GR (Fase 10.3): valori da verificare, "Solo PDF", riga Totale ---- */
+  --ms-review-bg: #fbf3e8;
+  --ms-review-text: #9a5f1c;
+  --ms-review-border: #f0dcc0;
+  --ms-review-icon: #c77e2a;
+  --ms-review-bar: #e2b47a;
+  --ms-total-border: #e3efe9;
+
   /* ---- Badge di stato (ticket/progetto) — vedi docs/design-system.md per il gap sugli stati non coperti ---- */
   --ms-status-nuovo-bg: #bfd9f7;
   --ms-status-nuovo-border: #8fbcee;

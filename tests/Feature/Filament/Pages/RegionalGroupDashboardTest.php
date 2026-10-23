@@ -142,6 +142,31 @@ test('the badges link to their detail pages', function (): void {
     }
 });
 
+test('the consolidated badges open the consolidated page on the year of their card', function (): void {
+    caiSection(['codice_cai' => '9226001', 'region' => 'TOSCANA']);
+    caiSection(['codice_cai' => '9226002', 'region' => 'TOSCANA']);
+    CaiFinancialStatement::create(['cai_section_id' => '9226001', 'year' => 2025,
+        'total_revenues' => 100000, 'total_expenses' => 90000, 'net_result' => 10000]);
+    CaiFinancialStatement::create(['cai_section_id' => '9226002', 'year' => 2024,
+        'net_equity' => 50000, 'total_assets' => 120000]);
+
+    $this->actingAs(regionalGroupDashboardCustomer());
+
+    $html = Livewire::test(RegionalGroupDashboard::class)
+        ->assertSeeTextInOrder(['Conto economico consolidato Sezioni', 'Esercizio 2025',
+            'Stato patrimoniale consolidato Sezioni', 'Esercizio 2024'])
+        ->html();
+
+    $plainUrl = RegionalGroupFinancialStatements::getUrl();
+
+    expect(RegionalGroupDashboard::financialStatementsUrl(2025))->toBe($plainUrl.'?esercizio=2025')
+        ->and(RegionalGroupDashboard::financialStatementsUrl())->toBe($plainUrl)
+        ->and(substr_count($html, 'href="'.$plainUrl.'?esercizio=2025"'))->toBe(1)
+        ->and(substr_count($html, 'href="'.$plainUrl.'?esercizio=2024"'))->toBe(1)
+        // I due badge del bilancio proprio del GR: stessa pagina, senza esercizio.
+        ->and(substr_count($html, 'href="'.$plainUrl.'"'))->toBe(2);
+});
+
 test('the sum note handles the singular', function (): void {
     expect(RegionalGroupDashboard::sumNote(1))->toBe('Somma di 1 Sezione')
         ->and(RegionalGroupDashboard::sumNote(1, 27))->toBe('Somma di 1 Sezione su 27')

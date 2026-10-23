@@ -111,12 +111,21 @@ trasversali di test Filament (`fillForm()` rotto, notifiche Postgres `text ->> u
   Test di rendering di un componente: `test()->blade('<x-...>', [...])->assertSee(...)`.
   `x-cai.metric-badge` non conosce la Sezione (riceve solo valori già calcolati e un `href`): la Dashboard GR
   (10.2) lo riusa così com'è, passando i propri numeri; `result: true` solo per un conto economico.
+  Senza `href` il badge è una card statica (`<div>`, modificatore `--static`, niente link né hover; senza dati
+  mostra "Non disponibile · Esercizio {year}" se riceve `year`): così lo usa la pagina del consolidato GR (10.3).
+  **Gotcha Blade**: una direttiva attaccata a una parola (`disponibile@if (...)`) NON viene compilata (Blade la
+  scambia per un'email) mentre il suo `@endif` sì → "syntax error, unexpected token else". Usare un'espressione
+  `{{ ... ? ... : ... }}` o uno spazio; dopo `}}` (`{{ $x }}@if`) invece funziona.
+  **Gotcha Blade 2**: in una vista che contiene anche un blocco `@php ... @endphp`, un `@php($x = ...)` inline
+  viene inghiottito dal blocco successivo → "syntax error, unexpected token class". Nella stessa vista usare SOLO
+  la forma a blocco `@php ... @endphp`.
 - **Pagine "in arrivo" delle Dashboard V2 cliente** (US-1003, US-1013): base astratta `CustomerComingSoonPage`
   (vista `coming-soon`, fuori navigazione, gate customer + `customer_type === static::allowedCustomerType()`),
   due basi astratte per famiglia — `SectionComingSoonPage` (Sezione) e `RegionalGroupComingSoonPage` (GR) — e
   sottoclassi di sole `$title`/`$slug`: `sezione/{soci,bilancio,rifugi,sentieri,tappe-sicai}` e
-  `gr/{soci,bilancio,rifugi,sentieri,tappe-sicai}` (`RegionalGroup{Members,FinancialStatements,Huts,Trails,
-  SicaiStages}`). Un nuovo tipo cliente = una nuova base che implementa solo `allowedCustomerType()`. Quando una feature della Fase 10 porta il contenuto reale, sostituire la sottoclasse
+  `gr/{soci,rifugi,sentieri,tappe-sicai}` (`RegionalGroup{Members,Huts,Trails,SicaiStages}`; `gr/bilancio` =
+  `RegionalGroupFinancialStatements` è diventata la pagina reale del consolidato in US-1023, con l'esercizio in
+  `#[Url(as: 'esercizio')]`). Un nuovo tipo cliente = una nuova base che implementa solo `allowedCustomerType()`. Quando una feature della Fase 10 porta il contenuto reale, sostituire la sottoclasse
   con una pagina vera mantenendo nome di classe e slug (i badge e i test di link puntano a quelli).
   `discoverPages()` ignora le classi astratte, quindi una base astratta in `app/Filament/Pages` è sicura.
 - **Dashboard V2 Sezione** (US-1004, `SectionDashboard`, slug `sezione/dashboard`): intestazione propria nella
