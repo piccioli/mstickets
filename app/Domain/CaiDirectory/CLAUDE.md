@@ -700,5 +700,17 @@ Operativo (ordine dei comandi e vincolo di spazio remoto): `deploy/CLAUDE.md` §
   entrano nel payload solo se valorizzati, così le mappe precedenti non cambiano `wire:key`.
 - Aspetto dei tipi di punto (colore, icona, plurale, chiave URL): `Support\CaiSicaiRestPointType`, tipo = testo libero
   della fonte ("Camping" → "Campeggio"). Link "Vedi su rifugi.cai.it": `CaiSicaiRestPoint::hutUrl()`.
-- Clic su una tappa → `CaiTrailDetail` con `?da=sicai` (`CaiTrailDetail::FROM_SICAI`); il ritorno è di US-1096.
+- Clic su una tappa → `CaiTrailDetail` con `?da=sicai` (`CaiTrailDetail::FROM_SICAI`).
 - Helper di test `grSicaiStage()` / `grSicaiRestPoint()` in `tests/Pest.php`.
+
+## Scheda della tappa (`CaiTrailDetail` con `sicaiStage`, US-1096)
+
+- Navigazione: `Support\CaiSicaiStageNavigation::for($stage)` sulle righe di
+  `CaiRegionalGroupSicai::stageRowsForLetters([$stage->letter])` (sempre la sola lettera della tappa, anche per le
+  condivise). Precedente/successiva sono solo tappe **principali**: una variante naviga come la sua principale.
+- Accesso in più nel `CaiTrailPolicy::view()` (e `CaiSicaiStagePolicy::view()`): GR la cui regione ha la lettera della
+  tappa. Il link "Tappe SICAI" compare solo con `?da=sicai` **e** utente GR (la pagina è riservata al GR); `?da=sicai`
+  resta nei link fra le tappe solo se la scheda è stata aperta così.
+- Nome della regione nei testi: quella del GR se ha la lettera, altrimenti `Region::forSicaiLetter()` unite con " e ".
+- Nei test HTTP della scheda il testo desktop e quello mobile (`ms-trail__mobile-inline`) sono entrambi nell'HTML:
+  toglierli prima di cercare frasi intere (vedi `sicaiSheetText()` in `CaiTrailDetailSicaiTest`).

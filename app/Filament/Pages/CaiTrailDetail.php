@@ -5,12 +5,19 @@ declare(strict_types=1);
 namespace App\Filament\Pages;
 
 use App\Domain\CaiDirectory\Models\CaiSection;
+use App\Domain\CaiDirectory\Models\CaiSicaiRestPoint;
+use App\Domain\CaiDirectory\Models\CaiSicaiStage;
 use App\Domain\CaiDirectory\Models\CaiTrail;
 use App\Domain\CaiDirectory\Policies\CaiTrailPolicy;
+use App\Domain\CaiDirectory\Queries\CaiRegionalGroupSicai;
 use App\Domain\CaiDirectory\Support\CaiMapLine;
 use App\Domain\CaiDirectory\Support\CaiMapMarker;
+use App\Domain\CaiDirectory\Support\CaiRegionalGroupSicaiStageRow;
+use App\Domain\CaiDirectory\Support\CaiSicaiRestPointType;
+use App\Domain\CaiDirectory\Support\CaiSicaiStageNavigation;
 use App\Domain\Identity\Enums\CustomerType;
 use App\Domain\Identity\Enums\Permission;
+use App\Domain\Identity\Enums\Region;
 use App\Domain\Identity\Enums\UserRole;
 use App\Domain\Identity\Models\User;
 use App\Filament\Resources\CaiSections\CaiSectionResource;
@@ -32,6 +39,11 @@ use Livewire\Attributes\Url;
  * Sezioni, GR per prefisso, staff): un id manipolato nell'URL dà 403. Fuori dalla navigazione: si apre dall'elenco;
  * `?da=gr` ("Sentieri del GR", 10.7) e `?da=sezione-gr&codice=…` (Sezione vista dal GR, {@see RegionalGroupSectionTrails})
  * cambiano il link di ritorno, che riporta i parametri dell'elenco (filtri, ricerca, ordinamento, pagina).
+ *
+ * Se il sentiero è una tappa del Sentiero Italia CAI (US-1096, design `tappe-sicai-del-gr.dc.html` §"Scheda della
+ * tappa") la scheda aggiunge il codice della tappa in testata, la navigazione fra le tappe della stessa lettera
+ * ({@see CaiSicaiStageNavigation}) e i punti di appoggio entro 1,5 km in ordine di percorrenza; `?da=sicai` riporta a
+ * "Tappe SICAI" del GR e resta nei link fra le tappe.
  */
 class CaiTrailDetail extends Page
 {
@@ -66,7 +78,15 @@ class CaiTrailDetail extends Page
 
     public CaiTrail $trail;
 
-    /** Pagina di provenienza: {@see FROM_GROUP}, {@see FROM_GROUP_SECTION}. */
+    /** Distanza sotto cui un punto di appoggio è "sul tracciato" (design). */
+    private const SICAI_ON_TRACK_METERS = 200;
+
+    /** Navigazione della tappa SICAI, calcolata una volta per richiesta ({@see sicaiNavigation()}). */
+    private ?CaiSicaiStageNavigation $sicaiNavigation = null;
+
+    private bool $sicaiNavigationLoaded = false;
+
+    /** Pagina di provenienza: {@see FROM_GROUP}, {@see FROM_GROUP_SECTION}, {@see FROM_SICAI}. */
     #[Url(as: 'da')]
     public ?string $from = null;
 
@@ -107,7 +127,7 @@ class CaiTrailDetail extends Page
     {
         abort_unless(ctype_digit($trailId) && strlen($trailId) <= 18, 404);
 
-        $trail = CaiTrail::query()->with('sections:codice_cai,name')->findOrFail((int) $trailId);
+        $trail = CaiTrail::query()->with(['sections:codice_cai,name', 'sicaiStage'])->findOrFail((int) $trailId);
 
         abort_unless(Auth::user()?->can('view', $trail) === true, 403);
 
@@ -149,7 +169,151 @@ class CaiTrailDetail extends Page
 
     public function getTitle(): string
     {
-        return filled($this->trail->name) ? (string) $this->trail->name : 'Sentiero '.$this->number();
+        return filled($this->trail->name) ? (string) $this->trail->name : $this->currentCrumb();
+    }
+
+    /** Ultima voce del percorso: "Tappa E05" per una tappa SICAI, altrimenti "Sentiero 151C". */
+    public function currentCrumb(): string
+    {
+        $stage = $this->sicaiStage();
+
+        return $stage === null ? 'Sentiero '.$this->number() : 'Tappa '.$stage->code;
+    }
+
+    /** La tappa SICAI che il sentiero rappresenta, `null` per un sentiero qualunque. */
+    public function sicaiStage(): ?CaiSicaiStage
+    {
+        return $this->trail->sicaiStage;
+    }
+
+    public function sicaiNavigation(): ?CaiSicaiStageNavigation
+    {
+        if (! $this->sicaiNavigationLoaded) {
+            $stage = $this->sicaiStage();
+            $this->sicaiNavigation = $stage === null ? null : CaiSicaiStageNavigation::for($stage);
+            $this->sicaiNavigationLoaded = true;
+        }
+
+        return $this->sicaiNavigation;
+    }
+
+    /**
+     * "Piemonte": la regione del GR se ha la lettera della tappa, altrimenti le regioni della lettera ("Toscana e
+     * Emilia-Romagna" per la L), "Italia" per una lettera sconosciuta.
+     */
+    public function sicaiRegionName(): string
+    {
+        $letter = (string) $this->sicaiStage()?->letter;
+        $user = Auth::user();
+
+        if ($user instanceof User && $user->customer_type === CustomerType::GruppoRegionale && $user->region !== null
+            && in_array($letter, $user->region->sicaiLetters(), true)) {
+            return $user->region->label();
+        }
+
+        $regions = array_map(fn (Region $region): string => $region->label(), Region::forSicaiLetter($letter));
+
+        return $regions === [] ? 'Italia' : implode(' e ', $regions);
+    }
+
+    /** "Tappa 3 di 24 · Sentiero Italia CAI in Piemonte" o "Variante della tappa E02 · …". */
+    public function sicaiPositionLabel(CaiSicaiStageNavigation $navigation): string
+    {
+        $where = 'Sentiero Italia CAI in '.$this->sicaiRegionName();
+
+        return $navigation->position === null
+            ? 'Variante della tappa '.$navigation->main->code().' · '.$where
+            : 'Tappa '.$navigation->position.' di '.$navigation->mainCount.' · '.$where;
+    }
+
+    /** "E01 è la prima tappa in Piemonte" / "… l'ultima …" quando non c'è precedente o successiva. */
+    public function sicaiNoNeighbourLabel(CaiSicaiStageNavigation $navigation, bool $previous): string
+    {
+        return $navigation->main->code().($previous ? ' è la prima tappa in ' : ' è l’ultima tappa in ').$this->sicaiRegionName();
+    }
+
+    /** Scheda di un'altra tappa: con `?da=sicai` se la scheda corrente è stata aperta da "Tappe SICAI". */
+    public function sicaiStageUrl(CaiRegionalGroupSicaiStageRow $row): string
+    {
+        return self::getUrl(['trailId' => $row->stage->cai_trail_id, ...($this->from === self::FROM_SICAI ? ['da' => self::FROM_SICAI] : [])]);
+    }
+
+    /**
+     * Punti di appoggio entro 1,5 km dal tracciato, in ordine di percorrenza (US-1093), pronti per la vista: posizione
+     * lungo la tappa ("3,2"), percentuale sulla striscia (`null` se la tappa non ha lunghezza), distanza dal tracciato.
+     * Mai i dati personali di `fields`.
+     *
+     * @return list<array{point: CaiSicaiRestPoint, type: CaiSicaiRestPointType, km: string, percent: string|null, distance: string}>
+     */
+    public function sicaiNearPoints(): array
+    {
+        $stage = $this->sicaiStage();
+
+        if ($stage === null) {
+            return [];
+        }
+
+        $lengthMeters = (float) $this->trail->length_km * 1000;
+        $points = [];
+
+        foreach ($stage->restPoints()->get(['cai_sicai_rest_points.id', 'name', 'type', 'municipality', 'operator', 'website', 'phone', 'cai_hut_id_cai']) as $point) {
+            /** @var object{distance_m: int|string, position: int|string} $pivot */
+            $pivot = $point->getRelation('pivot');
+            $position = (float) $pivot->position;
+            $distance = (float) $pivot->distance_m;
+            $type = trim((string) $point->type);
+
+            $points[] = [
+                'point' => $point,
+                'type' => CaiSicaiRestPointType::of($type === '' ? CaiRegionalGroupSicai::OTHER_TYPE : $type),
+                'km' => ItalianNumberFormatter::decimal($position / 1000, 1),
+                'percent' => $lengthMeters > 0 ? number_format(max(0.0, min(100.0, $position / $lengthMeters * 100)), 1, '.', '') : null,
+                'distance' => $distance < self::SICAI_ON_TRACK_METERS ? 'sul tracciato' : 'a '.ItalianNumberFormatter::kilometers($distance / 1000).' dal tracciato',
+            ];
+        }
+
+        return $points;
+    }
+
+    /** "3 strutture entro 1,5 km dal tracciato, in ordine di percorrenza"; `$short` = versione mobile ("3 entro 1,5 km"). */
+    public static function sicaiNearCountLabel(int $count, bool $short = false): string
+    {
+        if ($short) {
+            return $count === 0 ? 'entro 1,5 km' : $count.' entro 1,5 km';
+        }
+
+        return $count === 0
+            ? 'entro 1,5 km dal tracciato'
+            : $count.' '.($count === 1 ? 'struttura' : 'strutture').' entro 1,5 km dal tracciato, in ordine di percorrenza';
+    }
+
+    /**
+     * Stato vuoto dei punti vicini: titolo e frase. Se nessuna tappa della lettera ha punti, la banca dati non ne riporta
+     * nella regione; altrimenti rimanda alle tappe adiacenti che ne hanno.
+     *
+     * @return array{title: string, text: string, adjacent: list<CaiRegionalGroupSicaiStageRow>}
+     */
+    public function sicaiNoNearPoints(): array
+    {
+        $navigation = $this->sicaiNavigation();
+
+        if ($navigation === null || ! $navigation->letterHasRestPoints) {
+            return [
+                'title' => 'Nessun punto di appoggio censito in '.$this->sicaiRegionName(),
+                'text' => 'Quando la banca dati del Sentiero Italia CAI li riporterà, compariranno qui.',
+                'adjacent' => [],
+            ];
+        }
+
+        $adjacent = $navigation->adjacentWithRestPoints();
+
+        return [
+            'title' => 'Nessun punto di appoggio entro 1,5 km da questa tappa',
+            'text' => $adjacent === []
+                ? 'Nemmeno le tappe adiacenti ne hanno entro 1,5 km.'
+                : 'I più vicini sono nelle tappe adiacenti',
+            'adjacent' => $adjacent,
+        ];
     }
 
     /** L'intestazione è resa dalla vista (testata col segnavia), non dall'header standard di Filament. */
@@ -329,8 +493,8 @@ class CaiTrailDetail extends Page
     }
 
     /**
-     * Elenco da cui si arriva: i sentieri di una Sezione visti dal GR (`?da=sezione-gr&codice=…`, utente GR), "Sentieri
-     * del GR" (`?da=gr` o utente GR), "Sentieri di Sezione" (utente Sezione), per lo staff la scheda della prima Sezione
+     * Elenco da cui si arriva: i sentieri di una Sezione visti dal GR (`?da=sezione-gr&codice=…`, utente GR), "Tappe
+     * SICAI" (`?da=sicai`, utente GR), "Sentieri del GR" (`?da=gr` o utente GR), "Sentieri di Sezione" (utente Sezione), per lo staff la scheda della prima Sezione
      * del sentiero (se esiste). I parametri dell'elenco tornano nel link.
      *
      * @return array{label: string, url: string}|null
@@ -343,6 +507,10 @@ class CaiTrailDetail extends Page
         if ($this->from === self::FROM_GROUP_SECTION && $customerType === CustomerType::GruppoRegionale
             && ctype_digit((string) $this->sectionCode) && strlen((string) $this->sectionCode) <= 20) {
             return ['label' => 'Sentieri di Sezione', 'url' => RegionalGroupSectionTrails::getUrl(['codice' => $this->sectionCode, ...$this->listQuery])];
+        }
+
+        if ($this->from === self::FROM_SICAI && $customerType === CustomerType::GruppoRegionale) {
+            return ['label' => 'Tappe SICAI', 'url' => RegionalGroupSicaiStages::getUrl()];
         }
 
         if ($this->from === self::FROM_GROUP || $customerType === CustomerType::GruppoRegionale) {

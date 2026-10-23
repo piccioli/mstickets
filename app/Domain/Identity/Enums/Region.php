@@ -82,4 +82,15 @@ enum Region: string
             self::Sardegna => ['Z'],
         };
     }
+
+    /**
+     * Regioni che vedono le tappe SICAI della lettera (inverso di {@see sicaiLetters()}): due per le lettere condivise,
+     * nessuna per una lettera sconosciuta.
+     *
+     * @return list<self>
+     */
+    public static function forSicaiLetter(string $letter): array
+    {
+        return array_values(array_filter(self::cases(), fn (self $region): bool => in_array($letter, $region->sicaiLetters(), true)));
+    }
 }

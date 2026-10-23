@@ -2,7 +2,9 @@
      resources/css/filament/admin/cai-trail-detail.css (segnavia e pillola dello stato in cai-trails.css). Desktop e
      mobile hanno disposizioni diverse: i riquadri dei dati e i link alle fonti sono resi due volte (`--desktop` /
      `--mobile`) e il CSS mostra la variante giusta; partenza e arrivo stanno sotto la mappa su desktop, fra i dati su
-     mobile. Valori mancanti: "—". --}}
+     mobile. Valori mancanti: "—". Per una tappa SICAI (US-1096, design tappe-sicai-del-gr.dc.html §"Scheda della tappa")
+     si aggiungono il codice della tappa in testata, la navigazione fra le tappe e i punti di appoggio vicini (partial
+     cai-trail-detail-sicai-nav / -sicai-points, stili ms-trail-sicai__* in cai-trail-detail.css). --}}
 @use('App\Filament\Pages\CaiTrailDetail')
 @php
     $trail = $this->trail;
@@ -17,6 +19,8 @@
     $sections = $this->sections();
     $osmUrl = $this->openStreetMapUrl();
     $pillStyle = 'background: '.$practicability->background().'; color: '.$practicability->foreground();
+    $stage = $this->sicaiStage();
+    $navigation = $this->sicaiNavigation();
 @endphp
 <x-filament-panels::page>
     <div class="ms-trail">
@@ -28,13 +32,21 @@
                 <a href="{{ $back['url'] }}" class="ms-trail__crumb ms-trail__mobile">← {{ $back['label'] }}</a>
             @endif
             <span class="ms-trail__crumb-sep ms-trail__desktop" aria-hidden="true">/</span>
-            <span class="ms-trail__crumb-current ms-trail__desktop">Sentiero {{ $this->number() }}</span>
+            <span class="ms-trail__crumb-current ms-trail__desktop">{{ $this->currentCrumb() }}</span>
         </nav>
+
+        @if ($navigation !== null)
+            @include('filament.pages.partials.cai-trail-detail-sicai-nav', ['navigation' => $navigation])
+        @endif
 
         {{-- Testata --}}
         <header class="ms-trail__hero">
             <div class="ms-trail__hero-title">
-                <x-cai.trail-sign :ref="$trail->ref" size="xl" />
+                @if ($stage !== null)
+                    <x-cai.trail-sign :ref="$stage->code" size="xl" class="ms-cai-trail-sign--sicai" />
+                @else
+                    <x-cai.trail-sign :ref="$trail->ref" size="xl" />
+                @endif
                 <h1 @class(['ms-trail__name', 'ms-trail__missing' => $name === null])>{{ $name ?? 'Sentiero senza nome' }}</h1>
             </div>
             <div class="ms-trail__hero-main">
@@ -141,6 +153,10 @@
                 </section>
             </div>
         </div>
+
+        @if ($stage !== null)
+            @include('filament.pages.partials.cai-trail-detail-sicai-points')
+        @endif
 
         <div class="ms-trail__sources ms-trail__sources--mobile ms-trail__mobile">
             <a href="{{ $this->osm2caiUrl() }}" target="_blank" rel="noopener" class="ms-trail__source ms-trail__source--primary">Vedi su osm2cai ↗</a>

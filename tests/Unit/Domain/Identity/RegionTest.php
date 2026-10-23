@@ -51,3 +51,10 @@ test('sicaiLetters maps every region to the letters of its Sentiero Italia CAI s
         'veneto' => ['B'],
     ]);
 });
+
+test('forSicaiLetter returns the regions that see the stages of a letter, both for a shared letter', function (): void {
+    expect(Region::forSicaiLetter('L'))->toBe([Region::EmiliaRomagna, Region::Toscana])
+        ->and(Region::forSicaiLetter('N'))->toBe([Region::Marche, Region::Umbria])
+        ->and(Region::forSicaiLetter('E'))->toBe([Region::Piemonte])
+        ->and(Region::forSicaiLetter('X'))->toBe([]);
+});

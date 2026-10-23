@@ -83,8 +83,19 @@ final class CaiRegionalGroupSicai
      */
     public static function stageRows(Region $region): array
     {
+        return self::stageRowsForLetters($region->sicaiLetters());
+    }
+
+    /**
+     * Tappe delle lettere date, come {@see stageRows()}: la scheda della tappa (US-1096) naviga nella lettera della tappa.
+     *
+     * @param  list<string>  $letters
+     * @return list<CaiRegionalGroupSicaiStageRow>
+     */
+    public static function stageRowsForLetters(array $letters): array
+    {
         $stages = CaiSicaiStage::query()
-            ->whereIn('letter', $region->sicaiLetters())
+            ->whereIn('letter', $letters)
             ->with(['trail' => fn (Relation $trail) => $trail->select(self::TRAIL_COLUMNS)])
             ->withCount('restPoints')
             ->orderBy('sort_key')
