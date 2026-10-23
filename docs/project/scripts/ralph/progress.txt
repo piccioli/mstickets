@@ -160,3 +160,24 @@ Fase 10.4–10.9 (run unico): rifugi, sentieri, tappe SICAI. PRD in docs/project
   - Per US-1045 il badge può usare `total` e `sectionsWithHutsCount` di questa classe (GR senza regione → `null`
     resta a carico di `CaiRegionalGroupDashboardMetrics`).
 ---
+
+## 2026-10-23 - US-1042
+- `x-cai.map` con prop `cluster` (e `clusterNoun`, default "rifugi"): `leaflet.markercluster` 1.5.3 da unpkg con SRI, in un
+  `@once` separato caricato solo se una mappa lo chiede; gruppi fino allo zoom 11 (raggio 40 px), cerchio verde del design
+  (diametro 30 + min(18, log2(n)·4) px, bordo bianco 3 px, alone), `title` "N rifugi · clic per ingrandire", clic → zoom +2
+  sul gruppo. Selezione dall'elenco di un marker raggruppato → `zoomToShowLayer()` poi popup. Senza l'opzione HTML e JS
+  invariati (test 10.4 verdi senza modifiche).
+- Popup: riga Sezione proprietaria sotto il nome (`map-popup` prop `section`, `CaiMapMarker::forHut($hut, $url, $section)`).
+- Token `--ms-map-cluster-bg`, `--ms-map-cluster-border`, `--ms-shadow-map-cluster` (in `docs/design-system.md`).
+- Verificato con Playwright su pagina HTML con i 193 rifugi reali della Lombardia: 19 gruppi + 11 marker all'apertura,
+  clic su un gruppo → zoom +2 (32 gruppi, 30 marker), `cai-map-select` su un marker raggruppato → zoom fino a mostrarlo e
+  popup con "SEZ. DERVIO", clic marker → evento `cai-map-marker-selected`. Nessun errore JS. Verifica nel pannello in US-1043.
+- File: `resources/views/components/cai/{map,map-popup}.blade.php`, `app/Domain/CaiDirectory/Support/CaiMapMarker.php`,
+  `resources/css/filament/admin/cai-map.css`, `resources/css/theme.css`, `docs/design-system.md`,
+  `app/Domain/CaiDirectory/CLAUDE.md`, `tests/Feature/View/Components/CaiMapTest.php`.
+- **Learnings for future iterations:**
+  - US-1043: passare `cluster` alla mappa del GR e il nome Sezione (`$row->sectionName`) a `forHut()`; il link del popup
+    deve già contenere `?da=gr` e i parametri dell'elenco.
+  - Playwright: con markercluster i marker fuori vista restano nel DOM ("Element is outside of the viewport"): cliccare
+    con `evaluate(() => el.click())`.
+---
