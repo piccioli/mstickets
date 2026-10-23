@@ -359,3 +359,32 @@ Fase 10.4–10.9 (run unico): rifugi, sentieri, tappe SICAI. PRD in docs/project
   - Playwright: il binario in cache è `chromium_headless_shell-1248` mentre il pacchetto npx ne cerca un altro: passare
     `executablePath` a `chromium.launch()`. Su macOS non esiste `timeout`.
 ---
+
+## 2026-10-23 - US-1054
+- `SectionTrails` è ora la pagina reale (stessa classe e slug `sezione/sentieri`, fuori navigazione, gate customer
+  Sezione): intestazione con Km totali / Sentieri, riepilogo (barra dei km per stato con etichetta oltre il 9%, legenda
+  km · % · N sentieri, percorribilità km + N), mappa con le sole linee filtrate + legenda degli stati, tabella desktop
+  (segnavia, nome/partenza → arrivo/"Condiviso con …", km, difficoltà, pillola stato, pillola percorribilità + "agg.
+  gg/mm/aaaa") e card mobile (12 + "Mostra altri N"); filtri chip di stato (`?stato[]=`), difficoltà (`?difficolta=`),
+  percorribilità (`?percorribilita=`), ordinamento (`?ordina=`, intestazioni N°/Km/Accatast. e menu mobile); stati vuoti
+  (nessun sentiero, filtri senza risultati, Sottosezione, senza Sezione).
+- Nuovi: `Enums\CaiTrailSort`, `Enums\CaiTrailDifficulty`, `Support\CaiTrailFilters`, `Support\CaiSectionShortName`,
+  `CaiTrailPracticability::key()/fromKey()`, vista `section-trails`, CSS `section-trails.css`, token
+  `--ms-trail-row-selected-bg/-row-hover-bg/-shared-text/-bar-track` (in `docs/design-system.md`), helper di test
+  `caiTrail()` in tests/Pest.php. Tolto Sentieri da `SectionComingSoonPagesTest` e dalla descrizione di F10-26.
+- Link alla scheda: `trailUrl()` restituisce `null` finché non c'è `CaiTrailDetail` (US-1055): la riga/card seleziona la
+  linea, niente "›" né "Apri scheda →". **US-1055 deve solo far restituire l'URL a `trailUrl()`.**
+- Verificato con Playwright (utente di prova `forceDelete()`, collegamenti Parma 9224001 → 74 e Tortona 9212040 → 371
+  ripristinati): Parma 380 sentieri (molti; la SAT non ha sentieri nel dump) e Tortona 4 (pochi), desktop e mobile;
+  clic riga → anteprima sulla mappa + riga selezionata; chip/ordinamento/filtri → URL aggiornato (~1 s a filtro con 380
+  linee); filtri senza risultati; "Mostra altri 368" → 380 card. Nessun errore JS, nessuno scroll orizzontale a 390 px.
+- **Learnings for future iterations:**
+  - Dopo `->call()` su un `Livewire::test`, `assertSeeTextInOrder` lavora sulla risposta JSON e non trova "→": verificare
+    l'ordine sulle posizioni in `strip_tags($component->html())`.
+  - Un attributo `style` seguito da newline prima di `>` rompe un `toContain` sull'HTML: elementi testati per stringa
+    esatta su una sola riga.
+  - Su mobile il select "Tutte le percorribilità" viene troncato ("Tutte le percorribil…") nella griglia a 2 colonne: il
+    design usa "Percorribilità"/"Difficoltà" su mobile, ma un `<option>` non cambia testo via CSS. Lasciato così.
+  - La riga del riepilogo a due colonne (stato | percorribilità) serve ≥ 1200 px di area contenuti; con la sidebar a
+    1440 px va su una colonna, altrimenti la legenda a 4 colonne va a capo.
+---
