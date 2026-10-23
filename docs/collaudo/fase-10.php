@@ -146,7 +146,7 @@ return [
             'titolo' => 'Dashboard V2 del Gruppo Regionale (10.2) — pagina Dashboard (US-1014)',
             'test' => [
                 ['id' => 'F10-75', 'descrizione' => 'GR con Sezioni: codice del GR, bilancio consolidato con "Somma di N Sezioni" e soci', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupDashboardTest.php::a regional group with sections shows the GR code, consolidated statements and members'],
-                ['id' => 'F10-76', 'descrizione' => 'Bilancio proprio del GR, rifugi, sentieri e tappe SICAI "Non disponibile", mai 0', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupDashboardTest.php::the GR own statements, huts, trails and SICAI stages are not available, never 0'],
+                ['id' => 'F10-76', 'descrizione' => 'Bilancio proprio del GR, sentieri e tappe SICAI "Non disponibile", mai 0 (i rifugi hanno un valore dalla 10.5)', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupDashboardTest.php::the GR own statements, trails and SICAI stages are not available, never 0'],
                 ['id' => 'F10-77', 'descrizione' => 'GR la cui regione non ha Sezioni: solo la regione, nessun dato', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupDashboardTest.php::a regional group whose region has no sections shows only the region and no data'],
                 ['id' => 'F10-78', 'descrizione' => 'GR senza regione: nome, avviso e tutti i badge "Non disponibile"', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupDashboardTest.php::a regional group without a region sees its name, a notice and every badge not available'],
                 ['id' => 'F10-79', 'descrizione' => 'Ogni badge porta alla propria pagina; "Sezioni" all\'elenco delle Sezioni del GR', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupDashboardTest.php::the badges link to their detail pages'],
@@ -334,6 +334,74 @@ return [
             'titolo' => 'Rifugi di Sezione (10.4) — percorso end-to-end (US-1037)',
             'test' => [
                 ['id' => 'F10-188', 'descrizione' => 'Utente Sezione: login → Dashboard (badge Rifugi con numero) → elenco → scheda con la gestione → scheda di un rifugio di un\'altra Sezione (403)', 'test_automatico' => 'tests/Feature/EndToEnd/Fase10RifugiSezioneEndToEndTest.php::a Sezione user follows the huts badge to the list and opens the sheet of a hut with its management, never the sheet of another section hut'],
+            ],
+        ],
+        [
+            'titolo' => 'Rifugi del GR (10.5) — rifugi di un GR e riepilogo (US-1041)',
+            'test' => [
+                ['id' => 'F10-189', 'descrizione' => 'I rifugi del GR sono quelli delle sue Sezioni per prefisso (la SAT resta fuori dal GR Alto Adige)', 'test_automatico' => 'tests/Feature/Domain/CaiDirectory/Queries/CaiRegionalGroupHutsTest.php::the huts of a group are those of its sections by prefix, so SAT stays out of the Alto Adige group'],
+                ['id' => 'F10-190', 'descrizione' => 'Un rifugio intestato al GR è incluso con "GR {regione}" come Sezione', 'test_automatico' => 'tests/Feature/Domain/CaiDirectory/Queries/CaiRegionalGroupHutsTest.php::a hut registered to the group is included with "GR {region}" as its section'],
+                ['id' => 'F10-191', 'descrizione' => 'Le Sezioni senza rifugi sono elencate per nome; il rifugio del GR non conta come Sezione', 'test_automatico' => 'tests/Feature/Domain/CaiDirectory/Queries/CaiRegionalGroupHutsTest.php::sections without huts are listed by name, and a hut of the group does not count as a section'],
+                ['id' => 'F10-192', 'descrizione' => 'Il riepilogo conta rifugi, in attività, posti letto e contratti in scadenza o scaduti', 'test_automatico' => 'tests/Feature/Domain/CaiDirectory/Queries/CaiRegionalGroupHutsTest.php::the summary counts huts, active ones, beds and expiring or expired contracts'],
+                ['id' => 'F10-193', 'descrizione' => 'Lo stato del contratto di una riga segue le soglie condivise con la scheda', 'test_automatico' => 'tests/Feature/Domain/CaiDirectory/Queries/CaiRegionalGroupHutsTest.php::the contract status of a row follows the shared thresholds'],
+                ['id' => 'F10-194', 'descrizione' => 'Una regione senza Sezioni non ha rifugi né codice', 'test_automatico' => 'tests/Feature/Domain/CaiDirectory/Queries/CaiRegionalGroupHutsTest.php::a region without sections still has no huts and no code'],
+                ['id' => 'F10-195', 'descrizione' => 'Rifugi e Sezioni si leggono con un numero fisso di query', 'test_automatico' => 'tests/Feature/Domain/CaiDirectory/Queries/CaiRegionalGroupHutsTest.php::huts and sections are read with a fixed number of queries'],
+            ],
+        ],
+        [
+            'titolo' => 'Rifugi del GR (10.5) — cluster sulla mappa (US-1042)',
+            'test' => [
+                ['id' => 'F10-196', 'descrizione' => 'Senza l\'opzione cluster la mappa non carica leaflet.markercluster', 'test_automatico' => 'tests/Feature/View/Components/CaiMapTest.php::without the cluster option the map does not load leaflet.markercluster'],
+                ['id' => 'F10-197', 'descrizione' => 'Con l\'opzione cluster leaflet.markercluster 1.5.3 si carica una volta con i gruppi del design', 'test_automatico' => 'tests/Feature/View/Components/CaiMapTest.php::the cluster option loads leaflet.markercluster 1.5.3 once and configures the groups of the design'],
+                ['id' => 'F10-198', 'descrizione' => 'Il popup di un rifugio può mostrare la Sezione proprietaria sotto il nome', 'test_automatico' => 'tests/Feature/View/Components/CaiMapTest.php::a hut popup can show the owning section under the name'],
+            ],
+        ],
+        [
+            'titolo' => 'Rifugi del GR (10.5) — pagina "Rifugi del GR" (US-1043)',
+            'test' => [
+                ['id' => 'F10-199', 'descrizione' => 'Intestazione, riepilogo, tutti i rifugi del GR e le Sezioni senza rifugi', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupHutsTest.php::the page shows the header, the summary, every hut of the group and the sections without huts'],
+                ['id' => 'F10-200', 'descrizione' => 'La mappa raggruppa un marker per ogni rifugio in elenco, con la Sezione nel popup', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupHutsTest.php::the map clusters a marker for every listed hut, with its section in the popup'],
+                ['id' => 'F10-201', 'descrizione' => 'La card contratti filtra i contratti in scadenza e scaduti, ordinati per scadenza', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupHutsTest.php::the contracts card filters expiring and expired contracts, sorted by end date'],
+                ['id' => 'F10-202', 'descrizione' => 'La colonna scadenza mette in fondo i rifugi senza data', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupHutsTest.php::with the contracts filter the end date column sorts with the huts without a date last'],
+                ['id' => 'F10-203', 'descrizione' => 'I filtri Sezione, tipo e stato si combinano; "Azzera filtri" ripristina l\'elenco', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupHutsTest.php::section, type and status filters combine and reset restores the list'],
+                ['id' => 'F10-204', 'descrizione' => 'I menu dei filtri elencano solo i valori presenti, con i conteggi', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupHutsTest.php::the filter menus list only sections, types and states present, with counts'],
+                ['id' => 'F10-205', 'descrizione' => 'I filtri si leggono dall\'URL; un valore sconosciuto è ignorato', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupHutsTest.php::filters are read from the url and an unknown value counts as absent'],
+                ['id' => 'F10-206', 'descrizione' => 'Le intestazioni ordinano l\'elenco: numeri prima dal più alto, mancanti in fondo', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupHutsTest.php::column headers sort the list, with numbers first from the highest and missing values last'],
+                ['id' => 'F10-207', 'descrizione' => '"Raggruppa per Sezione" aggiunge un\'intestazione per Sezione, con i rifugi del GR per primi', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupHutsTest.php::grouping by section adds a header per section, with the huts of the group first'],
+                ['id' => 'F10-208', 'descrizione' => 'Oltre 40 rifugi l\'elenco è raggruppato di default, ma non con il filtro Sezione', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupHutsTest.php::a group with more than 40 huts is grouped by default, but not when filtered by section'],
+                ['id' => 'F10-209', 'descrizione' => 'Su mobile i primi 12 rifugi e "Mostra altri N"', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupHutsTest.php::on mobile only the first 12 huts are listed until "Mostra altri"'],
+                ['id' => 'F10-210', 'descrizione' => 'Un GR con un solo rifugio usa il singolare e non mostra il raggruppamento', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupHutsTest.php::a group with one hut shows singular labels and no grouping switch'],
+                ['id' => 'F10-211', 'descrizione' => 'Un GR senza rifugi mostra lo stato vuoto, i trattini e l\'elenco aperto delle Sezioni', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupHutsTest.php::a group without huts shows the empty state, dashes and the open list of sections'],
+                ['id' => 'F10-212', 'descrizione' => 'Un utente GR senza regione vede un avviso, nessun errore', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupHutsTest.php::a group user without a region sees a notice and no error'],
+                ['id' => 'F10-213', 'descrizione' => 'Un rifugio apre la scheda con i parametri dell\'elenco', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupHutsTest.php::a hut opens its sheet from the group with the list parameters'],
+                ['id' => 'F10-214', 'descrizione' => 'Solo il cliente GR apre la pagina, che non è in navigazione', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupHutsTest.php::only a regional group customer can open the page, which is not in the navigation'],
+                ['id' => 'F10-215', 'descrizione' => 'Lo staff non apre la pagina, il cliente GR sì', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupHutsTest.php::staff cannot open the page and a regional group customer can'],
+                ['id' => 'F10-216', 'descrizione' => 'Il GR vede i rifugi intestati a lui, non quelli di un altro GR', 'test_automatico' => 'tests/Feature/Domain/CaiDirectory/CaiHutPolicyTest.php::a regional group sees the huts registered directly to it, not those of another group'],
+            ],
+        ],
+        [
+            'titolo' => 'Rifugi del GR (10.5) — scheda del rifugio aperta dal GR (US-1044)',
+            'test' => [
+                ['id' => 'F10-217', 'descrizione' => 'Il link di ritorno all\'elenco del GR conserva filtri, ordinamento e raggruppamento', 'test_automatico' => 'tests/Feature/Filament/Pages/CaiHutDetailTest.php::the link back to the regional group list keeps its filters, sort and grouping'],
+                ['id' => 'F10-218', 'descrizione' => 'I parametri dell\'elenco tornano indietro solo se la scheda è aperta dall\'elenco del GR', 'test_automatico' => 'tests/Feature/Filament/Pages/CaiHutDetailTest.php::the list parameters are only carried back when the sheet is opened from the regional group list'],
+            ],
+        ],
+        [
+            'titolo' => 'Rifugi del GR (10.5) — badge "Rifugi" della Dashboard GR (US-1045)',
+            'test' => [
+                ['id' => 'F10-219', 'descrizione' => 'I rifugi del GR sono quelli delle Sezioni più quelli intestati al GR', 'test_automatico' => 'tests/Feature/Domain/CaiDirectory/Queries/CaiRegionalGroupDashboardMetricsTest.php::huts are those of the sections of the group plus those owned by the GR'],
+                ['id' => 'F10-220', 'descrizione' => 'Un GR senza rifugi ha 0 rifugi e 0 Sezioni con rifugi, mai null', 'test_automatico' => 'tests/Feature/Domain/CaiDirectory/Queries/CaiRegionalGroupDashboardMetricsTest.php::a group without huts has 0 huts and 0 sections with huts, never null'],
+                ['id' => 'F10-221', 'descrizione' => 'I rifugi intestati al GR non contano come Sezione con rifugi', 'test_automatico' => 'tests/Feature/Domain/CaiDirectory/Queries/CaiRegionalGroupDashboardMetricsTest.php::the huts owned by the GR do not count as a section with huts'],
+                ['id' => 'F10-222', 'descrizione' => 'I rifugi del GR si contano con una sola query', 'test_automatico' => 'tests/Feature/Domain/CaiDirectory/Queries/CaiRegionalGroupDashboardMetricsTest.php::the huts of the group are counted with a single query'],
+                ['id' => 'F10-223', 'descrizione' => 'Il badge conta i rifugi delle Sezioni e quelli intestati al GR, con "Somma di N Sezioni"', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupDashboardTest.php::the huts badge counts the huts of the sections and those owned by the GR'],
+                ['id' => 'F10-224', 'descrizione' => 'Il badge usa il singolare per una sola Sezione', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupDashboardTest.php::the huts badge uses the singular for a single section'],
+                ['id' => 'F10-225', 'descrizione' => 'Un GR senza rifugi mostra 0 come dato noto, senza nota', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupDashboardTest.php::a regional group without huts shows 0 as a known value, without the note'],
+            ],
+        ],
+        [
+            'titolo' => 'Rifugi del GR (10.5) — percorso end-to-end (US-1046)',
+            'test' => [
+                ['id' => 'F10-226', 'descrizione' => 'Utente GR: login → Dashboard (badge Rifugi) → elenco → filtro contratti → scheda con la gestione → ritorno con il filtro conservato → scheda di un altro GR e GR di un\'altra regione (403)', 'test_automatico' => 'tests/Feature/EndToEnd/Fase10RifugiGrEndToEndTest.php::a Gruppo Regionale user follows the huts badge to the list, filters the contracts, opens a sheet with its management and goes back with the filter kept, never the sheet of another group'],
             ],
         ],
     ],

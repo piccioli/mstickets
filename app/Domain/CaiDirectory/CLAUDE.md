@@ -428,6 +428,14 @@ Operativo (ordine dei comandi e vincolo di spazio remoto): `deploy/CLAUDE.md` §
   Sezione proprietaria e GR della sua regione (`CaiHutPolicy::view`/`viewManagement`, oggi coincidenti; per
   restringere la gestione basta cambiare `viewManagement`, la vista non rende nulla senza permesso). Collaudo:
   `docs/collaudo/fase-10.php` F10-134..F10-188, E2E `tests/Feature/EndToEnd/Fase10RifugiSezioneEndToEndTest.php`.
+- **In sintesi (feature 10.5, Rifugi del GR)**: rifugi del GR = quelli delle Sezioni per prefisso **più** quelli
+  intestati al GR (`branch_code` `95…` con `branch_name` = "GR {Region::label()}", confronto senza maiuscole; mostrati
+  con "GR {regione}" come Sezione, primi nel raggruppamento, mai contati fra le "Sezioni con rifugi"). Un'unica regola
+  in `CaiRegionalGroupHuts` (`hutsQuery()`/`groupName()`) usata da pagina `RegionalGroupHuts`, badge della Dashboard GR
+  e `CaiHutPolicy::view`: cambiarla lì e basta. Stato del contratto (scaduto < 0 giorni, in scadenza ≤ 183) solo da
+  `Support\CaiHutContractExpiry`, condiviso da scheda, righe dell'elenco GR e card "Contratti di gestione" (filtro
+  `contratti=1`, che il link di ritorno della scheda conserva). Collaudo: F10-189..F10-226, E2E
+  `tests/Feature/EndToEnd/Fase10RifugiGrEndToEndTest.php`.
 - **Fonte di verità esterna**, sola lettura: `snap_cai_huts` nel datapack (`id_cai`, `payload` = JSON grezzo del
   dettaglio `GET /api/v1/shelters/{id_cai}`) → `Import\CaiHutsImporter` (chiamato da `CaiDatapackImporter` solo
   nell'import nazionale, riga `snapshot_rifugi`). Crea/aggiorna/**elimina** (conteggio `deleted` di
@@ -442,7 +450,8 @@ Operativo (ordine dei comandi e vincolo di spazio remoto): `deploy/CLAUDE.md` §
 - `DiffsAttributes` confronta le colonne json (cast `array`) come JSON a chiavi ordinate: Postgres `json` (non
   `jsonb`) conserva l'ordine, ma il confronto non deve dipenderne.
 - `CaiHutPolicy`: `view` = `viewManagement` = staff `CaiDirectoryView`, customer collegato alla Sezione `branch_code`,
-  customer GR il cui `prefixOf(region)` è prefisso del `branch_code`; create/update/delete sempre `false`.
+  customer GR il cui `prefixOf(region)` è prefisso del `branch_code` o a cui il rifugio è intestato (10.5);
+  create/update/delete sempre `false`.
 - **Badge "Rifugi" (US-1036)**: unica eccezione alla regola "mancante = `null`, mai 0" delle dashboard — la banca
   dati rifugi.cai.it è completa, quindi una Sezione senza rifugi ha `huts = 0` (mostrato "0"); solo la Sottosezione
   resta `null`. Conta tutti i `cai_huts` della Sezione, qualunque `status`. Stessa eccezione per il badge "Rifugi"
