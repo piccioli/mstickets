@@ -181,3 +181,40 @@ Fase 10.4–10.9 (run unico): rifugi, sentieri, tappe SICAI. PRD in docs/project
   - Playwright: con markercluster i marker fuori vista restano nel DOM ("Element is outside of the viewport"): cliccare
     con `evaluate(() => el.click())`.
 ---
+
+## 2026-10-23 - US-1043
+- `RegionalGroupHuts` (slug `gr/rifugi`) non è più "in arrivo": vista `regional-group-huts`, CSS `regional-group-huts.css`
+  (classi `ms-gr-huts__*` + quelle condivise `ms-huts__dot/status/empty/legend/reset`). Testata "← Dashboard", "Rifugi
+  del GR", "GR {regione} · Codice CAI {prefisso}000"; riepilogo (totale, in attività su N, posti letto, Sezioni con
+  rifugi su M, card contratti cliccabile "Filtra elenco →"/"Filtro attivo · ×" o "Nessuno"/"—"); mappa `x-cai.map`
+  con `cluster` e Sezione nel popup; tabella con 7 colonne ordinabili, filtri Sezione/tipo/stato (solo valori presenti,
+  con conteggi), pillola contratti, "Raggruppa per Sezione" (≥ 2 gruppi e nessun filtro Sezione; default > 40 rifugi;
+  "Intestati al GR …" per primo); card mobile (prime 12 + "Mostra altri N", menu "Ordina", interruttore "Per Sezione");
+  riquadro "Sezioni senza rifugi" (Alpine, aperto solo senza rifugi); stati vuoto / GR senza regione.
+- Dominio: `Enums\CaiRegionalGroupHutSortColumn` (primo clic quota/posti decrescente, mancanti sempre in fondo, parità
+  per nome), `Support\CaiRegionalGroupHutFilters` (filtri, `groups()`, `groupsCount()`, chiave `gr` per i rifugi del GR).
+  `CaiRegionalGroupHuts::COLUMNS` + `source_updated_at` (per "dati aggiornati al").
+- `CaiHutPolicy::view` ora ammette il GR sui rifugi intestati a lui (`95…` + "GR {regione}"): senza, il rifugio
+  9500046 del GR Sicilia dava 403 dalla pagina. Test nuovo in `CaiHutPolicyTest`.
+- Clic su riga/card/popup → `CaiHutDetail` con `da=gr` + `listQuery()` (solo parametri valorizzati). Il link di ritorno
+  che li riusa è la US-1044.
+- Token `--ms-group-header-*`, `--ms-shadow-card-hover`, `--ms-shadow-map-legend-cluster`, `--ms-shadow-switch-knob`
+  (in `docs/design-system.md`). Manifest F10-71 aggiornato (Rifugi tolti dalle pagine "in arrivo" del GR).
+- Verificato in browser (Playwright, utente GR di prova poi `forceDelete()`): Lombardia (193, 66 su 152, 4/33
+  contratti, cluster 15 → 64 icone dopo un clic, raggruppato di default, filtro contratti 37 righe per scadenza),
+  Toscana (26, 14 su 27, filtro contratti 4 righe, card attiva), scheda aperta dalla riga 200, mobile 390 senza
+  overflow (12 card + "Mostra altri 14"). Nessun errore JS.
+- File: `app/Filament/Pages/RegionalGroupHuts.php`, `app/Domain/CaiDirectory/{Enums/CaiRegionalGroupHutSortColumn,
+  Support/CaiRegionalGroupHutFilters,Queries/CaiRegionalGroupHuts,Policies/CaiHutPolicy}.php`,
+  `resources/views/filament/pages/regional-group-huts.blade.php`, `resources/css/filament/admin/{regional-group-huts,theme}.css`,
+  `resources/css/theme.css`, `docs/design-system.md`, `docs/collaudo/fase-10.php`, `app/Domain/CaiDirectory/CLAUDE.md`,
+  test `tests/Feature/Filament/Pages/RegionalGroupHutsTest.php`, `RegionalGroupComingSoonPagesTest.php`, `CaiHutPolicyTest.php`.
+- **Learnings for future iterations:**
+  - US-1044: la scheda riceve `?da=gr&sezione=…&tipo=…&stato=…&contratti=1&ordina=…&verso=…&raggruppa=…`; il link di
+    ritorno deve riportarli tutti a `RegionalGroupHuts::getUrl([...])` (stessi nomi di `listQuery()`).
+  - Dati reali: il rifugio 922600101 "SBERNA SEBASTIANO E RENZO" (Toscana) ha coordinate in Valle d'Aosta (7.27, 45.54):
+    allarga il `fitBounds` della mappa del GR Toscana. È un dato della fonte, non un bug.
+  - Un `<select>` nativo è largo quanto l'opzione più lunga: con nomi Sezione lunghi serve `max-width`.
+  - Con la sidebar a 1440 px l'area contenuti è ~1050 px: la card contratti (1,5fr nel design) va su una riga sua
+    (container query < 1200 px), altrimenti le due cifre vanno a capo.
+---
