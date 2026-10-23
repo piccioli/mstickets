@@ -535,6 +535,16 @@ Operativo (ordine dei comandi e vincolo di spazio remoto): `deploy/CLAUDE.md` §
   geometria si scrive e si confronta come stringa della fonte: funziona perché la colonna è `json` (Postgres conserva il
   testo), non `jsonb` — non cambiare il tipo senza rivedere l'idempotenza. Datapack senza `snap_osm2cai_*` → solo una
   riga `snapshot_sentieri` con avviso, sentieri intatti.
+- **Territori locali** (US-1062): `cai_trail_regions` (`region_key` castato a `Region`) → `cai_trail_provinces` →
+  `cai_trail_sectors` (`geometry` json), FK in cascata; `cai_trail_territory_km` (chiave composta, `territory_type` =
+  `Enums\CaiTrailTerritoryType`, `territory_id` senza FK) e `cai_trail_territory` (`cai_trail_id` FK su `cai_trails`,
+  `CaiTrail::territories()`). Policy di sola lettura per i cinque modelli via `Policies\Concerns\AuthorizesTrailRegion`
+  (staff `CaiDirectoryView` o GR con `region` = `region_key`). Import `Import\CaiTrailTerritoriesImporter` (riga
+  `snapshot_territori_sentieri`), **dopo** `CaiTrailsImporter`: sostituisce in blocco le cinque tabelle solo se una riga
+  normalizzata cambia (confronto per contenuto, nessuna identità riga per riga), altrimenti non scrive (id dei legami
+  stabili). ~88.600 righe in ~3 s su Postgres. Una qualunque delle cinque `snap_*` assente → avviso, tabelle intatte.
+  Il writer della 10.6 scarta già i territori sconosciuti: all'importer arrivano come orfani solo stati fuori da 1–4 e
+  sentieri non importati. Helper di test `makeTrailTerritoriesDatapack($overrides)` (writer reale sui CSV fixture).
 - **Dato della fonte**: nel dump di settembre 2026 nessun sentiero è legato a codici `9218…` (SAT/Trentino): la SAT
   risulta senza sentieri. Per verifiche "molti sentieri" usare p.es. Parma (9224001, 380) o Sulmona (9234004, 382).
 - **Pagina "Sentieri di Sezione"** (`SectionTrails`, US-1054, slug `sezione/sentieri` della vecchia pagina "in arrivo"):

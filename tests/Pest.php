@@ -696,3 +696,40 @@ function caiTrail(array $attributes = [], array $sectionCodes = []): CaiTrail
 
     return $trail->fresh() ?? $trail;
 }
+
+/**
+ * Cartella temporanea con i CSV della fixture, `$overrides` nome file → contenuto (null = file assente).
+ *
+ * @param  array<string, string|null>  $overrides
+ */
+function osm2caiCsvDirectory(array $overrides): string
+{
+    $dir = sys_get_temp_dir().'/osm2cai-csv-'.bin2hex(random_bytes(4));
+    mkdir($dir);
+
+    foreach (['trails.csv', 'trail_sections.csv', 'regions.csv', 'provinces.csv', 'sectors.csv', 'territory_km.csv', 'trail_territory.csv'] as $file) {
+        $content = array_key_exists($file, $overrides) ? $overrides[$file] : file_get_contents(base_path('tests/Fixtures/osm2cai/'.$file));
+
+        if ($content !== null) {
+            file_put_contents($dir.'/'.$file, $content);
+        }
+    }
+
+    return $dir;
+}
+
+/**
+ * Datapack con le tabelle legacy vuote e tutte le tabelle `snap_osm2cai_*` scritte da `CaiOsm2caiExtractWriter` a
+ * partire dai CSV di `tests/Fixtures/osm2cai` (US-1062); `$overrides` come {@see osm2caiCsvDirectory()}.
+ *
+ * @param  array<string, string|null>  $overrides
+ */
+function makeTrailTerritoriesDatapack(array $overrides = [], ?string $sqlite = null): string
+{
+    $sqlite = makeHutsDatapack([], $sqlite);
+    $pdo = new PDO('sqlite:'.$sqlite);
+    $pdo->exec('DROP TABLE snap_cai_huts');
+    (new CaiOsm2caiExtractWriter)->write($pdo, osm2caiCsvDirectory($overrides));
+
+    return $sqlite;
+}

@@ -9,6 +9,7 @@ use App\Domain\CaiDirectory\Enums\CaiTrailStatus;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Sentiero del catasto osm2cai (US-1052), sola lettura: si scrive solo da `cai:import-datapack` (tabelle
@@ -53,5 +54,15 @@ class CaiTrail extends Model
     public function sections(): BelongsToMany
     {
         return $this->belongsToMany(CaiSection::class, 'cai_trail_section', 'cai_trail_id', 'section_code', 'id', 'codice_cai');
+    }
+
+    /**
+     * Legami con regioni, province e settori attraversati, con la percentuale (US-1062).
+     *
+     * @return HasMany<CaiTrailTerritory, $this>
+     */
+    public function territories(): HasMany
+    {
+        return $this->hasMany(CaiTrailTerritory::class, 'cai_trail_id');
     }
 }
