@@ -660,3 +660,18 @@ Operativo (ordine dei comandi e vincolo di spazio remoto): `deploy/CLAUDE.md` §
   transazione: crea/aggiorna/elimina, idempotente; senza tabella nessuna riga di risultato e punti intatti. Mapper
   `CaiSicaiRestPointFieldMapper` (riusa gli helper pubblici di `CaiHutFieldMapper`). Modello `CaiSicaiRestPoint`
   (`hut()`), `CaiSicaiRestPointPolicy` di sola lettura (solo staff, il GR con US-1094/1095).
+
+## Punti di appoggio vicini alle tappe (`cai_sicai_stage_rest_point`, Fase 10.9, US-1093)
+
+- **Calcolo**, non import: `Import\CaiSicaiStageRestPointsCalculator` (riga `punti_appoggio_vicini_sicai`), ultimo passo di
+  `cai:import-datapack`, legge `cai_sicai_stages` + `cai_trails.geometry` + `cai_sicai_rest_points` dell'app (mai il
+  datapack) e diffa con la tabella: crea/aggiorna/elimina in transazione, secondo run 0 scritture. Gira anche se il
+  datapack non ha tappe o punti (ricalcola sui dati già importati). Dati reali: ~0,2 s, 464 legami, 291/525 tappe, 261/307 punti.
+- Geometria in `Support\CaiPolylineDistance::of($geojson, $lat, $lng)` (`LineString`/`MultiLineString`): `distanceM` con
+  proiezione equirettangolare centrata sul punto, `positionM` = metri dall'inizio del tracciato (parti del `MultiLineString`
+  nell'ordine della fonte). Prefiltro col riquadro `cai_trails.min_lat…max_lng` + 1,5 km. Soglia `MAX_DISTANCE_M = 1500`.
+- Relazioni: `CaiSicaiStage::restPoints()` (già ordinata per `position`, pivot `distance_m`/`position`) e
+  `CaiSicaiRestPoint::stages()`. Le FK sono in cascata: un punto o una tappa eliminati dall'import si portano via i legami
+  PRIMA del calcolo (il conteggio `deleted` del calcolo conta solo i punti che si sono allontanati).
+- Controllo incrociato con `fields.stages` (ott. 2026): 405/489 codici dichiarati dalla fonte cadono entro 1,5 km; gli altri
+  sono punti di fondovalle più lontani. 43 legami geometrici non sono dichiarati dalla fonte. La regola resta geometrica.

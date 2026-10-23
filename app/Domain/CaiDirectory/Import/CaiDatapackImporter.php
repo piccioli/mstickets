@@ -49,6 +49,7 @@ final class CaiDatapackImporter
         private readonly CaiTrailsImporter $trailsImporter,
         private readonly CaiTrailTerritoriesImporter $trailTerritoriesImporter,
         private readonly CaiSicaiStagesImporter $sicaiStagesImporter,
+        private readonly CaiSicaiStageRestPointsCalculator $sicaiStageRestPointsCalculator,
     ) {}
 
     private const CONNECTION_NAME = 'cai_datapack';
@@ -141,6 +142,8 @@ final class CaiDatapackImporter
                 $results += $this->trailTerritoriesImporter->import($connection, $dryRun);
                 // Tappe SICAI: anche loro sono sentieri di `cai_trails`.
                 $results += $this->sicaiStagesImporter->import($connection, $dryRun);
+                // Dopo tappe e punti di appoggio: i punti vicini a ogni tappa si ricalcolano a ogni import.
+                $results += $this->sicaiStageRestPointsCalculator->import($dryRun);
             }
 
             return $results;

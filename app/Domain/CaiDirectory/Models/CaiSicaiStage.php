@@ -8,6 +8,7 @@ use App\Domain\CaiDirectory\Support\CaiSicaiStageCode;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 /**
  * Tappa del Sentiero Italia CAI (US-1091), sola lettura: si scrive solo da `cai:import-datapack`
@@ -39,5 +40,18 @@ class CaiSicaiStage extends Model
     public function trail(): BelongsTo
     {
         return $this->belongsTo(CaiTrail::class, 'cai_trail_id');
+    }
+
+    /**
+     * Punti di appoggio entro 1,5 km dal tracciato (US-1093), in ordine di percorrenza; pivot `distance_m`, `position`.
+     *
+     * @return BelongsToMany<CaiSicaiRestPoint, $this>
+     */
+    public function restPoints(): BelongsToMany
+    {
+        return $this->belongsToMany(CaiSicaiRestPoint::class, 'cai_sicai_stage_rest_point', 'cai_trail_id', 'rest_point_id')
+            ->withPivot(['distance_m', 'position'])
+            ->orderByPivot('position')
+            ->orderBy('cai_sicai_rest_points.id');
     }
 }
