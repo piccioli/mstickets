@@ -154,7 +154,7 @@ Fase 10.4–10.9 (run unico): rifugi, sentieri, tappe SICAI. PRD in docs/project
   Support/CaiRegionalGroupHutsData,Support/CaiHutSheet}.php`, `app/Domain/CaiDirectory/CLAUDE.md`, test
   `tests/Feature/Domain/CaiDirectory/Queries/CaiRegionalGroupHutsTest.php`.
 - **Learnings for future iterations:**
-  - Il M di Lombardia è 152 (non 101 come i dati d'esempio del design): sono le Sezioni reali per prefisso.
+  - Il M reale di Lombardia è 152 Sezioni per prefisso: usarlo in verifica browser, non i numeri d'esempio del design.
   - Le righe selezionano solo le colonne per elenco/mappa/riepilogo (`COLUMNS`, niente `fields`/`services`/`contacts`):
     la scheda ricarica il rifugio intero. Se la pagina GR ha bisogno di altre colonne, aggiungerle lì.
   - Per US-1045 il badge può usare `total` e `sectionsWithHutsCount` di questa classe (GR senza regione → `null`
