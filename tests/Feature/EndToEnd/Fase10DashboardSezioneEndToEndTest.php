@@ -71,8 +71,8 @@ test('a Sezione user logs in, lands on the Dashboard V2 with real values and fol
         ->assertSeeText('963')
         ->assertSeeText('Ticket e documenti');
 
-    // Rifugi, sentieri e tappe SICAI non hanno ancora una sorgente dati: mai "0".
-    expect(substr_count((string) $response->getContent(), 'ms-metric-badge--unavailable'))->toBe(3);
+    // Sentieri e tappe SICAI non hanno ancora una sorgente dati: mai "0". I rifugi sì (10.4): 0 è un dato noto.
+    expect(substr_count((string) $response->getContent(), 'ms-metric-badge--unavailable'))->toBe(2);
 
     // --- Click sul badge "Soci" → pagina "in arrivo" ------------------------------------
     $response->assertSee('href="'.SectionMembers::getUrl().'"', escape: false);

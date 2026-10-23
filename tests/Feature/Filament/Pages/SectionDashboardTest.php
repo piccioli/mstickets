@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\CaiDirectory\Enums\CaiHutStatus;
 use App\Domain\CaiDirectory\Enums\CaiRuntsPresenceStatus;
 use App\Domain\CaiDirectory\Models\CaiFinancialStatement;
 use App\Domain\CaiDirectory\Models\CaiSubsection;
@@ -79,13 +80,13 @@ test('the typical section shows members and income statement, the rest is not av
         ->assertSeeText('Esercizio 2025')
         ->html();
 
-    // Stato patrimoniale + rifugi + sentieri + tappe SICAI.
-    expect(substr_count($html, 'ms-metric-badge--unavailable'))->toBe(4)
+    // Stato patrimoniale + sentieri + tappe SICAI; i rifugi sono un dato noto anche a zero.
+    expect(substr_count($html, 'ms-metric-badge--unavailable'))->toBe(3)
         ->and(substr_count($html, 'Esercizio '))->toBe(1)
-        ->and($html)->not->toContain('>0<');
+        ->and(substr_count($html, 'ms-metric-badge__number">0<'))->toBe(1);
 });
 
-test('an empty section shows every badge as not available, never 0', function (): void {
+test('an empty section shows every badge as not available except huts, shown as 0', function (): void {
     $user = sectionDashboardCustomer();
     caiSection(['name' => 'SEZ. VUOTA', 'region' => '', 'codice_cai' => '9999', 'members_count' => null, 'user_id' => $user->id]);
 
@@ -98,8 +99,23 @@ test('an empty section shows every badge as not available, never 0', function ()
         ->assertDontSeeText('Esercizio')
         ->html();
 
-    expect(substr_count($html, 'ms-metric-badge--unavailable'))->toBe(6)
-        ->and(substr_count($html, 'Non disponibile'))->toBe(6);
+    expect(substr_count($html, 'ms-metric-badge--unavailable'))->toBe(5)
+        ->and(substr_count($html, 'Non disponibile'))->toBe(5)
+        ->and(substr_count($html, 'ms-metric-badge__number">0<'))->toBe(1);
+});
+
+test('the huts badge counts every hut of the section', function (): void {
+    $user = sectionDashboardCustomer();
+    $section = caiSection(['user_id' => $user->id, 'members_count' => null]);
+    caiHut(['branch_code' => $section->codice_cai]);
+    caiHut(['branch_code' => $section->codice_cai, 'status' => CaiHutStatus::Sold]);
+    caiHut(['branch_code' => caiSection()->codice_cai]);
+
+    $this->actingAs($user);
+
+    $html = Livewire::test(SectionDashboard::class)->html();
+
+    expect(substr_count($html, 'ms-metric-badge__number">2<'))->toBe(1);
 });
 
 test('a subsection user sees the subsection name, code and members with the parent region', function (): void {

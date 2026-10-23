@@ -411,6 +411,9 @@ Operativo (ordine dei comandi e vincolo di spazio remoto): `deploy/CLAUDE.md` §
   `jsonb`) conserva l'ordine, ma il confronto non deve dipenderne.
 - `CaiHutPolicy`: `view` = `viewManagement` = staff `CaiDirectoryView`, customer collegato alla Sezione `branch_code`,
   customer GR il cui `prefixOf(region)` è prefisso del `branch_code`; create/update/delete sempre `false`.
+- **Badge "Rifugi" (US-1036)**: unica eccezione alla regola "mancante = `null`, mai 0" delle dashboard — la banca
+  dati rifugi.cai.it è completa, quindi una Sezione senza rifugi ha `huts = 0` (mostrato "0"); solo la Sottosezione
+  resta `null`. Conta tutti i `cai_huts` della Sezione, qualunque `status`.
 - **Aggiornamento dall'API (US-1032)**: `cai:fetch-huts [--datapack=] [--dry-run]` → `Import\CaiHutsFetcher`
   (`fetch()` elenco paginato + dettagli con `Http::pool` a blocchi, `write()` DROP+CREATE+INSERT in una transazione,
   tutto o niente) → riepilogo `CaiHutsFetchSummary` (collegati = `branch_id` presente in `sezioni_cai` del datapack).

@@ -22,6 +22,9 @@ use App\Domain\Identity\Enums\Region;
  *
  * Terzo Settore: iscritta se ha una `CaiRuntsRegistration` collegata o se la verifica di presenza l'ha trovata
  * (`Registered`); in ogni altro caso (mai verificata, timeout, non presente) "non iscritta" — scelta del committente.
+ *
+ * Rifugi (10.4) = tutti i `cai_huts` della Sezione, in qualunque stato. La banca dati rifugi.cai.it è completa:
+ * nessun rifugio è un dato noto (0), non "Non disponibile". Una Sottosezione non ha rifugi propri (`null`).
  */
 final class CaiSectionDashboardMetrics
 {
@@ -50,6 +53,7 @@ final class CaiSectionDashboardMetrics
             ),
             thirdSectorRegistered: $section->runts_presence_status === CaiRuntsPresenceStatus::Registered
                 || $section->runtsRegistrations()->exists(),
+            huts: $section->huts()->count(),
         );
     }
 

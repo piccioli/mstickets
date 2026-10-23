@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\CaiDirectory\Enums\CaiHutStatus;
 use App\Domain\CaiDirectory\Enums\CaiRuntsPresenceStatus;
 use App\Domain\CaiDirectory\Models\CaiFinancialStatement;
 use App\Domain\CaiDirectory\Models\CaiSubsection;
@@ -29,7 +30,7 @@ test('a complete section exposes identity, members and both statements', functio
         ->and($data->balanceSheet?->year)->toBe(2025)
         ->and($data->balanceSheet?->netEquity)->toBe(90000.0)
         ->and($data->balanceSheet?->totalAssets)->toBe(250000.0)
-        ->and($data->huts)->toBeNull()
+        ->and($data->huts)->toBe(0)
         ->and($data->trailsKm)->toBeNull()
         ->and($data->sicaiStages)->toBeNull();
 });
@@ -150,4 +151,26 @@ test('a subsection has no third sector information', function (): void {
     $subsection = CaiSubsection::create(['cai_codice' => 'SUB-ETS', 'cai_section_id' => $section->codice_cai, 'name' => 'Sub']);
 
     expect(CaiSectionDashboardMetrics::forSubsection($subsection)->thirdSectorRegistered)->toBeNull();
+});
+
+test('huts counts every hut of the section whatever its status, never the other sections ones', function (): void {
+    $section = caiSection();
+    caiHut(['branch_code' => $section->codice_cai, 'status' => CaiHutStatus::Active]);
+    caiHut(['branch_code' => $section->codice_cai, 'status' => CaiHutStatus::TemporarilyClosed]);
+    caiHut(['branch_code' => $section->codice_cai, 'status' => CaiHutStatus::Sold]);
+    caiHut(['branch_code' => caiSection()->codice_cai]);
+
+    expect(CaiSectionDashboardMetrics::forSection($section)->huts)->toBe(3);
+});
+
+test('a section without huts has 0 huts, a known value', function (): void {
+    expect(CaiSectionDashboardMetrics::forSection(caiSection())->huts)->toBe(0);
+});
+
+test('a subsection has no huts information', function (): void {
+    $section = caiSection();
+    caiHut(['branch_code' => $section->codice_cai]);
+    $subsection = CaiSubsection::create(['cai_codice' => 'SUB-HUT', 'cai_section_id' => $section->codice_cai, 'name' => 'Sub']);
+
+    expect(CaiSectionDashboardMetrics::forSubsection($subsection)->huts)->toBeNull();
 });
