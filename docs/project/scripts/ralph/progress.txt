@@ -789,3 +789,30 @@ Fase 10.4–10.9 (run unico): rifugi, sentieri, tappe SICAI. PRD in docs/project
   - Per US-1096: cartello del codice SICAI = `x-cai.trail-sign` con classe `ms-cai-trail-sign--sicai` (anche in `xl`);
     `CaiTrailDetail::FROM_SICAI` esiste già, manca il link di ritorno.
 ---
+
+## 2026-10-23 - US-1096
+- `CaiTrailDetail` riconosce la tappa SICAI (`trail->sicaiStage`): codice della tappa nel cartello `ms-cai-trail-sign--sicai`
+  in testata, percorso "Tappe SICAI / Tappa E23", navigazione precedente | "Tappa 23 di 68 · Sentiero Italia CAI in Piemonte"
+  (o "Variante della tappa E34") con varianti / "Torna alla tappa E34" | successiva, "E01 è la prima tappa in Piemonte" ai
+  bordi; blocco "Punti di appoggio vicini" (striscia della tappa con i punti alla loro posizione, tabella desktop, card
+  mobile, "sul tracciato" sotto 200 m) e stato vuoto con rimando alle tappe adiacenti con punti (link) o "Nessun punto di
+  appoggio censito in …" se l'intera lettera non ne ha. `?da=sicai` → ritorno a "Tappe SICAI" (solo utente GR) e resta nei
+  link fra le tappe.
+- `Support\CaiSicaiStageNavigation` (precedente/successiva fra le principali della lettera, varianti, posizione),
+  `CaiRegionalGroupSicai::stageRowsForLetters()`, `Region::forSicaiLetter()`. Accesso: `CaiTrailPolicy::view()` e
+  `CaiSicaiStagePolicy::view()` ammettono il GR la cui regione ha la lettera della tappa.
+- Verifica in browser (Playwright, utente GR Piemonte di prova poi `forceDelete`): E23 (3 punti), variante E34V, E07 senza
+  punti (rimando a E06, E08), desktop 1440 e mobile 390, nessuno scroll orizzontale né errore JS, clic su "Tappa successiva"
+  → E24 con `?da=sicai`.
+- Files: app/Filament/Pages/CaiTrailDetail.php, resources/views/filament/pages/cai-trail-detail.blade.php,
+  resources/views/filament/pages/partials/cai-trail-detail-sicai-{nav,points}.blade.php, resources/css/filament/admin/cai-trail-detail.css,
+  app/Domain/CaiDirectory/{Support/CaiSicaiStageNavigation,Queries/CaiRegionalGroupSicai,Policies/CaiTrailPolicy,Policies/CaiSicaiStagePolicy}.php,
+  app/Domain/Identity/Enums/Region.php, app/Domain/CaiDirectory/CLAUDE.md, tests/Feature/Filament/Pages/CaiTrailDetailSicaiTest.php (13),
+  tests/Unit/Domain/Identity/RegionTest.php.
+- **Learnings for future iterations:**
+  - Nei test HTTP di una pagina con varianti desktop/mobile entrambe nell'HTML, togliere `ms-trail__mobile-inline` e le card
+    mobile prima di cercare frasi intere (`sicaiSheetText()`), altrimenti il testo è "Tappa precedente← Precedente E01".
+  - In un flex con testo misto (pallino + "E22 · percorso lungo") avvolgere il testo in un solo span con ellissi: i nodi di
+    testo nudi diventano elementi flex separati e vanno a capo in modo illeggibile.
+  - Per US-1098 (end-to-end): da "Tappe SICAI" → `CaiTrailDetailSicaiTest` copre già tappa → successiva e punti vicini.
+---
