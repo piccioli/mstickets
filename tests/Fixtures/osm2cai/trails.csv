@@ -1,0 +1,4 @@
+id,osmid,ref,name,from_place,to_place,cai_scale,length_km,ascent,descent,status,issues_status,issues_last_update,validation_date,geometry_geojson
+101,7001,10,"Sentiero ""Alto""",Rifugio A,Passo B,E,5.432,640,12,4,percorribile,2025-06-01,2024-09-15 10:00:00,"{""type"":""MultiLineString"",""coordinates"":[[[10.1,43.1],[10.2,43.2]]]}"
+102,7002,,,,,,0.8,,,1,sconosciuto,,,"{""type"":""MultiLineString"",""coordinates"":[[[10.3,43.3],[10.4,43.4]]]}"
+103,7003,2A,Anello,Borgo,Borgo,EE,12.005,1100,1100,2,non percorribile,2025-08-20,,"{""type"":""MultiLineString"",""coordinates"":[[[10.5,43.5],[10.6,43.6]]]}"

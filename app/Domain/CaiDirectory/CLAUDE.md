@@ -469,3 +469,25 @@ Operativo (ordine dei comandi e vincolo di spazio remoto): `deploy/CLAUDE.md` §
   tentativi. I dettagli restano JSON grezzo (stringhe, ~12,6 MB): decodificati tutti insieme e con 764 risposte del
   pool vive il comando sforava in silenzio il `memory_limit` CLI di 128M. Nei test la pausa si verifica con
   `Sleep::fake()` (il fetcher usa `Illuminate\Support\Sleep`, non `usleep`).
+
+## Sentieri dal catasto osm2cai (`snap_osm2cai_*`, Fase 10.6, US-1051)
+
+- **Fonte**: dump PostgreSQL/PostGIS di osm2cai.cai.it (`pg_dump` testuale gzip, ~1,6 GB; oggi un file locale, URL di
+  download non ancora disponibile). **Contiene dati personali** (`users`, `cas_users`, `password_resets`): mai nel DB
+  dell'app, su UAT né in git — si carica solo in un container temporaneo.
+- **Procedura**: `bin/update-osm2cai-datapack <dump.sql.gz> [--datapack=] [--keep-db]` → `cai:import-datapack` in
+  locale → `bin/push-cai-datapack` → deploy UAT. Lo script avvia `postgis/postgis:16-3.4-alpine` (`--platform
+  linux/amd64`, emulato su Apple Silicon: import ~6 min) con nome univoco, crea il ruolo `osm2cai2`, importa, esegue
+  `database/osm2cai/extract.sql` (schema `osm2cai_extract`), esporta i CSV in `storage/app/osm2cai-extract-*` e chiama
+  `cai:import-osm2cai-extract` (nel container `app` se è su, altrimenti `php` dell'host: il datapack va quindi indicato
+  relativo alla root del repo). `trap` rimuove container e CSV anche in caso di errore; `--keep-db` lascia il container
+  per ispezionare il dump (`docker exec -it <nome> psql -U postgres -d osm2cai`).
+- **Gotcha del dump**: i `pg_dump` recenti scrivono `\restrict`/`\unrestrict`, che lo psql 16.4 dell'immagine non
+  conosce (`invalid command \restrict`): lo script li filtra con `sed`. `hiking_routes.name` è un JSON traducibile
+  (`{"it": "P69A - Partenza - Arrivo"}`), `hiking_routes.osmid` è vuoto (l'id OSM sta in
+  `osmfeatures_data.properties.osm_id`), `ascent`/`descent` dei tag OSM mancano in ~60% dei sentieri (restano `null`).
+  `issues_status` reali: `percorribile`, `percorribile parzialmente`, `non percorribile`, `sconosciuto`.
+- **Scrittura** (`Import\CaiOsm2caiExtractWriter`): DROP+CREATE+INSERT delle sole `snap_osm2cai_trails` /
+  `snap_osm2cai_trail_sections` in una transazione; intestazione dei CSV = `TRAIL_COLUMNS` / `TRAIL_SECTION_COLUMNS`
+  (se cambia `extract.sql`, cambiare anche le costanti, o il comando rifiuta il CSV). Cella vuota → `NULL`.
+- Geometria semplificata a 0.00002° (~1 pixel a zoom 16) e 6 decimali: 108 MB di GeoJSON invece di 200 MB.
