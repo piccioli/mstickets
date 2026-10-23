@@ -1,0 +1,78 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Domain\CaiDirectory\Support;
+
+use App\Domain\CaiDirectory\Models\CaiHut;
+use App\Support\Formatting\ItalianNumberFormatter;
+
+/**
+ * Marker del componente `x-cai.map` (US-1033): cerchio del colore del tipo con la lettera, `popupHtml` facoltativo già
+ * reso (e già escapato) lato server, di solito con la vista `components.cai.map-popup`. `id` è la chiave con cui la
+ * mappa e l'elenco della pagina si evidenziano a vicenda.
+ */
+final readonly class CaiMapMarker
+{
+    /** Colore e lettera di un rifugio con tipo sconosciuto alla fonte (enum `null`). */
+    public const UNKNOWN_COLOR = '#5b6475';
+
+    public const UNKNOWN_LETTER = '?';
+
+    public function __construct(
+        public int|string $id,
+        public float $lat,
+        public float $lng,
+        public string $label,
+        public string $color,
+        public string $letter,
+        public ?string $popupHtml = null,
+    ) {}
+
+    /** Marker di un rifugio, con il popup del design; `null` se il rifugio non ha coordinate. */
+    public static function forHut(CaiHut $hut, ?string $url = null): ?self
+    {
+        if ($hut->latitude === null || $hut->longitude === null) {
+            return null;
+        }
+
+        $photos = $hut->photos ?? [];
+        $photo = is_string($photos[0] ?? null) ? $photos[0] : null;
+
+        return new self(
+            id: $hut->id_cai,
+            lat: (float) $hut->latitude,
+            lng: (float) $hut->longitude,
+            label: $hut->name,
+            color: $hut->type?->color() ?? self::UNKNOWN_COLOR,
+            letter: $hut->type?->letter() ?? self::UNKNOWN_LETTER,
+            popupHtml: view('components.cai.map-popup', [
+                'title' => $hut->name,
+                'photo' => $photo,
+                'color' => $hut->type?->color() ?? self::UNKNOWN_COLOR,
+                'typeLabel' => $hut->type?->getLabel() ?? 'Tipo non indicato',
+                'meta' => $hut->altitude === null ? null : ItalianNumberFormatter::integer($hut->altitude).' m',
+                'statusLabel' => $hut->status?->getLabel(),
+                'statusBackground' => $hut->status?->background(),
+                'statusForeground' => $hut->status?->foreground(),
+                'url' => $url,
+            ])->render(),
+        );
+    }
+
+    /**
+     * @return array{id: int|string, lat: float, lng: float, label: string, color: string, letter: string, popupHtml: string|null}
+     */
+    public function toArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'lat' => $this->lat,
+            'lng' => $this->lng,
+            'label' => $this->label,
+            'color' => $this->color,
+            'letter' => $this->letter,
+            'popupHtml' => $this->popupHtml,
+        ];
+    }
+}

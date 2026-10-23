@@ -1,0 +1,147 @@
+/*
+ * Mappa con cartografia CAI (Fase 10.4, US-1033) — resources/views/components/cai/map.blade.php.
+ * Misure dal design docs/project/design/fase-10/rifugi-di-sezione.dc.html (marker 24/34 px, popup 240 px);
+ * colori solo da token --ms-*, tranne il colore del marker che arriva dal tipo (variabile inline).
+ */
+.ms-cai-map {
+  position: relative;
+}
+
+.ms-cai-map__canvas {
+  width: 100%;
+  overflow: hidden;
+  border-radius: var(--ms-radius-card);
+  background: var(--ms-map-surface);
+  font-family: var(--ms-font-sans);
+}
+
+/* Il divIcon di Leaflet ha di default sfondo bianco e bordo: li togliamo, il disegno è nello span. */
+.ms-cai-map .ms-cai-map__marker-icon {
+  background: none;
+  border: none;
+}
+
+.ms-cai-map__marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border: var(--ms-border-width-strong) solid var(--ms-map-marker-border);
+  border-radius: var(--ms-radius-circle);
+  background: var(--ms-cai-map-marker-color);
+  box-shadow: var(--ms-shadow-map-marker);
+  color: var(--ms-map-marker-text);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.ms-cai-map__marker.is-active {
+  border-width: 3px;
+  box-shadow: var(--ms-shadow-map-marker-active);
+  font-size: 14px;
+}
+
+/* Pulsanti di zoom come nel design: colonna bianca, angoli arrotondati, ombra leggera. */
+.ms-cai-map .leaflet-bar {
+  overflow: hidden;
+  border: none;
+  border-radius: var(--ms-radius-lg);
+  box-shadow: var(--ms-shadow-map-control);
+}
+
+.ms-cai-map .leaflet-bar a {
+  width: 32px;
+  height: 32px;
+  border-bottom-color: var(--ms-border-subtle);
+  color: var(--ms-text-strong);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 32px;
+}
+
+.ms-cai-map .leaflet-control-attribution {
+  font-family: var(--ms-font-sans);
+  font-size: 10px;
+}
+
+/* Popup: card bianca 240 px con foto in alto a filo (padding del wrapper Leaflet azzerato). */
+.ms-cai-map .ms-cai-map__popup .leaflet-popup-content-wrapper {
+  padding: 0;
+  overflow: hidden;
+  border-radius: var(--ms-radius-card);
+  box-shadow: var(--ms-shadow-map-popup);
+}
+
+.ms-cai-map .ms-cai-map__popup .leaflet-popup-content {
+  width: 240px !important;
+  margin: 0;
+  font-family: var(--ms-font-sans);
+  line-height: 1.25;
+}
+
+.ms-cai-map .ms-cai-map__popup .leaflet-popup-close-button {
+  top: 6px;
+  right: 6px;
+  color: var(--ms-text-muted);
+  font-size: 16px;
+}
+
+.ms-cai-map-popup__photo {
+  display: block;
+  width: 100%;
+  height: 86px;
+  object-fit: cover;
+}
+
+.ms-cai-map-popup__body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 10px 12px 12px;
+  color: var(--ms-text-strong);
+}
+
+.ms-cai-map-popup__title {
+  padding-right: 16px;
+  font-size: var(--ms-text-md);
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.ms-cai-map-popup__type {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ms-text-secondary);
+  font-size: 12px;
+}
+
+.ms-cai-map-popup__dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: var(--ms-radius-circle);
+}
+
+.ms-cai-map-popup__status {
+  padding: 2px 9px;
+  border-radius: var(--ms-radius-xl);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.ms-cai-map .ms-cai-map-popup__link {
+  color: var(--ms-brand);
+  font-size: var(--ms-text-sm);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.ms-cai-map .ms-cai-map-popup__link:hover {
+  color: var(--ms-brand-link-hover);
+}

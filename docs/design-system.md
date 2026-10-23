@@ -191,6 +191,20 @@ metric-badge.blade.php`, stili in `resources/css/filament/admin/metric-badge.css
 | `shadow-hover-brand-lift` | `0 6px 18px rgba(23,161,128,.12)` | Hover del badge (con `translateY(-2px)`) |
 | `dur-badge` / `ease-out` | `180ms` / `ease-out` | Transizioni del badge |
 
+## Mappa CAI (rifugi, sentieri, tappe SICAI, Fase 10.4)
+
+Token aggiunti in `resources/css/theme.css` dal design `docs/project/design/fase-10/rifugi-di-sezione.dc.html`.
+Componente: `resources/views/components/cai/map.blade.php`, stili in `resources/css/filament/admin/cai-map.css`.
+I colori dei marker vengono dagli enum del tipo (es. `CaiHutType::color()`), non da token.
+
+| Nome semantico | Valore | Uso |
+|---|---|---|
+| `map-surface` | `#e3e8ed` | Sfondo della mappa sotto le tile |
+| `map-marker-border` / `map-marker-text` | `#ffffff` / `#ffffff` | Bordo e lettera del marker |
+| `shadow-map-marker` / `shadow-map-marker-active` | `0 1px 4px rgba(0,0,0,.4)` / `0 2px 6px rgba(0,0,0,.4)` | Marker normale / selezionato o in hover |
+| `shadow-map-popup` | `0 8px 24px rgba(20,30,40,.25)` | Popup del marker |
+| `shadow-map-control` | `0 1px 4px rgba(0,0,0,.2)` | Pulsanti di zoom |
+
 ## Breakpoint
 
 **Il mockup non definisce alcun breakpoint responsive**: nessuna `@media query` è presente nel

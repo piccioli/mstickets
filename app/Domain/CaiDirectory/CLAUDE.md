@@ -107,6 +107,23 @@ parametro di rotta) e `docs/collaudo/CLAUDE.md` per il metodo di generazione del
   calcolo dell'inquadratura iniziale. Verificare sempre con lo screenshot reale (non solo la fixture) prima
   di dichiarare completa una story che usa dati RUNTS-CAI.
 
+## Componente mappa `x-cai.map` (US-1033, rifugi / sentieri / tappe SICAI)
+
+- Unico componente mappa delle pagine Sezione/GR della Fase 10: `resources/views/components/cai/map.blade.php`, CSS
+  `resources/css/filament/admin/cai-map.css`. Dati come `Support\CaiMapMarker` (rifugio: `CaiMapMarker::forHut($hut,
+  $url)`, popup del design da `components.cai.map-popup`) e `Support\CaiMapLine` (GeoJSON + colore, per i sentieri).
+- Legame con l'elenco della pagina **solo via eventi** (`detail.map` = prop `name`): la mappa emette
+  `cai-map-marker-selected` / `cai-map-marker-hovered`, ascolta su `window` `cai-map-highlight` / `cai-map-select`.
+  Esempio riga: `@mouseenter="$dispatch('cai-map-highlight', { map: 'huts', id: 12 })"`, elenco
+  `x-data="{ active: null }" @cai-map-marker-selected.window="active = $event.detail.id"`.
+- Aggiornamento Livewire (filtri): il riquadro Leaflet è `wire:ignore`; i dati stanno in un `<div hidden>` con
+  `wire:key` = hash dei dati, il cui `x-init` richiama `load()`. Verificato con Playwright che la sostituzione del nodo
+  ridisegna la mappa. Rendere il componente sempre (anche vuoto), mai solo dentro un `@if` che appare dopo un update.
+- Oggetti Leaflet tenuti in closure, non nello stato Alpine (un Proxy reattivo rompe la mappa). Configurazione e dati
+  passano da attributi `data-cai-map-config` / `data-cai-map-payload` (JSON leggibile nei test), non da `@js(...)`.
+- Verifica JS senza pannello: rendere il componente con `Blade::render` in tinker, avvolgerlo in una pagina HTML con
+  Alpine da CDN e il CSS di `public/build`, aprirla con Playwright (`file://`).
+
 ## Riusare un Infolist Filament dentro una pagina custom non-Resource (US-806)
 
 - `Filament\Pages\Page` eredita già `InteractsWithSchemas` tramite `Filament\Pages\BasePage` — nessun
