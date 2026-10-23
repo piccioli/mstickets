@@ -235,3 +235,21 @@ Fase 10.4–10.9 (run unico): rifugi, sentieri, tappe SICAI. PRD in docs/project
   - La scheda non ha proprietà `#[Url]` per i parametri dell'elenco: li cattura una volta in `mount()` (persistono nello
     stato Livewire). Un nuovo filtro dell'elenco GR va aggiunto anche a `LIST_QUERY_KEYS`.
 ---
+
+## 2026-10-23 - US-1045
+- Badge "Rifugi" della Dashboard GR: `CaiRegionalGroupDashboardMetrics::forRegion()` valorizza `huts` (rifugi delle
+  Sezioni del GR + intestati al GR) e il nuovo `hutsSectionsCount` (Sezioni con almeno un rifugio) con UNA query
+  (`COUNT(*)` raggruppato per `branch_code` su `CaiRegionalGroupHuts::hutsQuery()`, reso pubblico e riusato: stessa regola
+  della pagina "Rifugi del GR"). Zero rifugi → "0" senza nota; regione senza Sezioni → `null` (come gli altri dati);
+  nota "Somma di N Sezioni" via `RegionalGroupDashboard::sumNote()` (singolare gestito), assente con N = 0.
+- Verificato su dev DB che badge e pagina coincidono: Lombardia 193/66, Toscana 26/14, Sicilia 10/6.
+- Verifica in browser non eseguita: modifica a un solo badge esistente, coperta dai test sull'HTML reso.
+- File: `app/Domain/CaiDirectory/Queries/{CaiRegionalGroupDashboardMetrics,CaiRegionalGroupHuts}.php`,
+  `app/Domain/CaiDirectory/Support/CaiRegionalGroupDashboardData.php`, `resources/views/filament/pages/regional-group-dashboard.blade.php`,
+  `app/Domain/CaiDirectory/CLAUDE.md`, test `RegionalGroupDashboardTest.php`, `CaiRegionalGroupDashboardMetricsTest.php`.
+- **Learnings for future iterations:**
+  - Una regex sull'HTML di `Livewire::test()->html()` fallisce per i marcatori `<!--[if BLOCK]>…` fra gli elementi:
+    toglierli prima con `preg_replace('/<!--.*?-->/s', '', $html)`, oppure usare `assertSeeTextInOrder`.
+  - US-1056 (badge Sentieri della Sezione) e i badge GR delle 10.7/10.9 seguono lo stesso schema: valore + conteggio
+    Sezioni nel DTO, nota calcolata nella vista con `sumNote()`.
+---
