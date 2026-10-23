@@ -129,9 +129,16 @@ parametro di rotta) e `docs/collaudo/CLAUDE.md` per il metodo di generazione del
   nascosta con CSS. Test della gestione nascosta con `Gate::before(fn ($u, $a) => $a === 'viewManagement' ? false : null)`
   (oggi la policy dà `view` = `viewManagement`, quindi non c'è un utente reale che vede la scheda senza gestione).
 - Formattazione in `Support\CaiHutSheet` (valore assente = `null`, la vista mette "—"): servizi (`SERVICES`, 15 chiavi
-  di `services`), certificazioni (`CERTIFICATIONS`), contatti con link, orari, canone, scadenza contratto
-  (`Enums\CaiHutContractStatus`: scaduto < 0 giorni, in scadenza ≤ 183, testo "Scaduto da N mesi/giorni"). Oggi passato
-  come argomento (`contractStatus($today)`) per i test con `Carbon::setTestNow`.
+  di `services`), certificazioni (`CERTIFICATIONS`), contatti con link, orari, canone.
+- **Scadenza del contratto: un solo punto, `Support\CaiHutContractExpiry`** (`of($hut)` → `endDate`, `status($today)`
+  = `Enums\CaiHutContractStatus` scaduto < 0 giorni / in scadenza ≤ 183, `note($today)` "Scaduto da N mesi/giorni" /
+  "Scade tra …" / "Scade oggi"). La usano `CaiHutSheet` (scheda) e `Queries\CaiRegionalGroupHuts` (10.5): mai
+  ricalcolare le soglie altrove. Oggi passato come argomento per i test con `Carbon::setTestNow`.
+- Rifugi del GR (10.5): `Queries\CaiRegionalGroupHuts::forRegion($region)` → `CaiRegionalGroupHutsData` (righe
+  `CaiRegionalGroupHutRow` con nome Sezione, flag `ownedByGroup`, scadenza; M, Sezioni con/senza rifugi, contatori).
+  Sezioni per prefisso (`sectionsOf()`) **più** i rifugi intestati al GR (`branch_code` `95…` e `branch_name` =
+  "GR {Region::label()}" senza maiuscole, oggi solo `9500046` GR Sicilia), con "GR {regione}" come Sezione; un rifugio
+  del GR non conta fra le "Sezioni con rifugi". Da riusare per pagina e badge della Dashboard GR.
 - Certificazioni del design non presenti in rifugi.cai.it (depuratore, solare termico, Ecolabel): sostituite da chiavi
   reali sì/no (`oilSeparator`, `rain_water`, `greenCertification`). Le altre chiavi `*_certification` sono testo libero
   (anno di costruzione, classe catastale, ...), non vanno nella griglia Sì/No.

@@ -262,31 +262,13 @@ final readonly class CaiHutSheet
     /** `null` se il contratto non ha una data di scadenza. */
     public function contractStatus(CarbonInterface $today): ?CaiHutContractStatus
     {
-        $days = $this->daysLeft($today);
-
-        return $days === null ? null : CaiHutContractStatus::fromDaysLeft($days);
+        return CaiHutContractExpiry::of($this->hut)->status($today);
     }
 
     /** "Scaduto da 4 mesi" / "Scade tra 12 giorni", solo per un contratto scaduto o in scadenza. */
     public function contractNote(CarbonInterface $today): ?string
     {
-        $days = $this->daysLeft($today);
-        $status = $days === null ? null : CaiHutContractStatus::fromDaysLeft($days);
-
-        if ($days === null || $status === null || ! $status->isAlert()) {
-            return null;
-        }
-
-        if ($days === 0) {
-            return 'Scade oggi';
-        }
-
-        $months = (int) round(abs($days) / 30.44);
-        $span = $months >= 1
-            ? $months.' '.($months === 1 ? 'mese' : 'mesi')
-            : abs($days).' '.(abs($days) === 1 ? 'giorno' : 'giorni');
-
-        return $status === CaiHutContractStatus::Expired ? 'Scaduto da '.$span : 'Scade tra '.$span;
+        return CaiHutContractExpiry::of($this->hut)->note($today);
     }
 
     /**
@@ -354,20 +336,7 @@ final readonly class CaiHutSheet
 
     private function contractDate(string $key): ?CarbonImmutable
     {
-        $value = self::text($this->contract()[$key] ?? null);
-
-        if ($value === null || preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) !== 1) {
-            return null;
-        }
-
-        return CarbonImmutable::createFromFormat('!Y-m-d', $value) ?: null;
-    }
-
-    private function daysLeft(CarbonInterface $today): ?int
-    {
-        $end = $this->contractDate('end_date');
-
-        return $end === null ? null : (int) CarbonImmutable::parse($today->format('Y-m-d'))->diffInDays($end, false);
+        return CaiHutContractExpiry::date($this->contract()[$key] ?? null);
     }
 
     /**
