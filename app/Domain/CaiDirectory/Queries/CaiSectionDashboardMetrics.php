@@ -25,6 +25,9 @@ use App\Domain\Identity\Enums\Region;
  *
  * Rifugi (10.4) = tutti i `cai_huts` della Sezione, in qualunque stato. La banca dati rifugi.cai.it è completa:
  * nessun rifugio è un dato noto (0), non "Non disponibile". Una Sottosezione non ha rifugi propri (`null`).
+ *
+ * Sentieri (10.6) = somma di `length_km` dei `cai_trails` della Sezione: un sentiero condiviso con altre Sezioni conta
+ * per intero in ognuna. Nessun sentiero è un dato noto (0,0 km); una Sottosezione non ha sentieri propri (`null`).
  */
 final class CaiSectionDashboardMetrics
 {
@@ -54,6 +57,7 @@ final class CaiSectionDashboardMetrics
             thirdSectorRegistered: $section->runts_presence_status === CaiRuntsPresenceStatus::Registered
                 || $section->runtsRegistrations()->exists(),
             huts: $section->huts()->count(),
+            trailsKm: (float) $section->trails()->sum('cai_trails.length_km'),
         );
     }
 

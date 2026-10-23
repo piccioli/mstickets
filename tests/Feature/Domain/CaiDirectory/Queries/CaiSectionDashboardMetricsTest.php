@@ -31,7 +31,7 @@ test('a complete section exposes identity, members and both statements', functio
         ->and($data->balanceSheet?->netEquity)->toBe(90000.0)
         ->and($data->balanceSheet?->totalAssets)->toBe(250000.0)
         ->and($data->huts)->toBe(0)
-        ->and($data->trailsKm)->toBeNull()
+        ->and($data->trailsKm)->toBe(0.0)
         ->and($data->sicaiStages)->toBeNull();
 });
 
@@ -173,4 +173,28 @@ test('a subsection has no huts information', function (): void {
     $subsection = CaiSubsection::create(['cai_codice' => 'SUB-HUT', 'cai_section_id' => $section->codice_cai, 'name' => 'Sub']);
 
     expect(CaiSectionDashboardMetrics::forSubsection($subsection)->huts)->toBeNull();
+});
+
+test('trails km sums the length of every trail of the section, a shared trail counted in full', function (): void {
+    $section = caiSection();
+    $other = caiSection();
+    caiTrail(['length_km' => 5.4], [$section->codice_cai]);
+    caiTrail(['length_km' => 12.25], [$section->codice_cai, $other->codice_cai]);
+    caiTrail(['length_km' => null], [$section->codice_cai]);
+    caiTrail(['length_km' => 100], [$other->codice_cai]);
+
+    expect(CaiSectionDashboardMetrics::forSection($section)->trailsKm)->toBe(17.65)
+        ->and(CaiSectionDashboardMetrics::forSection($other)->trailsKm)->toBe(112.25);
+});
+
+test('a section without trails has 0 trail km, a known value', function (): void {
+    expect(CaiSectionDashboardMetrics::forSection(caiSection())->trailsKm)->toBe(0.0);
+});
+
+test('a subsection has no trails information', function (): void {
+    $section = caiSection();
+    caiTrail([], [$section->codice_cai]);
+    $subsection = CaiSubsection::create(['cai_codice' => 'SUB-TRL', 'cai_section_id' => $section->codice_cai, 'name' => 'Sub']);
+
+    expect(CaiSectionDashboardMetrics::forSubsection($subsection)->trailsKm)->toBeNull();
 });
