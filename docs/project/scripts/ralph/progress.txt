@@ -485,3 +485,29 @@ Fase 10.4–10.9 (run unico): rifugi, sentieri, tappe SICAI. PRD in docs/project
     italiane: utile per la 10.9.
   - Le `percentage` di `hiking_route_*` non sono usate (precalcolate, possono superare 100 e divergere dalla geometria).
 ---
+
+## 2026-10-23 - US-1062
+- Migrazione `cai_trail_regions` / `cai_trail_provinces` / `cai_trail_sectors` (geometry json) / `cai_trail_territory_km`
+  (chiave composta) / `cai_trail_territory` (pivot con percentuale, FK su `cai_trails` e sui territori, cascata). Modelli
+  `CaiTrailRegion` (`region_key` → `Region`), `CaiTrailProvince`, `CaiTrailSector`, `CaiTrailTerritoryKm` (`regionId()`),
+  `CaiTrailTerritory`, enum `CaiTrailTerritoryType`, `CaiTrail::territories()`. Cinque Policy di sola lettura sul trait
+  `Policies\Concerns\AuthorizesTrailRegion` (staff `CaiDirectoryView`, GR della regione).
+- `Import\CaiTrailTerritoriesImporter`, riga `snapshot_territori_sentieri` di `cai:import-datapack`, eseguito dopo
+  `CaiTrailsImporter`: confronto per contenuto normalizzato, sostituzione in blocco solo se qualcosa cambia; orfani saltati
+  con avviso; tabelle assenti → avviso e contenuto intatto; dry-run.
+- Run reale sul dev (Postgres, datapack di settembre): 88.627 righe (20 regioni, 106 province, 834 settori, 2.106 km,
+  85.561 legami) in 2,6 s; secondo run 0 create/0 eliminate in 0,3 s. Lombardia 20.534,8 km / 4.016 presenti (= US-1061).
+- Files: database/migrations/2026_10_23_120000_create_cai_trail_territory_tables.php, app/Domain/CaiDirectory/{Models/
+  CaiTrail{Region,Province,Sector,TerritoryKm,Territory}.php, Models/CaiTrail.php, Enums/CaiTrailTerritoryType.php,
+  Policies/CaiTrail{Region,Province,Sector,TerritoryKm,Territory}Policy.php, Policies/Concerns/AuthorizesTrailRegion.php,
+  Import/CaiTrailTerritoriesImporter.php, Import/CaiDatapackImporter.php, CLAUDE.md}, tests/Pest.php,
+  tests/Feature/Console/{CaiTrailTerritoriesImportTest,CaiImportOsm2caiExtractCommandTest}.php.
+- **Learnings for future iterations:**
+  - `osm2caiCsvDirectory($overrides)` ora è in `tests/Pest.php` (spostato dal test del writer); `makeTrailTerritoriesDatapack()`
+    usa il writer vero sui CSV fixture: la fixture dà 3 regioni (Lombardia id 1, Trentino 2, VdA 4), province 10/11,
+    settori 100/101, sentieri 101/102 in Lombardia (101 al 100% fino al settore 100, 102 al 50% solo regione).
+  - Il writer scarta già le righe con territori sconosciuti (`dropForeignTerritories`): per testare gli orfani
+    dell'importer servono stato fuori 1–4 o un sentiero non importato.
+  - Per la 10.7 (US-1063): km per territorio in `cai_trail_territory_km`; "presente" = riga di `cai_trail_territory` col
+    livello giusto e `percentage >= 50`; settori senza sentieri = `cai_trail_sectors` senza righe in `territory_km`.
+---
