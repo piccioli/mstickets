@@ -369,8 +369,8 @@
         "Typecheck passes"
       ],
       "priority": 21,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Territori calcolati sui soli sentieri estratti (non deleted_on_osm): numeri 1-3% sotto riepilogo_regioni.json; con gli eliminati inclusi coincidono. Da segnalare al committente."
     },
     {
       "id": "US-1062",

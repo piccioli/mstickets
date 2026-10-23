@@ -453,3 +453,35 @@ Fase 10.4–10.9 (run unico): rifugi, sentieri, tappe SICAI. PRD in docs/project
     sui commit `feat: US-…` della feature dà i titoli esatti dei test aggiunti.
   - US-1067 (10.7) deve ripartire da F10-288.
 ---
+
+## 2026-10-23 - US-1061
+- `database/osm2cai/extract.sql` produce in più `regions` (tutte, anche estere), `provinces` (sigla da `osm_tags.ref` /
+  `ISO3166-2`), `sectors` (provincia via `areas`, nome = `human_name` o nome tecnico, GeoJSON 2D semplificato 0.0003°, 5
+  decimali), `territory_km` (km intersecati + presenti ≥ 50% per territorio e stato) e `trail_territory` (percentuale per
+  coppia sentiero–territorio; livello = id più profondo valorizzato). Intersezioni con poligoni `ST_Subdivide(…, 256)` +
+  GiST. Lo script esporta i 5 CSV in più; `CaiOsm2caiExtractWriter` scrive le 5 `snap_osm2cai_*` nella stessa
+  transazione, tiene solo le regioni abbinate all'enum (`Support\CaiOsm2caiRegionName`, colonna `region_key`) e scarta
+  in cascata il resto; due regioni sullo stesso enum → rollback. Il riepilogo stampa province/settori/legami, regioni
+  estere scartate, regioni assenti e per ogni regione km nel territorio e sentieri presenti.
+- Files: database/osm2cai/extract.sql, bin/update-osm2cai-datapack, app/Domain/CaiDirectory/Import/CaiOsm2caiExtract
+  {Writer,Summary}.php, app/Domain/CaiDirectory/Support/CaiOsm2caiRegionName.php, app/Console/Commands/
+  CaiImportOsm2caiExtractCommand.php, tests/Fixtures/osm2cai/{regions,provinces,sectors,territory_km,trail_territory}.csv,
+  tests/Feature/Console/CaiImportOsm2caiExtractCommandTest.php, tests/Unit/Domain/CaiDirectory/Support/
+  CaiOsm2caiRegionNameTest.php, app/Domain/CaiDirectory/CLAUDE.md.
+- **Run reale sul dump (settembre 2026)**: 7 min 55 s in tutto (import ~5 min 45 s, `extract.sql` ~2 min di cui ~1 min le
+  intersezioni). Sentieri invariati (26.056, 7.403 con Sezione). 20 regioni, 106 province, 834 settori (706 con km),
+  85.561 legami sentiero–territorio, settori 3,4 MB di GeoJSON, datapack sempre ~160 MB. 11 regioni estere scartate.
+- **Confronto con `riepilogo_regioni.json`** (km totali / presenti): includendo anche i sentieri `deleted_on_osm`, come fa
+  OSM2CAIReport, i numeri coincidono entro l'arrotondamento (Abruzzo 5.936/957 contro 5.937/957, Basilicata 1.262/157
+  contro 1.261/157). L'estrazione li ESCLUDE (come `cai_trails` della 10.6, così i "presenti" coincidono con l'elenco
+  dell'app): Abruzzo 5.823,7 km/931, Lombardia 20.534,8/4.016 (report 21.431/4.157), Molise 983,0/85 (1.017/90), Toscana
+  15.090,1/2.307 (15.238/2.344). Scarto 1–3%, dovuto ai 344 sentieri eliminati su OSM: da segnalare al committente.
+- **Learnings for future iterations:**
+  - Righe di `snap_osm2cai_trail_territory`: regione = `province_id`/`sector_id` null; provincia = `sector_id` null;
+    settore = tutti valorizzati. "Presente in regione" = riga di regione con `percentage >= 50`.
+  - `territory_km` ha righe solo per i territori con almeno un sentiero: i settori senza sentieri (128 su 834) si trovano
+    per differenza con `snap_osm2cai_sectors`.
+  - `regions.code` della fonte è la lettera SICAI (A Friuli, B Veneto, …, Z Sardegna), valorizzato solo per le 20
+    italiane: utile per la 10.9.
+  - Le `percentage` di `hiking_route_*` non sono usate (precalcolate, possono superare 100 e divergere dalla geometria).
+---
