@@ -108,3 +108,18 @@ Fase 10.4–10.9 (run unico): rifugi, sentieri, tappe SICAI. PRD in docs/project
   - Il login Filament ha un rate limit: in Playwright un login per utente e poi più pagine nello stesso contesto (cambiando viewport), non un login per screenshot.
   - Gestione "nascosta" non testabile con un utente reale finché `viewManagement` = `view`: `Gate::before` nel test.
 ---
+
+## 2026-10-23 - US-1036
+- `CaiSectionDashboardMetrics::forSection()` valorizza `huts` con `$section->huts()->count()` (tutti gli stati);
+  Sottosezione resta `null`. Docblock di metriche e `CaiSectionDashboardData` aggiornati.
+- Test: metriche (conteggio multi-stato esclusa altra Sezione, 0 senza rifugi, Sottosezione null), dashboard Livewire
+  (badge "2", "0" mostrato come numero, conteggi `--unavailable` scesi di 1 per le Sezioni), E2E 10.1 (3→2).
+- Files: app/Domain/CaiDirectory/Queries/CaiSectionDashboardMetrics.php, Support/CaiSectionDashboardData.php,
+  CLAUDE.md del modulo, tests/Feature/Domain/CaiDirectory/Queries/CaiSectionDashboardMetricsTest.php,
+  tests/Feature/Filament/Pages/SectionDashboardTest.php, tests/Feature/EndToEnd/Fase10DashboardSezioneEndToEndTest.php.
+- Verifica in browser non eseguita (solo un valore in un badge esistente, già coperto dall'HTML nei test Livewire).
+- **Learnings for future iterations:**
+  - Per asserire un numero in un badge: `substr_count($html, 'ms-metric-badge__number">N<')`; i test 10.1 contano le
+    classi `ms-metric-badge--unavailable`, quindi ogni metrica che passa da null a valorizzata richiede di aggiornarli.
+  - US-1045 (badge GR) segue la stessa eccezione "0 è un dato noto": vedi `app/Domain/CaiDirectory/CLAUDE.md`.
+---
