@@ -306,3 +306,26 @@ Fase 10.4–10.9 (run unico): rifugi, sentieri, tappe SICAI. PRD in docs/project
   - Lanciare a mano `extract.sql` mentre lo script gira sullo stesso container crea una race (schema droppato): con
     `--keep-db` iterare solo dopo la fine dello script.
 ---
+
+## 2026-10-23 - US-1052
+- Migrazione `cai_trails` (PK id osm2cai, colonne di `snap_osm2cai_trails` + `practicability`, `geometry` json, indici
+  `status`/`ref`) e `cai_trail_section` (FK in cascata sul sentiero, `section_code` string 7 senza FK, PK composta).
+- Modello `CaiTrail` (cast, `sections()`), `CaiSection::trails()`, enum `CaiTrailStatus` (label/colori SDA, `foreground()`)
+  e `CaiTrailPracticability` (`fromIssuesStatus()`, colori PER), `CaiTrailPolicy` (sola lettura; `view` già con la regola
+  Sezione/GR/staff della US-1055).
+- `Import\CaiTrailsImporter` chiamato da `CaiDatapackImporter` dopo i rifugi: righe `snapshot_sentieri` /
+  `snapshot_sentieri_sezioni`, crea/aggiorna/elimina, idempotente, dry-run, tabelle assenti → riga con avviso.
+- Files: database/migrations/2026_10_23_110000_create_cai_trails_tables.php, app/Domain/CaiDirectory/{Models/CaiTrail.php,
+  Models/CaiSection.php, Enums/CaiTrailStatus.php, Enums/CaiTrailPracticability.php, Policies/CaiTrailPolicy.php,
+  Import/CaiTrailsImporter.php, Import/CaiDatapackImporter.php, CLAUDE.md}, tests/Pest.php (`osm2caiTrailRow`,
+  `makeTrailsDatapack`), tests/Feature/Console/CaiTrailsImportTest.php, tests/Feature/Domain/CaiDirectory/CaiTrailPolicyTest.php.
+- Dev DB (Postgres) migrato e importato dal datapack reale: 26.056 sentieri, 7.776 legami, ~7 s; seconda esecuzione tutto
+  "saltati"; percorribilità 5.718 / 136 / 71 / 20.131.
+- **Learnings for future iterations:**
+  - **La SAT (9218001) non ha sentieri**: nel datapack nessun legame con codici `9218…`. Il "SAT ~150" del PRD 10.6 non vale
+    con questo dump: per US-1054 usare Parma 9224001 (380) / Sulmona 9234004 (382) come "molti" e segnalarlo al committente.
+  - Le geometrie si confrontano come stringa grezza (colonna `json` in Postgres conserva il testo): niente decode.
+  - Un sentiero eliminato porta via i legami in cascata: sincronizzare i legami PRIMA di eliminare i sentieri, sennò i
+    legami rimossi non si contano.
+  - Helper di test: `osm2caiTrailRow($id, [...])` + `makeTrailsDatapack($trails, [[id, codice], ...])` in tests/Pest.php.
+---
