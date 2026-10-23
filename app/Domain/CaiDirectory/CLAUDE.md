@@ -511,6 +511,17 @@ Operativo (ordine dei comandi e vincolo di spazio remoto): `deploy/CLAUDE.md` §
   `snap_osm2cai_trail_sections` in una transazione; intestazione dei CSV = `TRAIL_COLUMNS` / `TRAIL_SECTION_COLUMNS`
   (se cambia `extract.sql`, cambiare anche le costanti, o il comando rifiuta il CSV). Cella vuota → `NULL`.
 - Geometria semplificata a 0.00002° (~1 pixel a zoom 16) e 6 decimali: 108 MB di GeoJSON invece di 200 MB.
+- **Territori (US-1061, 10.7)**: lo stesso `extract.sql` produce `regions`/`provinces`/`sectors`/`territory_km`/
+  `trail_territory` → `snap_osm2cai_*` omonime. Le intersezioni geometriche (km nel territorio, sentiero "presente" se
+  ≥ 50% della lunghezza dentro, regole di OSM2CAIReport) si calcolano **solo lì**: poligoni spezzati con `ST_Subdivide`
+  + indice GiST, ~1 min invece di decine. `regions` della fonte ha anche 11 regioni estere: il writer tiene solo quelle
+  abbinate all'enum da `Support\CaiOsm2caiRegionName` (nomi bilingui "Sardigna/Sardegna", "Trentino-Alto
+  Adige/Südtirol", "Valle d'Aosta / Vallée d'Aoste") e scarta in cascata province/settori/statistiche/legami; due regioni
+  sullo stesso enum → rollback. **Differenza voluta col report**: contano solo i sentieri estratti (non
+  `deleted_on_osm`, come l'elenco dell'app), OSM2CAIReport include anche i ~344 eliminati: i numeri per regione calano
+  dell'1–3% (Lombardia presenti 4.016 invece di 4.157). `trail_territory` usa le percentuali delle stesse intersezioni,
+  non le `percentage` precalcolate di `hiking_route_*` (così conteggi ed elenco coincidono); livello = id più profondo
+  valorizzato (regione / +provincia / +settore). `human_name` dei settori spesso vuoto → ripiego sul nome tecnico.
 - **Tabelle locali** (US-1052): `cai_trails` (modello `CaiTrail`, PK `id` = id osm2cai, `geometry` json GeoJSON, colonna
   `practicability` ricavata all'import) e `cai_trail_section` (`cai_trail_id` FK in cascata, `section_code` **senza FK**:
   i 22 codici osm2cai assenti da `cai_sections` restano nel legame). Relazioni `CaiSection::trails()` /

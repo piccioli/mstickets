@@ -19,7 +19,7 @@ function osm2caiCsvDirectory(array $overrides): string
     $dir = sys_get_temp_dir().'/osm2cai-csv-'.bin2hex(random_bytes(4));
     mkdir($dir);
 
-    foreach (['trails.csv', 'trail_sections.csv'] as $file) {
+    foreach (['trails.csv', 'trail_sections.csv', 'regions.csv', 'provinces.csv', 'sectors.csv', 'territory_km.csv', 'trail_territory.csv'] as $file) {
         $content = array_key_exists($file, $overrides) ? $overrides[$file] : file_get_contents(base_path('tests/Fixtures/osm2cai/'.$file));
 
         if ($content !== null) {
@@ -63,6 +63,42 @@ test('writes snap_osm2cai_trails and snap_osm2cai_trail_sections with typed valu
         ->toBe([[101, '9218001'], [101, '9226005'], [103, '9999999']]);
 });
 
+test('writes the Italian territories with their statistics, drops the foreign ones and prints the totals per region', function (): void {
+    $this->artisan('cai:import-osm2cai-extract', ['directory' => $this->csv, '--datapack' => $this->datapack])
+        ->expectsOutputToContain('Province: 2 · settori: 2 · legami sentiero–territorio: 4')
+        ->expectsOutputToContain('Regioni estere scartate: Ticino')
+        ->expectsOutputToContain('Lombardia: 5,8 km · 1 sentieri')
+        ->expectsOutputToContain('Trentino-Alto Adige: 0,0 km · 0 sentieri')
+        ->expectsOutputToContain("Valle d'Aosta: 0,0 km · 0 sentieri")
+        ->expectsOutputToContain('Regione assente dalla fonte: Abruzzo')
+        ->assertSuccessful();
+
+    expect($this->pdo->query('SELECT id, name, region_key FROM snap_osm2cai_regions ORDER BY id')->fetchAll(PDO::FETCH_NUM))
+        ->toBe([[1, 'Lombardia', 'lombardia'], [2, 'Trentino-Alto Adige/Südtirol', 'trentino_alto_adige'], [4, "Valle d'Aosta / Vallée d'Aoste", 'valle_d_aosta']])
+        ->and($this->pdo->query('SELECT id, region_id, name, code FROM snap_osm2cai_provinces ORDER BY id')->fetchAll(PDO::FETCH_NUM))
+        ->toBe([[10, 1, 'Sondrio', 'SO'], [11, 2, 'Trento', 'TN']])
+        ->and($this->pdo->query('SELECT id, province_id, code, full_code, name FROM snap_osm2cai_sectors ORDER BY id')->fetchAll(PDO::FETCH_NUM))
+        ->toBe([[100, 10, 'A', 'DSOA1', 'Valtellina'], [101, 10, 'B', 'DSOB2', 'DSOB2']])
+        ->and(json_decode((string) $this->pdo->query('SELECT geometry_geojson FROM snap_osm2cai_sectors WHERE id = 100')->fetchColumn(), true)['type'])->toBe('MultiPolygon')
+        ->and($this->pdo->query('SELECT territory_type, territory_id, status, km, present_routes FROM snap_osm2cai_territory_km ORDER BY territory_type, territory_id, status')->fetchAll(PDO::FETCH_NUM))
+        ->toBe([['province', 10, 4, 5.432, 1], ['region', 1, 1, 0.4, 0], ['region', 1, 4, 5.432, 1], ['sector', 100, 4, 5.432, 1]])
+        ->and($this->pdo->query('SELECT trail_id, region_id, province_id, sector_id, percentage FROM snap_osm2cai_trail_territory ORDER BY trail_id, province_id, sector_id')->fetchAll(PDO::FETCH_NUM))
+        ->toBe([[101, 1, null, null, 100.0], [101, 1, 10, null, 100.0], [101, 1, 10, 100, 100.0], [102, 1, null, null, 50.0]]);
+});
+
+test('rolls back when two source regions match the same Italian region', function (): void {
+    $this->artisan('cai:import-osm2cai-extract', ['directory' => $this->csv, '--datapack' => $this->datapack])->assertSuccessful();
+
+    $dir = osm2caiCsvDirectory(['regions.csv' => "id,name\n1,Lombardia\n5,LOMBARDIA\n"]);
+
+    $this->artisan('cai:import-osm2cai-extract', ['directory' => $dir, '--datapack' => $this->datapack])
+        ->expectsOutputToContain('corrispondono entrambe a Lombardia')
+        ->assertFailed();
+
+    expect($this->pdo->query('SELECT id FROM snap_osm2cai_regions ORDER BY id')->fetchAll(PDO::FETCH_COLUMN))->toBe([1, 2, 4])
+        ->and($this->pdo->query('SELECT COUNT(*) FROM snap_osm2cai_trail_territory')->fetchColumn())->toBe(4);
+});
+
 test('rewrites the snap_osm2cai tables on every run and leaves the other datapack tables intact', function (): void {
     $this->artisan('cai:import-osm2cai-extract', ['directory' => $this->csv, '--datapack' => $this->datapack])->assertSuccessful();
 
@@ -94,6 +130,19 @@ test('rolls back and keeps the previous snap_osm2cai tables when a CSV is broken
     'missing file' => [null, 'CSV non trovato'],
     'unexpected header' => ["trail_id,club_code\n999,9218001\n", 'Intestazione inattesa'],
 ]);
+
+test('rolls back when a territorial CSV is missing', function (): void {
+    $this->artisan('cai:import-osm2cai-extract', ['directory' => $this->csv, '--datapack' => $this->datapack])->assertSuccessful();
+
+    $dir = osm2caiCsvDirectory(['trails.csv' => "id,osmid,ref,name,from_place,to_place,cai_scale,length_km,ascent,descent,status,issues_status,issues_last_update,validation_date,geometry_geojson\n999,1,,,,,,1,,,3,,,,\n", 'trail_territory.csv' => null]);
+
+    $this->artisan('cai:import-osm2cai-extract', ['directory' => $dir, '--datapack' => $this->datapack])
+        ->expectsOutputToContain('CSV non trovato')
+        ->assertFailed();
+
+    expect($this->pdo->query('SELECT id FROM snap_osm2cai_trails ORDER BY id')->fetchAll(PDO::FETCH_COLUMN))->toBe([101, 102, 103])
+        ->and($this->pdo->query('SELECT COUNT(*) FROM snap_osm2cai_trail_territory')->fetchColumn())->toBe(4);
+});
 
 test('fails without touching anything when the directory or the datapack do not exist', function (): void {
     $this->artisan('cai:import-osm2cai-extract', ['directory' => '/non/esiste', '--datapack' => $this->datapack])

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Domain\CaiDirectory\Import\CaiOsm2caiExtractWriter;
+use App\Support\Formatting\ItalianNumberFormatter;
 use Illuminate\Console\Command;
 use PDO;
 use Throwable;
@@ -17,7 +18,7 @@ use Throwable;
 final class CaiImportOsm2caiExtractCommand extends Command
 {
     protected $signature = 'cai:import-osm2cai-extract
-        {directory : Cartella con trails.csv e trail_sections.csv (relativa alla root del progetto, o assoluta)}
+        {directory : Cartella con i CSV di database/osm2cai/extract.sql (relativa alla root del progetto, o assoluta)}
         {--datapack=cai-datapack/runts-cai.sqlite : Percorso del file SQLite del datapack (relativo alla root del progetto, o assoluto)}';
 
     protected $description = 'Scrive le tabelle snap_osm2cai_* del datapack RUNTS-CAI dai CSV estratti dal dump osm2cai.';
@@ -49,13 +50,26 @@ final class CaiImportOsm2caiExtractCommand extends Command
             return self::FAILURE;
         }
 
-        $this->info('Tabelle '.CaiOsm2caiExtractWriter::TRAILS_TABLE.' e '.CaiOsm2caiExtractWriter::TRAIL_SECTIONS_TABLE.' scritte nel datapack.');
+        $this->info('Tabelle snap_osm2cai_* scritte nel datapack.');
         $this->line("Sentieri estratti: {$summary->trails}");
         $this->line("Collegati ad almeno una Sezione: {$summary->linkedTrails}");
         $this->line('Codici di Sezione non presenti in sezioni_cai: '.count($summary->unknownSectionCodes));
 
         foreach ($summary->unknownSectionCodes as $code => $count) {
             $this->line("  - {$code}: {$count} sentieri");
+        }
+
+        $this->line("Province: {$summary->provinces} · settori: {$summary->sectors} · legami sentiero–territorio: {$summary->trailTerritories}");
+        $this->line('Regioni estere scartate: '.(count($summary->foreignRegions) > 0 ? implode(', ', $summary->foreignRegions) : 'nessuna'));
+
+        foreach ($summary->missingRegions() as $region) {
+            $this->warn("Regione assente dalla fonte: {$region->label()}");
+        }
+
+        $this->line('Per regione (km nel territorio · sentieri presenti, almeno il 50% nella regione):');
+
+        foreach ($summary->regions as $row) {
+            $this->line(sprintf('  - %s: %s · %d sentieri', $row['region']->label(), ItalianNumberFormatter::kilometers($row['km']), $row['presentRoutes']));
         }
 
         return self::SUCCESS;

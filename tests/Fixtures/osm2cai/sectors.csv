@@ -1,0 +1,4 @@
+id,province_id,code,full_code,name,geometry_geojson
+100,10,A,DSOA1,Valtellina,"{""type"":""MultiPolygon"",""coordinates"":[[[[10.0,46.0],[10.5,46.0],[10.5,46.5],[10.0,46.0]]]]}"
+101,10,B,DSOB2,DSOB2,"{""type"":""MultiPolygon"",""coordinates"":[[[[9.5,46.0],[10.0,46.0],[10.0,46.5],[9.5,46.0]]]]}"
+102,12,C,XLUC3,Lugano,"{""type"":""MultiPolygon"",""coordinates"":[[[[8.9,46.0],[9.0,46.0],[9.0,46.1],[8.9,46.0]]]]}"
