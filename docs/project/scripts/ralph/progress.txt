@@ -760,3 +760,32 @@ Fase 10.4–10.9 (run unico): rifugi, sentieri, tappe SICAI. PRD in docs/project
     `BelongsTo` fallisce anche a runtime se il tipo dichiarato non combacia).
   - Nessuna UI in questa story: niente verifica in browser.
 ---
+
+## 2026-10-23 - US-1095
+- `RegionalGroupSicaiStages` è la pagina reale (stesso slug `gr/tappe-sicai`, gate customer GR): riepilogo (tappe con
+  principali/varianti, km, dislivello "su N di M tappe", punti per tipo, card "Tappe con criticità" con i link alle tappe),
+  mappa nel widget figlio `RegionalGroupSicaiStagesMap` (tracciato a colori alternati, difficoltà ambra, non percorribili
+  rosse tratteggiate, varianti punteggiate; punti come marker con l'icona del tipo, raggruppati sotto zoom 12; anteprime
+  di tappa e punto), elenco delle tappe (ricerca per codice/località, filtro per percorribilità in URL, varianti rientrate,
+  card mobile con "Mostra tutte"), punti di appoggio per tipo (filtro, contatti, tappe vicine, "Vedi su rifugi.cai.it"),
+  stato vuoto "Nessun punto di appoggio SICAI censito in …", avviso per GR senza regione. Clic su tappa → scheda `?da=sicai`.
+- `x-cai.map`: `dash` facoltativo sulle linee e `icon` facoltativo sui marker (nel payload solo se valorizzati).
+- Fix di un'asserzione superata in `Fase10DashboardGruppoRegionaleEndToEndTest` (badge "non disponibili" 4 → 3: i sentieri
+  hanno un valore dalla 10.7; fallimento preesistente verificato con `git stash`).
+- Verifica in browser (Playwright, utenti GR Piemonte e Basilicata di prova poi `forceDelete`): desktop 1440 e mobile 390,
+  nessuno scroll orizzontale, nessun errore JS; anteprime di tappa e punto, filtro "con difficoltà" (2 righe), link alla
+  scheda 200. Piemonte reale: 82 tappe, 877 km, 52 punti (21 rifugi.cai.it); Basilicata 8 tappe, 10 punti.
+- Files: app/Filament/Pages/{RegionalGroupSicaiStages,CaiTrailDetail}.php, app/Filament/Widgets/RegionalGroupSicaiStagesMap.php,
+  app/Domain/CaiDirectory/{Support/CaiSicaiRestPointType,Support/CaiMapLine,Support/CaiMapMarker,Support/CaiRegionalGroupSicaiStageRow,
+  Queries/CaiRegionalGroupSicai,Models/CaiSicaiRestPoint}.php, views (pagina, partial del punto, widget, due popup, x-cai.map),
+  CSS (regional-group-sicai-stages.css nuovo, cai-map.css, cai-trails.css `--sicai`, token in theme.css), test
+  RegionalGroupSicaiStagesTest (13), helper SICAI spostati in tests/Pest.php.
+- **Learnings for future iterations:**
+  - Con molti punti lungo un tracciato i marker a zoom regionale coprono le linee: usare `cluster` su `x-cai.map`.
+  - In Blade non mescolare `@php(...)` in linea con blocchi `@php … @endphp` nella stessa vista: "syntax error, unexpected
+    identifier". Usare sempre la forma a blocco.
+  - Playwright: i marker sovrapposti intercettano il clic; per aprire un'anteprima emettere `cai-map-select` su `window`
+    con l'id preso dal `data-cai-map-payload` (con il cluster i marker non sono nel DOM).
+  - Per US-1096: cartello del codice SICAI = `x-cai.trail-sign` con classe `ms-cai-trail-sign--sicai` (anche in `xl`);
+    `CaiTrailDetail::FROM_SICAI` esiste già, manca il link di ritorno.
+---
