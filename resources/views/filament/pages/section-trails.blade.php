@@ -2,7 +2,8 @@
      resources/css/filament/admin/section-trails.css (segnavia e pillola dello stato in cai-trails.css). Una sola mappa
      (`x-cai.map`, sempre resa) per desktop e mobile: il CSS la mette a destra dell'elenco su desktop e sopra su mobile
      (< 640px). Tabella (desktop) ed elenco di card (mobile, primi 12 + "Mostra altri N") sono resi entrambi, il CSS
-     mostra l'uno o l'altro. Righe e linee si evidenziano a vicenda con gli eventi `cai-map-*` (vedi il componente). --}}
+     mostra l'uno o l'altro. Righe e linee si evidenziano a vicenda con gli eventi `cai-map-*` (vedi il componente).
+     Usata anche da RegionalGroupSectionTrails (10.7, Sezione vista dal GR): link di ritorno da backLink(). --}}
 @use('App\Domain\CaiDirectory\Enums\CaiTrailDifficulty')
 @use('App\Domain\CaiDirectory\Enums\CaiTrailPracticability')
 @use('App\Domain\CaiDirectory\Enums\CaiTrailSort')
@@ -27,7 +28,10 @@
 <x-filament-panels::page>
     <div class="ms-trails">
         <div class="ms-trails__top">
-            <a href="{{ $this->dashboardUrl() }}" class="ms-trails__back">← Dashboard</a>
+            @php
+                $backLink = $this->backLink();
+            @endphp
+            <a href="{{ $backLink['url'] }}" class="ms-trails__back">← {{ $backLink['label'] }}</a>
 
             <div class="ms-trails__heading">
                 <header class="ms-trails__title-block">

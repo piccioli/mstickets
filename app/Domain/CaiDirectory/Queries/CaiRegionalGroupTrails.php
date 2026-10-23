@@ -113,6 +113,21 @@ final class CaiRegionalGroupTrails
         return $rows;
     }
 
+    /** Km (`length_km`) di tutti i sentieri dell'elenco con questi filtri (non solo della pagina), in una query. */
+    public static function trailsKm(Region $region, CaiRegionalGroupTrailFilters $filters): float
+    {
+        $regionId = self::regionId($region);
+
+        if ($regionId === null) {
+            return 0.0;
+        }
+
+        $query = self::presentTrails($regionId);
+        self::applyFilters($query, $filters);
+
+        return (float) $query->sum('cai_trails.length_km');
+    }
+
     /**
      * Sentieri presenti nella regione il cui riquadro interseca `$bounds` (mappa del GR da zoom 11, US-1064), con la
      * geometria: al massimo `$limit`, i più lunghi per primi (quelli senza lunghezza in fondo); `total` = tutti quelli

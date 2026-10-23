@@ -1,0 +1,1465 @@
+/*
+ * Sentieri del GR (Fase 10.7, US-1065) — resources/views/filament/pages/regional-group-trails.blade.php e widget
+ * resources/views/filament/widgets/regional-group-trails-map.blade.php.
+ * Misure dal design docs/project/design/fase-10/sentieri-del-gr.dc.html; colori solo da token --ms-*, tranne quelli di
+ * stato e percorribilità che arrivano dagli enum (stile inline). Segnavia, pillola dello stato e mappa per settori in
+ * cai-trails.css; pillola della percorribilità (ms-trails__practicability) in section-trails.css.
+ * Le tabelle hanno colonne a larghezza minima e scorrono in orizzontale se l'area contenuti (con la sidebar) è stretta;
+ * sotto i 640px di viewport (mobile) lasciano il posto alle card, come nel design a 390px.
+ */
+.ms-gr-trails {
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+  font-family: var(--ms-font-sans);
+  color: var(--ms-text-strong);
+}
+
+.ms-gr-trails__mobile {
+  display: none;
+}
+
+/* ---- Intestazione ---- */
+.ms-gr-trails__top {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-7); /* 14px */
+}
+
+.ms-gr-trails__back {
+  align-self: flex-start;
+  font-size: var(--ms-text-sm);
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-brand);
+  text-decoration: none;
+}
+
+.ms-gr-trails__back:hover {
+  color: var(--ms-brand-link-hover);
+  text-decoration: underline;
+}
+
+.ms-gr-trails__heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--ms-space-12);
+}
+
+.ms-gr-trails__title-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-2);
+}
+
+.ms-gr-trails__title {
+  margin: 0;
+  font-size: var(--ms-text-3xl); /* 28px */
+  font-weight: var(--ms-fw-extrabold);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.ms-gr-trails__subtitle {
+  margin: 0;
+  font-size: var(--ms-text-lg); /* 15px */
+  font-weight: var(--ms-fw-semibold);
+  color: var(--ms-text-secondary);
+}
+
+.ms-gr-trails__source {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ms-text-muted);
+}
+
+.ms-gr-trails__source a,
+.ms-gr-trails__link {
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-brand);
+  text-decoration: none;
+}
+
+.ms-gr-trails__link {
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: var(--ms-text-sm);
+  font-weight: var(--ms-fw-extrabold);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ms-gr-trails__source a:hover,
+.ms-gr-trails__link:hover {
+  color: var(--ms-brand-link-hover);
+}
+
+/* ---- Blocchi ---- */
+.ms-gr-trails__block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-8); /* 16px */
+  scroll-margin-top: 80px;
+}
+
+.ms-gr-trails__block--hidden {
+  display: none;
+}
+
+.ms-gr-trails__block-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--ms-space-4) var(--ms-space-8);
+}
+
+.ms-gr-trails__block-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: var(--ms-fw-extrabold);
+}
+
+.ms-gr-trails__hint {
+  font-size: var(--ms-text-sm);
+  color: var(--ms-text-secondary);
+}
+
+.ms-gr-trails__card {
+  background: var(--ms-surface-card);
+  border: var(--ms-border-width) solid var(--ms-border-subtle);
+  border-radius: var(--ms-radius-card);
+}
+
+.ms-gr-trails__card-title {
+  margin: 0;
+  font-size: var(--ms-text-lg);
+  font-weight: var(--ms-fw-extrabold);
+}
+
+.ms-gr-trails__numeric {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.ms-gr-trails__bold {
+  font-weight: var(--ms-fw-extrabold);
+}
+
+.ms-gr-trails__strong {
+  font-weight: var(--ms-fw-bold);
+}
+
+.ms-gr-trails__small {
+  font-size: var(--ms-text-sm);
+}
+
+.ms-gr-trails__muted {
+  font-weight: var(--ms-fw-semibold);
+  color: var(--ms-text-secondary);
+}
+
+.ms-gr-trails__zero {
+  color: var(--ms-gr-trails-zero);
+}
+
+.ms-gr-trails__danger {
+  color: var(--ms-map-empty-text);
+}
+
+.ms-gr-trails__missing {
+  color: var(--ms-value-missing);
+}
+
+.ms-gr-trails__secondary {
+  font-size: 12px;
+  color: var(--ms-text-secondary);
+}
+
+.ms-gr-trails__stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ms-gr-trails__none {
+  margin: 0;
+  padding: 40px 20px;
+  font-size: var(--ms-text-md);
+  color: var(--ms-text-secondary);
+  text-align: center;
+}
+
+.ms-gr-trails__footnote {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ms-text-muted);
+}
+
+/* ---- Riepilogo ---- */
+.ms-gr-trails__kpis {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 300px;
+  gap: var(--ms-space-8);
+}
+
+.ms-gr-trails__kpi {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-4);
+  padding: 20px 24px;
+}
+
+.ms-gr-trails__kpi-label {
+  display: flex;
+  align-items: center;
+  gap: var(--ms-space-5);
+  font-size: var(--ms-text-sm);
+  font-weight: var(--ms-fw-extrabold);
+}
+
+.ms-gr-trails__kpi-label--managed {
+  color: var(--ms-brand-link-hover);
+}
+
+.ms-gr-trails__kpi-swatch {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--ms-radius-xs);
+}
+
+.ms-gr-trails__kpi-swatch--territory {
+  background: var(--ms-text-strong);
+}
+
+.ms-gr-trails__kpi-swatch--managed {
+  background: var(--ms-brand);
+}
+
+.ms-gr-trails__kpi-value {
+  font-size: 36px;
+  font-weight: var(--ms-fw-extrabold);
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.ms-gr-trails__kpi-unit {
+  font-size: 18px;
+  color: var(--ms-text-secondary);
+}
+
+.ms-gr-trails__kpi-text {
+  font-size: var(--ms-text-sm);
+  line-height: 1.5;
+  color: var(--ms-text-secondary);
+  text-wrap: pretty;
+}
+
+.ms-gr-trails__managed-bar {
+  display: flex;
+  height: 8px;
+  margin-top: var(--ms-space-2);
+  overflow: hidden;
+  background: var(--ms-border-muted);
+  border-radius: 4px;
+}
+
+.ms-gr-trails__managed-bar span {
+  background: var(--ms-brand);
+}
+
+.ms-gr-trails__managed-note {
+  font-size: 12px;
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-text-secondary);
+}
+
+.ms-gr-trails__present-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: var(--ms-text-sm);
+  color: var(--ms-text-secondary);
+}
+
+.ms-gr-trails__status {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 470px;
+  gap: 32px;
+  padding: 20px 24px;
+}
+
+.ms-gr-trails__status-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-6);
+}
+
+.ms-gr-trails__status-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--ms-space-8);
+}
+
+.ms-gr-trails__bar {
+  display: flex;
+  gap: 2px;
+  height: 28px;
+  overflow: hidden;
+  background: var(--ms-trail-bar-track);
+  border-radius: 6px;
+}
+
+.ms-gr-trails__bar-segment {
+  display: flex;
+  align-items: center;
+  padding: 0 var(--ms-space-4);
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: var(--ms-fw-extrabold);
+  white-space: nowrap;
+}
+
+.ms-gr-trails__bracket {
+  display: flex;
+  margin-top: calc(-1 * var(--ms-space-2));
+}
+
+.ms-gr-trails__bracket-line {
+  height: 8px;
+  border: 2px solid var(--ms-gr-trails-bracket);
+  border-top: none;
+  border-radius: 0 0 2px 2px;
+}
+
+.ms-gr-trails__consolidated {
+  margin: calc(-1 * var(--ms-space-3)) 0 0;
+  font-size: var(--ms-text-md);
+  font-weight: var(--ms-fw-extrabold);
+  text-align: right;
+}
+
+.ms-gr-trails__legend,
+.ms-gr-trails__practicability-grid {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ms-gr-trails__legend {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--ms-space-6);
+}
+
+.ms-gr-trails__practicability {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ms-space-6);
+  padding-left: 32px;
+  border-left: var(--ms-border-width) solid var(--ms-border-subtle);
+}
+
+.ms-gr-trails__practicability-grid {
+  grid-template-columns: 1fr 1fr;
+  gap: var(--ms-space-6) var(--ms-space-10);
+}
+
+.ms-gr-trails__legend-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ms-gr-trails__legend-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-text-secondary);
+}
+
+.ms-gr-trails__legend-value {
+  font-size: var(--ms-text-lg);
+  font-weight: var(--ms-fw-extrabold);
+  font-variant-numeric: tabular-nums;
+}
+
+.ms-gr-trails__legend-note {
+  font-size: 12px;
+  font-weight: var(--ms-fw-semibold);
+  color: var(--ms-text-muted);
+}
+
+.ms-gr-trails__line-swatch {
+  flex: none;
+  width: 14px;
+  height: 4px;
+  border-radius: 2px;
+}
+
+.ms-gr-trails__line-swatch--sm {
+  width: 12px;
+}
+
+.ms-gr-trails__dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--ms-radius-circle);
+}
+
+/* ---- Mappa (widget) ---- */
+.ms-gr-trails__map-card {
+  overflow: hidden;
+  background: var(--ms-surface-card);
+  border: var(--ms-border-width) solid var(--ms-border-subtle);
+  border-radius: var(--ms-radius-card);
+}
+
+/* ---- Tabelle ---- */
+.ms-gr-trails__table {
+  overflow-x: auto;
+}
+
+.ms-gr-trails__table-head {
+  padding: 10px 20px;
+  background: var(--ms-surface-hover-row);
+  border-bottom: var(--ms-border-width) solid var(--ms-border-subtle);
+  font-size: 12px;
+  font-weight: var(--ms-fw-extrabold);
+  color: var(--ms-text-secondary);
+}
+
+.ms-gr-trails__table-total {
+  padding: 12px 20px;
+  background: var(--ms-surface-hover-row);
+  font-size: var(--ms-text-md);
+  font-weight: var(--ms-fw-extrabold);
+  font-variant-numeric: tabular-nums;
+}
+
+.ms-gr-trails__status-head {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--ms-space-3);
+  white-space: nowrap;
+}
+
+.ms-gr-trails__sort {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--ms-text-secondary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.ms-gr-trails__sort.ms-gr-trails__numeric {
+  text-align: right;
+}
+
+.ms-gr-trails__sort--active {
+  color: var(--ms-brand);
+}
+
+.ms-gr-trails__mini-bar {
+  display: flex;
+  flex: 1;
+  gap: 1px;
+  height: 8px;
+  overflow: hidden;
+  background: var(--ms-trail-bar-track);
+  border-radius: 4px;
+}
+
+.ms-gr-trails__row-chevron {
+  font-size: 20px;
+  font-weight: var(--ms-fw-bold);
+  line-height: 1;
+  color: var(--ms-brand);
+}
+
+/* Per provincia */
+.ms-gr-trails__prov-grid {
+  display: grid;
+  grid-template-columns: minmax(170px, 220px) 110px 80px repeat(4, minmax(72px, 100px)) minmax(80px, 110px) minmax(140px, 1fr) 24px;
+  align-items: center;
+  gap: var(--ms-space-6);
+  min-width: 1040px;
+}
+
+.ms-gr-trails__prov {
+  border-bottom: var(--ms-border-width) solid var(--ms-border-subtle-alt);
+}
+
+.ms-gr-trails__prov-row {
+  width: 100%;
+  padding: 12px 20px;
+  border: none;
+  background: var(--ms-surface-card);
+  font-family: inherit;
+  font-size: var(--ms-text-md);
+  color: var(--ms-text-strong);
+  text-align: left;
+  cursor: pointer;
+}
+
+.ms-gr-trails__prov-row:hover {
+  background: var(--ms-trail-row-hover-bg);
+}
+
+.ms-gr-trails__prov-row--open,
+.ms-gr-trails__prov-row--open:hover {
+  background: var(--ms-trail-row-selected-bg);
+  box-shadow: inset 3px 0 0 var(--ms-brand);
+}
+
+.ms-gr-trails__prov-name {
+  display: flex;
+  align-items: center;
+  gap: var(--ms-space-5);
+  font-weight: var(--ms-fw-extrabold);
+}
+
+.ms-gr-trails__prov-code {
+  width: 22px;
+  font-size: 12px;
+  color: var(--ms-text-muted);
+}
+
+.ms-gr-trails__prov-sectors {
+  display: flex;
+  align-items: center;
+  gap: var(--ms-space-3);
+  font-weight: var(--ms-fw-bold);
+}
+
+.ms-gr-trails__empty-pill {
+  padding: 1px 7px;
+  border-radius: var(--ms-radius-pill);
+  background: var(--ms-map-empty-bg);
+  color: var(--ms-map-empty-text);
+  font-size: 11px;
+  font-weight: var(--ms-fw-extrabold);
+  white-space: nowrap;
+}
+
+.ms-gr-trails__cons {
+  display: flex;
+  align-items: center;
+  gap: var(--ms-space-5);
+  padding-left: var(--ms-space-8);
+}
+
+.ms-gr-trails__cons-head,
+.ms-gr-trails__cons-total {
+  padding-left: var(--ms-space-8);
+}
+
+.ms-gr-trails__cons-total {
+  font-size: var(--ms-text-sm);
+}
+
+.ms-gr-trails__cons-value {
+  width: 38px;
+  font-size: var(--ms-text-sm);
+  font-weight: var(--ms-fw-extrabold);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.ms-gr-trails__chevron {
+  font-weight: var(--ms-fw-extrabold);
+  color: var(--ms-brand);
+  text-align: center;
+}
+
+.ms-gr-trails__total-label {
+  padding-left: 32px;
+}
+
+.ms-gr-trails__sectors {
+  display: flex;
+  flex-direction: column;
+  min-width: 1040px;
+  padding: 6px 20px 18px 52px;
+  background: var(--ms-surface-hover-row);
+}
+
+.ms-gr-trails__sectors-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--ms-space-8);
+  padding: 10px 0 8px;
+}
+
+.ms-gr-trails__sectors-title {
+  margin: 0;
+  font-size: var(--ms-text-sm);
+  font-weight: var(--ms-fw-extrabold);
+}
+
+.ms-gr-trails__sectors-note {
+  font-size: 12px;
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-map-empty-text);
+}
+
+.ms-gr-trails__sector-grid {
+  display: grid;
+  grid-template-columns: 70px minmax(0, 1fr) 90px 100px minmax(160px, 260px) 70px 220px;
+  align-items: center;
+  gap: var(--ms-space-6);
+  padding: 9px 14px;
+  border-bottom: var(--ms-border-width) solid var(--ms-border-subtle-alt);
+}
+
+.ms-gr-trails__sector-head {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  border-bottom-color: var(--ms-border-subtle);
+  font-size: 12px;
+  font-weight: var(--ms-fw-extrabold);
+  color: var(--ms-text-secondary);
+}
+
+.ms-gr-trails__sector-code {
+  font-size: 12px;
+  font-weight: var(--ms-fw-extrabold);
+  color: var(--ms-neutral-pill-text);
+}
+
+.ms-gr-trails__sector-name {
+  font-size: var(--ms-text-md);
+  font-weight: var(--ms-fw-bold);
+}
+
+.ms-gr-trails__sector-value {
+  font-size: var(--ms-text-md);
+  font-weight: var(--ms-fw-bold);
+}
+
+.ms-gr-trails__sector--empty {
+  background: var(--ms-gr-trails-empty-row-bg);
+  box-shadow: inset 3px 0 0 var(--ms-map-empty-text);
+}
+
+.ms-gr-trails__sector--empty .ms-gr-trails__sector-value {
+  color: var(--ms-map-empty-text);
+}
+
+.ms-gr-trails__sector--selected {
+  background: var(--ms-trail-row-selected-bg);
+  box-shadow: inset 3px 0 0 var(--ms-brand);
+}
+
+.ms-gr-trails__no-trails {
+  justify-self: start;
+  padding: 2px 10px;
+  border: var(--ms-border-width) dashed var(--ms-map-empty-text);
+  border-radius: var(--ms-radius-xl);
+  background: var(--ms-surface-card);
+  color: var(--ms-map-empty-text);
+  font-size: 12px;
+  font-weight: var(--ms-fw-extrabold);
+}
+
+.ms-gr-trails__sector-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--ms-space-8);
+}
+
+/* Per Sezione */
+.ms-gr-trails__info {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ms-space-7);
+  padding: 14px 18px;
+  border-radius: var(--ms-radius-card);
+  background: var(--ms-trail-shared-bg);
+  color: var(--ms-trail-shared-text);
+}
+
+.ms-gr-trails__info svg {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ms-gr-trails__info-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: var(--ms-text-md);
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+.ms-gr-trails__section-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ms-space-6);
+}
+
+.ms-gr-trails__input,
+.ms-gr-trails__select {
+  height: 34px;
+  border: var(--ms-border-width) solid var(--ms-border-default);
+  border-radius: var(--ms-radius-lg);
+  background: var(--ms-surface-card);
+  font-family: inherit;
+  font-size: var(--ms-text-sm);
+  color: var(--ms-text-strong);
+}
+
+.ms-gr-trails__input {
+  width: 260px;
+  padding: 0 12px;
+}
+
+.ms-gr-trails__chips {
+  display: flex;
+  gap: var(--ms-space-3);
+}
+
+.ms-gr-trails__chip {
+  height: 32px;
+  padding: 0 12px;
+  border: var(--ms-border-width) solid var(--ms-border-default);
+  border-radius: 16px;
+  background: var(--ms-surface-card);
+  font-family: inherit;
+  font-size: var(--ms-text-sm);
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-text-strong);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.ms-gr-trails__chip--active {
+  border-color: var(--ms-brand);
+  background: var(--ms-chip-active-bg);
+  color: var(--ms-brand-link-hover);
+}
+
+.ms-gr-trails__chip-count {
+  font-weight: var(--ms-fw-semibold);
+  color: var(--ms-text-muted);
+}
+
+.ms-gr-trails__section-grid {
+  display: grid;
+  grid-template-columns: minmax(200px, 1fr) 90px 110px 110px repeat(4, minmax(72px, 96px)) 18px;
+  align-items: center;
+  gap: var(--ms-space-6);
+  min-width: 920px;
+}
+
+.ms-gr-trails__section-rows {
+  max-height: 560px;
+  overflow: auto;
+  min-width: 920px;
+}
+
+.ms-gr-trails__section-row {
+  padding: 11px 20px;
+  border-bottom: var(--ms-border-width) solid var(--ms-border-subtle-alt);
+  font-size: var(--ms-text-md);
+  color: var(--ms-text-strong);
+  text-decoration: none;
+}
+
+.ms-gr-trails__section-row:hover {
+  background: var(--ms-trail-row-hover-bg);
+}
+
+.ms-gr-trails__section-row--empty {
+  background: var(--ms-surface-hover-row);
+}
+
+.ms-gr-trails__section-row--empty .ms-gr-trails__numeric {
+  color: var(--ms-gr-trails-zero);
+}
+
+.ms-gr-trails__section-row--empty .ms-gr-trails__section-name {
+  color: var(--ms-text-secondary);
+}
+
+.ms-gr-trails__section-name {
+  display: flex;
+  align-items: center;
+  gap: var(--ms-space-5);
+  min-width: 0;
+  font-weight: var(--ms-fw-extrabold);
+}
+
+.ms-gr-trails__neutral-pill {
+  padding: 2px 9px;
+  border-radius: var(--ms-radius-xl);
+  background: var(--ms-neutral-pill-bg);
+  color: var(--ms-neutral-pill-text);
+  font-size: 11px;
+  font-weight: var(--ms-fw-extrabold);
+  white-space: nowrap;
+}
+
+.ms-gr-trails__sections .ms-gr-trails__table-total {
+  border-top: var(--ms-border-width) solid var(--ms-border-subtle);
+}
+
+.ms-gr-trails__total-note {
+  font-size: 12px;
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-trail-shared-text);
+}
+
+/* Elenco */
+.ms-gr-trails__list {
+  overflow: hidden;
+}
+
+.ms-gr-trails__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ms-space-4);
+  padding: 14px 20px;
+  border-bottom: var(--ms-border-width) solid var(--ms-border-subtle);
+}
+
+.ms-gr-trails__selects {
+  display: contents;
+}
+
+.ms-gr-trails__select {
+  max-width: 180px;
+  padding: 0 8px;
+  font-weight: var(--ms-fw-bold);
+}
+
+.ms-gr-trails__select--wide {
+  max-width: 230px;
+}
+
+.ms-gr-trails__select--full {
+  max-width: none;
+}
+
+.ms-gr-trails__select--active {
+  border-color: var(--ms-brand);
+}
+
+.ms-gr-trails__trail-grid {
+  display: grid;
+  grid-template-columns: 62px minmax(180px, 1fr) minmax(150px, 230px) minmax(140px, 210px) 64px 128px 180px 18px;
+  align-items: center;
+  gap: var(--ms-space-6);
+  min-width: 1060px;
+}
+
+.ms-gr-trails__trail-row {
+  padding: 11px 20px;
+  border-bottom: var(--ms-border-width) solid var(--ms-border-subtle-alt);
+  color: var(--ms-text-strong);
+  text-decoration: none;
+}
+
+.ms-gr-trails__trail-row:hover {
+  background: var(--ms-trail-row-hover-bg);
+}
+
+.ms-gr-trails__trail-name {
+  font-size: var(--ms-text-md);
+  font-weight: var(--ms-fw-extrabold);
+  line-height: 1.25;
+}
+
+.ms-gr-trails__shared {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-trail-shared-text);
+}
+
+.ms-gr-trails__shared svg {
+  flex: none;
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ms-gr-trails__no-match {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ms-space-5);
+  padding: 48px 20px;
+  font-size: var(--ms-text-md);
+  color: var(--ms-text-secondary);
+  text-align: center;
+}
+
+.ms-gr-trails__pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ms-space-8);
+  padding: 12px 20px;
+  border-top: var(--ms-border-width) solid var(--ms-border-subtle);
+}
+
+.ms-gr-trails__count {
+  font-size: var(--ms-text-sm);
+  font-weight: var(--ms-fw-bold);
+  color: var(--ms-text-secondary);
+}
+
+.ms-gr-trails__pages {
+  display: flex;
+  align-items: center;
+  gap: var(--ms-space-2);
+}
+
+.ms-gr-trails__page {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border: var(--ms-border-width) solid var(--ms-border-default);
+  border-radius: var(--ms-radius-lg);
+  background: var(--ms-surface-card);
+  font-family: inherit;
+  font-size: var(--ms-text-sm);
+  font-weight: var(--ms-fw-extrabold);
+  color: var(--ms-text-strong);
+  cursor: pointer;
+}
+
+.ms-gr-trails__page:disabled {
+  color: var(--ms-text-faint-alt);
+  cursor: default;
+}
+
+.ms-gr-trails__page--current {
+  border-color: var(--ms-brand);
+  background: var(--ms-brand);
+  color: var(--ms-surface-card);
+}
+
+.ms-gr-trails__page--gap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-color: transparent;
+  background: transparent;
+  color: var(--ms-text-muted);
+  cursor: default;
+}
+
+/* Card (mobile) */
+.ms-gr-trails__cards {
+  display: none;
+  flex-direction: column;
+  gap: var(--ms-space-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ms-gr-trails__more {
+  width: 100%;
+  height: 44px;
+  border: var(--ms-border-width) solid var(--ms-border-default);
+  border-radius: var(--ms-radius-card);
+  background: var(--ms-surface-card);
+  font-family: inherit;
+  font-size: var(--ms-text-md);
+  font-weight: var(--ms-fw-extrabold);
+  color: var(--ms-brand);
+  cursor: pointer;
+}
+
+/* ---- Mobile (design a 390px) ---- */
+@media (max-width: 639.98px) {
+  .ms-gr-trails {
+    gap: var(--ms-space-12);
+  }
+
+  .ms-gr-trails__desktop {
+    display: none;
+  }
+
+  .ms-gr-trails__mobile {
+    display: revert;
+  }
+
+  .ms-gr-trails__title {
+    font-size: 22px;
+  }
+
+  .ms-gr-trails__subtitle {
+    font-size: var(--ms-text-md);
+  }
+
+  .ms-gr-trails__source {
+    display: none;
+  }
+
+  .ms-gr-trails__block {
+    gap: var(--ms-space-5);
+  }
+
+  .ms-gr-trails__block-title {
+    font-size: var(--ms-text-xl);
+  }
+
+  .ms-gr-trails__hint {
+    font-size: 12px;
+    color: var(--ms-text-muted);
+  }
+
+  .ms-gr-trails__kpis {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--ms-space-5);
+  }
+
+  .ms-gr-trails__kpi {
+    gap: var(--ms-space-2);
+    padding: 14px;
+  }
+
+  .ms-gr-trails__kpi-label {
+    gap: var(--ms-space-4);
+    font-size: 12px;
+  }
+
+  .ms-gr-trails__kpi-value {
+    font-size: 26px;
+  }
+
+  .ms-gr-trails__kpi-unit {
+    font-size: var(--ms-text-md);
+  }
+
+  .ms-gr-trails__kpi-text {
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .ms-gr-trails__managed-bar {
+    height: 6px;
+  }
+
+  .ms-gr-trails__managed-note {
+    font-size: 11px;
+  }
+
+  .ms-gr-trails__kpi--present {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+  }
+
+  .ms-gr-trails__kpi--present .ms-gr-trails__kpi-value {
+    font-size: 24px;
+  }
+
+  .ms-gr-trails__present-mobile {
+    font-size: 11px;
+    color: var(--ms-text-secondary);
+  }
+
+  .ms-gr-trails__status {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--ms-space-5);
+    padding: 14px;
+  }
+
+  .ms-gr-trails__card-title {
+    font-size: var(--ms-text-md);
+  }
+
+  .ms-gr-trails__bar {
+    height: 22px;
+    border-radius: var(--ms-radius-sm);
+  }
+
+  .ms-gr-trails__consolidated {
+    font-size: var(--ms-text-sm);
+  }
+
+  .ms-gr-trails__legend,
+  .ms-gr-trails__practicability-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--ms-space-4) var(--ms-space-6);
+  }
+
+  .ms-gr-trails__legend-label {
+    font-size: 11px;
+  }
+
+  .ms-gr-trails__legend-value {
+    font-size: var(--ms-text-md);
+  }
+
+  .ms-gr-trails__legend-note {
+    font-size: 11px;
+  }
+
+  .ms-gr-trails__practicability {
+    padding: 10px 0 0;
+    border-top: var(--ms-border-width) solid var(--ms-border-subtle);
+    border-left: none;
+  }
+
+  .ms-gr-trails__table {
+    display: none;
+  }
+
+  .ms-gr-trails__cards {
+    display: flex;
+  }
+
+  .ms-gr-trails__footnote {
+    font-size: 11px;
+  }
+
+  /* Per provincia */
+  .ms-gr-trails__prov-card {
+    overflow: hidden;
+  }
+
+  .ms-gr-trails__prov-card--open {
+    border-color: var(--ms-brand);
+  }
+
+  .ms-gr-trails__prov-card-button {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ms-space-4);
+    width: 100%;
+    padding: 12px 14px;
+    border: none;
+    background: var(--ms-surface-card);
+    font-family: inherit;
+    color: var(--ms-text-strong);
+    text-align: left;
+  }
+
+  .ms-gr-trails__prov-card-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--ms-space-5);
+    width: 100%;
+    font-size: var(--ms-text-lg);
+    font-weight: var(--ms-fw-extrabold);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ms-gr-trails__prov-card .ms-gr-trails__mini-bar {
+    flex: none;
+    width: 100%;
+  }
+
+  .ms-gr-trails__prov-card-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--ms-space-4);
+    width: 100%;
+    font-size: 12px;
+    color: var(--ms-text-secondary);
+  }
+
+  .ms-gr-trails__prov-card-meta .ms-gr-trails__bold {
+    color: var(--ms-text-strong);
+  }
+
+  .ms-gr-trails__prov-card-meta .ms-gr-trails__danger {
+    font-weight: var(--ms-fw-extrabold);
+  }
+
+  .ms-gr-trails__prov-card-sectors {
+    border-top: var(--ms-border-width) solid var(--ms-border-subtle);
+    background: var(--ms-surface-hover-row);
+  }
+
+  .ms-gr-trails__sector-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--ms-space-5);
+    padding: 10px 14px;
+    border-bottom: var(--ms-border-width) solid var(--ms-border-subtle-alt);
+  }
+
+  .ms-gr-trails__sector-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .ms-gr-trails__sector-card-name {
+    font-size: var(--ms-text-sm);
+    font-weight: var(--ms-fw-extrabold);
+  }
+
+  .ms-gr-trails__sector-card-name .ms-gr-trails__sector-code {
+    font-size: inherit;
+    color: var(--ms-text-muted);
+  }
+
+  .ms-gr-trails__sector-card-meta {
+    font-size: 12px;
+    color: var(--ms-text-secondary);
+  }
+
+  .ms-gr-trails__sector-card .ms-gr-trails__link {
+    min-height: 32px;
+    font-size: 12px;
+  }
+
+  /* Per Sezione */
+  .ms-gr-trails__info {
+    padding: 12px 14px;
+  }
+
+  .ms-gr-trails__info svg {
+    display: none;
+  }
+
+  .ms-gr-trails__info-text {
+    font-size: var(--ms-text-sm);
+    line-height: 1.45;
+  }
+
+  .ms-gr-trails__section-tools {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--ms-space-5);
+  }
+
+  .ms-gr-trails__input {
+    width: 100%;
+    height: 44px;
+    font-size: var(--ms-text-md);
+  }
+
+  .ms-gr-trails__chips {
+    gap: var(--ms-space-2);
+    padding: 4px;
+    border: var(--ms-border-width) solid var(--ms-border-default);
+    border-radius: var(--ms-radius-card);
+    background: var(--ms-surface-card);
+  }
+
+  .ms-gr-trails__chip {
+    flex: 1;
+    height: 36px;
+    border: none;
+    border-radius: var(--ms-radius-md);
+    background: transparent;
+    font-size: 12px;
+    font-weight: var(--ms-fw-extrabold);
+  }
+
+  .ms-gr-trails__chip--active {
+    background: var(--ms-brand);
+    color: var(--ms-surface-card);
+  }
+
+  .ms-gr-trails__section-card {
+    display: flex;
+    align-items: center;
+    gap: var(--ms-space-5);
+    padding: 12px 14px;
+    color: var(--ms-text-strong);
+    text-decoration: none;
+  }
+
+  .ms-gr-trails__section-card-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+  }
+
+  .ms-gr-trails__section-card-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--ms-space-4);
+    font-size: var(--ms-text-md);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ms-gr-trails__section-card .ms-gr-trails__mini-bar {
+    flex: none;
+    height: 6px;
+  }
+
+  .ms-gr-trails__section-card-meta {
+    font-size: 12px;
+    color: var(--ms-text-secondary);
+  }
+
+  .ms-gr-trails__cards .ms-gr-trails__none {
+    padding: 24px 12px;
+    font-size: var(--ms-text-sm);
+  }
+
+  /* Elenco: filtri e card fuori dal riquadro */
+  .ms-gr-trails__list {
+    overflow: visible;
+    border: none;
+    background: transparent;
+  }
+
+  .ms-gr-trails__filters {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--ms-space-5);
+    padding: 0;
+    border: none;
+  }
+
+  .ms-gr-trails__search {
+    width: 100%;
+  }
+
+  .ms-gr-trails__selects {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--ms-space-4);
+  }
+
+  .ms-gr-trails__select,
+  .ms-gr-trails__select--wide {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    height: 44px;
+    font-size: var(--ms-text-md);
+  }
+
+  .ms-gr-trails__select--full {
+    grid-column: 1 / -1;
+  }
+
+  .ms-gr-trails__count-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: var(--ms-space-5) 0;
+    font-size: 12px;
+    font-weight: var(--ms-fw-bold);
+    color: var(--ms-text-muted);
+  }
+
+  .ms-gr-trails__count-bar .ms-gr-trails__link {
+    height: 32px;
+  }
+
+  .ms-gr-trails__trail-card {
+    display: flex;
+    gap: var(--ms-space-6);
+    padding: 12px;
+    color: var(--ms-text-strong);
+    text-decoration: none;
+  }
+
+  .ms-gr-trails__trail-card-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+  }
+
+  .ms-gr-trails__trail-card-name {
+    font-size: var(--ms-text-lg);
+    font-weight: var(--ms-fw-extrabold);
+    line-height: 1.25;
+  }
+
+  .ms-gr-trails__tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ms-space-3);
+  }
+
+  .ms-gr-trails__trail-card .ms-gr-trails__row-chevron {
+    align-self: center;
+    font-size: 22px;
+  }
+
+  .ms-gr-trails__no-match {
+    margin-top: var(--ms-space-5);
+    padding: 32px 12px;
+    background: var(--ms-surface-card);
+    border: var(--ms-border-width) solid var(--ms-border-subtle);
+    border-radius: var(--ms-radius-card);
+  }
+
+  .ms-gr-trails__pager {
+    padding: var(--ms-space-5) 0 0;
+    border: none;
+  }
+
+  .ms-gr-trails__mobile-pages {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--ms-space-4);
+    font-size: var(--ms-text-sm);
+    font-weight: var(--ms-fw-bold);
+    color: var(--ms-text-secondary);
+  }
+
+  .ms-gr-trails__mobile-page {
+    height: 44px;
+    padding: 0 16px;
+    border: var(--ms-border-width) solid var(--ms-border-default);
+    border-radius: var(--ms-radius-card);
+    background: var(--ms-surface-card);
+    font-family: inherit;
+    font-size: var(--ms-text-md);
+    font-weight: var(--ms-fw-extrabold);
+    color: var(--ms-brand);
+  }
+
+  .ms-gr-trails__mobile-page:disabled {
+    color: var(--ms-text-faint-alt);
+  }
+}

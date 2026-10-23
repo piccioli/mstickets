@@ -183,6 +183,13 @@
   --ms-map-empty-bg: #fbe7e5;
   --ms-map-empty-text: #b42318;
 
+  /* ---- Sentieri del GR, pagina (Fase 10.7) ---- */
+  --ms-gr-trails-empty-row-bg: #fdf3f2;
+  --ms-gr-trails-zero: #b4bbc6;
+  --ms-gr-trails-bracket: #1f2633;
+  --ms-neutral-pill-bg: #eef0f3;
+  --ms-neutral-pill-text: #5b6475;
+
   /* ---- Elenco rifugi (Fase 10.4) ---- */
   --ms-chip-active-bg: #e3f4ee;
   --ms-row-highlight-bg: #eef8f5;

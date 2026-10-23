@@ -30,12 +30,19 @@ use Livewire\Attributes\Url;
  * Due livelli di autorizzazione, come la scheda del rifugio: {@see canAccess()} ammette staff con `CaiDirectoryView` e
  * customer Sezione o GR, {@see mount()} verifica {@see CaiTrailPolicy::view()} sul singolo sentiero (una delle sue
  * Sezioni, GR per prefisso, staff): un id manipolato nell'URL dà 403. Fuori dalla navigazione: si apre dall'elenco;
- * `?da=gr` ("Sentieri del GR", 10.7) cambia il link di ritorno, che riporta i parametri dell'elenco (filtri e ordinamento).
+ * `?da=gr` ("Sentieri del GR", 10.7) e `?da=sezione-gr&codice=…` (Sezione vista dal GR, {@see RegionalGroupSectionTrails})
+ * cambiano il link di ritorno, che riporta i parametri dell'elenco (filtri, ricerca, ordinamento, pagina).
  */
 class CaiTrailDetail extends Page
 {
     /** Nome della mappa negli eventi `cai-map-*` (vedi `x-cai.map`). */
     public const MAP_NAME = 'trail';
+
+    /** `?da=` della scheda aperta da "Sentieri del GR". */
+    public const FROM_GROUP = 'gr';
+
+    /** `?da=` della scheda aperta dai sentieri di una Sezione visti dal GR (con `?codice=`). */
+    public const FROM_GROUP_SECTION = 'sezione-gr';
 
     /** Inquadratura massima del tracciato (il design apre a zoom 15). */
     public const MAP_FIT_MAX_ZOOM = 15;
@@ -56,13 +63,17 @@ class CaiTrailDetail extends Page
 
     public CaiTrail $trail;
 
-    /** Pagina di provenienza: `gr` = "Sentieri del GR". */
+    /** Pagina di provenienza: {@see FROM_GROUP}, {@see FROM_GROUP_SECTION}. */
     #[Url(as: 'da')]
     public ?string $from = null;
 
+    /** Codice CAI della Sezione con {@see FROM_GROUP_SECTION}. */
+    #[Url(as: 'codice')]
+    public ?string $sectionCode = null;
+
     /**
-     * Parametri dell'elenco ({@see SectionTrails::LIST_QUERY_KEYS}) con cui si è aperta la scheda: il link di ritorno
-     * li riporta, così filtri e ordinamento restano quelli di prima.
+     * Parametri dell'elenco ({@see SectionTrails::LIST_QUERY_KEYS}, o {@see RegionalGroupTrails::LIST_QUERY_KEYS} con
+     * `?da=gr`) con cui si è aperta la scheda: il link di ritorno li riporta, così filtri e ordinamento restano quelli di prima.
      *
      * @var array<string, string|list<string>>
      */
@@ -98,7 +109,10 @@ class CaiTrailDetail extends Page
         abort_unless(Auth::user()?->can('view', $trail) === true, 403);
 
         $this->trail = $trail;
-        $this->listQuery = self::listQueryFrom(request()->query());
+        $this->listQuery = self::listQueryFrom(
+            request()->query(),
+            request()->query('da') === self::FROM_GROUP ? RegionalGroupTrails::LIST_QUERY_KEYS : SectionTrails::LIST_QUERY_KEYS,
+        );
     }
 
     /**
@@ -106,13 +120,14 @@ class CaiTrailDetail extends Page
      * non validi li normalizza poi l'elenco, come per un URL scritto a mano.
      *
      * @param  array<array-key, mixed>  $query
+     * @param  list<string>  $keys
      * @return array<string, string|list<string>>
      */
-    public static function listQueryFrom(array $query): array
+    public static function listQueryFrom(array $query, array $keys = SectionTrails::LIST_QUERY_KEYS): array
     {
         $list = [];
 
-        foreach (SectionTrails::LIST_QUERY_KEYS as $key) {
+        foreach ($keys as $key) {
             $value = $query[$key] ?? null;
 
             if (is_string($value) && $value !== '' && strlen($value) <= 100) {
@@ -311,8 +326,9 @@ class CaiTrailDetail extends Page
     }
 
     /**
-     * Elenco da cui si arriva: "Sentieri del GR" (`?da=gr` o utente GR), "Sentieri di Sezione" (utente Sezione), per lo
-     * staff la scheda della prima Sezione del sentiero (se esiste). I parametri dell'elenco tornano nel link.
+     * Elenco da cui si arriva: i sentieri di una Sezione visti dal GR (`?da=sezione-gr&codice=…`, utente GR), "Sentieri
+     * del GR" (`?da=gr` o utente GR), "Sentieri di Sezione" (utente Sezione), per lo staff la scheda della prima Sezione
+     * del sentiero (se esiste). I parametri dell'elenco tornano nel link.
      *
      * @return array{label: string, url: string}|null
      */
@@ -321,8 +337,13 @@ class CaiTrailDetail extends Page
         $user = Auth::user();
         $customerType = $user instanceof User && $user->hasRole(UserRole::Customer->value) ? $user->customer_type : null;
 
-        if ($this->from === 'gr' || $customerType === CustomerType::GruppoRegionale) {
-            return ['label' => 'Sentieri del GR', 'url' => RegionalGroupTrails::getUrl($this->from === 'gr' ? $this->listQuery : [])];
+        if ($this->from === self::FROM_GROUP_SECTION && $customerType === CustomerType::GruppoRegionale
+            && ctype_digit((string) $this->sectionCode) && strlen((string) $this->sectionCode) <= 20) {
+            return ['label' => 'Sentieri di Sezione', 'url' => RegionalGroupSectionTrails::getUrl(['codice' => $this->sectionCode, ...$this->listQuery])];
+        }
+
+        if ($this->from === self::FROM_GROUP || $customerType === CustomerType::GruppoRegionale) {
+            return ['label' => 'Sentieri del GR', 'url' => RegionalGroupTrails::getUrl($this->from === self::FROM_GROUP ? $this->listQuery : [])];
         }
 
         if ($customerType === CustomerType::Sezione) {

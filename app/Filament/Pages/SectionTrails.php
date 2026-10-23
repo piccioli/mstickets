@@ -372,6 +372,16 @@ class SectionTrails extends Page
         return Dashboard::getUrl();
     }
 
+    /**
+     * Link di ritorno in testa alla pagina ("← Dashboard"; "← Sentieri del GR" per {@see RegionalGroupSectionTrails}).
+     *
+     * @return array{label: string, url: string}
+     */
+    public function backLink(): array
+    {
+        return ['label' => 'Dashboard', 'url' => $this->dashboardUrl()];
+    }
+
     /** Nell'URL solo ciò che differisce dal default (numero crescente). */
     private function applySort(CaiTrailSort $sort): void
     {

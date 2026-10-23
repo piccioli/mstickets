@@ -8,7 +8,6 @@ use App\Domain\Identity\Models\User;
 use App\Filament\Pages\Dashboard;
 use App\Filament\Pages\RegionalGroupMembers;
 use App\Filament\Pages\RegionalGroupSicaiStages;
-use App\Filament\Pages\RegionalGroupTrails;
 use Database\Seeders\RolePermissionSeeder;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -22,7 +21,6 @@ beforeEach(function (): void {
 
 dataset('regional group coming soon pages', [
     'Soci' => [RegionalGroupMembers::class, 'Soci', '/gr/soci'],
-    'Sentieri del GR' => [RegionalGroupTrails::class, 'Sentieri del GR', '/gr/sentieri'],
     'Tappe SICAI' => [RegionalGroupSicaiStages::class, 'Tappe SICAI', '/gr/tappe-sicai'],
 ]);
 

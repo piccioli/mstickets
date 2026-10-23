@@ -576,6 +576,18 @@ Operativo (ordine dei comandi e vincolo di spazio remoto): `deploy/CLAUDE.md` §
   700–1.100, quindi il messaggio "Mostrati i 600 sentieri più lunghi" è uno stato normale, non un errore. Il riquadro del
   settore emette `cai-map-area-listed` ("Elenco sentieri →"): la pagina (US-1065) lo ascolta per filtrare l'elenco.
   Nessun gzip configurato in `docker/`: le risposte JSON viaggiano non compresse.
+- **Pagina "Sentieri del GR"** (`RegionalGroupTrails`, US-1065): elenco paginato in SQL (`CaiRegionalGroupTrails::trails()`,
+  25 righe, `?pagina=`), filtri/ricerca/ordinamento/provincia aperta in `#[Url]`; la tabella "Per Sezione" filtra in PHP
+  (stato locale). La mappa è il **widget `Filament\Widgets\RegionalGroupTrailsMap`** (componente Livewire figlio,
+  `$isDiscovered = false`, `$isLazy = false`): così i 300–600 KB di settori non tornano a ogni filtro (Livewire non
+  ridisegna i figli col padre). Pattern da riusare per le tappe SICAI (10.9). Memo per richiesta (`$this->trails`):
+  un'azione che lo calcola PRIMA di cambiare la pagina deve azzerarlo (vedi `goToPage()`).
+  `RegionalGroupSectionTrails` (`gr/sentieri/sezioni/{codice}`) estende `SectionTrails` (stessa vista, `backLink()`,
+  `section()` dal codice `#[Locked]`): 404 se la Sezione non esiste, 403 se fuori dal prefisso del GR.
+- **`CaiTrailPolicy::view` per il GR** ammette anche i sentieri **presenti** (≥ 50%) nella sua regione osm2cai, senza
+  Sezione o di Sezioni di altri GR: sono nell'elenco del GR e la scheda deve aprirsi.
+- **Blade**: in una vista con blocchi `@php … @endphp` NON usare la forma inline `@php($x = …)` — Blade non la chiude e
+  la vista dà "syntax error" (successo in `section-trails.blade.php`).
 - **Dato della fonte**: nel dump di settembre 2026 nessun sentiero è legato a codici `9218…` (SAT/Trentino): la SAT
   risulta senza sentieri. Per verifiche "molti sentieri" usare p.es. Parma (9224001, 380) o Sulmona (9234004, 382).
 - **Pagina "Sentieri di Sezione"** (`SectionTrails`, US-1054, slug `sezione/sentieri` della vecchia pagina "in arrivo"):
@@ -588,8 +600,8 @@ Operativo (ordine dei comandi e vincolo di spazio remoto): `deploy/CLAUDE.md` §
 - **Scheda del sentiero** (`Filament\Pages\CaiTrailDetail`, US-1055, slug `sentieri/{trailId}`): stessa struttura di
   `CaiHutDetail` (`canAccess()` per profilo + `CaiTrailPolicy::view` in `mount()`, 404 su id non numerico). Il link di
   ritorno riporta le chiavi `SectionTrails::LIST_QUERY_KEYS` (`stato` è una LISTA: `listQueryFrom()` accetta stringhe e
-  array di stringhe); con `?da=gr` o utente GR punta a `RegionalGroupTrails` con gli stessi parametri — **la 10.7, se
-  l'elenco del GR usa chiavi diverse, deve estendere `listQueryFrom()`**. Mappa: il tracciato come linea `selected`
+  array di stringhe); con `?da=gr` legge invece `RegionalGroupTrails::LIST_QUERY_KEYS` e torna a "Sentieri del GR", con
+  `?da=sezione-gr&codice=…` torna a `RegionalGroupSectionTrails` (10.7). Mappa: il tracciato come linea `selected`
   senza popup (spessore/bordo della linea selezionata) + marker `start`/`end` (A/B, primo e ultimo punto della
   geometria, `CaiTrailDetail::endpoints()`), `x-cai.map` con `fit-max-zoom` 15. Avviso di percorribilità e suoi colori
   da `CaiTrailPracticability::alertTitle()`/`alertBorder()`.
