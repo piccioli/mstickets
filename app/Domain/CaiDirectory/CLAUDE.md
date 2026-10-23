@@ -345,3 +345,21 @@ Operativo (ordine dei comandi e vincolo di spazio remoto): `deploy/CLAUDE.md` §
   → `env()` ritorna `""`, non il default, e rompe il disco). Confrontare i conteggi prima/dopo sul DB dev.
   I conteggi del PRD erano di uno stato precedente: confrontare sempre con il DB attuale, non con il documento.
 - L'opzione di `cai:import-datapack` è `--path`; quella di `cai:export-datapack-snapshot` è `--datapack`.
+
+## Rifugi da rifugi.cai.it (`cai_huts`, Fase 10.4, US-1031)
+
+- **Fonte di verità esterna**, sola lettura: `snap_cai_huts` nel datapack (`id_cai`, `payload` = JSON grezzo del
+  dettaglio `GET /api/v1/shelters/{id_cai}`) → `Import\CaiHutsImporter` (chiamato da `CaiDatapackImporter` solo
+  nell'import nazionale, riga `snapshot_rifugi`). Crea/aggiorna/**elimina** (conteggio `deleted` di
+  `CaiImportTableResult`, stampato come "eliminati N"); senza la tabella `snap_cai_huts` non tocca nulla.
+- Parsing in `Import\CaiHutFieldMapper` (testato): la fonte è una lista `fields` `{name, value, data}` → tutti i valori
+  grezzi in `cai_huts.fields`, colonne normalizzate per le pagine. `services` = ogni `*_service` (tranne `posti_*`)
+  senza suffisso → 1/0/null (numeri > 0 e testo → 1, "Assente"/"Nessuna" → 0); `management.certifications` = ogni
+  `*_certification` (0/1 come int, il resto testo). Canone spesso testo libero ("7500 + IVA", "gratuita"):
+  `contract.fee` numerico o `null`, `contract.fee_text` grezzo sempre.
+- Dati reali (ott. 2026): 764 rifugi, 761 con `branch_code` = una Sezione; 4 con stato "Rudere" (non nell'enum
+  `CaiHutStatus` del design → `status` null, testo in `fields`); `openingTime_contact` ha il valore in `data`, non in `value`.
+- `DiffsAttributes` confronta le colonne json (cast `array`) come JSON a chiavi ordinate: Postgres `json` (non
+  `jsonb`) conserva l'ordine, ma il confronto non deve dipenderne.
+- `CaiHutPolicy`: `view` = `viewManagement` = staff `CaiDirectoryView`, customer collegato alla Sezione `branch_code`,
+  customer GR il cui `prefixOf(region)` è prefisso del `branch_code`; create/update/delete sempre `false`.

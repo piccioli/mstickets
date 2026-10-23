@@ -85,4 +85,14 @@ class CaiSection extends Model
     {
         return $this->hasMany(CaiFinancialStatement::class, 'cai_section_id', 'codice_cai');
     }
+
+    /**
+     * Rifugi di rifugi.cai.it intestati alla Sezione (`cai_huts.branch_code` = `codice_cai`, US-1031).
+     *
+     * @return HasMany<CaiHut, $this>
+     */
+    public function huts(): HasMany
+    {
+        return $this->hasMany(CaiHut::class, 'branch_code', 'codice_cai');
+    }
 }
