@@ -253,3 +253,23 @@ Fase 10.4–10.9 (run unico): rifugi, sentieri, tappe SICAI. PRD in docs/project
   - US-1056 (badge Sentieri della Sezione) e i badge GR delle 10.7/10.9 seguono lo stesso schema: valore + conteggio
     Sezioni nel DTO, nota calcolata nella vista con `sumNote()`.
 ---
+
+## 2026-10-23 - US-1046
+- Manifest `docs/collaudo/fase-10.php`: 6 argomenti "Rifugi del GR (10.5)" (US-1041..US-1046), F10-189..F10-226;
+  `collaudo:verify-manifest 10` verde. Corretto F10-76, rotto dal rename del test in US-1045 (rifugi tolti dal nome).
+- E2E `tests/Feature/EndToEnd/Fase10RifugiGrEndToEndTest.php`: login GR Toscana → Dashboard (badge Rifugi "3", Sezioni +
+  rifugio intestato al GR, "Somma di 1 Sezione") → elenco (niente rifugi lombardi) → `toggleContracts` (1 di 3, link alla
+  scheda con `da=gr&contratti=1`) → scheda con "Gestione" e link di ritorno con `contratti=1` → elenco filtrato →
+  rifugio lombardo 403; GR Lombardia → 403 sul rifugio toscano, 200 sul proprio.
+- Corretto `Fase10DashboardGruppoRegionaleEndToEndTest` (badge "Non disponibile" 5 → 4): rotto da US-1045, non coperto
+  dai test mirati eseguiti in quella storia.
+- Roadmap riga 10.5 → "sviluppata"; `app/Domain/CaiDirectory/CLAUDE.md` con il riepilogo della 10.5 (regola dei rifugi
+  intestati ai GR in un solo punto, stato del contratto da `CaiHutContractExpiry`) e `CaiHutPolicy` aggiornata.
+- PDF di collaudo non generato: si fa a fine fase.
+- **Learnings for future iterations:**
+  - In un E2E, dopo il login reale via `Login`, passare a un altro utente con `actingAs()` fa scattare
+    `AuthenticateSession` (hash password in sessione) → errore `Redirector given`: chiamare prima `$this->flushSession()`.
+  - Una storia che rende valorizzato un badge prima "Non disponibile" deve far girare anche `tests/Feature/EndToEnd`
+    (contano `ms-metric-badge--unavailable`): US-1056 e i badge delle 10.7/10.9 faranno lo stesso.
+  - Un numero nel badge va scelto diverso dagli altri badge della stessa dashboard, altrimenti `substr_count` conta 2.
+---
