@@ -123,3 +123,19 @@ Fase 10.4–10.9 (run unico): rifugi, sentieri, tappe SICAI. PRD in docs/project
     classi `ms-metric-badge--unavailable`, quindi ogni metrica che passa da null a valorizzata richiede di aggiornarli.
   - US-1045 (badge GR) segue la stessa eccezione "0 è un dato noto": vedi `app/Domain/CaiDirectory/CLAUDE.md`.
 ---
+
+## 2026-10-23 - US-1037
+- Manifest `docs/collaudo/fase-10.php`: 7 argomenti "Rifugi di Sezione (10.4)" (uno per US-1031..US-1037), F10-134..F10-188;
+  `collaudo:verify-manifest 10` verde. Corretto F10-32, rotto dal rename del test in US-1036 ("... except huts, shown as 0").
+- E2E `tests/Feature/EndToEnd/Fase10RifugiSezioneEndToEndTest.php`: login Sezione → Dashboard (badge Rifugi "2", link a
+  `SectionHuts`) → elenco (solo i rifugi propri, link alla scheda) → scheda con "Gestione" e scadenza → rifugio di
+  un'altra Sezione 403.
+- Roadmap riga 10.4 → "sviluppata"; `app/Domain/CaiDirectory/CLAUDE.md` con un riepilogo fonte → script → tabella →
+  pagine → visibilità della gestione → collaudo, in testa alla sezione Rifugi.
+- PDF di collaudo non generato: si fa a fine fase (processo di `fase-10-roadmap.md` §5).
+- **Learnings for future iterations:**
+  - Rinominare un test già nel manifest rompe `collaudo:verify-manifest` solo alla storia di collaudo: quando una storia
+    rinomina un test, grep del vecchio nome in `docs/collaudo/` e aggiornarlo subito (US-1045 toccherà i test del badge GR).
+  - Nell'E2E la risposta HTTP intera (`$this->get(...)->getContent()`) permette lo stesso `substr_count` sul badge dei
+    test Livewire.
+---
