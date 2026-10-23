@@ -9,7 +9,6 @@ use App\Filament\Pages\Dashboard;
 use App\Filament\Pages\SectionFinancialStatements;
 use App\Filament\Pages\SectionMembers;
 use App\Filament\Pages\SectionSicaiStages;
-use App\Filament\Pages\SectionTrails;
 use Database\Seeders\RolePermissionSeeder;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -24,7 +23,6 @@ beforeEach(function (): void {
 dataset('section coming soon pages', [
     'Soci' => [SectionMembers::class, 'Soci'],
     'Bilancio' => [SectionFinancialStatements::class, 'Bilancio'],
-    'Sentieri di Sezione' => [SectionTrails::class, 'Sentieri di Sezione'],
     'Tappe SICAI' => [SectionSicaiStages::class, 'Tappe SICAI'],
 ]);
 

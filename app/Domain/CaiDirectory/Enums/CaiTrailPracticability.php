@@ -31,6 +31,28 @@ enum CaiTrailPracticability: string implements HasLabel
         };
     }
 
+    /** Chiave nell'URL del filtro dell'elenco (`?percorribilita=con-difficolta`, US-1054). */
+    public function key(): string
+    {
+        return match ($this) {
+            self::Practicable => 'percorribile',
+            self::WithDifficulty => 'con-difficolta',
+            self::NotPracticable => 'non-percorribile',
+            self::Unknown => 'sconosciuto',
+        };
+    }
+
+    public static function fromKey(?string $key): ?self
+    {
+        foreach (self::cases() as $case) {
+            if ($case->key() === $key) {
+                return $case;
+            }
+        }
+
+        return null;
+    }
+
     public function getLabel(): string
     {
         return match ($this) {

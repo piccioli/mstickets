@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 use App\Domain\CaiDirectory\Enums\CaiHutStatus;
 use App\Domain\CaiDirectory\Enums\CaiHutType;
+use App\Domain\CaiDirectory\Enums\CaiTrailPracticability;
+use App\Domain\CaiDirectory\Enums\CaiTrailStatus;
 use App\Domain\CaiDirectory\Import\CaiOsm2caiExtractWriter;
 use App\Domain\CaiDirectory\Models\CaiDocument;
 use App\Domain\CaiDirectory\Models\CaiHut;
 use App\Domain\CaiDirectory\Models\CaiRuntsRegistration;
 use App\Domain\CaiDirectory\Models\CaiSection;
+use App\Domain\CaiDirectory\Models\CaiTrail;
 use App\Domain\Identity\Enums\Permission as PermissionEnum;
 use App\Domain\Identity\Enums\UserRole;
 use App\Domain\Identity\Models\User;
@@ -18,6 +21,7 @@ use App\Domain\Ticketing\Models\Ticket;
 use App\Domain\Ticketing\Models\TicketLog;
 use App\Domain\Ticketing\Models\TicketMessage;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Writer\XLSX\Writer as XlsxWriter;
@@ -657,4 +661,38 @@ function makeTrailsDatapack(array $trails, array $links, ?string $sqlite = null)
     }
 
     return $sqlite;
+}
+
+/**
+ * Sentiero osm2cai salvato in `cai_trails` (US-1054), collegato alle Sezioni con i codici indicati: validato,
+ * percorribile, 5,4 km, con geometria a due punti.
+ *
+ * @param  array<string, mixed>  $attributes
+ * @param  list<string>  $sectionCodes
+ */
+function caiTrail(array $attributes = [], array $sectionCodes = []): CaiTrail
+{
+    static $sequence = 0;
+    $sequence++;
+
+    $trail = CaiTrail::create(array_merge([
+        'id' => 500000 + $sequence,
+        'osmid' => 9000000 + $sequence,
+        'ref' => (string) $sequence,
+        'name' => 'Sentiero '.$sequence,
+        'from_place' => 'Rifugio A',
+        'to_place' => 'Passo B',
+        'cai_scale' => 'E',
+        'length_km' => 5.4,
+        'status' => CaiTrailStatus::Validated,
+        'issues_status' => 'percorribile',
+        'practicability' => CaiTrailPracticability::Practicable,
+        'geometry' => ['type' => 'MultiLineString', 'coordinates' => [[[10.1 + $sequence / 1000, 43.1], [10.2, 43.2]]]],
+    ], $attributes));
+
+    foreach ($sectionCodes as $code) {
+        DB::table('cai_trail_section')->insert(['cai_trail_id' => $trail->id, 'section_code' => $code]);
+    }
+
+    return $trail->fresh() ?? $trail;
 }

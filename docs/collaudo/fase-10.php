@@ -61,7 +61,7 @@ return [
         [
             'titolo' => 'Dashboard V2 della Sezione (10.1) — pagine di approfondimento "in arrivo" (US-1003)',
             'test' => [
-                ['id' => 'F10-26', 'descrizione' => 'L\'utente Sezione apre Soci, Bilancio, Rifugi, Sentieri e Tappe SICAI: "Questa sezione è in arrivo."', 'test_automatico' => 'tests/Feature/Filament/Pages/SectionComingSoonPagesTest.php::a sezione customer sees the coming soon page'],
+                ['id' => 'F10-26', 'descrizione' => 'L\'utente Sezione apre Soci, Bilancio e Tappe SICAI: "Questa sezione è in arrivo." (Rifugi e Sentieri sono diventati pagine reali nella 10.4 e 10.6)', 'test_automatico' => 'tests/Feature/Filament/Pages/SectionComingSoonPagesTest.php::a sezione customer sees the coming soon page'],
                 ['id' => 'F10-27', 'descrizione' => 'Un utente staff riceve 403 sulle pagine "in arrivo"', 'test_automatico' => 'tests/Feature/Filament/Pages/SectionComingSoonPagesTest.php::a staff user cannot access the coming soon page'],
                 ['id' => 'F10-28', 'descrizione' => 'Un cliente di altro tipo (GR, Organo Tecnico, nessun tipo) riceve 403', 'test_automatico' => 'tests/Feature/Filament/Pages/SectionComingSoonPagesTest.php::a customer of another type cannot access the coming soon page'],
                 ['id' => 'F10-29', 'descrizione' => 'Le pagine "in arrivo" non compaiono nella navigazione', 'test_automatico' => 'tests/Feature/Filament/Pages/SectionComingSoonPagesTest.php::the coming soon pages are not in the navigation'],

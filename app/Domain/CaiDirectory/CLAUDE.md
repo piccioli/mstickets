@@ -516,3 +516,12 @@ Operativo (ordine dei comandi e vincolo di spazio remoto): `deploy/CLAUDE.md` §
   riga `snapshot_sentieri` con avviso, sentieri intatti.
 - **Dato della fonte**: nel dump di settembre 2026 nessun sentiero è legato a codici `9218…` (SAT/Trentino): la SAT
   risulta senza sentieri. Per verifiche "molti sentieri" usare p.es. Parma (9224001, 380) o Sulmona (9234004, 382).
+- **Pagina "Sentieri di Sezione"** (`SectionTrails`, US-1054, slug `sezione/sentieri` della vecchia pagina "in arrivo"):
+  filtri/ordinamento in `Support\CaiTrailFilters` (riusabili dal GR) con `Enums\CaiTrailSort` (`?ordina=`, numero in
+  ordine naturale, mancanti in fondo), `Enums\CaiTrailDifficulty` (`?difficolta=`, conta la prima sigla di `cai_scale`:
+  "EEA:PD" → EEA, "T/E" → T) e `CaiTrailPracticability::key()` (`?percorribilita=`); stati in `?stato[]=`. Nota
+  "Condiviso con …" con `Support\CaiSectionShortName` ("SEZ. PARMA" → "CAI Parma", "SEZ. S.A.T." → "SAT"). La mappa
+  riceve le sole linee filtrate (Parma: ~1 s a filtro sul dev locale). Lo `href` della scheda (`trailUrl()`) arriva
+  con la US-1055: finché è `null` la riga seleziona la linea e non c'è "›".
+- **Test Livewire dopo un `call()`**: `assertSeeTextInOrder` lavora sulla risposta JSON, dove "→" non si trova:
+  verificare l'ordine sullo `strip_tags($component->html())` (vedi `SectionTrailsTest`).
