@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <meta name="design_doc_mode" content="canvas">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap">
+  <style>html,body{margin:0;padding:0;background:#e9ecef;font-family:'Nunito Sans',sans-serif;color:#3c4557;} a{color:#17a180;text-decoration:none;} a:hover{color:#0f7d63;} button,select,input{font-family:inherit;} *{box-sizing:border-box;}</style>
+</helmet>
+<section style="padding:56px 64px 96px;display:flex;flex-direction:column;gap:32px;">
+  <div style="display:flex;flex-direction:column;gap:6px;">
+    <div style="font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#17a180;">Piattaforma Montagna Servizi · Gruppo Regionale</div>
+    <div style="font-size:28px;font-weight:800;">Tappe SICAI del GR</div>
+    <div style="font-size:14px;color:#6b7486;max-width:860px;line-height:1.5;text-wrap:pretty;">Pagina aperta dal badge «Tappe SICAI» della Dashboard V2 del Gruppo Regionale. Solo area contenuti. Stesso linguaggio di <a href="Sentieri del GR.dc.html" style="font-weight:700;">Sentieri del GR</a> e <a href="Rifugi del GR.dc.html" style="font-weight:700;">Rifugi del GR</a>; la scheda della tappa riusa la <a href="Sentieri di Sezione.dc.html#scheda" style="font-weight:700;">scheda del sentiero</a> (10.6). Tracciati, codici e punti di appoggio sono dati di esempio.</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+    <div style="display:flex;gap:4px;padding:4px;background:#fff;border:1px solid #dfe3e8;border-radius:10px;">
+      <sc-for list="{{scenBtns}}" as="b" hint-placeholder-count="2">
+        <button onClick="{{b.click}}" style="height:32px;padding:0 14px;border:none;border-radius:7px;background:{{b.bg}};color:{{b.fg}};font-size:13px;font-weight:700;cursor:pointer;">{{b.l}}</button>
+      </sc-for>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <span style="font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#8a93a3;">Vai allo stato</span>
+      <a href="#scheda" onClick="{{goNon}}" style="height:32px;display:flex;align-items:center;padding:0 12px;border:1px solid #dfe3e8;border-radius:16px;background:#fff;font-size:13px;font-weight:700;">Tappa non percorribile</a>
+      <a href="#d-punti" onClick="{{goNoPunti}}" style="height:32px;display:flex;align-items:center;padding:0 12px;border:1px solid #dfe3e8;border-radius:16px;background:#fff;font-size:13px;font-weight:700;">Regione senza punti di appoggio</a>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:48px;align-items:flex-start;flex-wrap:wrap;">
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div style="font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#8a93a3;">Desktop · 1440</div>
+      <div data-screen-label="Tappe SICAI desktop" style="width:1440px;background:#f4f6f8;border-radius:12px;box-shadow:0 1px 2px rgba(20,30,40,.06),0 8px 28px rgba(20,30,40,.08);overflow:hidden;">
+        <div style="padding:36px 40px 56px;display:flex;flex-direction:column;gap:36px;">
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <a href="Dashboard Gruppo Regionale CAI V2.dc.html" style="font-size:13px;font-weight:700;color:#17a180;">← Dashboard</a>
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:24px;">
+              <div style="display:flex;flex-direction:column;gap:4px;">
+                <div style="font-size:28px;font-weight:800;letter-spacing:-0.01em;">Tappe SICAI</div>
+                <div style="font-size:15px;font-weight:600;color:#6b7486;">{{G.sub}}</div>
+              </div>
+              <div style="font-size:12px;color:#8a93a3;">Fonte: <a href="https://sentieroitalia.cai.it" target="_blank" style="font-weight:700;">Sentiero Italia CAI</a> · <a href="https://osm2cai.cai.it" target="_blank" style="font-weight:700;">osm2cai</a> · dati aggiornati al 21 ottobre 2026</div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            <div style="font-size:18px;font-weight:800;">Riepilogo</div>
+            <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) minmax(0,1.55fr);gap:16px;">
+              <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:20px 22px;display:flex;flex-direction:column;gap:6px;">
+                <div style="font-size:13px;font-weight:800;">Tappe</div>
+                <div style="font-size:36px;font-weight:800;letter-spacing:-0.01em;font-variant-numeric:tabular-nums;line-height:1.1;">{{K.nT}}</div>
+                <div style="font-size:13px;color:#6b7486;line-height:1.45;">{{K.nTsub}}</div>
+              </div>
+              <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:20px 22px;display:flex;flex-direction:column;gap:6px;">
+                <div style="font-size:13px;font-weight:800;">Km del Sentiero Italia</div>
+                <div style="font-size:36px;font-weight:800;letter-spacing:-0.01em;font-variant-numeric:tabular-nums;line-height:1.1;">{{K.km}} <span style="font-size:18px;color:#6b7486;">km</span></div>
+                <div style="font-size:13px;color:#6b7486;line-height:1.45;">{{K.kmSub}}</div>
+              </div>
+              <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:20px 22px;display:flex;flex-direction:column;gap:6px;">
+                <div style="font-size:13px;font-weight:800;">Dislivello positivo</div>
+                <div style="font-size:36px;font-weight:800;letter-spacing:-0.01em;font-variant-numeric:tabular-nums;line-height:1.1;">{{K.dp}} <span style="font-size:18px;color:#6b7486;">m</span></div>
+                <div style="font-size:13px;color:#6b7486;line-height:1.45;">{{K.dpSub}}</div>
+              </div>
+              <a href="#d-punti" style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:20px 22px;display:flex;flex-direction:column;gap:6px;color:#3c4557;">
+                <div style="font-size:13px;font-weight:800;">Punti di appoggio</div>
+                <div style="font-size:36px;font-weight:800;letter-spacing:-0.01em;font-variant-numeric:tabular-nums;line-height:1.1;color:{{K.pC}};">{{K.nP}}</div>
+                <div style="font-size:13px;color:#6b7486;line-height:1.45;">{{K.pSub}}</div>
+              </a>
+              <div style="background:{{CR.bg}};border:1px solid {{CR.bd}};border-radius:10px;padding:20px 22px;display:flex;flex-direction:column;gap:12px;">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;">
+                  <div style="font-size:13px;font-weight:800;color:{{CR.tc}};">Tappe con criticità</div>
+                  <sc-if value="{{CR.any}}"><span style="font-size:12px;font-weight:700;color:#6b7486;">{{CR.km}}</span></sc-if>
+                </div>
+                <sc-if value="{{CR.none}}"><div style="font-size:14px;font-weight:700;color:#0f7d63;">Nessuna tappa non percorribile o con difficoltà.</div></sc-if>
+                <sc-if value="{{CR.hasNon}}">
+                  <div style="display:flex;flex-direction:column;gap:6px;">
+                    <div style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:800;color:#b42318;"><span style="width:9px;height:9px;border-radius:50%;background:#d64545;"></span>{{CR.nonT}}</div>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;padding-left:17px;">
+                      <sc-for list="{{CR.non}}" as="c"><a href="#scheda" onClick="{{c.open}}" title="{{c.daa}}" style="display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:14px;background:#fff;border:1px solid #f0b8b1;font-size:12px;font-weight:800;color:#b42318;">{{c.code}} <span style="font-weight:600;color:#6b7486;">{{c.daa}}</span></a></sc-for>
+                    </div>
+                  </div>
+                </sc-if>
+                <sc-if value="{{CR.hasDif}}">
+                  <div style="display:flex;flex-direction:column;gap:6px;">
+                    <div style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:800;color:#8a5600;"><span style="width:9px;height:9px;border-radius:50%;background:#e0a526;"></span>{{CR.difT}}</div>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;padding-left:17px;">
+                      <sc-for list="{{CR.dif}}" as="c"><a href="#scheda" onClick="{{c.open}}" title="{{c.daa}}" style="display:inline-flex;align-items:center;height:28px;padding:0 10px;border-radius:14px;background:#fff;border:1px solid #ecd3a3;font-size:12px;font-weight:800;color:#8a5600;">{{c.code}}</a></sc-for>
+                    </div>
+                  </div>
+                </sc-if>
+              </div>
+            </div>
+          </div>
+
+          <div id="d-mappa" style="display:flex;flex-direction:column;gap:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;">
+              <div style="font-size:18px;font-weight:800;">Mappa</div>
+              <div style="font-size:13px;color:#6b7486;">Trascina per spostarti · doppio clic o + per zoomare · clic su una tappa o su un punto di appoggio per l’anteprima</div>
+            </div>
+            <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;overflow:hidden;">
+              <div onPointerDown="{{MD.down}}" onPointerMove="{{MD.move}}" onPointerUp="{{MD.up}}" onDoubleClick="{{MD.dbl}}" style="position:relative;width:{{MD.w}}px;height:{{MD.h}}px;overflow:hidden;background:#f4f1e8;touch-action:none;cursor:grab;user-select:none;">
+                <sc-for list="{{MD.tiles}}" as="t"><img src="{{t.src}}" alt="" draggable="false" style="position:absolute;left:{{t.l}}px;top:{{t.t}}px;width:256px;height:256px;max-width:none;user-select:none;pointer-events:none;"></sc-for>
+                <sc-for list="{{MD.lines}}" as="p"><svg width="{{MD.w}}" height="{{MD.h}}" style="position:absolute;left:0;top:0;pointer-events:none;z-index:6;"><path d="{{p.d}}" style="fill:none;stroke:#fff;stroke-width:{{p.cw}};stroke-linecap:round;stroke-linejoin:round;"></path><path d="{{p.d}}" style="fill:none;stroke:{{p.c}};stroke-width:{{p.w}};stroke-dasharray:{{p.da}};stroke-linecap:round;stroke-linejoin:round;"></path></svg></sc-for>
+                <sc-for list="{{MD.ticks}}" as="k"><div style="position:absolute;left:{{k.x}}px;top:{{k.y}}px;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;background:#fff;border:2px solid #1f2633;z-index:7;pointer-events:none;"></div></sc-for>
+                <sc-for list="{{MD.labels}}" as="l"><div style="position:absolute;left:{{l.x}}px;top:{{l.y}}px;transform:translate(-50%,-50%);padding:1px 5px;border-radius:4px;background:#fff;border:1.5px solid {{l.c}};font-size:10px;font-weight:800;color:#1f2633;z-index:8;pointer-events:none;white-space:nowrap;">{{l.t}}</div></sc-for>
+                <sc-for list="{{MD.marks}}" as="m"><div onPointerDown="{{stop}}" onClick="{{m.click}}" title="{{m.t}}" style="position:absolute;left:{{m.x}}px;top:{{m.y}}px;width:{{m.s}}px;height:{{m.s}}px;margin-left:{{m.o}}px;margin-top:{{m.o}}px;border-radius:50%;background:{{m.c}};border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:9;cursor:pointer;"><sc-if value="{{m.big}}"><svg width="12" height="12" viewBox="0 0 24 24" style="fill:none;stroke:#fff;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;"><path d="{{m.ic}}"></path></svg></sc-if></div></sc-for>
+                <div onPointerDown="{{stop}}" style="position:absolute;left:12px;top:12px;background:rgba(255,255,255,.96);border-radius:8px;padding:8px 12px;box-shadow:0 1px 4px rgba(0,0,0,.15);z-index:70;font-size:13px;font-weight:700;">{{MD.info}}</div>
+                <sc-if value="{{MD.popT}}">
+                  <div onPointerDown="{{stop}}" style="position:absolute;left:{{MD.p.x}}px;top:{{MD.p.y}}px;transform:{{MD.p.tf}};width:280px;background:#fff;border-radius:10px;box-shadow:0 8px 24px rgba(20,30,40,.25);padding:12px 14px 14px;display:flex;flex-direction:column;gap:8px;align-items:flex-start;z-index:60;cursor:default;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;">
+                      <div style="display:flex;align-items:center;gap:8px;"><span style="display:inline-flex;align-items:center;justify-content:center;min-width:52px;height:28px;padding:0 6px;background:#fff;border:1px solid #e1e4e8;border-left:5px solid #d22630;border-right:5px solid #d22630;border-radius:3px;font-size:12px;font-weight:800;color:#1f2633;">{{MD.p.code}}</span><sc-if value="{{MD.p.isVar}}"><span style="font-size:12px;font-weight:700;color:#6b7486;">{{MD.p.varL}}</span></sc-if></div>
+                      <button onClick="{{closePop}}" style="border:none;background:none;font-size:18px;line-height:1;color:#8a93a3;cursor:pointer;padding:0;">×</button>
+                    </div>
+                    <div style="font-size:15px;font-weight:800;line-height:1.3;">{{MD.p.daa}}</div>
+                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                      <span style="font-size:13px;font-weight:700;">{{MD.p.km}} km · +{{MD.p.dp}} m</span>
+                      <span style="padding:2px 9px;border-radius:12px;background:{{MD.p.pb}};color:{{MD.p.pf}};font-size:11px;font-weight:700;">{{MD.p.pl}}</span>
+                    </div>
+                    <a href="#scheda" onClick="{{MD.p.open}}" style="font-size:13px;font-weight:800;">Apri scheda →</a>
+                  </div>
+                </sc-if>
+                <sc-if value="{{MD.popP}}">
+                  <div onPointerDown="{{stop}}" style="position:absolute;left:{{MD.q.x}}px;top:{{MD.q.y}}px;transform:{{MD.q.tf}};width:280px;background:#fff;border-radius:10px;box-shadow:0 8px 24px rgba(20,30,40,.25);padding:12px 14px 14px;display:flex;flex-direction:column;gap:6px;align-items:flex-start;z-index:60;cursor:default;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;">
+                      <span style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:800;color:{{MD.q.c}};letter-spacing:.04em;text-transform:uppercase;"><span style="width:10px;height:10px;border-radius:50%;background:{{MD.q.c}};"></span>{{MD.q.tipo}}</span>
+                      <button onClick="{{closePop}}" style="border:none;background:none;font-size:18px;line-height:1;color:#8a93a3;cursor:pointer;padding:0;">×</button>
+                    </div>
+                    <div style="font-size:15px;font-weight:800;line-height:1.25;">{{MD.q.nome}}</div>
+                    <div style="font-size:12px;color:#6b7486;">{{MD.q.comune}} · tappe {{MD.q.tappe}}</div>
+                    <sc-if value="{{MD.q.hasCai}}"><a href="{{MD.q.cai}}" target="_blank" style="font-size:13px;font-weight:800;">Vedi su rifugi.cai.it ↗</a></sc-if>
+                    <a href="#d-punti" style="font-size:13px;font-weight:800;">Nell’elenco dei punti →</a>
+                  </div>
+                </sc-if>
+                <div onPointerDown="{{stop}}" style="position:absolute;right:12px;top:12px;display:flex;flex-direction:column;gap:8px;z-index:70;">
+                  <div style="display:flex;flex-direction:column;background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.2);overflow:hidden;">
+                    <button onClick="{{MD.zin}}" style="width:32px;height:32px;border:none;background:#fff;font-size:18px;font-weight:700;color:#3c4557;cursor:pointer;border-bottom:1px solid #eceef1;">+</button>
+                    <button onClick="{{MD.zout}}" style="width:32px;height:32px;border:none;background:#fff;font-size:18px;font-weight:700;color:#3c4557;cursor:pointer;">−</button>
+                  </div>
+                  <button onClick="{{MD.reset}}" title="Vista regione" style="width:32px;height:32px;border:none;border-radius:8px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.2);cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg width="16" height="16" viewBox="0 0 24 24" style="fill:none;stroke:#3c4557;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"></path></svg></button>
+                </div>
+                <div onPointerDown="{{stop}}" style="position:absolute;left:12px;bottom:26px;background:rgba(255,255,255,.96);border-radius:8px;padding:10px 12px;display:flex;gap:24px;box-shadow:0 1px 4px rgba(0,0,0,.15);z-index:70;">
+                  <div style="display:flex;flex-direction:column;gap:5px;">
+                    <div style="font-size:11px;font-weight:800;color:#6b7486;">Tracciato</div>
+                    <sc-for list="{{legT}}" as="g"><div style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;"><svg width="26" height="8" style="flex:none;"><path d="M2 4H24" style="stroke:{{g.c}};stroke-width:4;stroke-dasharray:{{g.da}};stroke-linecap:round;"></path><path d="M14 4H24" style="stroke:{{g.c2}};stroke-width:4;stroke-linecap:round;"></path></svg>{{g.l}}</div></sc-for>
+                  </div>
+                  <sc-if value="{{hasP}}">
+                    <div style="display:flex;flex-direction:column;gap:5px;">
+                      <div style="font-size:11px;font-weight:800;color:#6b7486;">Punti di appoggio</div>
+                      <div style="display:grid;grid-template-columns:auto auto;gap:5px 14px;">
+                        <sc-for list="{{legP}}" as="g"><div style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;"><span style="width:18px;height:18px;border-radius:50%;background:{{g.c}};display:flex;align-items:center;justify-content:center;flex:none;"><svg width="10" height="10" viewBox="0 0 24 24" style="fill:none;stroke:#fff;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;"><path d="{{g.ic}}"></path></svg></span>{{g.l}}</div></sc-for>
+                      </div>
+                    </div>
+                  </sc-if>
+                </div>
+                <div style="position:absolute;right:0;bottom:0;background:rgba(255,255,255,.85);padding:2px 6px;font-size:10px;color:#5b6475;z-index:70;">Cartografia CAI · Sentiero Italia CAI · © OpenStreetMap</div>
+              </div>
+            </div>
+          </div>
+
+          <div id="d-elenco" style="display:flex;flex-direction:column;gap:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;">
+              <div style="font-size:18px;font-weight:800;">Elenco delle tappe</div>
+              <div style="font-size:13px;color:#6b7486;">In ordine di codice · clic su una tappa per aprire la scheda</div>
+            </div>
+            <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;overflow:hidden;">
+              <div style="display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid #eceef1;flex-wrap:wrap;">
+                <input value="{{st.q}}" onChange="{{setQ}}" placeholder="Cerca per codice o località" style="width:260px;height:34px;padding:0 12px;border:1px solid #dfe3e8;border-radius:8px;font-size:13px;color:#3c4557;">
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                  <sc-for list="{{EL.chips}}" as="c"><button onClick="{{c.click}}" style="height:32px;padding:0 12px;border-radius:16px;border:1px solid {{c.bd}};background:{{c.bg}};color:{{c.fg}};font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:{{c.dot}};"></span>{{c.l}} <span style="font-weight:600;color:#8a93a3;">{{c.n}}</span></button></sc-for>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:96px minmax(0,1fr) 76px 86px 86px 84px 210px 120px 18px;gap:12px;padding:10px 20px;background:#fafbfc;border-bottom:1px solid #eceef1;font-size:12px;font-weight:800;color:#6b7486;">
+                <span>Codice</span><span>Partenza → arrivo</span><span style="text-align:right;">Km</span><span style="text-align:right;">Salita</span><span style="text-align:right;">Discesa</span><span>Difficoltà</span><span>Percorribilità</span><span style="text-align:right;">Punti vicini</span><span></span>
+              </div>
+              <div style="max-height:680px;overflow:auto;">
+                <sc-for list="{{EL.rows}}" as="r" hint-placeholder-count="10">
+                  <a href="#scheda" onClick="{{r.open}}" style="display:grid;grid-template-columns:96px minmax(0,1fr) 76px 86px 86px 84px 210px 120px 18px;gap:12px;align-items:center;padding:10px 20px;border-bottom:1px solid #f1f3f5;color:#3c4557;background:{{r.bg}};box-shadow:{{r.sh}};" style-hover="background:#f3faf8;">
+                    <div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start;padding-left:{{r.ind}}px;">
+                      <span style="display:inline-flex;align-items:center;justify-content:center;min-width:52px;height:28px;padding:0 6px;background:#fff;border:1px solid #e1e4e8;border-left:5px solid #d22630;border-right:5px solid #d22630;border-radius:3px;font-size:12px;font-weight:800;color:#1f2633;">{{r.code}}</span>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:2px;min-width:0;">
+                      <div style="font-size:14px;font-weight:800;line-height:1.3;">{{r.daa}}</div>
+                      <sc-if value="{{r.isVar}}"><div style="font-size:12px;font-weight:700;color:#2f5f93;">{{r.varL}}</div></sc-if>
+                    </div>
+                    <span style="text-align:right;font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;">{{r.km}}</span>
+                    <span style="text-align:right;font-size:14px;font-variant-numeric:tabular-nums;">{{r.dp}}</span>
+                    <span style="text-align:right;font-size:14px;font-variant-numeric:tabular-nums;">{{r.dm}}</span>
+                    <span style="font-size:13px;font-weight:800;">{{r.dif}}</span>
+                    <div><span style="padding:3px 10px;border-radius:12px;background:{{r.pb}};color:{{r.pf}};font-size:12px;font-weight:700;white-space:nowrap;">{{r.pl}}</span></div>
+                    <span style="text-align:right;font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;color:{{r.nc}};">{{r.nN}}</span>
+                    <span style="font-size:20px;font-weight:700;color:#17a180;line-height:1;">›</span>
+                  </a>
+                </sc-for>
+                <sc-if value="{{EL.noMatch}}">
+                  <div style="padding:48px 20px;display:flex;flex-direction:column;align-items:center;gap:10px;font-size:14px;color:#6b7486;">{{EL.noT}}<button onClick="{{resetF}}" style="border:none;background:none;color:#17a180;font-weight:700;font-size:13px;cursor:pointer;">Azzera filtri</button></div>
+                </sc-if>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;padding:12px 20px;border-top:1px solid #eceef1;font-size:13px;font-weight:700;color:#6b7486;">
+                <span>{{EL.count}}</span>
+                <span style="font-weight:600;color:#8a93a3;">Le varianti (suffisso S, N…) seguono la tappa principale e non entrano nei totali del riepilogo.</span>
+              </div>
+            </div>
+          </div>
+
+          <div id="d-punti" style="display:flex;flex-direction:column;gap:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;">
+              <div style="font-size:18px;font-weight:800;">Punti di appoggio</div>
+              <div style="font-size:13px;color:#6b7486;">Strutture SICAI lungo il percorso, per tipo</div>
+            </div>
+            <sc-if value="{{hasP}}">
+              <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;overflow:hidden;">
+                <div style="display:flex;align-items:center;gap:6px;padding:14px 20px;border-bottom:1px solid #eceef1;flex-wrap:wrap;">
+                  <sc-for list="{{PU.chips}}" as="c"><button onClick="{{c.click}}" style="height:32px;padding:0 12px;border-radius:16px;border:1px solid {{c.bd}};background:{{c.bg}};color:{{c.fg}};font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">{{c.l}} <span style="font-weight:600;color:#8a93a3;">{{c.n}}</span></button></sc-for>
+                </div>
+                <div style="display:grid;grid-template-columns:28px minmax(0,1fr) 170px 200px 230px 150px 170px;gap:14px;padding:10px 20px;background:#fafbfc;border-bottom:1px solid #eceef1;font-size:12px;font-weight:800;color:#6b7486;">
+                  <span></span><span>Nome</span><span>Comune</span><span>Gestore</span><span>Contatti</span><span>Tappe vicine</span><span></span>
+                </div>
+                <div style="max-height:720px;overflow:auto;">
+                  <sc-for list="{{PU.groups}}" as="g" hint-placeholder-count="2">
+                    <div style="display:flex;align-items:center;gap:10px;padding:14px 20px 8px;border-bottom:1px solid #eceef1;">
+                      <span style="width:10px;height:10px;border-radius:50%;background:{{g.c}};"></span>
+                      <span style="font-size:14px;font-weight:800;">{{g.l}}</span>
+                      <span style="font-size:13px;font-weight:700;color:#8a93a3;">{{g.n}}</span>
+                    </div>
+                    <sc-for list="{{g.rows}}" as="p">
+                      <div style="display:grid;grid-template-columns:28px minmax(0,1fr) 170px 200px 230px 150px 170px;gap:14px;align-items:center;padding:10px 20px;border-bottom:1px solid #f1f3f5;">
+                        <span style="width:28px;height:28px;border-radius:50%;background:{{p.c}};display:flex;align-items:center;justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" style="fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;"><path d="{{p.ic}}"></path></svg></span>
+                        <span style="font-size:14px;font-weight:800;">{{p.nome}}</span>
+                        <span style="font-size:13px;">{{p.comune}}</span>
+                        <span style="font-size:13px;color:{{p.gc}};">{{p.gest}}</span>
+                        <div style="display:flex;flex-direction:column;gap:1px;font-size:13px;">
+                          <span style="color:{{p.tc}};font-variant-numeric:tabular-nums;">{{p.tel}}</span>
+                          <sc-if value="{{p.hasSito}}"><a href="{{p.sitoH}}" target="_blank" style="font-weight:700;">{{p.sito}}</a></sc-if>
+                          <sc-if value="{{p.noSito}}"><span style="color:#b4bbc6;">—</span></sc-if>
+                        </div>
+                        <div style="display:flex;gap:4px;flex-wrap:wrap;">
+                          <sc-for list="{{p.tappe}}" as="t"><a href="#scheda" onClick="{{t.open}}" style="height:24px;display:inline-flex;align-items:center;padding:0 8px;border-radius:12px;border:1px solid #dfe3e8;font-size:12px;font-weight:800;">{{t.code}}</a></sc-for>
+                        </div>
+                        <div style="text-align:right;">
+                          <sc-if value="{{p.hasCai}}"><a href="{{p.cai}}" target="_blank" style="font-size:13px;font-weight:800;white-space:nowrap;">Vedi su rifugi.cai.it ↗</a></sc-if>
+                        </div>
+                      </div>
+                    </sc-for>
+                  </sc-for>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding:12px 20px;font-size:12px;color:#8a93a3;border-top:1px solid #eceef1;">
+                  <span>{{PU.count}}</span>
+                  <span>Fonte: Sentiero Italia CAI · rifugi: <a href="https://rifugi.cai.it" target="_blank" style="font-weight:700;">rifugi.cai.it</a></span>
+                </div>
+              </div>
+            </sc-if>
+            <sc-if value="{{noP}}">
+              <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:48px 24px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;">
+                <svg width="40" height="40" viewBox="0 0 24 24" style="fill:none;stroke:#b4bbc6;stroke-width:1.4;stroke-linejoin:round;stroke-linecap:round;"><path d="M3 11l9-7 9 7M5 9.5V20h14V9.5M10 20v-5h4v5"></path></svg>
+                <div style="font-size:17px;font-weight:800;max-width:560px;text-wrap:pretty;">{{G.noPT}}</div>
+                <div style="font-size:14px;color:#6b7486;max-width:560px;line-height:1.5;text-wrap:pretty;">Nessuna struttura risulta associata alle {{K.nT}} tappe della regione. I punti di appoggio compaiono qui quando vengono inseriti nella banca dati del Sentiero Italia CAI.</div>
+                <a href="https://sentieroitalia.cai.it" target="_blank" style="font-size:13px;font-weight:700;">Vai a sentieroitalia.cai.it ↗</a>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div style="font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#8a93a3;">Mobile · 390</div>
+      <div data-screen-label="Tappe SICAI mobile" style="width:390px;background:#f4f6f8;border-radius:28px;box-shadow:0 1px 2px rgba(20,30,40,.06),0 8px 28px rgba(20,30,40,.08);overflow:hidden;">
+        <div style="padding:24px 16px 32px;display:flex;flex-direction:column;gap:24px;">
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <a href="Dashboard Gruppo Regionale CAI V2.dc.html" style="font-size:13px;font-weight:700;color:#17a180;">← Dashboard</a>
+            <div style="display:flex;flex-direction:column;gap:4px;">
+              <div style="font-size:22px;font-weight:800;letter-spacing:-0.01em;">Tappe SICAI</div>
+              <div style="font-size:14px;font-weight:600;color:#6b7486;">{{G.sub}}</div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:2px;">
+                <div style="font-size:12px;font-weight:800;">Tappe</div>
+                <div style="font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;">{{K.nT}}</div>
+                <div style="font-size:11px;color:#6b7486;line-height:1.4;">{{K.nTsubS}}</div>
+              </div>
+              <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:2px;">
+                <div style="font-size:12px;font-weight:800;">Km</div>
+                <div style="font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;">{{K.km}}</div>
+                <div style="font-size:11px;color:#6b7486;line-height:1.4;">{{K.kmSubS}}</div>
+              </div>
+              <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:2px;">
+                <div style="font-size:12px;font-weight:800;">Dislivello +</div>
+                <div style="font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;">{{K.dp}} <span style="font-size:13px;color:#6b7486;">m</span></div>
+              </div>
+              <a href="#m-punti" style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:2px;color:#3c4557;">
+                <div style="font-size:12px;font-weight:800;">Punti di appoggio</div>
+                <div style="font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;color:{{K.pC}};">{{K.nP}}</div>
+              </a>
+            </div>
+            <div style="background:{{CR.bg}};border:1px solid {{CR.bd}};border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px;">
+              <div style="font-size:13px;font-weight:800;color:{{CR.tc}};">Tappe con criticità</div>
+              <sc-if value="{{CR.none}}"><div style="font-size:13px;font-weight:700;color:#0f7d63;">Nessuna tappa non percorribile o con difficoltà.</div></sc-if>
+              <sc-if value="{{CR.hasNon}}">
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                  <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:800;color:#b42318;"><span style="width:8px;height:8px;border-radius:50%;background:#d64545;"></span>{{CR.nonT}}</div>
+                  <sc-for list="{{CR.non}}" as="c"><a href="#scheda" onClick="{{c.open}}" style="display:flex;align-items:center;gap:8px;min-height:40px;padding:0 12px;border-radius:8px;background:#fff;border:1px solid #f0b8b1;font-size:13px;font-weight:800;color:#b42318;">{{c.code}} <span style="font-weight:600;color:#6b7486;flex:1;">{{c.daa}}</span>›</a></sc-for>
+                </div>
+              </sc-if>
+              <sc-if value="{{CR.hasDif}}">
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                  <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:800;color:#8a5600;"><span style="width:8px;height:8px;border-radius:50%;background:#e0a526;"></span>{{CR.difT}}</div>
+                  <div style="display:flex;gap:6px;flex-wrap:wrap;"><sc-for list="{{CR.dif}}" as="c"><a href="#scheda" onClick="{{c.open}}" style="display:inline-flex;align-items:center;height:36px;padding:0 12px;border-radius:18px;background:#fff;border:1px solid #ecd3a3;font-size:13px;font-weight:800;color:#8a5600;">{{c.code}}</a></sc-for></div>
+                </div>
+              </sc-if>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="font-size:16px;font-weight:800;">Mappa</div>
+            <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;overflow:hidden;">
+              <div onPointerDown="{{MM.down}}" onPointerMove="{{MM.move}}" onPointerUp="{{MM.up}}" onDoubleClick="{{MM.dbl}}" style="position:relative;width:{{MM.w}}px;height:{{MM.h}}px;overflow:hidden;background:#f4f1e8;touch-action:none;user-select:none;">
+                <sc-for list="{{MM.tiles}}" as="t"><img src="{{t.src}}" alt="" draggable="false" style="position:absolute;left:{{t.l}}px;top:{{t.t}}px;width:256px;height:256px;max-width:none;pointer-events:none;"></sc-for>
+                <sc-for list="{{MM.lines}}" as="p"><svg width="{{MM.w}}" height="{{MM.h}}" style="position:absolute;left:0;top:0;pointer-events:none;z-index:6;"><path d="{{p.d}}" style="fill:none;stroke:#fff;stroke-width:{{p.cw}};stroke-linecap:round;stroke-linejoin:round;"></path><path d="{{p.d}}" style="fill:none;stroke:{{p.c}};stroke-width:{{p.w}};stroke-dasharray:{{p.da}};stroke-linecap:round;stroke-linejoin:round;"></path></svg></sc-for>
+                <sc-for list="{{MM.ticks}}" as="k"><div style="position:absolute;left:{{k.x}}px;top:{{k.y}}px;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;background:#fff;border:2px solid #1f2633;z-index:7;pointer-events:none;"></div></sc-for>
+                <sc-for list="{{MM.labels}}" as="l"><div style="position:absolute;left:{{l.x}}px;top:{{l.y}}px;transform:translate(-50%,-50%);padding:1px 4px;border-radius:4px;background:#fff;border:1.5px solid {{l.c}};font-size:10px;font-weight:800;color:#1f2633;z-index:8;pointer-events:none;white-space:nowrap;">{{l.t}}</div></sc-for>
+                <sc-for list="{{MM.marks}}" as="m"><div onPointerDown="{{stop}}" onClick="{{m.click}}" style="position:absolute;left:{{m.x}}px;top:{{m.y}}px;width:{{m.s}}px;height:{{m.s}}px;margin-left:{{m.o}}px;margin-top:{{m.o}}px;border-radius:50%;background:{{m.c}};border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:9;"><sc-if value="{{m.big}}"><svg width="12" height="12" viewBox="0 0 24 24" style="fill:none;stroke:#fff;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;"><path d="{{m.ic}}"></path></svg></sc-if></div></sc-for>
+                <sc-if value="{{MM.popT}}">
+                  <div onPointerDown="{{stop}}" style="position:absolute;left:{{MM.p.x}}px;top:{{MM.p.y}}px;transform:{{MM.p.tf}};width:260px;background:#fff;border-radius:10px;box-shadow:0 8px 24px rgba(20,30,40,.25);padding:10px 12px 12px;display:flex;flex-direction:column;gap:6px;align-items:flex-start;z-index:60;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;width:100%;"><span style="display:inline-flex;align-items:center;justify-content:center;min-width:52px;height:28px;padding:0 6px;background:#fff;border:1px solid #e1e4e8;border-left:5px solid #d22630;border-right:5px solid #d22630;border-radius:3px;font-size:12px;font-weight:800;color:#1f2633;">{{MM.p.code}}</span><button onClick="{{closePop}}" style="border:none;background:none;font-size:20px;line-height:1;color:#8a93a3;padding:0 0 0 12px;height:28px;">×</button></div>
+                    <div style="font-size:14px;font-weight:800;line-height:1.3;">{{MM.p.daa}}</div>
+                    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;"><span style="font-size:12px;font-weight:700;">{{MM.p.km}} km</span><span style="padding:2px 8px;border-radius:12px;background:{{MM.p.pb}};color:{{MM.p.pf}};font-size:11px;font-weight:700;">{{MM.p.pl}}</span></div>
+                    <a href="#scheda" onClick="{{MM.p.open}}" style="font-size:14px;font-weight:800;min-height:32px;display:flex;align-items:center;">Apri scheda →</a>
+                  </div>
+                </sc-if>
+                <sc-if value="{{MM.popP}}">
+                  <div onPointerDown="{{stop}}" style="position:absolute;left:{{MM.q.x}}px;top:{{MM.q.y}}px;transform:{{MM.q.tf}};width:260px;background:#fff;border-radius:10px;box-shadow:0 8px 24px rgba(20,30,40,.25);padding:10px 12px 12px;display:flex;flex-direction:column;gap:5px;align-items:flex-start;z-index:60;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;width:100%;"><span style="font-size:11px;font-weight:800;color:{{MM.q.c}};text-transform:uppercase;letter-spacing:.04em;">{{MM.q.tipo}}</span><button onClick="{{closePop}}" style="border:none;background:none;font-size:20px;line-height:1;color:#8a93a3;padding:0 0 0 12px;height:28px;">×</button></div>
+                    <div style="font-size:14px;font-weight:800;">{{MM.q.nome}}</div>
+                    <div style="font-size:12px;color:#6b7486;">{{MM.q.comune}} · tappe {{MM.q.tappe}}</div>
+                    <sc-if value="{{MM.q.hasCai}}"><a href="{{MM.q.cai}}" target="_blank" style="font-size:13px;font-weight:800;min-height:32px;display:flex;align-items:center;">Vedi su rifugi.cai.it ↗</a></sc-if>
+                  </div>
+                </sc-if>
+                <div onPointerDown="{{stop}}" style="position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:8px;z-index:70;">
+                  <div style="display:flex;flex-direction:column;background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.2);overflow:hidden;">
+                    <button onClick="{{MM.zin}}" style="width:40px;height:40px;border:none;background:#fff;font-size:18px;font-weight:700;color:#3c4557;border-bottom:1px solid #eceef1;">+</button>
+                    <button onClick="{{MM.zout}}" style="width:40px;height:40px;border:none;background:#fff;font-size:18px;font-weight:700;color:#3c4557;">−</button>
+                  </div>
+                  <button onClick="{{MM.reset}}" style="width:40px;height:40px;border:none;border-radius:8px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center;"><svg width="16" height="16" viewBox="0 0 24 24" style="fill:none;stroke:#3c4557;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"></path></svg></button>
+                </div>
+                <div style="position:absolute;right:0;bottom:0;background:rgba(255,255,255,.85);padding:2px 6px;font-size:9px;color:#5b6475;z-index:70;">Cartografia CAI · © OSM</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px;padding:10px 12px 12px;border-top:1px solid #eceef1;">
+                <div style="display:flex;flex-wrap:wrap;gap:6px 14px;"><sc-for list="{{legT}}" as="g"><div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;"><svg width="22" height="8" style="flex:none;"><path d="M2 4H20" style="stroke:{{g.c}};stroke-width:4;stroke-dasharray:{{g.da}};stroke-linecap:round;"></path><path d="M12 4H20" style="stroke:{{g.c2}};stroke-width:4;stroke-linecap:round;"></path></svg>{{g.ls}}</div></sc-for></div>
+                <sc-if value="{{hasP}}"><div style="display:flex;flex-wrap:wrap;gap:6px 12px;"><sc-for list="{{legP}}" as="g"><div style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;"><span style="width:10px;height:10px;border-radius:50%;background:{{g.c}};"></span>{{g.l}}</div></sc-for></div></sc-if>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="font-size:16px;font-weight:800;">Elenco delle tappe</div>
+            <input value="{{st.q}}" onChange="{{setQ}}" placeholder="Cerca per codice o località" style="height:44px;padding:0 12px;border:1px solid #dfe3e8;border-radius:8px;font-size:14px;color:#3c4557;background:#fff;">
+            <div style="display:flex;gap:6px;overflow-x:auto;margin:0 -16px;padding:0 16px 2px;">
+              <sc-for list="{{EL.chips}}" as="c"><button onClick="{{c.click}}" style="flex:none;height:36px;padding:0 12px;border-radius:18px;border:1px solid {{c.bd}};background:{{c.bg}};color:{{c.fg}};font-size:13px;font-weight:700;white-space:nowrap;display:flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:{{c.dot}};"></span>{{c.ls}} <span style="font-weight:600;color:#8a93a3;">{{c.n}}</span></button></sc-for>
+            </div>
+            <span style="font-size:12px;font-weight:700;color:#8a93a3;">{{EL.count}}</span>
+            <sc-for list="{{ELM.rows}}" as="r" hint-placeholder-count="4">
+              <a href="#scheda" onClick="{{r.open}}" style="display:flex;gap:12px;padding:12px;background:{{r.mbg}};border:1px solid {{r.mbd}};border-radius:10px;color:#3c4557;margin-left:{{r.ind}}px;">
+                <span style="flex:none;display:inline-flex;align-items:center;justify-content:center;min-width:54px;height:30px;padding:0 6px;background:#fff;border:1px solid #e1e4e8;border-left:5px solid #d22630;border-right:5px solid #d22630;border-radius:3px;font-size:12px;font-weight:800;color:#1f2633;">{{r.code}}</span>
+                <div style="display:flex;flex-direction:column;gap:5px;min-width:0;flex:1;">
+                  <div style="font-size:15px;font-weight:800;line-height:1.25;">{{r.daa}}</div>
+                  <sc-if value="{{r.isVar}}"><div style="font-size:12px;font-weight:700;color:#2f5f93;">{{r.varL}}</div></sc-if>
+                  <div style="font-size:12px;color:#6b7486;font-variant-numeric:tabular-nums;">{{r.km}} km · +{{r.dp}} · −{{r.dm}} · {{r.dif}}</div>
+                  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    <span style="padding:2px 8px;border-radius:12px;background:{{r.pb}};color:{{r.pf}};font-size:11px;font-weight:700;">{{r.pl}}</span>
+                    <span style="font-size:12px;font-weight:700;color:{{r.nc}};">{{r.nNL}}</span>
+                  </div>
+                </div>
+                <span style="align-self:center;font-size:22px;color:#17a180;font-weight:700;">›</span>
+              </a>
+            </sc-for>
+            <sc-if value="{{EL.noMatch}}"><div style="padding:28px 12px;text-align:center;font-size:14px;color:#6b7486;background:#fff;border:1px solid #eceef1;border-radius:10px;">{{EL.noT}}</div></sc-if>
+            <sc-if value="{{ELM.more}}"><button onClick="{{mAll}}" style="height:44px;border:1px solid #dfe3e8;border-radius:10px;background:#fff;color:#17a180;font-size:14px;font-weight:800;">{{ELM.moreL}}</button></sc-if>
+          </div>
+
+          <div id="m-punti" style="display:flex;flex-direction:column;gap:10px;">
+            <div style="font-size:16px;font-weight:800;">Punti di appoggio</div>
+            <sc-if value="{{hasP}}">
+              <div style="display:flex;gap:6px;overflow-x:auto;margin:0 -16px;padding:0 16px 2px;">
+                <sc-for list="{{PM.chips}}" as="c"><button onClick="{{c.click}}" style="flex:none;height:36px;padding:0 12px;border-radius:18px;border:1px solid {{c.bd}};background:{{c.bg}};color:{{c.fg}};font-size:13px;font-weight:700;white-space:nowrap;">{{c.l}} <span style="font-weight:600;color:#8a93a3;">{{c.n}}</span></button></sc-for>
+              </div>
+              <sc-for list="{{PM.rows}}" as="p">
+                <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:12px;display:flex;gap:12px;">
+                  <span style="flex:none;width:32px;height:32px;border-radius:50%;background:{{p.c}};display:flex;align-items:center;justify-content:center;"><svg width="15" height="15" viewBox="0 0 24 24" style="fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;"><path d="{{p.ic}}"></path></svg></span>
+                  <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;">
+                    <div style="font-size:15px;font-weight:800;line-height:1.25;">{{p.nome}}</div>
+                    <div style="font-size:12px;color:#6b7486;">{{p.tipo}} · {{p.comune}}</div>
+                    <div style="font-size:12px;"><span style="color:#8a93a3;">Gestore </span><span style="color:{{p.gc}};font-weight:700;">{{p.gest}}</span></div>
+                    <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:13px;align-items:center;">
+                      <span style="color:{{p.tc}};">{{p.tel}}</span>
+                      <sc-if value="{{p.hasSito}}"><a href="{{p.sitoH}}" target="_blank" style="font-weight:700;">{{p.sito}}</a></sc-if>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:2px;">
+                      <span style="font-size:12px;color:#8a93a3;">Tappe</span>
+                      <sc-for list="{{p.tappe}}" as="t"><a href="#scheda" onClick="{{t.open}}" style="height:28px;display:inline-flex;align-items:center;padding:0 9px;border-radius:14px;border:1px solid #dfe3e8;font-size:12px;font-weight:800;">{{t.code}}</a></sc-for>
+                    </div>
+                    <sc-if value="{{p.hasCai}}"><a href="{{p.cai}}" target="_blank" style="font-size:13px;font-weight:800;min-height:32px;display:flex;align-items:center;">Vedi su rifugi.cai.it ↗</a></sc-if>
+                  </div>
+                </div>
+              </sc-for>
+              <sc-if value="{{PM.more}}"><button onClick="{{pmAll}}" style="height:44px;border:1px solid #dfe3e8;border-radius:10px;background:#fff;color:#17a180;font-size:14px;font-weight:800;">{{PM.moreL}}</button></sc-if>
+            </sc-if>
+            <sc-if value="{{noP}}">
+              <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:28px 16px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;">
+                <svg width="32" height="32" viewBox="0 0 24 24" style="fill:none;stroke:#b4bbc6;stroke-width:1.5;stroke-linejoin:round;stroke-linecap:round;"><path d="M3 11l9-7 9 7M5 9.5V20h14V9.5M10 20v-5h4v5"></path></svg>
+                <div style="font-size:15px;font-weight:800;text-wrap:pretty;">{{G.noPT}}</div>
+                <div style="font-size:13px;color:#6b7486;line-height:1.45;text-wrap:pretty;">Compariranno qui quando inseriti nella banca dati del Sentiero Italia CAI.</div>
+              </div>
+            </sc-if>
+            <div style="font-size:11px;color:#8a93a3;">Fonte: Sentiero Italia CAI · aggiornato al 21/10/2026</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="scheda" style="display:flex;flex-direction:column;gap:20px;padding-top:24px;">
+    <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+      <div style="font-size:18px;font-weight:800;">Scheda della tappa · solo le parti nuove</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#8a93a3;">Tappa</span>
+        <select value="{{S.id}}" onChange="{{setSel}}" style="height:34px;padding:0 8px;border:1px solid #dfe3e8;border-radius:8px;background:#fff;color:#3c4557;font-size:13px;font-weight:700;max-width:340px;"><sc-for list="{{selOpts}}" as="o"><option value="{{o.k}}">{{o.l}}</option></sc-for></select>
+      </div>
+      <span style="font-size:13px;color:#6b7486;">Le parti tratteggiate sono la scheda del sentiero esistente (10.6), invariata.</span>
+    </div>
+    <div style="display:flex;gap:48px;align-items:flex-start;flex-wrap:wrap;">
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#8a93a3;">Desktop · 1440</div>
+        <div data-screen-label="Scheda tappa desktop" style="width:1440px;background:#f4f6f8;border-radius:12px;box-shadow:0 1px 2px rgba(20,30,40,.06),0 8px 28px rgba(20,30,40,.08);overflow:hidden;">
+          <div style="padding:36px 40px 56px;display:flex;flex-direction:column;gap:20px;">
+            <div style="display:flex;gap:16px;align-items:center;font-size:13px;font-weight:700;">
+              <a href="Dashboard Gruppo Regionale CAI V2.dc.html" style="color:#17a180;">← Dashboard</a>
+              <span style="color:#c3c8d0;">/</span>
+              <a href="#d-elenco" style="color:#17a180;">Tappe SICAI</a>
+              <span style="color:#c3c8d0;">/</span>
+              <span style="color:#6b7486;">Tappa {{S.code}}</span>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#17a180;">Nuovo · navigazione tra le tappe</div>
+              <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:stretch;">
+                <sc-if value="{{S.prev.has}}">
+                  <a href="#scheda" onClick="{{S.prev.open}}" style="display:flex;align-items:center;gap:14px;padding:16px 22px;color:#3c4557;border-radius:10px 0 0 10px;" style-hover="background:#f3faf8;">
+                    <span style="font-size:20px;font-weight:800;color:#17a180;">←</span>
+                    <div style="display:flex;flex-direction:column;gap:3px;min-width:0;">
+                      <span style="font-size:12px;font-weight:800;color:#6b7486;">Tappa precedente</span>
+                      <span style="display:flex;align-items:center;gap:8px;font-size:15px;font-weight:800;"><span style="width:8px;height:8px;border-radius:50%;background:{{S.prev.dot}};flex:none;"></span>{{S.prev.code}} · {{S.prev.daa}}</span>
+                    </div>
+                  </a>
+                </sc-if>
+                <sc-if value="{{S.prev.none}}"><div style="display:flex;align-items:center;gap:14px;padding:16px 22px;color:#9aa1ad;"><span style="font-size:20px;font-weight:800;color:#d5d9df;">←</span><div style="display:flex;flex-direction:column;gap:3px;"><span style="font-size:12px;font-weight:800;">Tappa precedente</span><span style="font-size:14px;font-weight:700;">{{S.prev.noneT}}</span></div></div></sc-if>
+                <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:12px 28px;border-left:1px solid #eceef1;border-right:1px solid #eceef1;">
+                  <span style="font-size:13px;font-weight:800;">{{S.pos}}</span>
+                  <sc-if value="{{S.hasVars}}"><div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#6b7486;">Varianti<sc-for list="{{S.vars}}" as="v"><a href="#scheda" onClick="{{v.open}}" style="height:24px;display:inline-flex;align-items:center;padding:0 8px;border-radius:12px;border:1px solid #cfe9e1;font-size:12px;font-weight:800;">{{v.code}}</a></sc-for></div></sc-if>
+                  <sc-if value="{{S.isVar}}"><a href="#scheda" onClick="{{S.toBase}}" style="font-size:12px;font-weight:800;">Torna alla tappa {{S.base}}</a></sc-if>
+                </div>
+                <sc-if value="{{S.next.has}}">
+                  <a href="#scheda" onClick="{{S.next.open}}" style="display:flex;align-items:center;justify-content:flex-end;gap:14px;padding:16px 22px;color:#3c4557;text-align:right;border-radius:0 10px 10px 0;" style-hover="background:#f3faf8;">
+                    <div style="display:flex;flex-direction:column;gap:3px;min-width:0;align-items:flex-end;">
+                      <span style="font-size:12px;font-weight:800;color:#6b7486;">Tappa successiva</span>
+                      <span style="display:flex;align-items:center;gap:8px;font-size:15px;font-weight:800;"><span style="width:8px;height:8px;border-radius:50%;background:{{S.next.dot}};flex:none;"></span>{{S.next.code}} · {{S.next.daa}}</span>
+                    </div>
+                    <span style="font-size:20px;font-weight:800;color:#17a180;">→</span>
+                  </a>
+                </sc-if>
+                <sc-if value="{{S.next.none}}"><div style="display:flex;align-items:center;justify-content:flex-end;gap:14px;padding:16px 22px;color:#9aa1ad;text-align:right;"><div style="display:flex;flex-direction:column;gap:3px;align-items:flex-end;"><span style="font-size:12px;font-weight:800;">Tappa successiva</span><span style="font-size:14px;font-weight:700;">{{S.next.noneT}}</span></div><span style="font-size:20px;font-weight:800;color:#d5d9df;">→</span></div></sc-if>
+              </div>
+            </div>
+
+            <div style="border:1.5px dashed #c3c8d0;border-radius:10px;padding:22px 26px;display:flex;flex-direction:column;gap:14px;">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;">
+                <div style="font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#8a93a3;">Esistente · scheda del sentiero 10.6</div>
+                <a href="Sentieri di Sezione.dc.html#scheda" style="font-size:13px;font-weight:800;">Apri la scheda di riferimento →</a>
+              </div>
+              <div style="display:flex;align-items:center;gap:18px;">
+                <span style="flex:none;display:inline-flex;align-items:center;justify-content:center;min-width:84px;height:58px;padding:0 10px;background:#fff;border:1px solid #e1e4e8;border-left:12px solid #d22630;border-right:12px solid #d22630;border-radius:4px;font-size:20px;font-weight:800;color:#1f2633;">{{S.code}}</span>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                  <div style="font-size:24px;font-weight:800;line-height:1.2;">{{S.daa}}</div>
+                  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px;color:#6b7486;">
+                    <span style="padding:4px 12px;border-radius:14px;background:{{S.pb}};color:{{S.pf}};font-size:13px;font-weight:800;">{{S.pl}}</span>
+                    <span>{{S.facts}}</span>
+                  </div>
+                </div>
+              </div>
+              <div style="font-size:13px;color:#6b7486;line-height:1.5;">Testata, avviso di percorribilità, mappa del tracciato, profilo altimetrico, dati tecnici e Sezioni di riferimento restano come nella scheda del sentiero.</div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#17a180;">Nuovo · punti di appoggio vicini</div>
+              <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;overflow:hidden;">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:18px 22px 6px;">
+                  <div style="font-size:16px;font-weight:800;">Punti di appoggio vicini</div>
+                  <span style="font-size:13px;color:#6b7486;">{{S.nearT}}</span>
+                </div>
+                <sc-if value="{{S.hasNear}}">
+                  <div style="padding:14px 22px 22px;">
+                    <div style="position:relative;height:58px;margin:0 70px;">
+                      <div style="position:absolute;left:0;right:0;top:22px;height:4px;border-radius:2px;background:{{S.lc}};"></div>
+                      <div style="position:absolute;left:-6px;top:17px;width:14px;height:14px;border-radius:50%;background:#fff;border:3px solid #1f2633;"></div>
+                      <div style="position:absolute;right:-6px;top:17px;width:14px;height:14px;border-radius:50%;background:#1f2633;border:3px solid #fff;box-shadow:0 0 0 1px #1f2633;"></div>
+                      <sc-for list="{{S.near}}" as="p"><div title="{{p.nome}}" style="position:absolute;left:{{p.pct}}%;top:10px;width:28px;height:28px;margin-left:-14px;border-radius:50%;background:{{p.c}};border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;"><svg width="13" height="13" viewBox="0 0 24 24" style="fill:none;stroke:#fff;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;"><path d="{{p.ic}}"></path></svg></div></sc-for>
+                      <div style="position:absolute;left:-70px;top:42px;font-size:12px;font-weight:700;color:#6b7486;width:200px;">{{S.da}} · km 0</div>
+                      <div style="position:absolute;right:-70px;top:42px;font-size:12px;font-weight:700;color:#6b7486;width:200px;text-align:right;">{{S.a}} · km {{S.km}}</div>
+                    </div>
+                  </div>
+                  <div style="display:grid;grid-template-columns:70px 28px minmax(0,1fr) 170px 200px 230px 170px;gap:14px;padding:10px 22px;background:#fafbfc;border-top:1px solid #eceef1;border-bottom:1px solid #eceef1;font-size:12px;font-weight:800;color:#6b7486;">
+                    <span>Al km</span><span></span><span>Nome</span><span>Comune</span><span>Gestore</span><span>Contatti</span><span></span>
+                  </div>
+                  <sc-for list="{{S.near}}" as="p">
+                    <div style="display:grid;grid-template-columns:70px 28px minmax(0,1fr) 170px 200px 230px 170px;gap:14px;align-items:center;padding:10px 22px;border-bottom:1px solid #f1f3f5;">
+                      <span style="font-size:14px;font-weight:800;font-variant-numeric:tabular-nums;">{{p.km}}</span>
+                      <span style="width:28px;height:28px;border-radius:50%;background:{{p.c}};display:flex;align-items:center;justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" style="fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;"><path d="{{p.ic}}"></path></svg></span>
+                      <div style="display:flex;flex-direction:column;gap:1px;min-width:0;"><span style="font-size:14px;font-weight:800;">{{p.nome}}</span><span style="font-size:12px;color:#6b7486;">{{p.tipo}} · {{p.dist}}</span></div>
+                      <span style="font-size:13px;">{{p.comune}}</span>
+                      <span style="font-size:13px;color:{{p.gc}};">{{p.gest}}</span>
+                      <div style="display:flex;flex-direction:column;gap:1px;font-size:13px;">
+                        <span style="color:{{p.tc}};">{{p.tel}}</span>
+                        <sc-if value="{{p.hasSito}}"><a href="{{p.sitoH}}" target="_blank" style="font-weight:700;">{{p.sito}}</a></sc-if>
+                      </div>
+                      <div style="text-align:right;"><sc-if value="{{p.hasCai}}"><a href="{{p.cai}}" target="_blank" style="font-size:13px;font-weight:800;white-space:nowrap;">Vedi su rifugi.cai.it ↗</a></sc-if></div>
+                    </div>
+                  </sc-for>
+                </sc-if>
+                <sc-if value="{{S.noNear}}">
+                  <div style="padding:28px 22px 32px;display:flex;flex-direction:column;gap:6px;">
+                    <div style="font-size:14px;font-weight:800;">{{S.noNearT}}</div>
+                    <div style="font-size:13px;color:#6b7486;">{{S.noNearS}}</div>
+                  </div>
+                </sc-if>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#8a93a3;">Mobile · 390</div>
+        <div data-screen-label="Scheda tappa mobile" style="width:390px;background:#f4f6f8;border-radius:28px;box-shadow:0 1px 2px rgba(20,30,40,.06),0 8px 28px rgba(20,30,40,.08);overflow:hidden;">
+          <div style="padding:24px 16px 32px;display:flex;flex-direction:column;gap:16px;">
+            <a href="#m-punti" style="font-size:13px;font-weight:700;color:#17a180;">← Tappe SICAI</a>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <div style="font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#17a180;">Nuovo · navigazione</div>
+              <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;overflow:hidden;">
+                <div style="padding:8px 12px;font-size:12px;font-weight:800;text-align:center;border-bottom:1px solid #eceef1;">{{S.pos}}</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;">
+                  <sc-if value="{{S.prev.has}}"><a href="#scheda" onClick="{{S.prev.open}}" style="display:flex;flex-direction:column;gap:2px;padding:10px 12px;min-height:56px;color:#3c4557;border-right:1px solid #eceef1;"><span style="font-size:11px;font-weight:800;color:#17a180;">← Precedente</span><span style="display:flex;align-items:center;gap:6px;font-size:14px;font-weight:800;"><span style="width:7px;height:7px;border-radius:50%;background:{{S.prev.dot}};"></span>{{S.prev.code}}</span><span style="font-size:11px;color:#6b7486;line-height:1.3;">{{S.prev.daaS}}</span></a></sc-if>
+                  <sc-if value="{{S.prev.none}}"><div style="display:flex;flex-direction:column;gap:2px;padding:10px 12px;min-height:56px;color:#9aa1ad;border-right:1px solid #eceef1;"><span style="font-size:11px;font-weight:800;">← Precedente</span><span style="font-size:12px;font-weight:700;">{{S.prev.noneS}}</span></div></sc-if>
+                  <sc-if value="{{S.next.has}}"><a href="#scheda" onClick="{{S.next.open}}" style="display:flex;flex-direction:column;gap:2px;padding:10px 12px;min-height:56px;color:#3c4557;align-items:flex-end;text-align:right;"><span style="font-size:11px;font-weight:800;color:#17a180;">Successiva →</span><span style="display:flex;align-items:center;gap:6px;font-size:14px;font-weight:800;"><span style="width:7px;height:7px;border-radius:50%;background:{{S.next.dot}};"></span>{{S.next.code}}</span><span style="font-size:11px;color:#6b7486;line-height:1.3;">{{S.next.daaS}}</span></a></sc-if>
+                  <sc-if value="{{S.next.none}}"><div style="display:flex;flex-direction:column;gap:2px;padding:10px 12px;min-height:56px;color:#9aa1ad;align-items:flex-end;text-align:right;"><span style="font-size:11px;font-weight:800;">Successiva →</span><span style="font-size:12px;font-weight:700;">{{S.next.noneS}}</span></div></sc-if>
+                </div>
+                <sc-if value="{{S.hasVars}}"><div style="display:flex;align-items:center;gap:6px;padding:8px 12px;border-top:1px solid #eceef1;font-size:12px;color:#6b7486;">Varianti<sc-for list="{{S.vars}}" as="v"><a href="#scheda" onClick="{{v.open}}" style="height:32px;display:inline-flex;align-items:center;padding:0 10px;border-radius:16px;border:1px solid #cfe9e1;font-size:12px;font-weight:800;">{{v.code}}</a></sc-for></div></sc-if>
+                <sc-if value="{{S.isVar}}"><a href="#scheda" onClick="{{S.toBase}}" style="display:flex;align-items:center;min-height:40px;padding:0 12px;border-top:1px solid #eceef1;font-size:13px;font-weight:800;">Torna alla tappa {{S.base}}</a></sc-if>
+              </div>
+            </div>
+            <div style="border:1.5px dashed #c3c8d0;border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px;">
+              <div style="font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#8a93a3;">Esistente · scheda 10.6</div>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="flex:none;display:inline-flex;align-items:center;justify-content:center;min-width:56px;height:32px;padding:0 6px;background:#fff;border:1px solid #e1e4e8;border-left:6px solid #d22630;border-right:6px solid #d22630;border-radius:3px;font-size:13px;font-weight:800;color:#1f2633;">{{S.code}}</span>
+                <span style="font-size:16px;font-weight:800;line-height:1.25;">{{S.daa}}</span>
+              </div>
+              <div><span style="padding:3px 10px;border-radius:12px;background:{{S.pb}};color:{{S.pf}};font-size:12px;font-weight:800;">{{S.pl}}</span></div>
+              <div style="font-size:12px;color:#6b7486;line-height:1.45;">Testata, avviso, mappa, profilo e dati tecnici come nella scheda del sentiero.</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#17a180;">Nuovo · punti di appoggio vicini</div>
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;"><span style="font-size:16px;font-weight:800;">Punti di appoggio vicini</span><span style="font-size:12px;color:#6b7486;">{{S.nearS}}</span></div>
+              <sc-for list="{{S.near}}" as="p">
+                <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:12px;display:flex;gap:12px;">
+                  <div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:4px;width:44px;">
+                    <span style="width:32px;height:32px;border-radius:50%;background:{{p.c}};display:flex;align-items:center;justify-content:center;"><svg width="15" height="15" viewBox="0 0 24 24" style="fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;"><path d="{{p.ic}}"></path></svg></span>
+                    <span style="font-size:11px;font-weight:800;color:#6b7486;white-space:nowrap;">{{p.kmS}}</span>
+                  </div>
+                  <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;">
+                    <div style="font-size:15px;font-weight:800;line-height:1.25;">{{p.nome}}</div>
+                    <div style="font-size:12px;color:#6b7486;">{{p.tipo}} · {{p.comune}} · {{p.dist}}</div>
+                    <div style="font-size:12px;"><span style="color:#8a93a3;">Gestore </span><span style="color:{{p.gc}};font-weight:700;">{{p.gest}}</span></div>
+                    <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:13px;"><span style="color:{{p.tc}};">{{p.tel}}</span><sc-if value="{{p.hasSito}}"><a href="{{p.sitoH}}" target="_blank" style="font-weight:700;">{{p.sito}}</a></sc-if></div>
+                    <sc-if value="{{p.hasCai}}"><a href="{{p.cai}}" target="_blank" style="font-size:13px;font-weight:800;min-height:32px;display:flex;align-items:center;">Vedi su rifugi.cai.it ↗</a></sc-if>
+                  </div>
+                </div>
+              </sc-for>
+              <sc-if value="{{S.noNear}}"><div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:20px 14px;display:flex;flex-direction:column;gap:4px;"><div style="font-size:14px;font-weight:800;">{{S.noNearT}}</div><div style="font-size:12px;color:#6b7486;line-height:1.45;">{{S.noNearS}}</div></div></sc-if>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;regione&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;piemonte&quot;,&quot;basilicata&quot;],&quot;default&quot;:&quot;piemonte&quot;,&quot;tsType&quot;:&quot;'piemonte'|'basilicata'&quot;},&quot;tracciato&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;alternati+etichette&quot;,&quot;alternati&quot;,&quot;etichette&quot;],&quot;default&quot;:&quot;alternati+etichette&quot;,&quot;tsType&quot;:&quot;'alternati+etichette'|'alternati'|'etichette'&quot;}}">
+class Component extends DCLogic {
+  constructor(p) { super(p); this._vis = {}; this.state = this.base(this.props.regione ?? 'piemonte'); }
+  base(reg) { return { reg, q: '', fPer: '', fTipo: '', mTipo: '', mv: {}, pop: null, sel: null, mAll: false, pmAll: false }; }
+
+  static PER = { p: { l: 'Percorribile', s: 'Percorribili', bg: '#e3f4ee', fg: '#0f7d63', dot: '#17a180' }, d: { l: 'Percorribile con difficoltà', s: 'Con difficoltà', bg: '#fdf1dc', fg: '#8a5600', dot: '#e0a526' }, n: { l: 'Non percorribile', s: 'Non percorribili', bg: '#fbe7e5', fg: '#b42318', dot: '#d64545' }, s: { l: 'Sconosciuto', s: 'Sconosciuto', bg: '#eef0f3', fg: '#5b6475', dot: '#a6aebb' } };
+  static TIPI = {
+    rif: { l: 'Rifugio', pl: 'Rifugi', l1: 'rifugio', ln: 'rifugi', c: '#0f7d63', ic: 'M3 11l9-7 9 7M5 9.5V20h14V9.5M10 20v-5h4v5' },
+    hot: { l: 'Hotel', pl: 'Hotel', l1: 'hotel', ln: 'hotel', c: '#2563c9', ic: 'M3 19V6M3 14h18v5M21 14v-2a3 3 0 0 0-3-3h-7v5M7 11.5h.01' },
+    bb: { l: 'B&B', pl: 'B&B', l1: 'B&B', ln: 'B&B', c: '#a24cc7', ic: 'M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5zM17 10h1.5a2.5 2.5 0 0 1 0 5H17M8 3v3M12 3v3' },
+    cv: { l: 'Casa vacanze', pl: 'Case vacanze', l1: 'casa vacanze', ln: 'case vacanze', c: '#c77e2a', ic: 'M15 4a5 5 0 1 1-4.6 7L4 17.4V20h3v-2h2v-2h2l.6-.6A5 5 0 0 1 15 4zM16 8h.01' },
+    ost: { l: 'Ostello', pl: 'Ostelli', l1: 'ostello', ln: 'ostelli', c: '#5b6475', ic: 'M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21v-1a6 6 0 0 1 12 0v1M16 3.5a4 4 0 0 1 0 7M22 21v-1a6 6 0 0 0-4-5.6' },
+    cam: { l: 'Campeggio', pl: 'Campeggi', l1: 'campeggio', ln: 'campeggi', c: '#4f8a2a', ic: 'M2 20h20M12 4L3.5 20M12 4l8.5 16M12 13l-3 7M12 13l3 7' }
+  };
+  static ORD = ['rif', 'hot', 'bb', 'cv', 'ost', 'cam'];
+  static REG = {
+    piemonte: { nome: 'Piemonte', gr: 'GR Piemonte', cod: '9100', let: 'E', seed: 7121, N: 77, target: 1048, wig: 2.2, dpMin: 380, dpR: 1150, difT: [.1, .74, .95], punti: true,
+      per: { 30: 'n', 4: 'd', 17: 'd', 44: 'd', 63: 'd', 52: 's', 70: 's' }, vars: [[8, 'S'], [33, 'N'], [57, 'S']],
+      anchors: [[44.20,7.57],[44.25,7.43],[44.24,7.39],[44.21,7.27],[44.27,7.20],[44.31,7.17],[44.38,7.00],[44.40,6.94],[44.49,6.93],[44.54,7.09],[44.62,7.03],[44.70,7.10],[44.70,7.16],[44.81,7.11],[44.89,7.05],[45.01,6.94],[45.05,7.03],[45.05,7.25],[45.14,7.30],[45.23,7.22],[45.30,7.15],[45.36,7.22],[45.43,7.24],[45.40,7.40],[45.50,7.55],[45.52,7.70],[45.60,7.90],[45.63,7.98],[45.69,7.96],[45.80,7.93],[45.85,7.94],[45.91,8.05],[45.88,8.18],[45.92,8.32],[45.88,8.40],[45.97,8.10],[45.97,7.97],[46.06,8.12],[46.12,8.28],[46.20,8.25],[46.26,8.12],[46.31,8.26],[46.28,8.38],[46.38,8.43],[46.43,8.42]],
+      names: ['Limone Piemonte','Palanfrè','Entracque','Terme di Valdieri','Rifugio Migliorero','Sant’Anna di Vinadio','Pontebernardo','Argentera','Ferrere','Chiappera','Acceglio','Elva','Chianale','Pontechianale','Pian del Re','Crissolo','Ostana','Rifugio Barbara Lowrie','Bobbio Pellice','Villanova','Prali','Ghigo di Prali','Massello','Pragelato','Usseaux','Pian dell’Alpe','Rifugio Selleries','Forno di Coazze','Colle del Lys','Condove','Il Truc','Usseglio','Malciaussia','Balme','Pian della Mussa','Forno Alpi Graie','Groscavallo','Ceresole Reale','Noasca','Locana','Ronco Canavese','Valprato Soana','Piamprato','Traversella','Brosso','Trovinasse','Graglia','Oropa','Rosazza','Piedicavallo','Riva Valdobbia','Alagna Valsesia','Rima','Carcoforo','Rimella','Fobello','Campello Monti','Omegna','Quarna Sopra','Pianezza','Ceppo Morelli','Macugnaga','Alpe Cheggio','Antronapiana','Bognanco','Domodossola','Montecrestese','Varzo','San Domenico','Alpe Veglia','Alpe Devero','Baceno','Crodo','Premia','Fondovalle','Formazza','Riale','Rifugio Maria Luisa'],
+      sez: ['Cuneo','Torino','Pinerolo','Biella','Varallo','Domodossola','Ivrea','Lanzo Torinese','Saluzzo','Mondovì','Susa','Omegna','Macugnaga'],
+      rif: ['Garelli','Questa','Talarico','Melano','Gardetta','Bagnour','Vallanta','Quintino Sella','Granero','Jervis','Lago Verde','Toesca','Geat Val Gravio','Cibrario','Gastaldi','Daviso','Massimo Mila','Pontese','Rivetti','Coda','Mombarone','Alpe Campo','Pastore','Crespi Calderini','Zamboni Zappa','Andolla','Castiglioni','Città di Busto','Margaroli','Somma Lombardo','Grande Halte','Barbustel','Sapienza','Ciriè','Paolo Daviso','Morelli Buzzi'] },
+    basilicata: { nome: 'Basilicata', gr: 'GR Basilicata', cod: '9940', let: 'R', seed: 391, N: 5, target: 86.4, wig: 1.6, dpMin: 420, dpR: 760, difT: [.05, .8, 1], punti: false,
+      per: { 2: 'd' }, vars: [],
+      anchors: [[40.125,15.762],[40.07,15.80],[39.99,15.98],[39.95,16.04],[40.02,16.14],[39.98,16.30]],
+      names: ['Lagonegro','Nemoli','Castelluccio Superiore','Rotonda','San Severino Lucano','Terranova di Pollino'], sez: ['Potenza'], rif: [] }
+  };
+
+  kmF(x) { const [i, d] = (Math.round(x * 10) / 10).toFixed(1).split('.'); return i.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + d; }
+  kmI(x) { return String(Math.round(x)).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+  nI(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+
+  db(reg) {
+    Component._c = Component._c || {};
+    if (Component._c[reg]) return Component._c[reg];
+    const R = Component.REG[reg]; let s = R.seed;
+    const r = () => { s = (s * 16807) % 2147483647; return s / 2147483647; }, pick = a => a[Math.floor(r() * a.length)];
+    const dk = (a, b) => Math.hypot((a[0] - b[0]) * 111.2, (a[1] - b[1]) * 111.2 * Math.cos(a[0] * Math.PI / 180));
+    const bbox = pts => pts.reduce((b, [la, lo]) => [Math.min(b[0], la), Math.min(b[1], lo), Math.max(b[2], la), Math.max(b[3], lo)], [90, 180, -90, -180]);
+    const an = R.anchors, dense = [an[0]], aIdx = [0];
+    for (let i = 0; i < an.length - 1; i++) {
+      const A = an[i], B = an[i + 1], d = dk(A, B), n = Math.max(6, Math.round(d / .35)), k = Math.cos(A[0] * Math.PI / 180);
+      const ux = (B[1] - A[1]) * 111.2 * k / d, uy = (B[0] - A[0]) * 111.2 / d; let o = 0;
+      for (let j = 1; j <= n; j++) { const t = j / n; o += (r() - .5) * .9; o *= .9; const lat = o * Math.sin(Math.PI * t) * R.wig;
+        dense.push([+(A[0] + (B[0] - A[0]) * t + ux * lat / 111.2).toFixed(5), +(A[1] + (B[1] - A[1]) * t - uy * lat / (111.2 * k)).toFixed(5)]); }
+      aIdx.push(dense.length - 1);
+    }
+    const cum = [0]; for (let i = 1; i < dense.length; i++) cum.push(cum[i - 1] + dk(dense[i - 1], dense[i]));
+    const tot = cum[cum.length - 1];
+    let cuts;
+    if (an.length === R.N + 1) cuts = aIdx;
+    else { const w = Array.from({ length: R.N }, () => .7 + .6 * r()), sw = w.reduce((a, b) => a + b, 0); cuts = [0]; let acc = 0, j = 0;
+      for (let i = 0; i < R.N - 1; i++) { acc += w[i]; const tg = acc / sw * tot; while (j < dense.length - 1 && cum[j] < tg) j++; j = Math.max(j, cuts[cuts.length - 1] + 2); cuts.push(j); }
+      cuts.push(dense.length - 1); }
+    const sc = R.target / tot, pad = n => String(n).padStart(2, '0'), T = [];
+    for (let i = 0; i < R.N; i++) {
+      const a = cuts[i], b = cuts[i + 1], pts = dense.slice(a, b + 1), y = r();
+      T.push({ id: R.let + pad(i + 1), code: R.let + pad(i + 1), n: i + 1, da: R.names[i], a: R.names[i + 1], km: Math.round((cum[b] - cum[a]) * sc * 10) / 10,
+        dp: Math.round((R.dpMin + r() * R.dpR) / 10) * 10, dm: Math.round((R.dpMin + r() * R.dpR) / 10) * 10, dif: y < R.difT[0] ? 'T' : y < R.difT[1] ? 'E' : y < R.difT[2] ? 'EE' : 'EEA',
+        per: R.per[i] || 'p', isVar: false, vars: [], pts, cum: pts.map((_, k) => (cum[a + k] - cum[a]) * sc), near: [] });
+    }
+    const V = {};
+    R.vars.forEach(([bi, suf]) => {
+      const B = T[bi], p0 = B.pts[0], p1 = B.pts[B.pts.length - 1], k = Math.cos(p0[0] * Math.PI / 180), d = dk(p0, p1) || 1;
+      const ux = (p1[1] - p0[1]) * 111.2 * k / d, uy = (p1[0] - p0[0]) * 111.2 / d, amp = (1.2 + .8 * r()) * (r() < .5 ? 1 : -1);
+      const pts = B.pts.map((p, j) => { const t = j / (B.pts.length - 1), off = Math.sin(Math.PI * t) * amp; return [p[0] + ux * off / 111.2, p[1] - uy * off / (111.2 * k)]; });
+      const km = Math.round(B.km * (1.08 + .15 * r()) * 10) / 10, gc = [0]; for (let j = 1; j < pts.length; j++) gc.push(gc[j - 1] + dk(pts[j - 1], pts[j]));
+      const v = { id: B.code + suf, code: B.code + suf, n: B.n, isVar: true, base: B.id, da: B.da, a: B.a, km, dp: B.dp + Math.round(r() * 25) * 10, dm: B.dm + Math.round(r() * 25) * 10, dif: B.dif === 'T' ? 'E' : B.dif, per: 'p', pts, cum: gc.map(g => g / gc[gc.length - 1] * km), near: [] };
+      B.vars.push(v.id); V[B.id] = (V[B.id] || []).concat(v);
+    });
+    const all = []; T.forEach(t => { all.push(t); (V[t.id] || []).forEach(v => all.push(v)); });
+    all.forEach(t => t.bb = bbox(t.pts));
+    const byId = {}; all.forEach(t => byId[t.id] = t);
+    const P = [];
+    if (R.punti) {
+      const isFraz = n => /^(Rifugio|Alpe|Pian|Colle|Il |Ghigo|San Domenico|Fondovalle|Trovinasse|Riale|Forno di|Malciaussia)/.test(n);
+      const comOf = i => { for (let j = i; j >= 0; j--) if (!isFraz(R.names[j])) return R.names[j]; return R.names[0]; };
+      const PERS = ['Marco Giordano','Elena Bertola','Luca Ferrero','Chiara Bonetto','Paolo Rinaudo','Giulia Pautasso','Davide Martini','Sara Gallo','Andrea Bruno','Federica Rosso','Stefano Ghigo','Marta Bergese','Alpi Ospitalità s.r.l.','Valli Unite soc. coop.'];
+      const HN = ['Alpi','Monte Rosa','Belvedere','La Genziana','Edelweiss','Stella Alpina','Miramonti','Le Marmotte','Del Ponte','Cristallo'];
+      const BN = ['La Baita','Il Larice','Ca’ d’la Vali','La Meridiana','Il Ciliegio','Casa Rosa','Al Mulino','La Lanterna'];
+      const CN = ['La Grangia','Ca’ Bianca','Il Fienile','La Stalla Vecchia','Ca’ del Sole'];
+      const KN = ['Lago Verde','Le Betulle','Alpino','Del Torrente','Pian Bosco'];
+      const RN = [...R.rif];
+      const slug = n => n.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[’'&]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      const tel = () => { const pre = pick(['0171', '0175', '0121', '0122', '0123', '0124', '015', '0163', '0324']); const n = () => String(Math.floor(r() * 90) + 10); return `+39 ${pre} ${n()} ${n()} ${n()}`; };
+      const jit = (p, km) => { const k = Math.cos(p[0] * Math.PI / 180); return [p[0] + (r() - .5) * km / 111.2, p[1] + (r() - .5) * km / (111.2 * k)]; };
+      const pickT = () => { const y = r(); return y < .42 ? 'rif' : y < .58 ? 'hot' : y < .72 ? 'bb' : y < .81 ? 'cv' : y < .88 ? 'ost' : 'cam'; };
+      const add = (pos, i, tipo, forced) => {
+        const comune = comOf(Math.min(i, R.names.length - 1)); let nome, gest = null, cai = null;
+        if (tipo === 'rif') { nome = forced || 'Rifugio ' + (RN.shift() || comune); const isC = forced || r() < .68; gest = isC ? 'CAI ' + pick(R.sez) : pick(PERS); if (isC) cai = 'https://rifugi.cai.it/rifugio/' + slug(nome); }
+        else { nome = tipo === 'hot' ? 'Albergo ' + pick(HN) : tipo === 'bb' ? 'B&B ' + pick(BN) : tipo === 'cv' ? 'Casa vacanze ' + pick(CN) : tipo === 'ost' ? 'Ostello di ' + comune : 'Campeggio ' + pick(KN); gest = r() < .78 ? pick(PERS) : null; }
+        const sito = r() < .7 ? 'www.' + slug(nome.replace(/^(Rifugio|Albergo|B&B|Casa vacanze|Ostello di|Campeggio) /, '')).replace(/-/g, '') + '.it' : null;
+        P.push({ id: 'p' + P.length, tipo, nome, comune, gest, tel: r() < .88 ? tel() : null, sito, cai, pos, near: [] });
+      };
+      const ends = [T[0].pts[0], ...T.map(t => t.pts[t.pts.length - 1])];
+      ends.forEach((p, i) => { const nm = R.names[i];
+        if (/^Rifugio/.test(nm)) { add(jit(p, .2), i, 'rif', nm); return; }
+        if (r() < .62) { const n = r() < .22 ? 2 : 1; for (let k = 0; k < n; k++) add(jit(p, 1.1), i, pickT()); } });
+      T.forEach((t, i) => { if (r() < .28) add(jit(t.pts[Math.floor(t.pts.length * (.3 + .4 * r()))], .5), i, 'rif'); });
+      P.forEach(p => all.forEach(t => {
+        if (p.pos[0] < t.bb[0] - .03 || p.pos[0] > t.bb[2] + .03 || p.pos[1] < t.bb[1] - .04 || p.pos[1] > t.bb[3] + .04) return;
+        let bd = 1e9, bk = 0; t.pts.forEach((q, k) => { const d = dk(p.pos, q); if (d < bd) { bd = d; bk = k; } });
+        if (bd <= 1.5) { p.near.push({ t: t.id, d: bd, km: t.cum[bk] }); t.near.push({ p: p.id, d: bd, km: t.cum[bk] }); }
+      }));
+      all.forEach(t => t.near.sort((a, b) => a.km - b.km));
+    }
+    const pById = {}; P.forEach(p => pById[p.id] = p);
+    const non = T.find(t => t.per === 'n');
+    Component._c[reg] = { R, T, all, byId, P, pById, bb: bbox(all.flatMap(t => t.pts)), defSel: (non || T[Math.min(2, T.length - 1)]).id };
+    return Component._c[reg];
+  }
+
+  P(la, lo, z) { const n = 256 * 2 ** z, r = la * Math.PI / 180; return [(lo + 180) / 360 * n, (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * n]; }
+  U(x, y, z) { const n = 256 * 2 ** z; return [Math.atan(Math.sinh(Math.PI * (1 - 2 * y / n))) * 180 / Math.PI, x / n * 360 - 180]; }
+  fit(bb, W, H, pad, zmax, zmin = 6) {
+    let z = zmax; for (; z > zmin; z--) { const a = this.P(bb[2], bb[1], z), b = this.P(bb[0], bb[3], z); if (b[0] - a[0] <= W - pad && b[1] - a[1] <= H - pad) break; }
+    const a = this.P(bb[2], bb[1], z), b = this.P(bb[0], bb[3], z), c = this.U((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, z); return { z, lat: c[0], lon: c[1] };
+  }
+  view(key, W, H) { return this.state.mv[key] || this.fit(this.db(this.state.reg).bb, W, H, 40, 13); }
+  setView(key, v) { this.setState(s => ({ mv: { ...s.mv, [key]: v } })); }
+  hit(key, W, H, x, y) {
+    const v = this.view(key, W, H), [cx, cy] = this.P(v.lat, v.lon, v.z), [la, lo] = this.U(cx - W / 2 + x, cy - H / 2 + y, v.z);
+    let best = null, bd = 10;
+    (this._vis[key] || []).forEach(o => { const xy = o.xy; for (let i = 1; i < xy.length; i++) { const [x1, y1] = xy[i - 1], [x2, y2] = xy[i]; const dx = x2 - x1, dy = y2 - y1, L2 = dx * dx + dy * dy || 1; let t = ((x - x1) * dx + (y - y1) * dy) / L2; t = Math.max(0, Math.min(1, t)); const d = Math.hypot(x - x1 - t * dx, y - y1 - t * dy); if (d < bd) { bd = d; best = o.id; } } });
+    this.setState({ pop: best ? { key, t: 't', id: best, lat: la, lon: lo } : null });
+  }
+
+  mapView(key, W, H, D, mob) {
+    const st = this.state, TI = Component.TIPI, PER = Component.PER, mode = this.props.tracciato ?? 'alternati+etichette';
+    const v = this.view(key, W, H), z = v.z, [cx, cy] = this.P(v.lat, v.lon, z), ox = cx - W / 2, oy = cy - H / 2;
+    const tiles = [];
+    for (let tx = Math.floor(ox / 256); tx <= Math.floor((ox + W - 1) / 256); tx++) for (let ty = Math.floor(oy / 256); ty <= Math.floor((oy + H - 1) / 256); ty++)
+      tiles.push({ src: `https://r3-it.storage.cloud.it/tiles/${z}/${tx}/${ty}.png`, l: Math.round(tx * 256 - ox), t: Math.round(ty * 256 - oy) });
+    const [la1, lo0] = this.U(ox, oy, z), [la0, lo1] = this.U(ox + W, oy + H, z);
+    const inV = b => b[2] >= la0 && b[0] <= la1 && b[3] >= lo0 && b[1] <= lo1;
+    const pr = (la, lo) => { const p = this.P(la, lo, z); return [p[0] - ox, p[1] - oy]; };
+    const vis = D.all.filter(t => inV(t.bb)).map(t => ({ id: t.id, xy: t.pts.map(p => pr(p[0], p[1])) }));
+    this._vis[key] = vis;
+    const path = xy => 'M' + xy.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('L');
+    const g = { a: '', b: '', v: '', d: '', n: '' }, alt = mode !== 'etichette';
+    vis.forEach(o => { const t = D.byId[o.id]; const k = t.isVar ? 'v' : t.per === 'n' ? 'n' : t.per === 'd' ? 'd' : (alt && t.n % 2 === 0 ? 'b' : 'a'); g[k] += path(o.xy); });
+    const w = z >= 12 ? 4.2 : z >= 10 ? 3.6 : 3;
+    const lines = [{ d: g.a, c: '#17a180', w, cw: w + 3, da: 'none' }, { d: g.b, c: '#0b5c49', w, cw: w + 3, da: 'none' }, { d: g.v, c: '#17a180', w: w - .4, cw: w + 2, da: '0.1 ' + (w + 3) }, { d: g.d, c: '#e0a526', w, cw: w + 3, da: 'none' }, { d: g.n, c: '#d64545', w, cw: w + 3, da: (w * 2) + ' ' + (w * 1.4) }].filter(l => l.d);
+    const popId = st.pop && st.pop.key === key && st.pop.t === 't' ? st.pop.id : null;
+    const sel = vis.find(o => o.id === popId); if (sel) { const t = D.byId[sel.id]; lines.push({ d: path(sel.xy), c: t.per === 'n' ? '#d64545' : t.per === 'd' ? '#e0a526' : '#0f7d63', w: w + 3, cw: w + 9, da: 'none' }); }
+    const ticks = [];
+    if (z >= 9 || mode === 'etichette') D.T.forEach((t, i) => { const p = pr(t.pts[0][0], t.pts[0][1]); if (p[0] > 0 && p[0] < W && p[1] > 0 && p[1] < H) ticks.push({ x: Math.round(p[0]), y: Math.round(p[1]) });
+      if (i === D.T.length - 1) { const e = t.pts[t.pts.length - 1], q = pr(e[0], e[1]); ticks.push({ x: Math.round(q[0]), y: Math.round(q[1]) }); } });
+    const labels = [];
+    if (mode !== 'alternati') { const minD = mob ? 40 : 46;
+      D.all.filter(t => !t.isVar || z >= 11).forEach(t => { const m = t.pts[Math.floor(t.pts.length / 2)], p = pr(m[0], m[1]);
+        if (p[0] < 24 || p[0] > W - 24 || p[1] < 12 || p[1] > H - 12) return;
+        if (labels.some(l => Math.hypot(l.x - p[0], (l.y - p[1]) * 1.6) < minD)) return;
+        labels.push({ x: Math.round(p[0]), y: Math.round(p[1]), t: t.code, c: t.per === 'n' ? '#d64545' : t.per === 'd' ? '#e0a526' : t.isVar ? '#8fd3c1' : (alt && t.n % 2 === 0 ? '#0b5c49' : '#17a180') }); }); }
+    const big = z >= 10, s = big ? 24 : 11;
+    const marks = D.P.filter(p => p.pos[0] >= la0 && p.pos[0] <= la1 && p.pos[1] >= lo0 && p.pos[1] <= lo1).map(p => { const q = pr(p.pos[0], p.pos[1]), T = TI[p.tipo];
+      return { x: Math.round(q[0]), y: Math.round(q[1]), s, o: -s / 2, big, c: T.c, ic: T.ic, t: `${T.l} · ${p.nome}`, click: e => { e.stopPropagation(); this.setState({ pop: { key, t: 'p', id: p.id, lat: p.pos[0], lon: p.pos[1] } }); } }; });
+    let p = {}, q = {}, popT = false, popP = false;
+    if (st.pop && st.pop.key === key) {
+      const [x, y] = pr(st.pop.lat, st.pop.lon), pw = mob ? 260 : 280;
+      const base = { x: Math.round(Math.max(8, Math.min(W - pw - 8, x - pw / 2))), y: Math.round(y > H * .55 ? y - 14 : y + 16), tf: y > H * .55 ? 'translateY(-100%)' : 'none' };
+      if (st.pop.t === 't') { const t = D.byId[st.pop.id], R = PER[t.per]; popT = true;
+        p = { ...base, code: t.code, isVar: t.isVar, varL: t.isVar ? 'Variante di ' + t.base : '', daa: `${t.da} → ${t.a}`, km: this.kmF(t.km), dp: this.nI(t.dp), pl: R.l, pb: R.bg, pf: R.fg, open: () => this.setState({ sel: t.id, pop: null }) }; }
+      else { const o = D.pById[st.pop.id], T = TI[o.tipo]; popP = true;
+        q = { ...base, tipo: T.l, c: T.c, nome: o.nome, comune: o.comune, tappe: o.near.map(n => D.byId[n.t].code).join(', ') || '—', hasCai: !!o.cai, cai: o.cai }; }
+    }
+    return { w: W, h: H, tiles, lines, ticks, labels, marks, popT, popP, p, q,
+      info: `${D.all.length} tappe · ${D.P.length ? D.P.length + ' punti di appoggio · ' : ''}clic su una tappa per l’anteprima`,
+      zin: () => this.setView(key, { ...v, z: Math.min(16, z + 1) }), zout: () => this.setView(key, { ...v, z: Math.max(6, z - 1) }),
+      reset: () => this.setState(s => { const m = { ...s.mv }; delete m[key]; return { mv: m, pop: null }; }),
+      down: e => { if (e.button) return; this._drag = { key, x: e.clientX, y: e.clientY, v, moved: false, rect: e.currentTarget.getBoundingClientRect() }; try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {} },
+      move: e => { const d = this._drag; if (!d || d.key !== key) return; const dx = e.clientX - d.x, dy = e.clientY - d.y; if (!d.moved && Math.hypot(dx, dy) < 4) return; d.moved = true;
+        const sc = d.rect.width / W, c = this.P(d.v.lat, d.v.lon, d.v.z), n = this.U(c[0] - dx / sc, c[1] - dy / sc, d.v.z); this.setView(key, { z: d.v.z, lat: n[0], lon: n[1] }); },
+      up: e => { const d = this._drag; this._drag = null; if (!d || d.key !== key || d.moved) return; const sc = d.rect.width / W; this.hit(key, W, H, (e.clientX - d.rect.left) / sc, (e.clientY - d.rect.top) / sc); },
+      dbl: e => { const rc = e.currentTarget.getBoundingClientRect(), sc = rc.width / W; const n = this.U(ox + (e.clientX - rc.left) / sc, oy + (e.clientY - rc.top) / sc, z); this.setState(s => ({ mv: { ...s.mv, [key]: { z: Math.min(16, z + 1), lat: n[0], lon: n[1] } }, pop: null })); }
+    };
+  }
+
+  renderVals() {
+    const st = this.state, D = this.db(st.reg), R = D.R, PER = Component.PER, TI = Component.TIPI, ORD = Component.ORD;
+    const btn = (l, on, click) => ({ l, click, bg: on ? '#17a180' : 'transparent', fg: on ? '#fff' : '#3c4557' });
+    const go = k => () => this.setState(this.base(k));
+    const open = id => () => this.setState({ sel: id, pop: null });
+    const main = D.T, vars = D.all.filter(t => t.isVar), sum = (a, f) => a.reduce((x, t) => x + f(t), 0);
+    const kmM = sum(main, t => t.km), kmV = sum(vars, t => t.km);
+    const cnt = {}; ORD.forEach(k => cnt[k] = D.P.filter(p => p.tipo === k).length);
+    const tipoTxt = ORD.filter(k => cnt[k]).map(k => `${cnt[k]} ${cnt[k] === 1 ? TI[k].l1 : TI[k].ln}`).join(' · ');
+    const K = { nT: this.nI(D.all.length), nTsub: vars.length ? `${main.length} tappe principali · ${vars.length} varianti` : `${main.length} tappe principali, nessuna variante`, nTsubS: vars.length ? `${main.length} + ${vars.length} varianti` : 'nessuna variante',
+      km: this.kmI(kmM), kmSub: vars.length ? `Tappe principali · più ${this.kmI(kmV)} km di varianti` : 'Tappe principali', kmSubS: vars.length ? `+ ${this.kmI(kmV)} km di varianti` : 'tappe principali',
+      dp: this.nI(sum(main, t => t.dp)), dpSub: `In salita · in discesa ${this.nI(sum(main, t => t.dm))} m`,
+      nP: String(D.P.length), pC: D.P.length ? '#3c4557' : '#9aa1ad', pSub: D.P.length ? tipoTxt : 'Nessun punto di appoggio censito nella regione' };
+    const chipT = t => ({ code: t.code, daa: `${t.da} → ${t.a}`, open: open(t.id) });
+    const non = D.all.filter(t => t.per === 'n'), dif = D.all.filter(t => t.per === 'd'), any = non.length + dif.length > 0;
+    const CR = { any, none: !any, hasNon: non.length > 0, hasDif: dif.length > 0, non: non.map(chipT), dif: dif.map(chipT),
+      nonT: non.length === 1 ? '1 tappa non percorribile' : `${non.length} tappe non percorribili`, difT: dif.length === 1 ? '1 tappa percorribile con difficoltà' : `${dif.length} tappe percorribili con difficoltà`,
+      km: `${this.kmF(sum([...non, ...dif], t => t.km))} km coinvolti`, bg: non.length ? '#fdf3f2' : dif.length ? '#fdf8ee' : '#fff', bd: non.length ? '#f3c9c4' : dif.length ? '#f0dcb4' : '#eceef1', tc: non.length ? '#b42318' : dif.length ? '#8a5600' : '#3c4557' };
+    // elenco
+    const q = st.q.trim().toLowerCase();
+    const matchQ = t => !q || t.code.toLowerCase().startsWith(q) || t.da.toLowerCase().includes(q) || t.a.toLowerCase().includes(q);
+    const f = D.all.filter(t => (!st.fPer || t.per === st.fPer) && matchQ(t));
+    const row = t => { const P = PER[t.per], n = t.near.length, crit = t.per === 'n';
+      return { code: t.code, isVar: t.isVar, varL: t.isVar ? `Variante della tappa ${t.base}` : '', daa: `${t.da} → ${t.a}`, km: this.kmF(t.km), dp: this.nI(t.dp) + ' m', dm: this.nI(t.dm) + ' m', dif: t.dif,
+        pl: P.l, pb: P.bg, pf: P.fg, nN: String(n), nNL: n ? `${n} ${n === 1 ? 'punto di appoggio' : 'punti di appoggio'} vicini` : 'Nessun punto di appoggio vicino', nc: n ? '#3c4557' : '#b4bbc6',
+        bg: crit ? '#fdf3f2' : t.isVar ? '#fafbfc' : '#fff', sh: crit ? 'inset 3px 0 0 #d64545' : 'none', ind: t.isVar ? 14 : 0,
+        mbg: crit ? '#fdf3f2' : '#fff', mbd: crit ? '#f0b8b1' : '#eceef1', open: open(t.id) }; };
+    const chipsP = [['', 'Tutte', 'Tutte'], ['p', PER.p.l, 'Percorribili'], ['d', PER.d.l, 'Con difficoltà'], ['n', PER.n.l, 'Non percorribili'], ['s', PER.s.l, 'Sconosciuto']].map(([k, l, ls]) => {
+      const on = st.fPer === k, n = D.all.filter(t => (!k || t.per === k) && matchQ(t)).length;
+      return { l, ls, n, dot: k ? PER[k].dot : '#3c4557', bd: on ? '#17a180' : '#dfe3e8', bg: on ? '#e3f4ee' : '#fff', fg: on ? '#0f7d63' : n ? '#3c4557' : '#b4bbc6', click: () => this.setState({ fPer: k, mAll: false }) }; });
+    const EL = { rows: f.map(row), chips: chipsP, noMatch: f.length === 0, noT: st.fPer && !q ? `Nessuna tappa «${PER[st.fPer].l.toLowerCase()}» in ${R.nome}.` : 'Nessuna tappa corrisponde alla ricerca o al filtro.',
+      count: f.length === D.all.length ? `${D.all.length} tappe` : `${f.length} di ${D.all.length} tappe` };
+    const mLim = st.mAll ? f.length : 10;
+    const ELM = { rows: f.slice(0, mLim).map(row), more: f.length > mLim, moreL: `Mostra tutte le ${f.length} tappe` };
+    // punti
+    const prow = p => { const T = TI[p.tipo];
+      return { c: T.c, ic: T.ic, tipo: T.l, nome: p.nome, comune: p.comune, gest: p.gest || '—', gc: p.gest ? '#3c4557' : '#b4bbc6', tel: p.tel || '—', tc: p.tel ? '#3c4557' : '#b4bbc6',
+        hasSito: !!p.sito, noSito: !p.sito, sito: p.sito, sitoH: p.sito ? 'https://' + p.sito : '', hasCai: !!p.cai, cai: p.cai,
+        tappe: p.near.map(n => ({ code: D.byId[n.t].code, open: open(n.t) })) }; };
+    const tchips = (cur, set) => [{ k: '', l: 'Tutti', n: D.P.length }, ...ORD.filter(k => cnt[k]).map(k => ({ k, l: TI[k].pl, n: cnt[k] }))].map(c => { const on = cur === c.k;
+      return { ...c, bd: on ? '#17a180' : '#dfe3e8', bg: on ? '#e3f4ee' : '#fff', fg: on ? '#0f7d63' : '#3c4557', click: () => set(c.k) }; });
+    const PU = { chips: tchips(st.fTipo, k => this.setState({ fTipo: k })),
+      groups: ORD.filter(k => cnt[k] && (!st.fTipo || st.fTipo === k)).map(k => ({ l: TI[k].pl, c: TI[k].c, n: cnt[k], rows: D.P.filter(p => p.tipo === k).sort((a, b) => a.nome.localeCompare(b.nome, 'it')).map(prow) })),
+      count: `${D.P.length} punti di appoggio · ${D.P.filter(p => p.cai).length} nella banca dati rifugi.cai.it` };
+    const pmList = ORD.filter(k => !st.mTipo || st.mTipo === k).flatMap(k => D.P.filter(p => p.tipo === k).sort((a, b) => a.nome.localeCompare(b.nome, 'it')));
+    const pmLim = st.pmAll ? pmList.length : 6;
+    const PM = { chips: tchips(st.mTipo, k => this.setState({ mTipo: k, pmAll: false })), rows: pmList.slice(0, pmLim).map(prow), more: pmList.length > pmLim, moreL: `Mostra tutti i ${pmList.length} punti` };
+    // scheda
+    const selId = st.sel && D.byId[st.sel] ? st.sel : D.defSel, t = D.byId[selId], B = t.isVar ? D.byId[t.base] : t;
+    const nav = (u, first) => u ? { has: true, none: false, code: u.code, daa: `${u.da} → ${u.a}`, daaS: first ? u.da : u.a, dot: PER[u.per].dot, open: open(u.id) }
+      : { has: false, none: true, noneT: first ? `${B.code} è la prima tappa in ${R.nome}` : `${B.code} è l’ultima tappa in ${R.nome}`, noneS: first ? 'Prima tappa' : 'Ultima tappa' };
+    const Pt = PER[t.per], near = t.near.map(n => { const p = D.pById[n.p], r0 = prow(p);
+      return { ...r0, km: this.kmF(n.km), kmS: 'km ' + this.kmF(n.km), pct: Math.max(0, Math.min(100, n.km / t.km * 100)).toFixed(1), dist: n.d < .2 ? 'sul tracciato' : `a ${this.kmF(n.d)} km dal tracciato` }; });
+    const S = { id: t.id, code: t.code, isVar: t.isVar, base: t.base || '', toBase: open(B.id), da: t.da, a: t.a, daa: `${t.da} → ${t.a}`, km: this.kmF(t.km),
+      pos: t.isVar ? `Variante della tappa ${B.code} · Sentiero Italia CAI in ${R.nome}` : `Tappa ${t.n} di ${main.length} · Sentiero Italia CAI in ${R.nome}`,
+      prev: nav(main[B.n - 2], true), next: nav(main[B.n], false), hasVars: !t.isVar && t.vars.length > 0, vars: (t.vars || []).map(id => ({ code: id, open: open(id) })),
+      pl: Pt.l, pb: Pt.bg, pf: Pt.fg, facts: `${this.kmF(t.km)} km · +${this.nI(t.dp)} m · −${this.nI(t.dm)} m · difficoltà ${t.dif}`, lc: t.per === 'n' ? '#d64545' : t.per === 'd' ? '#e0a526' : '#17a180',
+      near, hasNear: near.length > 0, noNear: near.length === 0,
+      nearT: near.length ? `${near.length} ${near.length === 1 ? 'struttura' : 'strutture'} entro 1,5 km dal tracciato, in ordine di percorrenza` : 'entro 1,5 km dal tracciato', nearS: near.length ? `${near.length} entro 1,5 km` : 'entro 1,5 km',
+      noNearT: D.P.length ? 'Nessun punto di appoggio entro 1,5 km da questa tappa' : `Nessun punto di appoggio censito in ${R.nome}`,
+      noNearS: D.P.length ? `I più vicini sono nelle tappe adiacenti${S_adj(main, B)}.` : 'Quando la banca dati del Sentiero Italia CAI li riporterà, compariranno qui.' };
+    function S_adj(m, b) { const a = [m[b.n - 2], m[b.n]].filter(x => x && x.near.length).map(x => x.code); return a.length ? ' (' + a.join(', ') + ')' : ''; }
+    const alt = (this.props.tracciato ?? 'alternati+etichette') !== 'etichette';
+    const legT = [
+      alt ? { l: 'Tappe, a colori alternati', ls: 'Tappe', c: '#17a180', c2: '#0b5c49', da: 'none' } : { l: 'Tappe, con etichetta del codice', ls: 'Tappe', c: '#17a180', c2: '#17a180', da: 'none' },
+      { l: 'Percorribile con difficoltà', ls: 'Con difficoltà', c: '#e0a526', c2: '#e0a526', da: 'none' },
+      { l: 'Non percorribile', ls: 'Non percorribile', c: '#d64545', c2: 'transparent', da: '6 4' },
+      ...(vars.length ? [{ l: 'Variante', ls: 'Variante', c: '#17a180', c2: 'transparent', da: '0.1 6' }] : [])];
+    const noSet = n => () => this.setState(n);
+    return {
+      st, stop: e => e.stopPropagation(), closePop: e => { e && e.stopPropagation && e.stopPropagation(); this.setState({ pop: null }); },
+      scenBtns: [btn('Molte tappe · Piemonte (80)', st.reg === 'piemonte', go('piemonte')), btn('Poche tappe · Basilicata (5)', st.reg === 'basilicata', go('basilicata'))],
+      goNon: () => this.setState({ ...this.base('piemonte'), sel: this.db('piemonte').defSel }),
+      goNoPunti: () => this.setState(this.base('basilicata')),
+      G: { sub: `${R.gr} · Codice CAI ${R.cod} · Sentiero Italia CAI in ${R.nome}`, noPT: `Nessun punto di appoggio SICAI censito in ${R.nome}` },
+      K, CR, EL, ELM, PU, PM, S, hasP: D.P.length > 0, noP: D.P.length === 0, legT,
+      legP: ORD.filter(k => cnt[k]).map(k => ({ l: TI[k].pl, c: TI[k].c, ic: TI[k].ic })),
+      MD: this.mapView('d', 1358, 640, D, false), MM: this.mapView('m', 356, 340, D, true),
+      selOpts: D.all.map(x => ({ k: x.id, l: `${x.code} · ${x.da} → ${x.a}${x.per === 'n' ? ' (non percorribile)' : ''}` })),
+      setSel: e => this.setState({ sel: e.target.value }),
+      setQ: e => this.setState({ q: e.target.value, mAll: false }), resetF: noSet({ q: '', fPer: '' }),
+      mAll: noSet({ mAll: true }), pmAll: noSet({ pmAll: true })
+    };
+  }
+}
+</script>
+</body>
+</html>

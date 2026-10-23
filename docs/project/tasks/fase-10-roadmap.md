@@ -8,13 +8,13 @@ Aperta il 2026-10-21, dopo la chiusura della Fase 9. Riferimento: `PRD-ORCHESTRA
 |---|---|---|---|---|
 | 10.1 | Sezioni | Dashboard V2 | [prd-fase-10-dashboard-sezione-v2.md](prd-fase-10-dashboard-sezione-v2.md) | su UAT (PR #19), verifica del committente in corso |
 | 10.2 | GR | Dashboard V2 | [prd-fase-10-dashboard-gr-v2.md](prd-fase-10-dashboard-gr-v2.md) | su UAT (PR #20), verifica del committente in corso |
-| 10.3 | GR | Bilancio consolidato Sezioni | [prd-fase-10-bilancio-consolidato-gr.md](prd-fase-10-bilancio-consolidato-gr.md) | in sviluppo |
-| 10.4 | Sezioni | Rifugi di Sezione | — | da specificare |
-| 10.5 | GR | Rifugi delle Sezioni del GR | — | da specificare |
-| 10.6 | Sezione | Sentieri di Sezione | — | da specificare |
-| 10.7 | GR | Sentieri del GR | — | da specificare |
-| 10.8 | Sezione | Tappe SICAI | — | da specificare |
-| 10.9 | GR | Tappe SICAI | — | da specificare |
+| 10.3 | GR | Bilancio consolidato Sezioni | [prd-fase-10-bilancio-consolidato-gr.md](prd-fase-10-bilancio-consolidato-gr.md) | su UAT (PR #21), verifica del committente in corso |
+| 10.4 | Sezioni | Rifugi di Sezione | [prd-fase-10-rifugi-di-sezione.md](prd-fase-10-rifugi-di-sezione.md) | in sviluppo (run Ralph unico 10.4–10.9) |
+| 10.5 | GR | Rifugi delle Sezioni del GR | [prd-fase-10-rifugi-del-gr.md](prd-fase-10-rifugi-del-gr.md) | in sviluppo (run Ralph unico 10.4–10.9) |
+| 10.6 | Sezione | Sentieri di Sezione | [prd-fase-10-sentieri-di-sezione.md](prd-fase-10-sentieri-di-sezione.md) | in sviluppo (run Ralph unico 10.4–10.9) |
+| 10.7 | GR | Sentieri del GR | [prd-fase-10-sentieri-del-gr.md](prd-fase-10-sentieri-del-gr.md) | in sviluppo (run Ralph unico 10.4–10.9) |
+| 10.8 | Sezione | Tappe SICAI | — | non prevista: in osm2cai solo 29 tappe su 525 hanno una Sezione |
+| 10.9 | GR | Tappe SICAI | [prd-fase-10-tappe-sicai-gr.md](prd-fase-10-tappe-sicai-gr.md) | in sviluppo (run Ralph unico 10.4–10.9) |
 | 10.10 | OTCOSO / Sezioni / GR | Gestione dei Verbali | — | da specificare |
 | 10.11 | OTCO / Sezioni / GR | RAG generale | — | da specificare |
 | 10.12 | Sezione / GR | Bilancio Sociale (beta) | — | da specificare |

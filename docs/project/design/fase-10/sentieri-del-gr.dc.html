@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <meta name="design_doc_mode" content="canvas">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap">
+  <style>html,body{margin:0;padding:0;background:#e9ecef;font-family:'Nunito Sans',sans-serif;color:#3c4557;} a{color:#17a180;text-decoration:none;} a:hover{color:#0f7d63;} button,select,input{font-family:inherit;} *{box-sizing:border-box;}</style>
+  <script src="data/gr-sentieri-geo.js"></script>
+</helmet>
+<section style="padding:56px 64px 96px;display:flex;flex-direction:column;gap:32px;">
+  <div style="display:flex;flex-direction:column;gap:6px;">
+    <div style="font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#17a180;">Piattaforma Montagna Servizi · Gruppo Regionale</div>
+    <div style="font-size:28px;font-weight:800;">Sentieri del GR</div>
+    <div style="font-size:14px;color:#6b7486;max-width:820px;line-height:1.5;text-wrap:pretty;">Pagina aperta dal badge «Sentieri» della Dashboard V2 del Gruppo Regionale. Solo area contenuti. Versione regionale di <a href="Sentieri di Sezione.dc.html#elenco" style="font-weight:700;">Sentieri di Sezione</a> (10.6): il clic su un sentiero apre la stessa scheda, il clic su una Sezione apre il suo elenco. Dati dal catasto osm2cai, cartografia CAI.</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+    <div style="display:flex;gap:4px;padding:4px;background:#fff;border:1px solid #dfe3e8;border-radius:10px;">
+      <sc-for list="{{scenBtns}}" as="b" hint-placeholder-count="2">
+        <button onClick="{{b.click}}" style="height:32px;padding:0 14px;border:none;border-radius:7px;background:{{b.bg}};color:{{b.fg}};font-size:13px;font-weight:700;cursor:pointer;">{{b.l}}</button>
+      </sc-for>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <span style="font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#8a93a3;">Vai allo stato</span>
+      <a href="#d-prov" onClick="{{goEmptySec}}" style="height:32px;display:flex;align-items:center;padding:0 12px;border:1px solid #dfe3e8;border-radius:16px;background:#fff;font-size:13px;font-weight:700;">Settore senza sentieri</a>
+      <a href="#d-sez" onClick="{{goEmptySez}}" style="height:32px;display:flex;align-items:center;padding:0 12px;border:1px solid #dfe3e8;border-radius:16px;background:#fff;font-size:13px;font-weight:700;">Sezione senza sentieri</a>
+    </div>
+  </div>
+
+  <sc-if value="{{ready}}" hint-placeholder-val="{{true}}">
+  <div style="display:flex;gap:48px;align-items:flex-start;flex-wrap:wrap;">
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div style="font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#8a93a3;">Desktop · 1440</div>
+      <div data-screen-label="Sentieri del GR desktop" style="width:1440px;background:#f4f6f8;border-radius:12px;box-shadow:0 1px 2px rgba(20,30,40,.06),0 8px 28px rgba(20,30,40,.08);overflow:hidden;">
+        <div style="padding:36px 40px 56px;display:flex;flex-direction:column;gap:36px;">
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <a href="Dashboard Gruppo Regionale CAI V2.dc.html" style="font-size:13px;font-weight:700;color:#17a180;">← Dashboard</a>
+            <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:24px;">
+              <div style="display:flex;flex-direction:column;gap:4px;">
+                <div style="font-size:28px;font-weight:800;letter-spacing:-0.01em;">Sentieri del GR</div>
+                <div style="font-size:15px;font-weight:600;color:#6b7486;">{{G.sub}}</div>
+              </div>
+              <div style="font-size:12px;color:#8a93a3;">Fonte: <a href="https://osm2cai.cai.it" target="_blank" style="font-weight:700;">osm2cai</a> · catasto sentieri CAI · dati aggiornati al 21 ottobre 2026</div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            <div style="font-size:18px;font-weight:800;">Riepilogo regionale</div>
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 300px;gap:16px;">
+              <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:20px 24px;display:flex;flex-direction:column;gap:8px;">
+                <div style="display:flex;align-items:center;gap:10px;font-size:13px;font-weight:800;color:#3c4557;"><span style="width:10px;height:10px;border-radius:2px;background:#3c4557;"></span>Km nel territorio regionale</div>
+                <div style="font-size:36px;font-weight:800;letter-spacing:-0.01em;font-variant-numeric:tabular-nums;line-height:1.1;">{{K.terr}} <span style="font-size:18px;color:#6b7486;">km</span></div>
+                <div style="font-size:13px;color:#6b7486;line-height:1.5;text-wrap:pretty;">Tutti i sentieri del catasto tagliati sul confine della regione, compresi quelli senza una Sezione.</div>
+              </div>
+              <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:20px 24px;display:flex;flex-direction:column;gap:8px;">
+                <div style="display:flex;align-items:center;gap:10px;font-size:13px;font-weight:800;color:#0f7d63;"><span style="width:10px;height:10px;border-radius:2px;background:#17a180;"></span>Km gestiti dalle Sezioni del GR</div>
+                <div style="font-size:36px;font-weight:800;letter-spacing:-0.01em;font-variant-numeric:tabular-nums;line-height:1.1;">{{K.gest}} <span style="font-size:18px;color:#6b7486;">km</span></div>
+                <div style="font-size:13px;color:#6b7486;line-height:1.5;text-wrap:pretty;">Sentieri assegnati ad almeno una Sezione. Un sentiero condiviso è contato una sola volta.</div>
+                <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px;">
+                  <div style="display:flex;height:8px;border-radius:4px;overflow:hidden;background:#e4e7eb;"><div style="width:{{K.gestW}}%;background:#17a180;"></div></div>
+                  <div style="font-size:12px;font-weight:700;color:#6b7486;">{{K.gestPct}} dei km nel territorio · {{K.noSezKm}} km senza Sezione</div>
+                </div>
+              </div>
+              <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:20px 24px;display:flex;flex-direction:column;gap:8px;">
+                <div style="font-size:13px;font-weight:800;">Sentieri presenti</div>
+                <div style="font-size:36px;font-weight:800;letter-spacing:-0.01em;font-variant-numeric:tabular-nums;line-height:1.1;">{{K.n}}</div>
+                <div style="display:flex;flex-direction:column;gap:3px;font-size:13px;color:#6b7486;">
+                  <span>{{K.nNoSez}} senza Sezione</span>
+                  <span>{{K.nShared}} condivisi tra più Sezioni</span>
+                  <span>{{K.nProv}} province · {{K.nSet}} settori</span>
+                </div>
+              </div>
+            </div>
+            <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:20px 24px;display:grid;grid-template-columns:minmax(0,1fr) 470px;gap:32px;">
+              <div style="display:flex;flex-direction:column;gap:12px;">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;">
+                  <div style="font-size:15px;font-weight:800;">Km per stato di accatastamento</div>
+                  <div style="font-size:12px;color:#6b7486;">km nel territorio regionale · da 1 · Difficoltà a 4 · Validato</div>
+                </div>
+                <div style="display:flex;height:28px;border-radius:6px;overflow:hidden;background:#eef1f4;gap:2px;">
+                  <sc-for list="{{SUM.bar}}" as="s" hint-placeholder-count="4"><div title="{{s.t}}" style="width:{{s.w}}%;background:{{s.c}};display:flex;align-items:center;padding:0 8px;font-size:12px;font-weight:800;color:{{s.fg}};white-space:nowrap;overflow:hidden;">{{s.lab}}</div></sc-for>
+                </div>
+                <div style="display:flex;">
+                  <div style="width:{{SUM.consL}}%;"></div>
+                  <div style="width:{{SUM.consW}}%;border:2px solid #1f2633;border-bottom:none;height:8px;border-radius:2px 2px 0 0;"></div>
+                </div>
+                <div style="display:flex;justify-content:flex-end;margin-top:-6px;">
+                  <div style="font-size:14px;font-weight:800;">Sentieri consolidati (stati 3–4): {{SUM.consPct}} <span style="font-weight:600;color:#6b7486;">· {{SUM.consKm}} km</span></div>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;">
+                  <sc-for list="{{SUM.leg}}" as="g" hint-placeholder-count="4">
+                    <div style="display:flex;flex-direction:column;gap:2px;">
+                      <div style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:#6b7486;"><span style="width:14px;height:4px;border-radius:2px;background:{{g.c}};"></span>{{g.l}}</div>
+                      <div style="font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;">{{g.km}} km <span style="font-size:12px;font-weight:600;color:#8a93a3;">{{g.pct}} · {{g.n}}</span></div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="border-left:1px solid #eceef1;padding-left:32px;display:flex;flex-direction:column;gap:12px;">
+                <div style="font-size:15px;font-weight:800;">Percorribilità</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 20px;">
+                  <sc-for list="{{SUM.per}}" as="p" hint-placeholder-count="4">
+                    <div style="display:flex;flex-direction:column;gap:1px;">
+                      <div style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:#6b7486;"><span style="width:8px;height:8px;border-radius:50%;background:{{p.dot}};"></span>{{p.l}}</div>
+                      <div style="font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;">{{p.km}} km <span style="font-size:12px;font-weight:600;color:#8a93a3;">{{p.n}}</span></div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="d-mappa" style="display:flex;flex-direction:column;gap:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;">
+              <div style="font-size:18px;font-weight:800;">Mappa</div>
+              <div style="font-size:13px;color:#6b7486;">Trascina per spostarti · doppio clic o + per zoomare · clic su un settore o su un sentiero per i dettagli</div>
+            </div>
+            <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;overflow:hidden;">
+              <div onPointerDown="{{MD.down}}" onPointerMove="{{MD.move}}" onPointerUp="{{MD.up}}" onDoubleClick="{{MD.dbl}}" style="position:relative;width:{{MD.w}}px;height:{{MD.h}}px;overflow:hidden;background:#f4f1e8;touch-action:none;cursor:grab;user-select:none;">
+                <sc-for list="{{MD.tiles}}" as="t"><img src="{{t.src}}" alt="" draggable="false" style="position:absolute;left:{{t.l}}px;top:{{t.t}}px;width:256px;height:256px;max-width:none;user-select:none;pointer-events:none;"></sc-for>
+                <sc-for list="{{MD.secs}}" as="s"><svg width="{{MD.w}}" height="{{MD.h}}" style="position:absolute;left:0;top:0;pointer-events:none;z-index:4;"><path d="{{s.d}}" style="fill:{{s.f}};fill-opacity:{{s.fo}};stroke:{{s.st}};stroke-width:{{s.sw}};stroke-dasharray:{{s.da}};stroke-linejoin:round;"></path></svg></sc-for>
+                <sc-for list="{{MD.provs}}" as="p"><svg width="{{MD.w}}" height="{{MD.h}}" style="position:absolute;left:0;top:0;pointer-events:none;z-index:5;"><path d="{{p.d}}" style="fill:none;stroke:#1f2633;stroke-width:1.6;stroke-opacity:.75;stroke-linejoin:round;"></path></svg></sc-for>
+                <sc-for list="{{MD.lines}}" as="p"><svg width="{{MD.w}}" height="{{MD.h}}" style="position:absolute;left:0;top:0;pointer-events:none;z-index:6;"><path d="{{p.d}}" style="fill:none;stroke:#fff;stroke-width:{{p.cw}};stroke-linecap:round;stroke-linejoin:round;"></path><path d="{{p.d}}" style="fill:none;stroke:{{p.c}};stroke-width:{{p.w}};stroke-linecap:round;stroke-linejoin:round;"></path></svg></sc-for>
+                <sc-for list="{{MD.labels}}" as="l"><div style="position:absolute;left:{{l.x}}px;top:{{l.y}}px;transform:translate(-50%,-50%);font-size:11px;font-weight:800;color:#1f2633;text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 2px #fff;pointer-events:none;z-index:7;white-space:nowrap;">{{l.t}}</div></sc-for>
+                <div onPointerDown="{{stop}}" style="position:absolute;left:12px;top:12px;display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.96);border-radius:8px;padding:8px 8px 8px 12px;box-shadow:0 1px 4px rgba(0,0,0,.15);z-index:70;max-width:640px;">
+                  <span style="font-size:13px;font-weight:700;">{{MD.modeT}}</span>
+                  <button onClick="{{MD.modeA}}" style="height:28px;padding:0 12px;border:1px solid #cfe9e1;border-radius:14px;background:#fff;color:#0f7d63;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;">{{MD.modeB}}</button>
+                </div>
+                <sc-if value="{{MD.popS}}">
+                  <div onPointerDown="{{stop}}" style="position:absolute;left:{{MD.p.x}}px;top:{{MD.p.y}}px;transform:{{MD.p.tf}};width:280px;background:#fff;border-radius:10px;box-shadow:0 8px 24px rgba(20,30,40,.25);padding:12px 14px 14px;display:flex;flex-direction:column;gap:8px;z-index:60;cursor:default;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                      <span style="font-size:12px;font-weight:800;color:#6b7486;letter-spacing:.04em;">SETTORE {{MD.p.cod}} · {{MD.p.prov}}</span>
+                      <button onClick="{{closePop}}" style="border:none;background:none;font-size:18px;line-height:1;color:#8a93a3;cursor:pointer;padding:0;">×</button>
+                    </div>
+                    <div style="font-size:15px;font-weight:800;line-height:1.25;">{{MD.p.nome}}</div>
+                    <sc-if value="{{MD.p.empty}}"><div style="font-size:13px;font-weight:700;color:#b42318;background:#fbe7e5;border-radius:8px;padding:8px 10px;">Nessun sentiero censito in questo settore</div></sc-if>
+                    <sc-if value="{{MD.p.has}}">
+                      <div style="font-size:13px;color:#3c4557;font-weight:700;">{{MD.p.n}} · {{MD.p.km}} km</div>
+                      <div style="display:flex;height:8px;border-radius:4px;overflow:hidden;background:#eef1f4;gap:1px;"><sc-for list="{{MD.p.bar}}" as="b"><div style="width:{{b.w}}%;background:{{b.c}};"></div></sc-for></div>
+                      <div style="font-size:12px;color:#6b7486;">Consolidati (stati 3–4): <span style="font-weight:800;color:#3c4557;">{{MD.p.pct}}</span></div>
+                      <div style="display:flex;gap:14px;align-items:center;padding-top:2px;">
+                        <button onClick="{{MD.p.zoom}}" style="border:none;background:none;padding:0;color:#17a180;font-size:13px;font-weight:800;cursor:pointer;">Zooma sul settore</button>
+                        <a href="#d-elenco" onClick="{{MD.p.list}}" style="font-size:13px;font-weight:800;">Elenco sentieri →</a>
+                      </div>
+                    </sc-if>
+                  </div>
+                </sc-if>
+                <sc-if value="{{MD.popT}}">
+                  <div onPointerDown="{{stop}}" style="position:absolute;left:{{MD.p.x}}px;top:{{MD.p.y}}px;transform:{{MD.p.tf}};width:280px;background:#fff;border-radius:10px;box-shadow:0 8px 24px rgba(20,30,40,.25);padding:12px 14px 14px;display:flex;flex-direction:column;gap:7px;align-items:flex-start;z-index:60;cursor:default;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;">
+                      <span style="display:inline-flex;align-items:center;justify-content:center;min-width:44px;height:26px;padding:0 6px;background:#fff;border:1px solid #e1e4e8;border-top:5px solid #d22630;border-bottom:5px solid #d22630;border-radius:3px;font-size:12px;font-weight:800;color:#1f2633;">{{MD.p.num}}</span>
+                      <button onClick="{{closePop}}" style="border:none;background:none;font-size:18px;line-height:1;color:#8a93a3;cursor:pointer;padding:0;">×</button>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:2px;">
+                      <div style="font-size:14px;font-weight:800;line-height:1.25;color:{{MD.p.nc}};">{{MD.p.nome}}</div>
+                      <div style="font-size:12px;color:#6b7486;">{{MD.p.daa}}</div>
+                    </div>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                      <span style="display:inline-flex;align-items:center;gap:5px;padding:1px 8px 1px 6px;border-radius:12px;border:1px solid {{MD.p.sc}};font-size:11px;font-weight:800;"><span style="width:7px;height:7px;border-radius:50%;background:{{MD.p.sc}};"></span>{{MD.p.sl}}</span>
+                      <span style="padding:2px 9px;border-radius:12px;background:{{MD.p.pb}};color:{{MD.p.pf}};font-size:11px;font-weight:700;">{{MD.p.pl}}</span>
+                    </div>
+                    <div style="font-size:12px;color:#3c4557;font-weight:700;">{{MD.p.km}} km · {{MD.p.set}}</div>
+                    <div style="font-size:12px;color:{{MD.p.sezC}};">{{MD.p.sez}}</div>
+                    <a href="Sentieri di Sezione.dc.html#scheda" style="font-size:13px;font-weight:800;">Apri scheda →</a>
+                  </div>
+                </sc-if>
+                <div onPointerDown="{{stop}}" style="position:absolute;right:12px;top:12px;display:flex;flex-direction:column;gap:8px;z-index:70;">
+                  <div style="display:flex;flex-direction:column;background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.2);overflow:hidden;">
+                    <button onClick="{{MD.zin}}" style="width:32px;height:32px;border:none;background:#fff;font-size:18px;font-weight:700;color:#3c4557;cursor:pointer;border-bottom:1px solid #eceef1;">+</button>
+                    <button onClick="{{MD.zout}}" style="width:32px;height:32px;border:none;background:#fff;font-size:18px;font-weight:700;color:#3c4557;cursor:pointer;">−</button>
+                  </div>
+                  <button onClick="{{MD.reset}}" title="Vista regione" style="width:32px;height:32px;border:none;border-radius:8px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.2);cursor:pointer;display:flex;align-items:center;justify-content:center;"><svg width="16" height="16" viewBox="0 0 24 24" style="fill:none;stroke:#3c4557;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"></path></svg></button>
+                </div>
+                <sc-if value="{{MD.low}}">
+                  <div onPointerDown="{{stop}}" style="position:absolute;left:12px;bottom:26px;background:rgba(255,255,255,.96);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;box-shadow:0 1px 4px rgba(0,0,0,.15);z-index:70;">
+                    <div style="font-size:11px;font-weight:800;color:#6b7486;">Km consolidati (stati 3–4) per settore</div>
+                    <div style="display:flex;gap:2px;"><sc-for list="{{ramp}}" as="g"><div style="display:flex;flex-direction:column;gap:3px;width:52px;"><span style="height:12px;background:{{g.c}};opacity:.85;"></span><span style="font-size:11px;font-weight:700;">{{g.l}}</span></div></sc-for></div>
+                    <div style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;"><span style="width:20px;height:12px;background:#fbe7e5;border:1.5px dashed #b42318;"></span>Settore senza sentieri</div>
+                  </div>
+                </sc-if>
+                <sc-if value="{{MD.high}}">
+                  <div onPointerDown="{{stop}}" style="position:absolute;left:12px;bottom:26px;background:rgba(255,255,255,.96);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:5px;box-shadow:0 1px 4px rgba(0,0,0,.15);z-index:70;">
+                    <div style="font-size:11px;font-weight:800;color:#6b7486;">Stato di accatastamento</div>
+                    <sc-for list="{{legend}}" as="g"><div style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;"><span style="width:18px;height:4px;border-radius:2px;background:{{g.c}};"></span>{{g.l}}</div></sc-for>
+                  </div>
+                </sc-if>
+                <div style="position:absolute;right:0;bottom:0;background:rgba(255,255,255,.85);padding:2px 6px;font-size:10px;color:#5b6475;z-index:70;">Cartografia CAI · osm2cai · confini ISTAT · © OpenStreetMap</div>
+              </div>
+            </div>
+          </div>
+
+          <div id="d-prov" style="display:flex;flex-direction:column;gap:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;">
+              <div style="font-size:18px;font-weight:800;">Per provincia</div>
+              <div style="font-size:13px;color:#6b7486;">Km nel territorio regionale per stato di accatastamento · clic su una provincia per i settori</div>
+            </div>
+            <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;overflow:hidden;">
+              <div style="display:grid;grid-template-columns:220px 110px 90px repeat(4,100px) 110px minmax(0,1fr) 24px;gap:12px;padding:10px 20px;background:#fafbfc;border-bottom:1px solid #eceef1;font-size:12px;font-weight:800;color:#6b7486;align-items:center;">
+                <span>Provincia</span><span>Settori</span><span style="text-align:right;">Sentieri</span>
+                <sc-for list="{{legend}}" as="g"><span style="display:flex;align-items:center;justify-content:flex-end;gap:6px;white-space:nowrap;"><span style="width:12px;height:4px;border-radius:2px;background:{{g.c}};"></span>{{g.s}}</span></sc-for>
+                <span style="text-align:right;">Totale km</span><span style="padding-left:16px;">Consolidati (3–4)</span><span></span>
+              </div>
+              <sc-for list="{{PROV.rows}}" as="p" hint-placeholder-count="6">
+                <div style="border-bottom:1px solid #f1f3f5;">
+                  <div onClick="{{p.toggle}}" style="display:grid;grid-template-columns:220px 110px 90px repeat(4,100px) 110px minmax(0,1fr) 24px;gap:12px;padding:12px 20px;align-items:center;cursor:pointer;background:{{p.bg}};box-shadow:{{p.sh}};">
+                    <div style="display:flex;align-items:center;gap:10px;"><span style="font-size:12px;font-weight:800;color:#8a93a3;width:22px;">{{p.sig}}</span><span style="font-size:14px;font-weight:800;">{{p.nome}}</span></div>
+                    <div style="display:flex;align-items:center;gap:6px;font-size:14px;font-weight:700;">{{p.nS}}<sc-if value="{{p.hasE}}"><span style="padding:1px 7px;border-radius:10px;background:#fbe7e5;color:#b42318;font-size:11px;font-weight:800;white-space:nowrap;">{{p.nEL}}</span></sc-if></div>
+                    <div style="text-align:right;font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;">{{p.n}}</div>
+                    <sc-for list="{{p.kms}}" as="k"><div style="text-align:right;font-size:14px;font-variant-numeric:tabular-nums;color:{{k.fc}};">{{k.v}}</div></sc-for>
+                    <div style="text-align:right;font-size:14px;font-weight:800;font-variant-numeric:tabular-nums;">{{p.tot}}</div>
+                    <div style="display:flex;align-items:center;gap:10px;padding-left:16px;">
+                      <div style="flex:1;display:flex;height:8px;border-radius:4px;overflow:hidden;background:#eef1f4;gap:1px;"><sc-for list="{{p.bar}}" as="b"><div style="width:{{b.w}}%;background:{{b.c}};"></div></sc-for></div>
+                      <span style="width:38px;text-align:right;font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;">{{p.pct}}</span>
+                    </div>
+                    <span style="font-size:14px;color:#17a180;font-weight:800;text-align:center;">{{p.chev}}</span>
+                  </div>
+                  <sc-if value="{{p.open}}">
+                    <div style="background:#fafbfc;padding:6px 20px 18px 52px;display:flex;flex-direction:column;">
+                      <div style="display:flex;justify-content:space-between;align-items:baseline;padding:10px 0 8px;gap:16px;">
+                        <div style="font-size:13px;font-weight:800;">Settori della provincia di {{p.nome}}</div>
+                        <sc-if value="{{p.hasE}}"><div style="font-size:12px;font-weight:700;color:#b42318;">{{p.emptyNote}}</div></sc-if>
+                      </div>
+                      <div style="display:grid;grid-template-columns:70px minmax(0,1fr) 90px 100px 260px 70px 220px;gap:12px;padding:8px 14px;font-size:12px;font-weight:800;color:#6b7486;border-bottom:1px solid #eceef1;">
+                        <span>Codice</span><span>Settore</span><span style="text-align:right;">Sentieri</span><span style="text-align:right;">Km</span><span>Km per stato</span><span style="text-align:right;">3–4</span><span></span>
+                      </div>
+                      <sc-for list="{{p.secs}}" as="s">
+                        <div style="display:grid;grid-template-columns:70px minmax(0,1fr) 90px 100px 260px 70px 220px;gap:12px;padding:9px 14px;align-items:center;border-bottom:1px solid #eef0f3;background:{{s.bg}};box-shadow:{{s.sh}};">
+                          <span style="font-size:12px;font-weight:800;color:#5b6475;">{{s.cod}}</span>
+                          <span style="font-size:14px;font-weight:700;">{{s.nome}}</span>
+                          <span style="text-align:right;font-size:14px;font-variant-numeric:tabular-nums;color:{{s.nc}};font-weight:700;">{{s.n}}</span>
+                          <span style="text-align:right;font-size:14px;font-variant-numeric:tabular-nums;color:{{s.nc}};font-weight:700;">{{s.km}}</span>
+                          <sc-if value="{{s.has}}"><div style="display:flex;height:8px;border-radius:4px;overflow:hidden;background:#eef1f4;gap:1px;"><sc-for list="{{s.bar}}" as="b"><div style="width:{{b.w}}%;background:{{b.c}};"></div></sc-for></div></sc-if>
+                          <sc-if value="{{s.empty}}"><span style="justify-self:start;padding:2px 10px;border-radius:12px;background:#fff;border:1px dashed #b42318;color:#b42318;font-size:12px;font-weight:800;">Nessun sentiero censito</span></sc-if>
+                          <span style="text-align:right;font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;color:{{s.nc}};">{{s.pct}}</span>
+                          <div style="display:flex;gap:16px;justify-content:flex-end;font-size:13px;font-weight:800;">
+                            <a href="#d-mappa" onClick="{{s.onMap}}">Sulla mappa</a>
+                            <sc-if value="{{s.has}}"><a href="#d-elenco" onClick="{{s.toList}}">Elenco sentieri →</a></sc-if>
+                          </div>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-for>
+              <div style="display:grid;grid-template-columns:220px 110px 90px repeat(4,100px) 110px minmax(0,1fr) 24px;gap:12px;padding:12px 20px;align-items:center;background:#fafbfc;font-size:14px;font-weight:800;font-variant-numeric:tabular-nums;">
+                <span style="padding-left:32px;">Totale regione</span><span>{{PROV.tS}}</span><span style="text-align:right;">{{PROV.tN}}</span>
+                <sc-for list="{{PROV.tK}}" as="k"><span style="text-align:right;">{{k}}</span></sc-for>
+                <span style="text-align:right;">{{PROV.tT}}</span><span style="padding-left:16px;font-size:13px;">{{SUM.consPct}}</span><span></span>
+              </div>
+            </div>
+            <div style="font-size:12px;color:#8a93a3;">Ogni sentiero è attribuito al settore in cui ricade per la maggior parte del tracciato.</div>
+          </div>
+
+          <div id="d-sez" style="display:flex;flex-direction:column;gap:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;">
+              <div style="font-size:18px;font-weight:800;">Per Sezione</div>
+              <div style="font-size:13px;color:#6b7486;">{{SEZ.sub}} · clic su una Sezione per il suo elenco sentieri</div>
+            </div>
+            <div style="display:flex;gap:14px;align-items:flex-start;padding:14px 18px;border-radius:10px;background:#e5eef8;color:#2f5f93;">
+              <svg width="20" height="20" viewBox="0 0 24 24" style="flex:none;margin-top:1px;fill:none;stroke:#2f5f93;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21v-1a6 6 0 0 1 12 0v1M16 3.5a4 4 0 0 1 0 7M22 21v-1a6 6 0 0 0-4-5.6"></path></svg>
+              <div style="display:flex;flex-direction:column;gap:3px;font-size:14px;line-height:1.5;">
+                <div style="font-weight:800;">Un sentiero condiviso conta per ciascuna Sezione che lo gestisce</div>
+                <div style="text-wrap:pretty;">Per questo la somma dei km delle Sezioni ({{SEZ.sum}} km) supera i Km gestiti dalle Sezioni del GR ({{K.gest}} km), dove ogni sentiero è contato una volta: la differenza di {{SEZ.diff}} km viene dai {{K.nShared}} sentieri condivisi.</div>
+              </div>
+            </div>
+            <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;overflow:hidden;">
+              <div style="display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid #eceef1;">
+                <input value="{{st.sezQ}}" onChange="{{setSezQ}}" placeholder="Cerca Sezione" style="width:260px;height:34px;padding:0 12px;border:1px solid #dfe3e8;border-radius:8px;font-size:13px;color:#3c4557;">
+                <div style="display:flex;gap:6px;">
+                  <sc-for list="{{SEZ.chips}}" as="c"><button onClick="{{c.click}}" style="height:32px;padding:0 12px;border-radius:16px;border:1px solid {{c.bd}};background:{{c.bg}};color:{{c.fg}};font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">{{c.l}} <span style="font-weight:600;color:#8a93a3;">{{c.n}}</span></button></sc-for>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) 90px 110px 110px repeat(4,96px) 18px;gap:12px;padding:10px 20px;background:#fafbfc;border-bottom:1px solid #eceef1;font-size:12px;font-weight:800;color:#6b7486;align-items:center;">
+                <button onClick="{{sortSez.n}}" style="border:none;background:none;padding:0;text-align:left;font:inherit;color:{{SEZ.h.n}};cursor:pointer;">Sezione {{SEZ.a.n}}</button>
+                <button onClick="{{sortSez.c}}" style="border:none;background:none;padding:0;text-align:right;font:inherit;color:{{SEZ.h.c}};cursor:pointer;">Sentieri {{SEZ.a.c}}</button>
+                <span style="text-align:right;">di cui condivisi</span>
+                <button onClick="{{sortSez.k}}" style="border:none;background:none;padding:0;text-align:right;font:inherit;color:{{SEZ.h.k}};cursor:pointer;">Km gestiti {{SEZ.a.k}}</button>
+                <sc-for list="{{legend}}" as="g"><span style="display:flex;align-items:center;justify-content:flex-end;gap:6px;white-space:nowrap;"><span style="width:12px;height:4px;border-radius:2px;background:{{g.c}};"></span>{{g.s}}</span></sc-for>
+                <span></span>
+              </div>
+              <div style="max-height:560px;overflow:auto;">
+                <sc-for list="{{SEZ.rows}}" as="z" hint-placeholder-count="8">
+                  <a href="Sentieri di Sezione.dc.html#elenco" style="display:grid;grid-template-columns:minmax(0,1fr) 90px 110px 110px repeat(4,96px) 18px;gap:12px;padding:11px 20px;align-items:center;border-bottom:1px solid #f1f3f5;color:#3c4557;background:{{z.bg}};" style-hover="background:#f3faf8;">
+                    <div style="display:flex;align-items:center;gap:10px;min-width:0;"><span style="font-size:14px;font-weight:800;color:{{z.nc}};">{{z.nome}}</span><sc-if value="{{z.empty}}"><span style="padding:2px 9px;border-radius:12px;background:#eef0f3;color:#5b6475;font-size:11px;font-weight:800;white-space:nowrap;">Nessun sentiero assegnato</span></sc-if></div>
+                    <span style="text-align:right;font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;color:{{z.vc}};">{{z.n}}</span>
+                    <span style="text-align:right;font-size:14px;font-variant-numeric:tabular-nums;color:{{z.vc}};">{{z.sh}}</span>
+                    <span style="text-align:right;font-size:14px;font-weight:800;font-variant-numeric:tabular-nums;color:{{z.vc}};">{{z.km}}</span>
+                    <sc-for list="{{z.kms}}" as="k"><span style="text-align:right;font-size:14px;font-variant-numeric:tabular-nums;color:{{k.fc}};">{{k.v}}</span></sc-for>
+                    <span style="font-size:20px;font-weight:700;color:#17a180;line-height:1;">›</span>
+                  </a>
+                </sc-for>
+                <sc-if value="{{SEZ.none}}"><div style="padding:40px 20px;text-align:center;font-size:14px;color:#6b7486;">{{SEZ.noneT}}</div></sc-if>
+              </div>
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) 90px 110px 110px repeat(4,96px) 18px;gap:12px;padding:12px 20px;align-items:center;background:#fafbfc;border-top:1px solid #eceef1;font-size:14px;font-weight:800;font-variant-numeric:tabular-nums;">
+                <span>Somma delle Sezioni <span style="font-size:12px;font-weight:700;color:#2f5f93;">· supera i km gestiti dal GR di {{SEZ.diff}} km</span></span>
+                <span style="text-align:right;">{{SEZ.sumN}}</span><span style="text-align:right;">{{SEZ.sumSh}}</span><span style="text-align:right;">{{SEZ.sum}}</span>
+                <sc-for list="{{SEZ.sumK}}" as="k"><span style="text-align:right;">{{k}}</span></sc-for><span></span>
+              </div>
+            </div>
+          </div>
+
+          <div id="d-elenco" style="display:flex;flex-direction:column;gap:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;">
+              <div style="font-size:18px;font-weight:800;">Elenco sentieri del GR</div>
+              <div style="font-size:13px;color:#6b7486;">Clic su un sentiero per aprire la scheda</div>
+            </div>
+            <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;overflow:hidden;">
+              <div style="display:flex;align-items:center;gap:8px;padding:14px 20px;border-bottom:1px solid #eceef1;flex-wrap:wrap;">
+                <input value="{{st.q}}" onChange="{{setQ}}" placeholder="Cerca per numero o nome" style="width:260px;height:34px;padding:0 12px;border:1px solid #dfe3e8;border-radius:8px;font-size:13px;color:#3c4557;">
+                <select value="{{st.fProv}}" onChange="{{setProv}}" style="height:34px;padding:0 8px;border:1px solid {{EL.bd.p}};border-radius:8px;background:#fff;color:#3c4557;font-size:13px;font-weight:700;max-width:180px;"><option value="">Tutte le province</option><sc-for list="{{opts.prov}}" as="o"><option value="{{o.k}}">{{o.l}}</option></sc-for></select>
+                <select value="{{st.fSet}}" onChange="{{setSet}}" style="height:34px;padding:0 8px;border:1px solid {{EL.bd.s}};border-radius:8px;background:#fff;color:#3c4557;font-size:13px;font-weight:700;max-width:230px;"><option value="">Tutti i settori</option><sc-for list="{{opts.set}}" as="o"><option value="{{o.k}}">{{o.l}}</option></sc-for></select>
+                <select value="{{st.fSez}}" onChange="{{setSez}}" style="height:34px;padding:0 8px;border:1px solid {{EL.bd.z}};border-radius:8px;background:#fff;color:#3c4557;font-size:13px;font-weight:700;max-width:220px;"><option value="">Tutte le Sezioni</option><option value="_none">Nessuna Sezione</option><sc-for list="{{opts.sez}}" as="o"><option value="{{o.k}}">{{o.l}}</option></sc-for></select>
+                <select value="{{st.fSda}}" onChange="{{setSda}}" style="height:34px;padding:0 8px;border:1px solid {{EL.bd.a}};border-radius:8px;background:#fff;color:#3c4557;font-size:13px;font-weight:700;"><option value="">Tutti gli stati</option><sc-for list="{{opts.sda}}" as="o"><option value="{{o.k}}">{{o.l}}</option></sc-for></select>
+                <select value="{{st.fPer}}" onChange="{{setPer}}" style="height:34px;padding:0 8px;border:1px solid {{EL.bd.r}};border-radius:8px;background:#fff;color:#3c4557;font-size:13px;font-weight:700;"><option value="">Tutte le percorribilità</option><sc-for list="{{opts.per}}" as="o"><option value="{{o.k}}">{{o.l}}</option></sc-for></select>
+                <sc-if value="{{EL.anyF}}"><button onClick="{{resetF}}" style="border:none;background:none;color:#17a180;font-weight:800;font-size:13px;cursor:pointer;">Azzera filtri</button></sc-if>
+              </div>
+              <div style="display:grid;grid-template-columns:62px minmax(0,1fr) 230px 210px 64px 128px 180px 18px;gap:12px;padding:10px 20px;background:#fafbfc;border-bottom:1px solid #eceef1;font-size:12px;font-weight:800;color:#6b7486;">
+                <button onClick="{{sortT.num}}" style="border:none;background:none;padding:0;text-align:left;font:inherit;color:{{EL.h.num}};cursor:pointer;">N° {{EL.a.num}}</button>
+                <span>Nome · da – a</span><span>Provincia · Settore</span><span>Sezioni</span>
+                <button onClick="{{sortT.km}}" style="border:none;background:none;padding:0;text-align:right;font:inherit;color:{{EL.h.km}};cursor:pointer;">Km {{EL.a.km}}</button>
+                <button onClick="{{sortT.sda}}" style="border:none;background:none;padding:0;text-align:left;font:inherit;color:{{EL.h.sda}};cursor:pointer;">Accatast. {{EL.a.sda}}</button>
+                <span>Percorribilità</span><span></span>
+              </div>
+              <sc-for list="{{EL.rows}}" as="r" hint-placeholder-count="10">
+                <a href="Sentieri di Sezione.dc.html#scheda" style="display:grid;grid-template-columns:62px minmax(0,1fr) 230px 210px 64px 128px 180px 18px;gap:12px;align-items:center;padding:11px 20px;border-bottom:1px solid #f1f3f5;color:#3c4557;background:#fff;" style-hover="background:#f3faf8;">
+                  <div><span style="display:inline-flex;align-items:center;justify-content:center;min-width:46px;height:28px;padding:0 6px;background:#fff;border:1px solid #e1e4e8;border-top:5px solid #d22630;border-bottom:5px solid #d22630;border-radius:3px;font-size:12px;font-weight:800;color:#1f2633;">{{r.num}}</span></div>
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0;">
+                    <div style="font-size:14px;font-weight:800;line-height:1.25;color:{{r.nc}};">{{r.nome}}</div>
+                    <div style="font-size:12px;color:#6b7486;">{{r.daa}}</div>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0;"><span style="font-size:13px;font-weight:700;">{{r.prov}}</span><span style="font-size:12px;color:#6b7486;">{{r.set}}</span></div>
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0;">
+                    <span style="font-size:13px;font-weight:700;color:{{r.sezC}};">{{r.sez}}</span>
+                    <sc-if value="{{r.shared}}"><span style="display:flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:#2f5f93;"><svg width="13" height="13" viewBox="0 0 24 24" style="fill:none;stroke:#2f5f93;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none;"><path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21v-1a6 6 0 0 1 12 0v1M16 3.5a4 4 0 0 1 0 7M22 21v-1a6 6 0 0 0-4-5.6"></path></svg>{{r.sharedL}}</span></sc-if>
+                  </div>
+                  <div style="text-align:right;font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;">{{r.km}}</div>
+                  <div><span style="display:inline-flex;align-items:center;gap:6px;padding:2px 9px 2px 7px;border-radius:12px;border:1px solid {{r.sc}};background:#fff;font-size:12px;font-weight:800;white-space:nowrap;"><span style="width:8px;height:8px;border-radius:50%;background:{{r.sc}};"></span>{{r.sl}}</span></div>
+                  <div><span style="padding:3px 10px;border-radius:12px;background:{{r.pb}};color:{{r.pf}};font-size:12px;font-weight:700;white-space:nowrap;">{{r.pl}}</span></div>
+                  <span style="font-size:20px;font-weight:700;color:#17a180;line-height:1;">›</span>
+                </a>
+              </sc-for>
+              <sc-if value="{{EL.noMatch}}">
+                <div style="padding:48px 20px;display:flex;flex-direction:column;align-items:center;gap:10px;font-size:14px;color:#6b7486;">Nessun sentiero corrisponde alla ricerca o ai filtri selezionati.<button onClick="{{resetF}}" style="border:none;background:none;color:#17a180;font-weight:700;font-size:13px;cursor:pointer;">Azzera filtri</button></div>
+              </sc-if>
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;padding:12px 20px;border-top:1px solid #eceef1;">
+                <span style="font-size:13px;font-weight:700;color:#6b7486;">{{EL.count}}</span>
+                <div style="display:flex;gap:4px;align-items:center;">
+                  <button onClick="{{EL.prev}}" style="height:32px;min-width:32px;padding:0 10px;border:1px solid #dfe3e8;border-radius:8px;background:#fff;color:{{EL.prevC}};font-size:13px;font-weight:800;cursor:pointer;">‹</button>
+                  <sc-for list="{{EL.pages}}" as="g"><button onClick="{{g.click}}" style="height:32px;min-width:32px;padding:0 8px;border:1px solid {{g.bd}};border-radius:8px;background:{{g.bg}};color:{{g.fg}};font-size:13px;font-weight:800;cursor:pointer;">{{g.l}}</button></sc-for>
+                  <button onClick="{{EL.next}}" style="height:32px;min-width:32px;padding:0 10px;border:1px solid #dfe3e8;border-radius:8px;background:#fff;color:{{EL.nextC}};font-size:13px;font-weight:800;cursor:pointer;">›</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div style="font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#8a93a3;">Mobile · 390</div>
+      <div data-screen-label="Sentieri del GR mobile" style="width:390px;background:#f4f6f8;border-radius:28px;box-shadow:0 1px 2px rgba(20,30,40,.06),0 8px 28px rgba(20,30,40,.08);overflow:hidden;">
+        <div style="padding:24px 16px 32px;display:flex;flex-direction:column;gap:24px;">
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <a href="Dashboard Gruppo Regionale CAI V2.dc.html" style="font-size:13px;font-weight:700;color:#17a180;">← Dashboard</a>
+            <div style="display:flex;flex-direction:column;gap:4px;">
+              <div style="font-size:22px;font-weight:800;letter-spacing:-0.01em;">Sentieri del GR</div>
+              <div style="font-size:14px;font-weight:600;color:#6b7486;">{{G.sub}}</div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:4px;">
+              <div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;"><span style="width:9px;height:9px;border-radius:2px;background:#3c4557;"></span>Km nel territorio regionale</div>
+              <div style="font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;">{{K.terr}} <span style="font-size:14px;color:#6b7486;">km</span></div>
+              <div style="font-size:12px;color:#6b7486;line-height:1.45;">Tutti i sentieri tagliati sul confine della regione, anche quelli senza una Sezione.</div>
+            </div>
+            <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:4px;">
+              <div style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;color:#0f7d63;"><span style="width:9px;height:9px;border-radius:2px;background:#17a180;"></span>Km gestiti dalle Sezioni del GR</div>
+              <div style="font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;">{{K.gest}} <span style="font-size:14px;color:#6b7486;">km</span></div>
+              <div style="font-size:12px;color:#6b7486;line-height:1.45;">Sentieri assegnati alle Sezioni, ognuno contato una volta anche se condiviso.</div>
+              <div style="display:flex;height:6px;border-radius:3px;overflow:hidden;background:#e4e7eb;margin-top:4px;"><div style="width:{{K.gestW}}%;background:#17a180;"></div></div>
+              <div style="font-size:11px;font-weight:700;color:#6b7486;">{{K.gestPct}} del territorio · {{K.noSezKm}} km senza Sezione</div>
+            </div>
+            <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:12px;">
+              <div><div style="font-size:12px;font-weight:800;">Sentieri presenti</div><div style="font-size:11px;color:#6b7486;">{{K.nNoSez}} senza Sezione · {{K.nShared}} condivisi</div></div>
+              <div style="font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;">{{K.n}}</div>
+            </div>
+            <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px;">
+              <div style="font-size:14px;font-weight:800;">Km per stato di accatastamento</div>
+              <div style="display:flex;height:22px;border-radius:5px;overflow:hidden;background:#eef1f4;gap:2px;"><sc-for list="{{SUM.bar}}" as="s"><div style="width:{{s.w}}%;background:{{s.c}};"></div></sc-for></div>
+              <div style="display:flex;margin-top:-4px;"><div style="width:{{SUM.consL}}%;"></div><div style="width:{{SUM.consW}}%;border:2px solid #1f2633;border-top:none;height:6px;"></div></div>
+              <div style="font-size:13px;font-weight:800;text-align:right;margin-top:-4px;">Consolidati (3–4): {{SUM.consPct}}</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;">
+                <sc-for list="{{SUM.leg}}" as="g"><div style="display:flex;flex-direction:column;"><div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#6b7486;"><span style="width:12px;height:4px;border-radius:2px;background:{{g.c}};"></span>{{g.l}}</div><div style="font-size:14px;font-weight:800;">{{g.km}} km <span style="font-size:11px;font-weight:600;color:#8a93a3;">{{g.pct}}</span></div></div></sc-for>
+              </div>
+              <div style="border-top:1px solid #eceef1;padding-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;">
+                <sc-for list="{{SUM.per}}" as="p"><div style="display:flex;flex-direction:column;"><div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#6b7486;"><span style="width:7px;height:7px;border-radius:50%;background:{{p.dot}};flex:none;"></span>{{p.l}}</div><div style="font-size:14px;font-weight:800;">{{p.km}} km</div></div></sc-for>
+              </div>
+            </div>
+          </div>
+
+          <div id="m-mappa" style="display:flex;flex-direction:column;gap:10px;">
+            <div style="font-size:16px;font-weight:800;">Mappa</div>
+            <div style="background:#fff;border:1px solid #eceef1;border-radius:10px;overflow:hidden;">
+              <div onPointerDown="{{MM.down}}" onPointerMove="{{MM.move}}" onPointerUp="{{MM.up}}" onDoubleClick="{{MM.dbl}}" style="position:relative;width:{{MM.w}}px;height:{{MM.h}}px;overflow:hidden;background:#f4f1e8;touch-action:none;user-select:none;">
+                <sc-for list="{{MM.tiles}}" as="t"><img src="{{t.src}}" alt="" draggable="false" style="position:absolute;left:{{t.l}}px;top:{{t.t}}px;width:256px;height:256px;max-width:none;pointer-events:none;"></sc-for>
+                <sc-for list="{{MM.secs}}" as="s"><svg width="{{MM.w}}" height="{{MM.h}}" style="position:absolute;left:0;top:0;pointer-events:none;z-index:4;"><path d="{{s.d}}" style="fill:{{s.f}};fill-opacity:{{s.fo}};stroke:{{s.st}};stroke-width:{{s.sw}};stroke-dasharray:{{s.da}};stroke-linejoin:round;"></path></svg></sc-for>
+                <sc-for list="{{MM.provs}}" as="p"><svg width="{{MM.w}}" height="{{MM.h}}" style="position:absolute;left:0;top:0;pointer-events:none;z-index:5;"><path d="{{p.d}}" style="fill:none;stroke:#1f2633;stroke-width:1.3;stroke-opacity:.75;stroke-linejoin:round;"></path></svg></sc-for>
+                <sc-for list="{{MM.lines}}" as="p"><svg width="{{MM.w}}" height="{{MM.h}}" style="position:absolute;left:0;top:0;pointer-events:none;z-index:6;"><path d="{{p.d}}" style="fill:none;stroke:#fff;stroke-width:{{p.cw}};stroke-linecap:round;stroke-linejoin:round;"></path><path d="{{p.d}}" style="fill:none;stroke:{{p.c}};stroke-width:{{p.w}};stroke-linecap:round;stroke-linejoin:round;"></path></svg></sc-for>
+                <sc-for list="{{MM.labels}}" as="l"><div style="position:absolute;left:{{l.x}}px;top:{{l.y}}px;transform:translate(-50%,-50%);font-size:10px;font-weight:800;color:#1f2633;text-shadow:0 0 3px #fff,0 0 3px #fff;pointer-events:none;z-index:7;">{{l.t}}</div></sc-for>
+                <sc-if value="{{MM.popS}}">
+                  <div onPointerDown="{{stop}}" style="position:absolute;left:{{MM.p.x}}px;top:{{MM.p.y}}px;transform:{{MM.p.tf}};width:260px;background:#fff;border-radius:10px;box-shadow:0 8px 24px rgba(20,30,40,.25);padding:10px 12px 12px;display:flex;flex-direction:column;gap:6px;z-index:60;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:11px;font-weight:800;color:#6b7486;">SETTORE {{MM.p.cod}} · {{MM.p.prov}}</span><button onClick="{{closePop}}" style="border:none;background:none;font-size:20px;line-height:1;color:#8a93a3;padding:0 0 0 12px;height:28px;">×</button></div>
+                    <div style="font-size:14px;font-weight:800;">{{MM.p.nome}}</div>
+                    <sc-if value="{{MM.p.empty}}"><div style="font-size:12px;font-weight:700;color:#b42318;background:#fbe7e5;border-radius:8px;padding:7px 9px;">Nessun sentiero censito in questo settore</div></sc-if>
+                    <sc-if value="{{MM.p.has}}">
+                      <div style="font-size:12px;font-weight:700;">{{MM.p.n}} · {{MM.p.km}} km · 3–4: {{MM.p.pct}}</div>
+                      <div style="display:flex;gap:16px;"><button onClick="{{MM.p.zoom}}" style="border:none;background:none;padding:0;height:32px;color:#17a180;font-size:13px;font-weight:800;">Zooma</button><a href="#m-elenco" onClick="{{MM.p.list}}" style="font-size:13px;font-weight:800;display:flex;align-items:center;">Elenco sentieri →</a></div>
+                    </sc-if>
+                  </div>
+                </sc-if>
+                <sc-if value="{{MM.popT}}">
+                  <div onPointerDown="{{stop}}" style="position:absolute;left:{{MM.p.x}}px;top:{{MM.p.y}}px;transform:{{MM.p.tf}};width:260px;background:#fff;border-radius:10px;box-shadow:0 8px 24px rgba(20,30,40,.25);padding:10px 12px 12px;display:flex;flex-direction:column;gap:6px;align-items:flex-start;z-index:60;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;width:100%;"><span style="display:inline-flex;align-items:center;justify-content:center;min-width:44px;height:26px;padding:0 6px;background:#fff;border:1px solid #e1e4e8;border-top:5px solid #d22630;border-bottom:5px solid #d22630;border-radius:3px;font-size:12px;font-weight:800;color:#1f2633;">{{MM.p.num}}</span><button onClick="{{closePop}}" style="border:none;background:none;font-size:20px;line-height:1;color:#8a93a3;padding:0 0 0 12px;height:28px;">×</button></div>
+                    <div style="font-size:14px;font-weight:800;line-height:1.25;color:{{MM.p.nc}};">{{MM.p.nome}}</div>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+                      <span style="display:inline-flex;align-items:center;gap:5px;padding:1px 8px 1px 6px;border-radius:12px;border:1px solid {{MM.p.sc}};font-size:11px;font-weight:800;"><span style="width:7px;height:7px;border-radius:50%;background:{{MM.p.sc}};"></span>{{MM.p.sl}}</span>
+                      <span style="padding:2px 9px;border-radius:12px;background:{{MM.p.pb}};color:{{MM.p.pf}};font-size:11px;font-weight:700;">{{MM.p.pl}}</span>
+                      <span style="font-size:12px;font-weight:700;">{{MM.p.km}} km</span>
+                    </div>
+                    <a href="Sentieri di Sezione.dc.html#scheda" style="font-size:14px;font-weight:800;min-height:28px;display:flex;align-items:center;">Apri scheda →</a>
+                  </div>
+                </sc-if>
+                <div onPointerDown="{{stop}}" style="position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:8px;z-index:70;">
+                  <div style="display:flex;flex-direction:column;background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.2);overflow:hidden;">
+                    <button onClick="{{MM.zin}}" style="width:40px;height:40px;border:none;background:#fff;font-size:18px;font-weight:700;color:#3c4557;border-bottom:1px solid #eceef1;">+</button>
+                    <button onClick="{{MM.zout}}" style="width:40px;height:40px;border:none;background:#fff;font-size:18px;font-weight:700;color:#3c4557;">−</button>
+                  </div>
+                  <button onClick="{{MM.reset}}" style="width:40px;height:40px;border:none;border-radius:8px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center;"><svg width="16" height="16" viewBox="0 0 24 24" style="fill:none;stroke:#3c4557;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"></path></svg></button>
+                </div>
+                <div style="position:absolute;right:0;bottom:0;background:rgba(255,255,255,.85);padding:2px 6px;font-size:9px;color:#5b6475;z-index:70;">Cartografia CAI · ISTAT · © OSM</div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border-top:1px solid #eceef1;">
+                <span style="font-size:12px;font-weight:700;color:#3c4557;">{{MM.modeS}}</span>
+                <button onClick="{{MM.modeA}}" style="flex:none;height:36px;padding:0 12px;border:1px solid #cfe9e1;border-radius:18px;background:#fff;color:#0f7d63;font-size:12px;font-weight:800;">{{MM.modeB}}</button>
+              </div>
+              <sc-if value="{{MM.low}}">
+                <div style="display:flex;flex-direction:column;gap:6px;padding:0 12px 12px;">
+                  <div style="display:flex;gap:2px;"><sc-for list="{{ramp}}" as="g"><div style="flex:1;display:flex;flex-direction:column;gap:3px;"><span style="height:10px;background:{{g.c}};opacity:.85;"></span><span style="font-size:10px;font-weight:700;">{{g.l}}</span></div></sc-for></div>
+                  <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;"><span style="width:18px;height:10px;background:#fbe7e5;border:1.5px dashed #b42318;"></span>Settore senza sentieri</div>
+                </div>
+              </sc-if>
+              <sc-if value="{{MM.high}}">
+                <div style="display:flex;flex-wrap:wrap;gap:6px 14px;padding:0 12px 12px;"><sc-for list="{{legend}}" as="g"><div style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;"><span style="width:14px;height:4px;border-radius:2px;background:{{g.c}};"></span>{{g.l}}</div></sc-for></div>
+              </sc-if>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;"><div style="font-size:16px;font-weight:800;">Per provincia</div><span style="font-size:12px;color:#8a93a3;">tocca per i settori</span></div>
+            <sc-for list="{{PROV.rows}}" as="p" hint-placeholder-count="4">
+              <div style="background:#fff;border:1px solid {{p.mbd}};border-radius:10px;overflow:hidden;">
+                <button onClick="{{p.toggle}}" style="width:100%;border:none;background:#fff;padding:12px 14px;display:flex;flex-direction:column;gap:8px;text-align:left;color:#3c4557;">
+                  <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;width:100%;">
+                    <span style="font-size:15px;font-weight:800;">{{p.nome}}</span>
+                    <span style="font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;">{{p.tot}} km <span style="color:#17a180;">{{p.chev}}</span></span>
+                  </div>
+                  <div style="display:flex;height:8px;border-radius:4px;overflow:hidden;background:#eef1f4;gap:1px;width:100%;"><sc-for list="{{p.bar}}" as="b"><div style="width:{{b.w}}%;background:{{b.c}};"></div></sc-for></div>
+                  <div style="display:flex;justify-content:space-between;gap:8px;width:100%;font-size:12px;color:#6b7486;">
+                    <span>{{p.n}} sentieri · {{p.nS}} settori<sc-if value="{{p.hasE}}"><span style="color:#b42318;font-weight:800;"> · {{p.nEL}}</span></sc-if></span>
+                    <span style="font-weight:800;color:#3c4557;">3–4: {{p.pct}}</span>
+                  </div>
+                </button>
+                <sc-if value="{{p.open}}">
+                  <div style="border-top:1px solid #eceef1;background:#fafbfc;">
+                    <sc-for list="{{p.secs}}" as="s">
+                      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #eef0f3;background:{{s.bg}};box-shadow:{{s.sh}};">
+                        <div style="display:flex;flex-direction:column;gap:2px;min-width:0;">
+                          <span style="font-size:13px;font-weight:800;"><span style="color:#8a93a3;">{{s.cod}}</span> {{s.nome}}</span>
+                          <sc-if value="{{s.has}}"><span style="font-size:12px;color:#6b7486;">{{s.n}} sentieri · {{s.km}} km · 3–4: {{s.pct}}</span></sc-if>
+                          <sc-if value="{{s.empty}}"><span style="font-size:12px;font-weight:800;color:#b42318;">Nessun sentiero censito</span></sc-if>
+                        </div>
+                        <a href="#m-mappa" onClick="{{s.onMapM}}" style="flex:none;font-size:12px;font-weight:800;min-height:32px;display:flex;align-items:center;">Mappa</a>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+
+          <div id="m-sez" style="display:flex;flex-direction:column;gap:10px;">
+            <div style="font-size:16px;font-weight:800;">Per Sezione</div>
+            <div style="padding:12px 14px;border-radius:10px;background:#e5eef8;color:#2f5f93;font-size:13px;line-height:1.45;display:flex;flex-direction:column;gap:3px;">
+              <span style="font-weight:800;">Un sentiero condiviso conta per ogni Sezione che lo gestisce</span>
+              <span>Somma delle Sezioni {{SEZ.sum}} km, superiore ai {{K.gest}} km gestiti dal GR.</span>
+            </div>
+            <input value="{{st.sezQ}}" onChange="{{setSezQ}}" placeholder="Cerca Sezione" style="height:44px;padding:0 12px;border:1px solid #dfe3e8;border-radius:8px;font-size:14px;color:#3c4557;background:#fff;">
+            <div style="display:flex;gap:4px;padding:4px;background:#fff;border:1px solid #dfe3e8;border-radius:10px;">
+              <sc-for list="{{SEZ.chips}}" as="c"><button onClick="{{c.click}}" style="flex:1;height:36px;border:none;border-radius:7px;background:{{c.sbg}};color:{{c.sfg}};font-size:12px;font-weight:800;">{{c.ls}}</button></sc-for>
+            </div>
+            <sc-for list="{{SEZ.mrows}}" as="z">
+              <a href="Sentieri di Sezione.dc.html#elenco" style="display:flex;gap:10px;align-items:center;padding:12px 14px;background:#fff;border:1px solid #eceef1;border-radius:10px;color:#3c4557;">
+                <div style="flex:1;display:flex;flex-direction:column;gap:5px;min-width:0;">
+                  <div style="display:flex;justify-content:space-between;gap:8px;"><span style="font-size:14px;font-weight:800;color:{{z.nc}};">{{z.nome}}</span><span style="font-size:14px;font-weight:800;font-variant-numeric:tabular-nums;color:{{z.vc}};">{{z.kmU}}</span></div>
+                  <sc-if value="{{z.has}}">
+                    <div style="display:flex;height:6px;border-radius:3px;overflow:hidden;background:#eef1f4;gap:1px;"><sc-for list="{{z.bar}}" as="b"><div style="width:{{b.w}}%;background:{{b.c}};"></div></sc-for></div>
+                    <span style="font-size:12px;color:#6b7486;">{{z.n}} sentieri · {{z.sh}} condivisi</span>
+                  </sc-if>
+                  <sc-if value="{{z.empty}}"><span style="font-size:12px;font-weight:700;color:#5b6475;">Nessun sentiero assegnato</span></sc-if>
+                </div>
+                <span style="font-size:22px;color:#17a180;font-weight:700;">›</span>
+              </a>
+            </sc-for>
+            <sc-if value="{{SEZ.none}}"><div style="padding:24px 12px;text-align:center;font-size:13px;color:#6b7486;background:#fff;border:1px solid #eceef1;border-radius:10px;">{{SEZ.noneT}}</div></sc-if>
+            <sc-if value="{{SEZ.more}}"><button onClick="{{sezAll}}" style="height:44px;border:1px solid #dfe3e8;border-radius:10px;background:#fff;color:#17a180;font-size:14px;font-weight:800;">{{SEZ.moreL}}</button></sc-if>
+          </div>
+
+          <div id="m-elenco" style="display:flex;flex-direction:column;gap:10px;">
+            <div style="font-size:16px;font-weight:800;">Elenco sentieri del GR</div>
+            <input value="{{st.q}}" onChange="{{setQ}}" placeholder="Cerca per numero o nome" style="height:44px;padding:0 12px;border:1px solid #dfe3e8;border-radius:8px;font-size:14px;color:#3c4557;background:#fff;">
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;">
+              <select value="{{st.fProv}}" onChange="{{setProv}}" style="width:100%;min-width:0;height:44px;padding:0 8px;border:1px solid {{EL.bd.p}};border-radius:8px;background:#fff;color:#3c4557;font-size:14px;font-weight:700;"><option value="">Provincia</option><sc-for list="{{opts.prov}}" as="o"><option value="{{o.k}}">{{o.l}}</option></sc-for></select>
+              <select value="{{st.fSet}}" onChange="{{setSet}}" style="width:100%;min-width:0;height:44px;padding:0 8px;border:1px solid {{EL.bd.s}};border-radius:8px;background:#fff;color:#3c4557;font-size:14px;font-weight:700;"><option value="">Settore</option><sc-for list="{{opts.set}}" as="o"><option value="{{o.k}}">{{o.l}}</option></sc-for></select>
+              <select value="{{st.fSez}}" onChange="{{setSez}}" style="width:100%;min-width:0;height:44px;padding:0 8px;border:1px solid {{EL.bd.z}};border-radius:8px;background:#fff;color:#3c4557;font-size:14px;font-weight:700;"><option value="">Sezione</option><option value="_none">Nessuna Sezione</option><sc-for list="{{opts.sez}}" as="o"><option value="{{o.k}}">{{o.l}}</option></sc-for></select>
+              <select value="{{st.fSda}}" onChange="{{setSda}}" style="width:100%;min-width:0;height:44px;padding:0 8px;border:1px solid {{EL.bd.a}};border-radius:8px;background:#fff;color:#3c4557;font-size:14px;font-weight:700;"><option value="">Stato</option><sc-for list="{{opts.sda}}" as="o"><option value="{{o.k}}">{{o.l}}</option></sc-for></select>
+              <select value="{{st.fPer}}" onChange="{{setPer}}" style="grid-column:1 / -1;width:100%;min-width:0;height:44px;padding:0 8px;border:1px solid {{EL.bd.r}};border-radius:8px;background:#fff;color:#3c4557;font-size:14px;font-weight:700;"><option value="">Percorribilità</option><sc-for list="{{opts.per}}" as="o"><option value="{{o.k}}">{{o.l}}</option></sc-for></select>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:12px;font-weight:700;color:#8a93a3;">{{EL.count}}</span><sc-if value="{{EL.anyF}}"><button onClick="{{resetF}}" style="border:none;background:none;color:#17a180;font-weight:800;font-size:13px;height:32px;">Azzera filtri</button></sc-if></div>
+            <sc-for list="{{ELM.rows}}" as="r" hint-placeholder-count="4">
+              <a href="Sentieri di Sezione.dc.html#scheda" style="display:flex;gap:12px;padding:12px;background:#fff;border:1px solid #eceef1;border-radius:10px;color:#3c4557;">
+                <span style="flex:none;display:inline-flex;align-items:center;justify-content:center;min-width:48px;height:30px;padding:0 6px;background:#fff;border:1px solid #e1e4e8;border-top:5px solid #d22630;border-bottom:5px solid #d22630;border-radius:3px;font-size:12px;font-weight:800;color:#1f2633;">{{r.num}}</span>
+                <div style="display:flex;flex-direction:column;gap:5px;min-width:0;flex:1;">
+                  <div style="display:flex;flex-direction:column;gap:1px;"><div style="font-size:15px;font-weight:800;line-height:1.25;color:{{r.nc}};">{{r.nome}}</div><div style="font-size:12px;color:#6b7486;">{{r.daa}}</div></div>
+                  <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                    <span style="display:inline-flex;align-items:center;gap:5px;padding:1px 8px 1px 6px;border-radius:12px;border:1px solid {{r.sc}};font-size:11px;font-weight:800;"><span style="width:7px;height:7px;border-radius:50%;background:{{r.sc}};"></span>{{r.sl}}</span>
+                    <span style="padding:2px 8px;border-radius:12px;background:{{r.pb}};color:{{r.pf}};font-size:11px;font-weight:700;">{{r.pl}}</span>
+                  </div>
+                  <div style="font-size:12px;color:#6b7486;">{{r.km}} km · {{r.setS}}</div>
+                  <div style="font-size:12px;font-weight:700;color:{{r.sezC}};">{{r.sezM}}</div>
+                </div>
+                <span style="align-self:center;font-size:22px;color:#17a180;font-weight:700;">›</span>
+              </a>
+            </sc-for>
+            <sc-if value="{{EL.noMatch}}"><div style="padding:32px 12px;text-align:center;font-size:14px;color:#6b7486;background:#fff;border:1px solid #eceef1;border-radius:10px;">Nessun sentiero corrisponde ai filtri.</div></sc-if>
+            <sc-if value="{{ELM.hasPages}}">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <button onClick="{{ELM.prev}}" style="height:44px;padding:0 16px;border:1px solid #dfe3e8;border-radius:10px;background:#fff;color:{{ELM.prevC}};font-size:14px;font-weight:800;">‹ Precedenti</button>
+                <span style="font-size:13px;font-weight:700;color:#6b7486;">{{ELM.pl}}</span>
+                <button onClick="{{ELM.next}}" style="height:44px;padding:0 16px;border:1px solid #dfe3e8;border-radius:10px;background:#fff;color:{{ELM.nextC}};font-size:14px;font-weight:800;">Successivi ›</button>
+              </div>
+            </sc-if>
+            <div style="font-size:11px;color:#8a93a3;">Fonte: osm2cai · aggiornato al 21/10/2026</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;regione&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;lombardia&quot;,&quot;molise&quot;],&quot;default&quot;:&quot;lombardia&quot;,&quot;tsType&quot;:&quot;'lombardia'|'molise'&quot;},&quot;righePerPagina&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;25&quot;,&quot;50&quot;],&quot;default&quot;:&quot;25&quot;,&quot;tsType&quot;:&quot;'25'|'50'&quot;}}">
+class Component extends DCLogic {
+  constructor(p) { super(p); this._vis = {}; this.state = this.base(this.props.regione ?? 'lombardia'); }
+  base(reg) { return { reg, q: '', fProv: '', fSet: '', fSez: '', fSda: '', fPer: '', page: 0, mPage: 0, sort: 'num', dir: 1, sezQ: '', sezF: 'all', sezSort: { k: 'km', d: -1 }, sezAll: false, openProv: reg === 'lombardia' ? 'BG' : 'CB', selSec: null, mv: {}, pop: null }; }
+  componentDidMount() { if (!window.GR_GEO) { this._t = setInterval(() => { if (window.GR_GEO) { clearInterval(this._t); this.forceUpdate(); } }, 120); } }
+  componentWillUnmount() { clearInterval(this._t); }
+
+  static SDA = { 1: { c: '#e8b500', l: '1 · Difficoltà', s: '1' }, 2: { c: '#f07c22', l: '2 · Ricognizione', s: '2' }, 3: { c: '#a24cc7', l: '3 · Pre-validato', s: '3' }, 4: { c: '#2563c9', l: '4 · Validato', s: '4' } };
+  static PER = { p: { l: 'Percorribile', bg: '#e3f4ee', fg: '#0f7d63', dot: '#17a180' }, d: { l: 'Percorribile con difficoltà', bg: '#fdf1dc', fg: '#8a5600', dot: '#e0a526' }, n: { l: 'Non percorribile', bg: '#fbe7e5', fg: '#b42318', dot: '#d64545' }, s: { l: 'Sconosciuto', bg: '#eef0f3', fg: '#5b6475', dot: '#a6aebb' } };
+  static RAMP = [{ c: '#e3ecfa', l: '0–20%' }, { c: '#b3cbf0', l: '20–40%' }, { c: '#7fa6e2', l: '40–60%' }, { c: '#4a81d3', l: '60–80%' }, { c: '#1f4fa8', l: '80–100%' }];
+  ramp(p) { return Component.RAMP[Math.min(4, Math.floor(p * 5))].c; }
+
+  kmF(x) { const [i, d] = x.toFixed(1).split('.'); return i.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + d; }
+  kmI(x) { return String(Math.round(x)).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+  nI(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+  pc(x) { return Math.round(x * 100) + '%'; }
+
+  db(reg) {
+    Component._c = Component._c || {};
+    if (Component._c[reg]) return Component._c[reg];
+    const G = window.GR_GEO[reg], L = reg === 'lombardia';
+    const RNG = seed => { let s = seed; return () => { s = (s * 16807) % 2147483647; return s / 2147483647; }; };
+    const r = RNG(L ? 4242 : 977), pick = a => a[Math.floor(r() * a.length)];
+    const pip = (la, lo, ring) => { let c = false; for (let i = 0, k = ring.length - 1; i < ring.length; k = i++) { const [yi, xi] = ring[i], [yk, xk] = ring[k]; if ((yi > la) != (yk > la) && lo < (xk - xi) * (la - yi) / (yk - yi) + xi) c = !c; } return c; };
+    const bbox = pts => pts.reduce((b, [la, lo]) => [Math.min(b[0], la), Math.min(b[1], lo), Math.max(b[2], la), Math.max(b[3], lo)], [90, 180, -90, -180]);
+    const secs = G.secs.map(s => ({ ...s, bb: bbox(s.ring) }));
+    let empties;
+    if (L) empties = ['CR01', 'LO01', 'MN02', 'MI01', 'BG20'];
+    else { const cb = secs.filter(s => s.prov === 'CB'); const e = cb.reduce((a, b) => b.c[1] > a.c[1] ? b : a); const cm = cb.find(s => s.nome === 'Costa molisana'); if (cm && cm !== e) { cm.nome = e.nome; e.nome = 'Costa molisana'; } empties = [e.cod]; }
+    secs.forEach(s => { s.empty = empties.includes(s.cod); const [la, lo] = s.c;
+      s.w = s.empty ? 0 : L ? (la >= 46.0 ? 1 : la >= 45.72 ? .7 : (s.prov === 'PV' && la < 45.0) ? .9 : .05) : (s.prov === 'IS' ? 1 : lo < 14.75 ? .9 : .35);
+      s.w *= .6 + .8 * r(); });
+    const target = L ? 3846 : 268, sw = secs.reduce((a, s) => a + s.w, 0);
+    const cP = {}; G.provs.forEach(p => cP[p.sig] = .3 + r() * .5);
+    const NM = L ? ['delle Orobie','dei Fiori','delle Creste','dell\'Alpe','dei Laghi','della Grande Guerra','delle Marmotte','dei Camosci','delle Cascate','delle Baite','dei Larici','dei Pastori','del Crinale','delle Sorgenti','dei Carbonai','delle Malghe','dei Mulini','dei Castagni','delle Trincee','del Viandante']
+      : ['dei Tratturi','delle Faggete','dei Mulini','del Crinale','delle Sorgenti','dei Pastori','delle Morge','dei Castagni','del Volturno','delle Mainarde'];
+    const PL = L ? ['Rifugio Curò','Passo San Marco','Rifugio Brioschi','Piani di Bobbio','Rifugio Laghi Gemelli','Passo del Vivione','Rifugio Bignami','Lago Palù','Passo dell\'Aprica','Rifugio Omio','Bocchetta di Trona','Alpe Giumello','Rifugio Rosalba','Pian delle Betulle','Passo Gavia','Rifugio Garibaldi','Malga Lunga','Colle di Zambla','Rifugio Calvi','Passo della Presolana','Rifugio Menaggio','Sasso Gordona','Forcella di Bares','Monte San Primo','Rifugio Elisa','Brallo di Pregola','Pian del Poggio','Forte di Orino','Alpe di Mera','Rifugio Tagliaferri','Passo Maniva','Croce di Marone','Rifugio Ponti','Alpe Ventina']
+      : ['Capracotta','Monte Campo','Campitello Matese','Monte Miletto','La Gallinola','Pescopennataro','Rocchetta a Volturno','Monte Mare','Castel San Vincenzo','Pizzone','Frosolone','Morgia Quadra','Agnone','Guardiaregia','Sepino','Monte Mutria','Roccamandolfi','Pescolanciano'];
+    const walk = (la, lo, km) => { const st = .3, n = Math.max(3, Math.round(km / st)); let h = r() * 6.28; const pts = [[la, lo]];
+      for (let i = 0; i < n; i++) { h += (r() - .5) * .9; la += st / 111 * Math.cos(h); lo += st / (111 * Math.cos(la * Math.PI / 180)) * Math.sin(h); pts.push([+la.toFixed(5), +lo.toFixed(5)]); } return pts; };
+    const trails = [], cnt = {}; let pi = 0; const pBase = {}; G.provs.forEach(p => pBase[p.sig] = 100 * (1 + (pi++ % 8)));
+    secs.forEach(s => {
+      const n = s.empty ? 0 : Math.max(1, Math.round(target * s.w / sw)); s.c2 = Math.max(.05, Math.min(.95, cP[s.prov] + (r() - .5) * .45));
+      for (let i = 0; i < n; i++) {
+        let la = s.c[0], lo = s.c[1];
+        for (let g = 0; g < 30; g++) { const a = s.bb[0] + r() * (s.bb[2] - s.bb[0]), b = s.bb[1] + r() * (s.bb[3] - s.bb[1]); if (pip(a, b, s.ring)) { la = a; lo = b; break; } }
+        const km = Math.round((.6 + r() * r() * 8.5) * 10) / 10;
+        const y = r(), c = s.c2, sda = y < c * .6 ? 4 : y < c ? 3 : y < c + (1 - c) * .55 ? 2 : 1;
+        const w = r(), per = w < .72 ? 'p' : w < .82 ? 'd' : w < .88 ? 'n' : 's';
+        cnt[s.prov] = (cnt[s.prov] || 0) + 1 + (r() < .3 ? 1 : 0);
+        const pts = walk(la, lo, km);
+        trails.push({ id: s.cod + '-' + i, num: String(pBase[s.prov] + cnt[s.prov]) + (r() < .1 ? pick(['A', 'B', 'C']) : ''), nome: r() < .7 ? 'Sentiero ' + pick(NM) : null, da: pick(PL), a: r() < .92 ? pick(PL) : null, km, sda, per, prov: s.prov, set: s.cod, pts, bb: bbox(pts), sez: [] });
+      }
+    });
+    // Sezioni
+    let sez;
+    const mtn = secs.filter(s => s.w > .5 * (L ? 1 : .6));
+    if (L) {
+      const W = ['Milano','Bergamo','Brescia','Valtellinese','SEM Milano','Lecco','Como','Varese','Sondrio','Chiavenna','Morbegno','Bormio','Valfurva','Livigno','Edolo','Lovere','Clusone','Leffe','Albino','Alzano Lombardo','Valle Imagna','Zogno','Piazza Brembana','Darfo Boario','Breno','Salò','Gardone Val Trompia','Lumezzane','Monza','Desio','Seregno','Cantù','Erba','Gallarate','Busto Arsizio','Legnano','Mandello del Lario','Valmadrera','Calolziocorte','Ponte San Pietro','Treviglio','Vimercate','Carate Brianza','Giussano','Lissone','Seveso','Saronno','Luino','Castellanza','Somma Lombardo','Sesto San Giovanni','Bollate','Rho','Vigevano','Pavia','Cremona','Mantova','Lodi','Crema','Corsico','Abbiategrasso','Inverigo','Romano di Lombardia','Melzo','Cinisello Balsamo','Tradate','Barlassina','Besana in Brianza','Cassano d\'Adda','Cernusco sul Naviglio','Codogno','Garbagnate','Gorgonzola','Lainate','Lentate sul Seveso','Magenta','Meda','Merate','Paderno Dugnano','Parabiago','Pioltello','San Donato Milanese','Sovico','Usmate Velate','Villasanta','Viadana','Voghera','Mortara'];
+      const NO = ['Arcore','Bovisio Masciago','Cusano Milanino','Novate Milanese','Senago','Uboldo','Varedo','Casalmaggiore'];
+      const PM = { SO: ['Sondrio','Valtellinese','Chiavenna','Morbegno','Bormio','Valfurva','Livigno'], BG: ['Bergamo','Lovere','Clusone','Leffe','Albino','Alzano Lombardo','Valle Imagna','Zogno','Piazza Brembana','Ponte San Pietro','Treviglio','Romano di Lombardia'], BS: ['Brescia','Edolo','Darfo Boario','Breno','Salò','Gardone Val Trompia','Lumezzane'], LC: ['Lecco','Mandello del Lario','Valmadrera','Calolziocorte','Merate'], CO: ['Como','Cantù','Erba','Inverigo'], VA: ['Varese','Luino','Gallarate','Busto Arsizio','Castellanza','Somma Lombardo','Tradate','Saronno'], PV: ['Pavia','Vigevano','Voghera','Mortara'] };
+      const pOf = n => Object.keys(PM).find(k => PM[k].includes(n));
+      const big = ['Milano','Bergamo','Brescia','SEM Milano','Valtellinese','Lecco'];
+      sez = [...W.map(n => { const pv = pOf(n), pool = mtn.filter(s => !pv || s.prov === pv); const k = big.includes(n) ? 3 : 1;
+        return { nome: 'CAI ' + n, ctr: Array.from({ length: k }, () => pick(pool.length ? pool : mtn).c) }; }), ...NO.map(n => ({ nome: 'CAI ' + n, ctr: [] }))];
+    } else {
+      const is = mtn.filter(s => s.prov === 'IS'), cb = mtn.filter(s => s.prov === 'CB');
+      sez = [{ nome: 'CAI Campobasso', ctr: [pick(cb).c, pick(cb).c, pick(cb).c, pick(is).c] }, { nome: 'CAI Isernia', ctr: [pick(is).c, pick(is).c, pick(is).c] }];
+    }
+    const C = []; sez.forEach((z, i) => z.ctr.forEach(c => C.push([i, c])));
+    trails.forEach(t => {
+      if (r() < (L ? .1 : .22)) return;
+      const [la, lo] = t.pts[0], k = Math.cos(la * Math.PI / 180);
+      const ds = C.map(([i, c]) => [i, Math.hypot(c[0] - la, (c[1] - lo) * k) * (.7 + .6 * r())]).sort((a, b) => a[1] - b[1]);
+      const ids = []; ds.forEach(([i]) => { if (!ids.includes(i)) ids.push(i); });
+      t.sez = [sez[ids[0]].nome];
+      if (ids[1] != null && r() < .09) t.sez.push(sez[ids[1]].nome);
+      if (ids[2] != null && r() < .015) t.sez.push(sez[ids[2]].nome);
+    });
+    // aggregates
+    const z4 = () => [0, 0, 0, 0];
+    const A = { tot: 0, gest: 0, kmS: z4(), per: { p: [0, 0], d: [0, 0], n: [0, 0], s: [0, 0] }, nNo: 0, kmNo: 0, nSh: 0, sec: {}, prov: {}, sez: {} };
+    secs.forEach(s => A.sec[s.cod] = { n: 0, km: 0, kmS: z4() });
+    G.provs.forEach(p => A.prov[p.sig] = { n: 0, km: 0, kmS: z4() });
+    sez.forEach(z => A.sez[z.nome] = { n: 0, km: 0, kmS: z4(), sh: 0 });
+    trails.forEach(t => { A.tot += t.km; A.kmS[t.sda - 1] += t.km; A.per[t.per][0] += t.km; A.per[t.per][1]++;
+      if (t.sez.length) A.gest += t.km; else { A.nNo++; A.kmNo += t.km; } if (t.sez.length > 1) A.nSh++;
+      [A.sec[t.set], A.prov[t.prov]].forEach(o => { o.n++; o.km += t.km; o.kmS[t.sda - 1] += t.km; });
+      t.sez.forEach(z => { const o = A.sez[z]; o.n++; o.km += t.km; o.kmS[t.sda - 1] += t.km; if (t.sez.length > 1) o.sh++; }); });
+    Object.values(A.sec).forEach(o => o.pct = o.km ? (o.kmS[2] + o.kmS[3]) / o.km : 0);
+    const byNum = (a, b) => a.num.localeCompare(b.num, 'it', { numeric: true });
+    trails.sort(byNum);
+    const info = L ? { nome: 'GR Lombardia', cod: '9300' } : { nome: 'GR Molise', cod: '9720' };
+    Component._c[reg] = { G, info, secs, provs: [...G.provs].sort((a, b) => a.nome.localeCompare(b.nome, 'it')), trails, sez, A, pip, byNum };
+    return Component._c[reg];
+  }
+
+  P(la, lo, z) { const n = 256 * 2 ** z, r = la * Math.PI / 180; return [(lo + 180) / 360 * n, (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * n]; }
+  U(x, y, z) { const n = 256 * 2 ** z; return [Math.atan(Math.sinh(Math.PI * (1 - 2 * y / n))) * 180 / Math.PI, x / n * 360 - 180]; }
+  fit(bb, W, H, pad, zmax, zmin = 6) {
+    let z = zmax; for (; z > zmin; z--) { const a = this.P(bb[2], bb[1], z), b = this.P(bb[0], bb[3], z); if (b[0] - a[0] <= W - pad && b[1] - a[1] <= H - pad) break; }
+    const a = this.P(bb[2], bb[1], z), b = this.P(bb[0], bb[3], z), c = this.U((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, z); return { z, lat: c[0], lon: c[1] };
+  }
+  view(key, W, H) { return this.state.mv[key] || this.fit(this.db(this.state.reg).G.bbox, W, H, 24, 12); }
+  setView(key, v) { this.setState(s => ({ mv: { ...s.mv, [key]: v } })); }
+  zoomSec(key, W, H, cod) {
+    const D = this.db(this.state.reg), s = D.secs.find(x => x.cod === cod), v = this.fit(s.bb, W, H, 40, 14);
+    this.setState(st => ({ mv: { ...st.mv, [key]: s.empty ? v : { ...v, z: Math.max(11, v.z) } }, selSec: cod, pop: { key, t: 's', id: cod, lat: s.c[0], lon: s.c[1] } }));
+  }
+  hit(key, W, H, x, y) {
+    const D = this.db(this.state.reg), v = this.view(key, W, H), [cx, cy] = this.P(v.lat, v.lon, v.z), ox = cx - W / 2, oy = cy - H / 2;
+    const [la, lo] = this.U(ox + x, oy + y, v.z);
+    if (v.z >= 11) {
+      let best = null, bd = 10;
+      (this._vis[key] || []).forEach(o => { const xy = o.xy; for (let i = 1; i < xy.length; i++) { const [x1, y1] = xy[i - 1], [x2, y2] = xy[i]; const dx = x2 - x1, dy = y2 - y1, L2 = dx * dx + dy * dy || 1; let t = ((x - x1) * dx + (y - y1) * dy) / L2; t = Math.max(0, Math.min(1, t)); const d = Math.hypot(x - x1 - t * dx, y - y1 - t * dy); if (d < bd) { bd = d; best = o.id; } } });
+      if (best) { this.setState({ pop: { key, t: 't', id: best, lat: la, lon: lo } }); return; }
+    }
+    const s = D.secs.find(q => la >= q.bb[0] && la <= q.bb[2] && lo >= q.bb[1] && lo <= q.bb[3] && D.pip(la, lo, q.ring));
+    this.setState(s ? { pop: { key, t: 's', id: s.cod, lat: v.z >= 11 ? la : s.c[0], lon: v.z >= 11 ? lo : s.c[1] }, selSec: s.cod } : { pop: null, selSec: null });
+  }
+
+  mapView(key, W, H, D, mob) {
+    const st = this.state, v = this.view(key, W, H), z = v.z, [cx, cy] = this.P(v.lat, v.lon, z), ox = cx - W / 2, oy = cy - H / 2;
+    const tiles = [];
+    for (let tx = Math.floor(ox / 256); tx <= Math.floor((ox + W - 1) / 256); tx++) for (let ty = Math.floor(oy / 256); ty <= Math.floor((oy + H - 1) / 256); ty++)
+      tiles.push({ src: `https://r3-it.storage.cloud.it/tiles/${z}/${tx}/${ty}.png`, l: Math.round(tx * 256 - ox), t: Math.round(ty * 256 - oy) });
+    const [la1, lo0] = this.U(ox, oy, z), [la0, lo1] = this.U(ox + W, oy + H, z);
+    const inV = b => b[2] >= la0 && b[0] <= la1 && b[3] >= lo0 && b[1] <= lo1;
+    const pr = (la, lo) => { const p = this.P(la, lo, z); return [p[0] - ox, p[1] - oy]; };
+    const pd = (ring, close) => 'M' + ring.map(([la, lo]) => { const p = pr(la, lo); return p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join('L') + (close ? 'Z' : '');
+    const low = z < 11, selS = st.selSec;
+    const secs = D.secs.filter(s => inV(s.bb)).map(s => { const on = s.cod === selS, a = D.A.sec[s.cod];
+      return { on, d: pd(s.ring, true), f: s.empty ? '#fbe7e5' : this.ramp(a.pct), fo: low ? (s.empty ? .85 : .74) : (s.empty ? .4 : .06), st: on ? '#1f2633' : s.empty ? '#b42318' : low ? '#ffffff' : '#5b6475', sw: on ? 3 : s.empty ? 1.5 : low ? .8 : 1, da: s.empty ? '5 3' : 'none' }; })
+      .sort((a, b) => a.on - b.on);
+    const provs = D.provs.map(p => ({ d: pd(p.ring, true) }));
+    let lines = [];
+    const popT = st.pop && st.pop.key === key && st.pop.t === 't' ? st.pop.id : null;
+    if (!low) {
+      const vis = D.trails.filter(t => inV(t.bb)).map(t => ({ id: t.id, sda: t.sda, xy: t.pts.map(p => pr(p[0], p[1])) }));
+      this._vis[key] = vis;
+      const w = z >= 13 ? 3.2 : z >= 12 ? 2.6 : 2;
+      const ds = { 1: '', 2: '', 3: '', 4: '' };
+      vis.forEach(o => { ds[o.sda] += 'M' + o.xy.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('L'); });
+      lines = [1, 2, 3, 4].filter(k => ds[k]).map(k => ({ d: ds[k], c: Component.SDA[k].c, w, cw: w + 2 }));
+      const sel = vis.find(o => o.id === popT);
+      if (sel) lines.push({ d: 'M' + sel.xy.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('L'), c: Component.SDA[sel.sda].c, w: w + 3, cw: w + 9 });
+    } else this._vis[key] = [];
+    const labels = (z >= 9 || !low) ? D.secs.filter(s => { const p = pr(s.c[0], s.c[1]); return p[0] > 20 && p[0] < W - 20 && p[1] > 10 && p[1] < H - 10; }).map(s => { const p = pr(s.c[0], s.c[1]); return { x: Math.round(p[0]), y: Math.round(p[1]), t: s.cod }; }) : [];
+    let p = {}, popS = false, popTT = false;
+    if (st.pop && st.pop.key === key) {
+      const [x, y] = pr(st.pop.lat, st.pop.lon), pw = mob ? 260 : 280;
+      const base = { x: Math.round(Math.max(8, Math.min(W - pw - 8, x - pw / 2))), y: Math.round(y > H * .55 ? y - 12 : y + 14), tf: y > H * .55 ? 'translateY(-100%)' : 'none' };
+      if (st.pop.t === 's') { const s = D.secs.find(q => q.cod === st.pop.id), a = D.A.sec[s.cod], pv = D.provs.find(q => q.sig === s.prov);
+        popS = true; p = { ...base, cod: s.cod, prov: pv.nome.toUpperCase(), nome: s.nome, empty: s.empty, has: !s.empty, n: a.n + (a.n === 1 ? ' sentiero' : ' sentieri'), km: this.kmF(a.km), pct: this.pc(a.pct),
+          bar: a.kmS.map((k, i) => ({ w: (a.km ? k / a.km * 100 : 0).toFixed(2), c: Component.SDA[i + 1].c })),
+          zoom: () => this.zoomSec(key, W, H, s.cod), list: () => this.setF({ fProv: s.prov, fSet: s.cod }) }; }
+      else { const t = D.trails.find(q => q.id === st.pop.id), S = Component.SDA[t.sda], R = Component.PER[t.per], sc = D.secs.find(q => q.cod === t.set);
+        popTT = true; p = { ...base, num: t.num, nome: t.nome || '—', nc: t.nome ? '#3c4557' : '#9aa1ad', daa: `${t.da || '—'} → ${t.a || '—'}`, sc: S.c, sl: S.l, pb: R.bg, pf: R.fg, pl: R.l, km: this.kmF(t.km), set: `${t.set} ${sc.nome}`, sez: t.sez.length ? t.sez.join(', ') : 'Nessuna Sezione', sezC: t.sez.length ? '#3c4557' : '#9aa1ad' }; }
+    }
+    const nVis = (this._vis[key] || []).length;
+    const toHigh = () => this.setState(s => ({ mv: { ...s.mv, [key]: { ...v, z: 11 } }, pop: null }));
+    return {
+      w: W, h: H, tiles, secs, provs, lines, labels, low, high: !low, popS, popT: popTT, p,
+      modeT: low ? 'Settori colorati per km consolidati · i sentieri compaiono da zoom 11' : `${this.nI(nVis)} sentieri in vista, colorati per stato di accatastamento`,
+      modeS: low ? 'Vista per settori · zooma per i sentieri' : `${this.nI(nVis)} sentieri in vista`,
+      modeB: low ? 'Mostra i sentieri' : 'Vista per settori',
+      modeA: low ? toHigh : () => this.setState(s => { const m = { ...s.mv }; delete m[key]; return { mv: m, pop: null }; }),
+      zin: () => this.setView(key, { ...v, z: Math.min(16, z + 1) }), zout: () => this.setView(key, { ...v, z: Math.max(6, z - 1) }),
+      reset: () => this.setState(s => { const m = { ...s.mv }; delete m[key]; return { mv: m, pop: null, selSec: null }; }),
+      down: e => { if (e.button) return; this._drag = { key, x: e.clientX, y: e.clientY, v, moved: false, rect: e.currentTarget.getBoundingClientRect() }; try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {} },
+      move: e => { const d = this._drag; if (!d || d.key !== key) return; const dx = e.clientX - d.x, dy = e.clientY - d.y; if (!d.moved && Math.hypot(dx, dy) < 4) return; d.moved = true;
+        const sc = d.rect.width / W, c = this.P(d.v.lat, d.v.lon, d.v.z), n = this.U(c[0] - dx / sc, c[1] - dy / sc, d.v.z); this.setView(key, { z: d.v.z, lat: n[0], lon: n[1] }); },
+      up: e => { const d = this._drag; this._drag = null; if (!d || d.key !== key || d.moved) return; const sc = d.rect.width / W; this.hit(key, W, H, (e.clientX - d.rect.left) / sc, (e.clientY - d.rect.top) / sc); },
+      dbl: e => { const rc = e.currentTarget.getBoundingClientRect(), sc = rc.width / W; const n = this.U(ox + (e.clientX - rc.left) / sc, oy + (e.clientY - rc.top) / sc, z); this.setState(s => ({ mv: { ...s.mv, [key]: { z: Math.min(16, z + 1), lat: n[0], lon: n[1] } }, pop: null })); }
+    };
+  }
+
+  setF(o) { this.setState({ ...o, page: 0, mPage: 0 }); }
+
+  renderVals() {
+    const st = this.state, SDA = Component.SDA, PER = Component.PER;
+    const btn = (l, on, click) => ({ l, click, bg: on ? '#17a180' : 'transparent', fg: on ? '#fff' : '#3c4557' });
+    const go = k => () => this.setState(this.base(k));
+    const common = {
+      st, legend: [1, 2, 3, 4].map(k => SDA[k]), ramp: Component.RAMP,
+      scenBtns: [btn('Regione grande · Lombardia', st.reg === 'lombardia', go('lombardia')), btn('Regione piccola · Molise', st.reg === 'molise', go('molise'))],
+      stop: e => e.stopPropagation(),
+      closePop: e => { e && e.stopPropagation && e.stopPropagation(); this.setState({ pop: null, selSec: null }); }
+    };
+    if (!window.GR_GEO) return { ...common, ready: false };
+    const D = this.db(st.reg), A = D.A;
+    const emptySec = D.secs.find(s => s.empty);
+    const K = { terr: this.kmI(A.tot), gest: this.kmI(A.gest), gestW: (A.gest / A.tot * 100).toFixed(1), gestPct: this.pc(A.gest / A.tot), noSezKm: this.kmI(A.kmNo), n: this.nI(D.trails.length), nNoSez: this.nI(A.nNo), nShared: this.nI(A.nSh), nProv: D.provs.length, nSet: D.secs.length };
+    const w = A.kmS.map(k => k / A.tot * 100);
+    const SUM = {
+      bar: A.kmS.map((k, i) => ({ c: SDA[i + 1].c, w: w[i].toFixed(2), fg: i === 0 ? '#3c3000' : '#fff', lab: w[i] > 9 ? this.kmI(k) + ' km' : '', t: `${SDA[i + 1].l} · ${this.kmI(k)} km` })),
+      leg: A.kmS.map((k, i) => { const n = D.trails.filter(t => t.sda === i + 1).length; return { c: SDA[i + 1].c, l: SDA[i + 1].l, km: this.kmI(k), pct: this.pc(k / A.tot), n: this.nI(n) + ' sentieri' }; }),
+      per: ['p', 'd', 'n', 's'].map(k => ({ l: PER[k].l, dot: PER[k].dot, km: this.kmI(A.per[k][0]), n: this.nI(A.per[k][1]) + ' sentieri' })),
+      consL: (w[0] + w[1]).toFixed(2), consW: (w[2] + w[3]).toFixed(2), consPct: this.pc((A.kmS[2] + A.kmS[3]) / A.tot), consKm: this.kmI(A.kmS[2] + A.kmS[3])
+    };
+    const kmCells = (arr) => arr.map(k => ({ v: k > 0 ? this.kmI(k) : '—', fc: k > 0 ? '#3c4557' : '#b4bbc6' }));
+    const barOf = a => a.kmS.map((k, i) => ({ w: (a.km ? k / a.km * 100 : 0).toFixed(2), c: SDA[i + 1].c }));
+    const PROV = {
+      rows: D.provs.map(p => { const a = A.prov[p.sig], ss = D.secs.filter(s => s.prov === p.sig).sort((x, y) => x.cod.localeCompare(y.cod)), nE = ss.filter(s => s.empty).length, open = st.openProv === p.sig;
+        return { sig: p.sig, nome: p.nome, n: this.nI(a.n), nS: ss.length, hasE: nE > 0, nEL: nE === 1 ? '1 senza sentieri' : nE + ' senza sentieri', emptyNote: nE === 1 ? '1 settore senza sentieri censiti' : nE + ' settori senza sentieri censiti',
+          kms: kmCells(a.kmS), tot: this.kmI(a.km), pct: a.km ? this.pc((a.kmS[2] + a.kmS[3]) / a.km) : '—', bar: barOf(a), open, chev: open ? '▾' : '▸',
+          bg: open ? '#e6f5f0' : '#fff', sh: open ? 'inset 3px 0 0 #17a180' : 'none', mbd: open ? '#17a180' : '#eceef1',
+          toggle: () => this.setState(s => ({ openProv: s.openProv === p.sig ? null : p.sig })),
+          secs: open ? ss.map(s => { const b = A.sec[s.cod], on = st.selSec === s.cod;
+            return { cod: s.cod, nome: s.nome, empty: s.empty, has: !s.empty, n: s.empty ? '0' : this.nI(b.n), km: s.empty ? '0' : this.kmF(b.km), nc: s.empty ? '#b42318' : '#3c4557', pct: s.empty ? '—' : this.pc(b.pct), bar: barOf(b),
+              bg: s.empty ? '#fdf3f2' : on ? '#e6f5f0' : 'transparent', sh: s.empty ? 'inset 3px 0 0 #b42318' : on ? 'inset 3px 0 0 #17a180' : 'none',
+              onMap: () => this.zoomSec('d', 1358, 600, s.cod), onMapM: () => this.zoomSec('m', 356, 340, s.cod), toList: () => this.setF({ fProv: s.prov, fSet: s.cod }) }; }) : [] }; }),
+      tS: D.secs.length, tN: this.nI(D.trails.length), tK: A.kmS.map(k => this.kmI(k)), tT: this.kmI(A.tot)
+    };
+    // Sezioni
+    const allS = D.sez.map(z => ({ nome: z.nome, ...A.sez[z.nome] }));
+    const nWith = allS.filter(z => z.n > 0).length, nNo = allS.length - nWith;
+    const sq = st.sezQ.trim().toLowerCase();
+    let sl = allS.filter(z => (st.sezF === 'all' || (st.sezF === 'none' ? z.n === 0 : z.n > 0)) && (!sq || z.nome.toLowerCase().includes(sq)));
+    const ss = st.sezSort;
+    sl.sort((a, b) => ss.k === 'n' ? ss.d * a.nome.localeCompare(b.nome, 'it') : ss.k === 'c' ? ss.d * (a.n - b.n) || a.nome.localeCompare(b.nome) : ss.d * (a.km - b.km) || a.nome.localeCompare(b.nome));
+    const sezRow = z => ({ nome: z.nome, empty: z.n === 0, has: z.n > 0, nc: z.n ? '#3c4557' : '#6b7486', vc: z.n ? '#3c4557' : '#b4bbc6', bg: z.n ? '#fff' : '#fafbfc',
+      n: z.n ? this.nI(z.n) : '0', sh: z.n ? this.nI(z.sh) : '—', km: z.n ? this.kmI(z.km) : '—', kmU: z.n ? this.kmI(z.km) + ' km' : '0 km', kms: kmCells(z.kmS), bar: barOf(z) });
+    const sumSez = allS.reduce((a, z) => a + z.km, 0);
+    const chip = (k, l, ls, n) => { const on = st.sezF === k; return { l, ls: `${ls} (${n})`, n, bd: on ? '#17a180' : '#dfe3e8', bg: on ? '#e3f4ee' : '#fff', fg: on ? '#0f7d63' : '#3c4557', sbg: on ? '#17a180' : 'transparent', sfg: on ? '#fff' : '#3c4557', click: () => this.setState({ sezF: k, sezAll: false }) }; };
+    const sArr = k => ss.k === k ? (ss.d > 0 ? '↑' : '↓') : '', sHc = k => ss.k === k ? '#17a180' : '#6b7486';
+    const sezSortF = k => () => this.setState(s => ({ sezSort: { k, d: s.sezSort.k === k ? -s.sezSort.d : (k === 'n' ? 1 : -1) } }));
+    const mLim = st.sezAll ? sl.length : 10;
+    const SEZ = {
+      sub: `${allS.length} Sezioni del GR · ${nNo ? nNo + ' senza sentieri assegnati' : 'tutte con almeno un sentiero'}`,
+      rows: sl.map(sezRow), mrows: sl.slice(0, mLim).map(sezRow), more: sl.length > mLim, moreL: `Mostra tutte le ${sl.length} Sezioni`,
+      none: sl.length === 0, noneT: st.sezF === 'none' && !sq ? `Tutte le Sezioni del ${D.info.nome} hanno almeno un sentiero assegnato.` : 'Nessuna Sezione corrisponde alla ricerca.',
+      chips: [chip('all', 'Tutte', 'Tutte', allS.length), chip('with', 'Con sentieri', 'Con sentieri', nWith), chip('none', 'Senza sentieri', 'Senza', nNo)],
+      sum: this.kmI(sumSez), diff: this.kmI(sumSez - A.gest), sumN: this.nI(allS.reduce((a, z) => a + z.n, 0)), sumSh: this.nI(allS.reduce((a, z) => a + z.sh, 0)),
+      sumK: [0, 1, 2, 3].map(i => this.kmI(allS.reduce((a, z) => a + z.kmS[i], 0))),
+      h: { n: sHc('n'), c: sHc('c'), k: sHc('k') }, a: { n: sArr('n'), c: sArr('c'), k: sArr('k') }
+    };
+    // Elenco
+    const fk = [st.reg, st.q, st.fProv, st.fSet, st.fSez, st.fSda, st.fPer, st.sort, st.dir].join('|');
+    if (this._fk !== fk) {
+      const q = st.q.trim().toLowerCase();
+      let f = D.trails.filter(t => (!st.fProv || t.prov === st.fProv) && (!st.fSet || t.set === st.fSet) && (!st.fSez || (st.fSez === '_none' ? !t.sez.length : t.sez.includes(st.fSez))) && (!st.fSda || t.sda === +st.fSda) && (!st.fPer || t.per === st.fPer)
+        && (!q || t.num.toLowerCase().startsWith(q) || (t.nome || '').toLowerCase().includes(q) || (t.da || '').toLowerCase().includes(q) || (t.a || '').toLowerCase().includes(q)));
+      if (st.sort === 'km') f = [...f].sort((a, b) => st.dir * (a.km - b.km)); else if (st.sort === 'sda') f = [...f].sort((a, b) => st.dir * (a.sda - b.sda) || D.byNum(a, b)); else if (st.dir < 0) f = [...f].reverse();
+      this._fk = fk; this._f = f;
+    }
+    const f = this._f, fKm = f.reduce((a, t) => a + t.km, 0);
+    const PS = Number(this.props.righePerPagina ?? 25), np = Math.max(1, Math.ceil(f.length / PS)), pg = Math.min(st.page, np - 1);
+    const pmap = {}; D.provs.forEach(p => pmap[p.sig] = p.nome); const smap = {}; D.secs.forEach(s => smap[s.cod] = s.nome);
+    const row = t => { const S = SDA[t.sda], R = PER[t.per];
+      return { num: t.num, nome: t.nome || '—', nc: t.nome ? '#3c4557' : '#9aa1ad', daa: `${t.da || '—'} → ${t.a || '—'}`, prov: pmap[t.prov], set: `${t.set} · ${smap[t.set]}`, setS: `${t.set} ${smap[t.set]}`,
+        sez: t.sez.length ? t.sez[0] : 'Nessuna Sezione', sezM: t.sez.length ? t.sez.join(', ') : 'Nessuna Sezione', sezC: t.sez.length ? '#3c4557' : '#9aa1ad', shared: t.sez.length > 1, sharedL: t.sez.length > 1 ? 'Condiviso con ' + t.sez.slice(1).join(', ') : '',
+        km: this.kmF(t.km), sc: S.c, sl: S.l, pb: R.bg, pf: R.fg, pl: R.l }; };
+    const pages = [], add = i => pages.push(i);
+    for (let i = 0; i < np; i++) if (i < 1 || i >= np - 1 || Math.abs(i - pg) <= 2) add(i); else if (pages[pages.length - 1] !== '…') add('…');
+    const anyF = !!(st.q || st.fProv || st.fSet || st.fSez || st.fSda || st.fPer);
+    const arrow = k => st.sort === k ? (st.dir > 0 ? '↑' : '↓') : '', hc = k => st.sort === k ? '#17a180' : '#6b7486';
+    const bdc = v => v ? '#17a180' : '#dfe3e8';
+    const EL = {
+      rows: f.slice(pg * PS, pg * PS + PS).map(row), noMatch: f.length === 0, anyF,
+      count: f.length === D.trails.length ? `${this.nI(f.length)} sentieri · ${this.kmI(fKm)} km` : `${this.nI(f.length)} di ${this.nI(D.trails.length)} sentieri · ${this.kmI(fKm)} km`,
+      pages: pages.map(i => i === '…' ? { l: '…', bd: 'transparent', bg: 'transparent', fg: '#8a93a3', click: () => {} } : { l: String(i + 1), bd: i === pg ? '#17a180' : '#dfe3e8', bg: i === pg ? '#17a180' : '#fff', fg: i === pg ? '#fff' : '#3c4557', click: () => this.setState({ page: i }) }),
+      prev: () => this.setState({ page: Math.max(0, pg - 1) }), next: () => this.setState({ page: Math.min(np - 1, pg + 1) }), prevC: pg > 0 ? '#3c4557' : '#c3c8d0', nextC: pg < np - 1 ? '#3c4557' : '#c3c8d0',
+      h: { num: hc('num'), km: hc('km'), sda: hc('sda') }, a: { num: arrow('num'), km: arrow('km'), sda: arrow('sda') },
+      bd: { p: bdc(st.fProv), s: bdc(st.fSet), z: bdc(st.fSez), a: bdc(st.fSda), r: bdc(st.fPer) }
+    };
+    const MP = 10, mnp = Math.max(1, Math.ceil(f.length / MP)), mpg = Math.min(st.mPage, mnp - 1);
+    const ELM = { rows: f.slice(mpg * MP, mpg * MP + MP).map(row), hasPages: mnp > 1, pl: `Pagina ${mpg + 1} di ${this.nI(mnp)}`,
+      prev: () => this.setState({ mPage: Math.max(0, mpg - 1) }), next: () => this.setState({ mPage: Math.min(mnp - 1, mpg + 1) }), prevC: mpg > 0 ? '#17a180' : '#c3c8d0', nextC: mpg < mnp - 1 ? '#17a180' : '#c3c8d0' };
+    const setOpts = D.secs.filter(s => !st.fProv || s.prov === st.fProv).sort((a, b) => a.cod.localeCompare(b.cod)).map(s => ({ k: s.cod, l: `${s.cod} · ${s.nome}${s.empty ? ' (vuoto)' : ''}` }));
+    return {
+      ...common, ready: true,
+      G: { sub: `${D.info.nome} · Codice CAI ${D.info.cod}` }, K, SUM, PROV, SEZ, EL, ELM,
+      MD: this.mapView('d', 1358, 600, D, false), MM: this.mapView('m', 356, 340, D, true),
+      opts: { prov: D.provs.map(p => ({ k: p.sig, l: p.nome })), set: setOpts, sez: D.sez.filter(z => A.sez[z.nome].n > 0).map(z => ({ k: z.nome, l: z.nome })).sort((a, b) => a.l.localeCompare(b.l, 'it')), sda: [1, 2, 3, 4].map(k => ({ k: String(k), l: SDA[k].l })), per: ['p', 'd', 'n', 's'].map(k => ({ k, l: PER[k].l })) },
+      setQ: e => this.setF({ q: e.target.value }), setProv: e => this.setF({ fProv: e.target.value, fSet: '' }), setSet: e => { const v = e.target.value, s = D.secs.find(x => x.cod === v); this.setF({ fSet: v, fProv: s ? s.prov : st.fProv }); },
+      setSez: e => this.setF({ fSez: e.target.value }), setSda: e => this.setF({ fSda: e.target.value }), setPer: e => this.setF({ fPer: e.target.value }),
+      resetF: () => this.setF({ q: '', fProv: '', fSet: '', fSez: '', fSda: '', fPer: '' }),
+      sortT: { num: () => this.setState(s => ({ sort: 'num', dir: s.sort === 'num' ? -s.dir : 1, page: 0 })), km: () => this.setState(s => ({ sort: 'km', dir: s.sort === 'km' ? -s.dir : -1, page: 0 })), sda: () => this.setState(s => ({ sort: 'sda', dir: s.sort === 'sda' ? -s.dir : -1, page: 0 })) },
+      sortSez: { n: sezSortF('n'), c: sezSortF('c'), k: sezSortF('k') },
+      setSezQ: e => this.setState({ sezQ: e.target.value }), sezAll: () => this.setState({ sezAll: true }),
+      goEmptySec: () => { if (emptySec) this.setState(s => ({ openProv: emptySec.prov, selSec: emptySec.cod, pop: { key: 'd', t: 's', id: emptySec.cod, lat: emptySec.c[0], lon: emptySec.c[1] } })); },
+      goEmptySez: () => this.setState({ sezF: 'none', sezQ: '' })
+    };
+  }
+}
+</script>
+</body>
+</html>

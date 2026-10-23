@@ -1,6 +1,6 @@
 # Ralph Progress Log
-Started: Gio 22 Ott 2026 15:14:14 CEST
-Fase 10.3 — Bilancio consolidato delle Sezioni del GR, vedi docs/project/tasks/prd-fase-10-bilancio-consolidato-gr.md
+Started: Ven 23 Ott 2026 10:02:25 CEST
+Fase 10.4–10.9 (run unico): rifugi, sentieri, tappe SICAI. PRD in docs/project/tasks/prd-fase-10-{rifugi-di-sezione,rifugi-del-gr,sentieri-di-sezione,sentieri-del-gr,tappe-sicai-gr}.md, design in docs/project/design/fase-10/.
 ---
 
 ## Codebase Patterns
@@ -40,105 +40,6 @@ Fase 10.3 — Bilancio consolidato delle Sezioni del GR, vedi docs/project/tasks
   parità per nome), stato in `#[Url]` `stato`/`ordina`/`verso` (solo ciò che differisce dal default); valori con
   `x-cai.consolidated-value` (`signed`, `flagged`). Tabella desktop ed elenco mobile resi entrambi, il CSS ne nasconde uno.
 - Fase 10.2 (Dashboard GR) è su `develop`: `CaiRegionalGroupDashboardMetrics` (prefisso del GR, Sezioni per prefisso), `CaiSectionStatementsQuery`, `RegionalGroupDashboard`, base `CustomerComingSoonPage`/`RegionalGroupComingSoonPage` — riusarli.
-
-## 2026-10-22 - US-1021
-- `Queries\CaiRegionalGroupConsolidatedStatements` (+ `availableYears()`), VO `Support\CaiRegionalGroupConsolidatedData` e
-  `Support\CaiConsolidatedSectionRow` (costanti REVENUES/EXPENSES/NET_EQUITY/TOTAL_ASSETS per i flag), enum
-  `CaiSectionStatementStatus` (dati/solo-pdf/nessuno) e `CaiStatementSource` (RUNTS / Caricato a mano).
-- `CaiRegionalGroupDashboardMetrics::prefixOf()` e nuovo `sectionsOf()` pubblici; nuovo
-  `CaiSectionFinancialYearQuery::financialDocumentsOf($codes, $year)` (stessi scope di has_*_file, una query, `owner_section_code`).
-- Test: `tests/Feature/Domain/CaiDirectory/Queries/CaiRegionalGroupConsolidatedStatementsTest.php` (16 test).
-- **Learnings for future iterations:**
-  - Conto economico e stato patrimoniale di una Sezione si scelgono INDIPENDENTEMENTE (primo bilancio dell'anno con CE,
-    primo con SP): prendendo tutto da un solo bilancio il GR Toscana 2025 dava SP 5 invece di 8. Verificato su dev DB:
-    Toscana 2025 → 27 Sezioni, CE 11 (ricavi 1.520.538,66, risultato +90.143,67), SP 8, copertura 14/9/4; Sicilia 2025 →
-    SEZ. RAGUSA ricavi+costi segnalati.
-  - Il titolo di default di `caiDocument()` ("Bilancio di esercizio 2024") NON è un file di bilancio per
-    `CaiFinancialDocumentKind`: nei test passare un titolo tipo "Rendiconto gestionale".
-  - La riga per "Dati presenti" ha `documentId` del PDF se c'è (anche manuale con file), non solo per "Solo PDF".
----
-
-## 2026-10-22 - US-1022
-- `CaiDocumentDownloadController::authorized()`: un cliente GR è autorizzato se la `CaiSection` del documento (via RUNTS o
-  diretta) è nel prefisso del suo GR (`CaiRegionalGroupDashboardMetrics::prefixOf()` + `sectionsOf()->whereKey()`), oltre alla
-  regola esistente sulla regione dell'utente Sezione collegato.
-- Test: nuovo `tests/Feature/Http/CaiDocumentDownloadControllerTest.php` (6 test: Sezione senza utente 200, via RUNTS 200, altro
-  GR 403 diretto/RUNTS, codice fuori prefisso con stessa regione 403, Sappada Veneto 200 / FVG 403, cliente Sezione 403).
-  Aggiornato il fixture del test 403 "another region" in `CaiSectionResourceTest` (sezione ora `LAZIO`).
-- **Learnings for future iterations:**
-  - `caiSection()` ha default `region` `LOMBARDIA` e `codice_cai` `CAI-N`: con la regola del prefisso il GR Lombardia "possiede"
-    ogni Sezione di default. Per un caso 403 di GR usare una regione esplicita diversa.
-  - `caiRuntsRegistration` con `id_runts` `RUNTS-<codice>`: una sola per Sezione nel test (chiave primaria).
----
-
-## 2026-10-22 - US-1023
-- `RegionalGroupFinancialStatements` ora pagina reale (non più coming soon): titolo "Bilancio consolidato Sezioni", slug
-  `gr/bilancio`, fuori navigazione, gate customer GR; "← Dashboard", sottotitolo "{nome} · Codice CAI {codice}", selettore
-  esercizio a pulsanti (`selectYear()`, `?esercizio=`), due card consolidate (riuso `x-cai.metric-badge` senza `href`),
-  note "Somma di…"/"Nessuna Sezione con dati su M" + "Include N valori da verificare", card Copertura (barra a 3 segmenti
-  con `flex-grow` inline, legenda, nota nei tre casi con singolari), avviso per GR senza regione.
-- `x-cai.metric-badge`: `href` facoltativo → card statica (`--static`), "Non disponibile · Esercizio {year}" senza dati.
-- Nuovi token `--ms-review-{bg,text,border,icon,bar}`, `--ms-total-border`; nuovo CSS importato dal tema admin.
-- Test: `tests/Feature/Filament/Pages/RegionalGroupFinancialStatementsTest.php` (15 test); tolto "Bilancio" dal dataset di
-  `RegionalGroupComingSoonPagesTest`.
-- Verifica browser (Playwright, utente GR di prova creato e cancellato): Toscana 2025 desktop e mobile (+90.144 €, 11 e 8
-  Sezioni su 27, copertura 14/9/4), 2026 senza dati (card grigie, nota "nessuna Sezione").
-- **Learnings for future iterations:**
-  - Sul dev DB gli esercizi disponibili sono 2022–2026 (c'è almeno un bilancio/documento 2026), non 2021–2025: in verifica
-    browser "esercizio senza dati" = 2026.
-  - `ItalianNumberFormatter` usa il segno meno Unicode `−` (U+2212): nei test `assertSeeText('−2.000 €')`, non `-`.
-  - Blade: `parola@if (...)` non viene compilato (sembra un'email) ma `@endif` sì → syntax error. Vedi app/Filament/CLAUDE.md.
-  - Card della pagina: `Livewire::withQueryParams(['esercizio' => 2024])->test(...)` per l'URL; `->get(url.'?esercizio=abc')`
-    per l'anno non valido (la proprietà `int|string|null` evita il TypeError di Livewire su un valore non numerico).
----
-
-## 2026-10-22 - US-1024
-- Card "Sezioni del GR" in `RegionalGroupFinancialStatements`: conteggio ("27 Sezioni" / "{n} di 27 Sezioni"), filtri a
-  pillola con conteggi (`filterStatus()`), tabella desktop a griglia con intestazioni ordinabili (`sortBy()`, frecce
-  ↑/↓/↕, `aria-sort`), celle "da verificare", icona PDF (`target="_blank"`), riga Totale ("Somma di N Sezioni con dati");
-  mobile: elenco di card, menu "Ordina per" (`applySortOption('colonna:verso')`), card Totale.
-- Nuovi: `app/Domain/CaiDirectory/Enums/CaiConsolidatedSortColumn.php`, `resources/views/components/cai/consolidated-value.blade.php`.
-  Modificati: pagina, vista, CSS `regional-group-financial-statements.css`, test (+11), `app/Filament/CLAUDE.md` (gotcha @php).
-- Verifica browser (Playwright, utenti GR di prova Toscana/Sicilia creati e cancellati): Toscana 2025 desktop/mobile, 2026
-  (27 "Nessun bilancio"), ordinamento/filtro nell'URL (`?esercizio=2025&ordina=ricavi&stato=solo-pdf`), PDF 200
-  application/pdf, Sicilia 2025 SEZ. RAGUSA ricavi e costi "valore da verificare".
-- **Learnings for future iterations:**
-  - `@php($x = ...)` inline + un blocco `@php ... @endphp` nella stessa vista → syntax error: usare solo la forma a blocco.
-  - Testo con apostrofo da verificare con `assertSeeText`: renderlo con `{{ }}` (metodo statico), non statico nel Blade.
-  - Per verificare l'ordine delle righe: regex sui nomi `ms-consolidated__name">…<` della tabella desktop (`->html()`).
-  - La riga Totale dice "Somma di N Sezioni con dati" con N = Sezioni in "Dati presenti" (14 per Toscana 2025), che può
-    differire dalle 11 sommate nella card del conto economico (alcune hanno solo SP).
----
-
-## 2026-10-22 - US-1025
-- Dashboard GR: i badge "Conto economico/Stato patrimoniale consolidato Sezioni" aprono `RegionalGroupFinancialStatements`
-  con `?esercizio={anno della card}` (senza parametro se la card non ha esercizio); i due badge del bilancio proprio del GR
-  aprono la stessa pagina senza parametro. Testo del link "Bilancio" invariato.
-- Nuovo `RegionalGroupDashboard::financialStatementsUrl(?int $year)` (usa `getUrl(['esercizio' => $year])`).
-- Modificati: `app/Filament/Pages/RegionalGroupDashboard.php`, `resources/views/filament/pages/regional-group-dashboard.blade.php`,
-  `tests/Feature/Filament/Pages/RegionalGroupDashboardTest.php` (+1 test: anni diversi su CE 2025 / SP 2024).
-- Verifica browser non eseguita: cambia solo l'`href` dei badge, coperto dal test sull'HTML.
-- **Learnings for future iterations:**
-  - `Page::getUrl(['chiave' => valore])` su una pagina Filament senza parametri di rotta accoda i parametri come query
-    string (`/admin/gr/bilancio?esercizio=2025`): niente concatenazione manuale.
-  - In `x-cai.metric-badge` variante bilancio il `link-label` è reso DOPO "Esercizio {anno}": tenerne conto in
-    `assertSeeTextInOrder`.
----
-
-## 2026-10-22 - US-1026
-- Nuovo test end-to-end `tests/Feature/EndToEnd/Fase10BilancioConsolidatoEndToEndTest.php`: login GR → Dashboard → href del
-  badge CE consolidato (`?esercizio=2024`, diverso dal default 2025 della pagina) → pagina sul 2024 → `filterStatus('solo-pdf')`
-  → link PDF → download 200 → PDF di una Sezione ligure 403.
-- `docs/collaudo/fase-10.php`: sei argomenti "Bilancio consolidato Sezioni del GR (10.3)" (US-1021..US-1026), F10-87..F10-133;
-  corretta la descrizione di F10-71 (Bilancio non è più "in arrivo"). `collaudo:verify-manifest 10` verde.
-- `app/Domain/CaiDirectory/CLAUDE.md`: regole del consolidato per esercizio (esercizi disponibili/default, stati, "da verificare",
-  download per prefisso). Roadmap già aggiornata (riga 10.3 "in sviluppo" col link al PRD), nessuna modifica.
-- Lint, analyse, 100 test toccati verdi (isolati dal DB di sviluppo).
-- **Learnings for future iterations:**
-  - Per un E2E che deve provare "l'esercizio giusto", costruire i dati in modo che l'anno della card della Dashboard (CE 2024)
-    differisca dal default della pagina (SP 2025 → default 2025): altrimenti il test passa anche se il parametro è ignorato.
-  - Le funzioni helper nei file Pest sono globali: prefissarle col nome del file (`fase10Consolidated…`) per non collidere con
-    quelle di `RegionalGroupFinancialStatementsTest.php` (`consolidatedTableNames`).
-  - A fine feature: archiviare `prd.json`/`progress.txt` in `archive/<data>-fase-10-<slug>/`, datapack + PR verso `develop`
-    (passi del committente, roadmap §Processo).
----
+- Fase 10.3 (Bilancio consolidato GR) è su `develop`: `CaiRegionalGroupConsolidatedStatements`, `RegionalGroupFinancialStatements`, autorizzazione download PDF per prefisso in `CaiDocumentDownloadController`.
+- I design di questo run sono file `.dc.html` in `docs/project/design/fase-10/`: stili inline + blocco `<script type="text/x-dc">` con dati d'esempio e logica degli stati. Leggerli per misure, colori, testi e comportamenti.
+- Fonti esterne: API pubblica https://rifugi.cai.it/api/v1 (rifugi e punti SICAI) e dump osm2cai in /Users/alessiopiccioli/Documents/LAVORO/MS/SOFTWARE/OSM2CAIReport/data/last_dump.sql.gz (contiene dati personali: mai nel DB dell'app). Tile CAI: https://r3-it.storage.cloud.it/tiles/{z}/{x}/{y}.png zoom 6–16.

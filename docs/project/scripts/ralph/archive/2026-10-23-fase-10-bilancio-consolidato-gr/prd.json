@@ -1,0 +1,123 @@
+{
+  "project": "Orchestrator v2 — Fase 10.3: Bilancio consolidato delle Sezioni del GR",
+  "branchName": "ralph/orchestrator-v2-fase-10",
+  "description": "Pagina \"Bilancio consolidato Sezioni\" del GR: selettore esercizio, card consolidate con nota e valori da verificare, copertura (dati / solo PDF / nessuno), tabella Sezioni ordinabile e filtrabile con totale e PDF; download PDF autorizzato per prefisso; collegamento dai badge della Dashboard GR. PRD completo: docs/project/tasks/prd-fase-10-bilancio-consolidato-gr.md (US-1021..US-1026).",
+  "userStories": [
+    {
+      "id": "US-1021",
+      "title": "Dati del bilancio consolidato per esercizio",
+      "description": "come sviluppatore, voglio una classe di sola lettura che restituisca tutto ciò che la pagina mostra per un GR e un esercizio.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: `docs/project/tasks/prd-fase-10-bilancio-consolidato-gr.md` (§US-1021, §4 requisiti funzionali, §6 design, §7 considerazioni tecniche).",
+        "Nuova classe `App\\Domain\\CaiDirectory\\Queries\\CaiRegionalGroupConsolidatedStatements` con un metodo per (`Region`, anno) che restituisce un value object readonly con: codice del GR, numero di Sezioni M, righe per Sezione, totali, copertura, conteggio dei valori da verificare. Sezioni del GR e codice: **le stesse regole di `CaiRegionalGroupDashboardMetrics`** (prefisso), riusate e non duplicate.",
+        "**Esercizi disponibili**: i 5 anni che finiscono con l'anno più alto presente in `cai_financial_statements` o in `cai_documents` (oggi 2021–2025). **Esercizio di default**: il più recente in cui almeno una Sezione del GR è in stato \"Dati presenti\"; se nessuno, il più recente dei 5.",
+        "**Una riga per ogni Sezione del GR** (tutte le M, anche quelle senza nulla), con nome, codice, stato, fonte, ricavi, costi, risultato netto, patrimonio netto, totale attivo, id del documento PDF (o `null`).",
+        "**Stato** della Sezione per l'anno: - \"Dati presenti\" se il bilancio dell'anno (stessa scelta della 10.1: diretto o via RUNTS, a parità vince RUNTS) ha `hasIncomeStatementData()` o `hasBalanceSheetData()`; - altrimenti \"Solo PDF\" se la Sezione ha un file di bilancio per l'anno, con **la stessa definizione** di `has_income_statement_file`/`has_balance_sheet_file` di `CaiSectionFinancialYearQuery` (riusata, non copiata); - altrimenti \"Nessun bilancio\".",
+        "**Fonte**: \"RUNTS\" se il bilancio (o, per \"Solo PDF\", il documento) viene dall'iscrizione RUNTS, \"Caricato a mano\" se è collegato direttamente alla Sezione o ha `source = manual`; `null` per \"Nessun bilancio\".",
+        "**PDF**: il documento di bilancio dell'anno con file presente, scelto con la stessa definizione dei file di bilancio (a parità: prima RUNTS, poi l'id più basso). `null` se non c'è.",
+        "**Totali** (riga Totale e card consolidate): somma dei valori non nulli delle sole Sezioni in \"Dati presenti\"; un totale senza valori resta `null`. Conto economico: N = Sezioni \"Dati presenti\" con almeno uno fra ricavi, costi, risultato. Stato patrimoniale: N = Sezioni \"Dati presenti\" con patrimonio netto o totale attivo.",
+        "**Copertura**: conteggi \"Dati presenti\", \"Solo PDF\", \"Nessun bilancio\" (sommano a M).",
+        "**Valore da verificare**: per ricavi, costi, patrimonio netto e totale attivo (mai per il risultato netto), un valore è da verificare se il suo valore assoluto è più di 10 volte la mediana dei valori assoluti non nulli di quella voce fra le Sezioni \"Dati presenti\" del GR nello stesso anno, **solo se quei valori sono almeno 3**. Ogni riga sa quali voci sono da verificare; il conteggio per card considera ricavi+costi (conto economico) e patrimonio netto+totale attivo (stato patrimoniale).",
+        "Le query sono costanti nel numero di Sezioni (nessun N+1): una per i bilanci, una per i documenti, una per le Sezioni.",
+        "Test Pest: stati (dati / solo PDF / nessuno), fonte RUNTS e manuale, PDF scelto, totali con valori parziali, copertura, esercizio di default (anche quando l'anno più recente non ha dati), mediana con meno di 3 valori (nessun flag), un valore oltre 10× mediana segnalato, risultato netto mai segnalato, Sezione fuori prefisso esclusa.",
+        "`composer run lint` e `composer run analyse` puliti.",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-1022",
+      "title": "Il GR può scaricare i PDF delle sue Sezioni",
+      "description": "come utente GR, voglio aprire il PDF di bilancio di qualunque Sezione del mio GR.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: `docs/project/tasks/prd-fase-10-bilancio-consolidato-gr.md` (§US-1022, §4 requisiti funzionali, §6 design, §7 considerazioni tecniche).",
+        "`CaiDocumentDownloadController`: un cliente Gruppo Regionale è autorizzato anche quando la `CaiSection` del documento (via iscrizione RUNTS o diretta) appartiene al suo GR secondo la regola del prefisso (stessa classe/metodo usato da US-1021, nessuna regola duplicata). La regola esistente (regione dell'utente Sezione collegato) resta valida.",
+        "Un GR non scarica mai documenti di Sezioni di un altro GR (403), nemmeno manipolando l'id.",
+        "Test Pest: GR della stessa regione-prefisso (200), Sezione con prefisso del GR ma senza utente collegato (200), Sezione di un altro GR (403), Sappada (`9220…`) scaricabile dal GR Veneto e non dal GR FVG.",
+        "Lint e analyse puliti.",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-1023",
+      "title": "Pagina \"Bilancio consolidato Sezioni\" — intestazione, esercizio, card e copertura",
+      "description": "come utente GR, voglio scegliere l'esercizio e vedere subito il consolidato e la copertura.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: `docs/project/tasks/prd-fase-10-bilancio-consolidato-gr.md` (§US-1023, §4 requisiti funzionali, §6 design, §7 considerazioni tecniche).",
+        "`RegionalGroupFinancialStatements` smette di essere una pagina \"in arrivo\" (non estende più la base coming soon) e diventa la pagina reale: titolo \"Bilancio consolidato Sezioni\", stesso slug, fuori navigazione, `canAccess()` solo customer `GruppoRegionale`.",
+        "Link \"← Dashboard\" verso `RegionalGroupDashboard`. Sotto il titolo \"{nome utente GR} · Codice CAI {codice}\".",
+        "Selettore dell'esercizio a pulsanti (i 5 anni di US-1021), stato in proprietà Livewire legata all'URL (`?esercizio=2024`); anno fuori dai 5 → esercizio di default.",
+        "Due card: \"Conto economico consolidato\" (risultato netto principale con Avanzo/Disavanzo, ricavi e costi secondari) e \"Stato patrimoniale consolidato\" (patrimonio netto principale, totale attivo secondario), \"Esercizio {anno}\" sotto il principale. Card senza Sezioni con dati: stato grigio con \"Non disponibile · Esercizio {anno}\".",
+        "Sotto ogni card: \"Somma di N Sezioni su M\" (singolare \"1 Sezione\") oppure \"Nessuna Sezione con dati su M\"; se la card include valori da verificare, l'avviso \"Include 1 valore da verificare\" / \"Include N valori da verificare\".",
+        "Card \"Copertura\": \"{N} su {M} Sezioni hanno il bilancio con i dati\", barra in tre segmenti proporzionali (dati / solo PDF / nessuno), legenda con i tre conteggi e una nota: \"Per l'esercizio {anno} nessuna Sezione ha un bilancio con i dati.\" / \"Tutte le Sezioni hanno fornito il bilancio con i dati.\" / \"I totali consolidati sono parziali: mancano i dati di {X} Sezioni, {Y} delle quali con il solo PDF.\" (singolari gestiti; la parte sul PDF solo se Y > 0).",
+        "Utente GR senza regione: avviso \"Nessuna regione associata al tuo account: contatta Montagna Servizi.\" e nient'altro.",
+        "Test Livewire: valori delle card e note, avviso valori da verificare, copertura e nota nei tre casi, cambio esercizio via proprietà e via URL, anno non valido, GR senza regione, 403 per staff/Sezione/altri tipi.",
+        "Lint e analyse puliti.",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-1024",
+      "title": "Tabella delle Sezioni (desktop) ed elenco (mobile)",
+      "description": "come utente GR, voglio vedere e confrontare le Sezioni, filtrarle per stato e aprire i loro PDF.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: `docs/project/tasks/prd-fase-10-bilancio-consolidato-gr.md` (§US-1024, §4 requisiti funzionali, §6 design, §7 considerazioni tecniche).",
+        "Card \"Sezioni del GR\" con il conteggio (\"27 Sezioni\", oppure \"{n} di 27 Sezioni\" con un filtro attivo) e i filtri a pillola \"Tutte\", \"Dati presenti\", \"Solo PDF\", \"Nessun bilancio\", ciascuno con il proprio conteggio.",
+        "Desktop: colonne Sezione, Stato (pillola), Fonte, Ricavi, Costi, Risultato netto, Patrimonio netto, Totale attivo, PDF (icona che apre `route('cai-documents.download')` in una nuova scheda, solo se c'è il documento). Valori mancanti \"—\"; risultato netto con segno, rosso se negativo.",
+        "Ordinamento cliccando l'intestazione (tutte tranne PDF): primo clic crescente per Sezione/Stato/Fonte e decrescente per i numeri, secondo clic inverte; freccia sulla colonna attiva. I valori mancanti vanno sempre in fondo; a parità si ordina per nome. Default: nome crescente. Ordinamento e filtro in proprietà Livewire nell'URL.",
+        "Cella da verificare: valore in grassetto su fondo ambra con icona di avviso e, sotto, \"valore da verificare\".",
+        "Riga \"Totale\" in fondo (fondo menta) con \"Somma di N Sezioni con dati\" o \"Nessuna Sezione con dati\" e i totali.",
+        "Filtro senza righe: \"Nessuna Sezione in questo stato per l'esercizio {anno}.\"",
+        "Mobile (< 640 px): la tabella diventa un elenco di card: nome, \"Fonte: …\", pillola di stato; per \"Dati presenti\" i valori su 2 colonne con il risultato netto a tutta riga; per \"Solo PDF\" la frase \"Dati non ancora estratti dal PDF.\"; link \"Apri PDF\". Al posto delle intestazioni cliccabili un menu \"Ordina per\" con le opzioni: Nome (A–Z), Stato, Ricavi (dal più alto), Costi (dal più alto), Risultato netto (dal più alto), Risultato netto (dal più basso), Patrimonio netto (dal più alto), Totale attivo (dal più alto). Card \"Totale\" in fondo.",
+        "Test Livewire: righe e valori, filtro per stato con conteggi, ordinamento per nome e per un numero (mancanti in fondo), inversione, link PDF presente solo con documento, cella da verificare, riga totale.",
+        "Verifica in browser (Playwright con un utente GR di prova creato e poi cancellato, mai modificare utenti reali): GR Toscana desktop e mobile su 2025 e su un esercizio senza dati; GR Sicilia 2025 con SEZ. RAGUSA segnalata; apertura di un PDF.",
+        "Lint e analyse puliti.",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-1025",
+      "title": "Collegamento dalla Dashboard GR",
+      "description": "come utente GR, voglio arrivare dalla dashboard alla pagina sull'esercizio che stavo guardando.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: `docs/project/tasks/prd-fase-10-bilancio-consolidato-gr.md` (§US-1025, §4 requisiti funzionali, §6 design, §7 considerazioni tecniche).",
+        "Nella Dashboard V2 del GR i badge \"Conto economico consolidato Sezioni\" e \"Stato patrimoniale consolidato Sezioni\" portano a `RegionalGroupFinancialStatements` con `?esercizio={anno della card}` (senza parametro se la card non ha esercizio). Link \"Bilancio\" invariato nel testo.",
+        "I due badge del bilancio proprio del GR portano alla stessa pagina senza parametro (non esiste ancora una pagina del bilancio proprio).",
+        "Test aggiornati della Dashboard GR verdi; un test nuovo sui link con l'esercizio.",
+        "Lint e analyse puliti.",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-1026",
+      "title": "Collaudo, note per gli agenti e roadmap",
+      "description": "come committente, voglio la feature tracciata nel collaudo e verificabile su UAT.",
+      "acceptanceCriteria": [
+        "Riferimento obbligatorio: `docs/project/tasks/prd-fase-10-bilancio-consolidato-gr.md` (§US-1026, §4 requisiti funzionali, §6 design, §7 considerazioni tecniche).",
+        "`docs/collaudo/fase-10.php`: argomento \"Bilancio consolidato Sezioni del GR (10.3)\" con ID successivi all'ultimo esistente, collegati ai test reali di US-1021..US-1025; `collaudo:verify-manifest 10` passa.",
+        "Test end-to-end `tests/Feature/EndToEnd/Fase10BilancioConsolidatoEndToEndTest.php`: utente GR → login → Dashboard → badge consolidato → pagina sull'esercizio giusto → filtro \"Solo PDF\" → download di un PDF (200) → PDF di un altro GR (403). Va nel manifest con ID dedicati.",
+        "`docs/project/tasks/fase-10-roadmap.md`: riga 10.3 con il link a questo PRD e stato \"in sviluppo\".",
+        "`app/Domain/CaiDirectory/CLAUDE.md`: stati della Sezione per esercizio, regola \"da verificare\" (10× mediana, almeno 3 valori, mai sul risultato), esercizi disponibili e di default, autorizzazione di download per prefisso.",
+        "Lint, analyse e i test toccati verdi (con l'isolamento dal database di sviluppo).",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": ""
+    }
+  ]
+}
