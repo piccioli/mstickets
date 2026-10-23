@@ -119,6 +119,7 @@
             <x-cai.metric-badge
                 label="Sentieri"
                 :value="$data?->trailsKm"
+                :note="$data?->trailsKm === null ? null : 'nel territorio regionale'"
                 unit="km"
                 :decimals="1"
                 :href="RegionalGroupTrails::getUrl()"

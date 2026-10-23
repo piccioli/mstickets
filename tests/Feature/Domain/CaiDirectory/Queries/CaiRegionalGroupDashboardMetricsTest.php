@@ -249,3 +249,23 @@ test('the statements of all the sections are loaded with a single query', functi
 
     expect($statementQueries)->toHaveCount(1);
 });
+
+test('trails are the km in the regional territory, including trails without a section', function (): void {
+    grTrailsFixture();
+
+    expect(CaiRegionalGroupDashboardMetrics::forRegion(Region::Lombardia)->trailsKm)->toBe(30.7)
+        ->and(CaiRegionalGroupDashboardMetrics::forRegion(Region::Molise)->trailsKm)->toBe(7.0);
+});
+
+test('a region missing from the trails data has 0 km, never null', function (): void {
+    grTrailsFixture();
+
+    expect(CaiRegionalGroupDashboardMetrics::forRegion(Region::Piemonte)->trailsKm)->toBe(0.0);
+});
+
+test('a region known to the trails data but without km has 0 km', function (): void {
+    caiSection(['codice_cai' => '9300001', 'region' => 'LOMBARDIA']);
+    DB::table('cai_trail_regions')->insert(['id' => 1, 'name' => 'Lombardia', 'region_key' => 'lombardia']);
+
+    expect(CaiRegionalGroupDashboardMetrics::forRegion(Region::Lombardia)->trailsKm)->toBe(0.0);
+});

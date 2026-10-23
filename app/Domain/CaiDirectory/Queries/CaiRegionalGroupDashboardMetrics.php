@@ -26,6 +26,8 @@ use Illuminate\Support\Collection;
  *
  * - **rifugi** (10.5) = quelli di {@see CaiRegionalGroupHuts} (Sezioni del GR + intestati al GR), contati con una sola
  *   query; la nota conta le Sezioni con almeno un rifugio. Zero rifugi è un dato noto (0), non `null`.
+ * - **sentieri** (10.7) = km nel territorio regionale di {@see CaiRegionalGroupTrails::territoryKm()} (km intersecati
+ *   con la regione osm2cai, anche dei sentieri senza Sezione); regione assente dal datapack o senza km → 0, non `null`.
  *
  * Il bilancio di una Sezione per un anno segue le regole della 10.1 ({@see CaiSectionStatementsQuery}, a parità
  * di anno vince quello RUNTS), con una sola query per tutti i bilanci del GR.
@@ -73,6 +75,7 @@ final class CaiRegionalGroupDashboardMetrics
             consolidatedBalanceSheet: self::consolidatedBalanceSheet($statements, $sections->count()),
             huts: array_sum($hutsBySection),
             hutsSectionsCount: count(array_intersect_key($hutsBySection, array_flip($codes))),
+            trailsKm: CaiRegionalGroupTrails::territoryKm($region),
         );
     }
 

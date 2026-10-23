@@ -84,8 +84,8 @@ test('the GR own statements, trails and SICAI stages are not available, never 0'
         ->assertSeeText('Esercizio 2024 · Somma di 1 Sezione su 1')
         ->html();
 
-    // Conto economico + stato patrimoniale del GR, sentieri, tappe SICAI.
-    expect(substr_count($html, 'ms-metric-badge--unavailable'))->toBe(4)
+    // Conto economico + stato patrimoniale del GR, tappe SICAI (i sentieri sono 0,0 km, dato noto).
+    expect(substr_count($html, 'ms-metric-badge--unavailable'))->toBe(3)
         ->and($html)->not->toContain('>0<');
 });
 
@@ -128,6 +128,24 @@ test('a regional group without huts shows 0 as a known value, without the note',
 
     // Senza i marcatori di Livewire (`<!--[if BLOCK]>…`) fra gli elementi.
     expect(preg_replace('/<!--.*?-->/s', '', $html))->toMatch('/ms-metric-badge__label">Rifugi<\/span>\s*<span class="ms-metric-badge__value">\s*<span class="ms-metric-badge__number">0<\/span>/');
+});
+
+test('the trails badge shows the km in the regional territory', function (): void {
+    grTrailsFixture();
+
+    $this->actingAs(regionalGroupDashboardCustomer(region: Region::Lombardia, name: 'GR Lombardia'));
+
+    Livewire::test(RegionalGroupDashboard::class)
+        ->assertSeeTextInOrder(['Sentieri', '30,7', 'km', 'nel territorio regionale', 'Sentieri del GR']);
+});
+
+test('a regional group whose region has no trails data shows 0,0 km', function (): void {
+    caiSection(['codice_cai' => '9226001', 'region' => 'TOSCANA']);
+
+    $this->actingAs(regionalGroupDashboardCustomer());
+
+    Livewire::test(RegionalGroupDashboard::class)
+        ->assertSeeTextInOrder(['Sentieri', '0,0', 'km', 'nel territorio regionale', 'Sentieri del GR']);
 });
 
 test('a regional group whose region has no sections shows only the region and no data', function (): void {

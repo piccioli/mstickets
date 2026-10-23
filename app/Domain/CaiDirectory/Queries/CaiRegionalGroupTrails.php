@@ -67,9 +67,7 @@ final class CaiRegionalGroupTrails
             regionId: $regionId,
             codiceCai: $prefix === null ? null : $prefix.'000',
             groupName: CaiRegionalGroupHuts::groupName($region),
-            territory: $regionId === null
-                ? CaiTrailKmStats::empty()
-                : (self::territoryStats(CaiTrailTerritoryType::Region, [$regionId])[$regionId] ?? CaiTrailKmStats::empty()),
+            territory: self::territory($regionId),
             managedKm: $managedKm,
             managedCount: $managedCount,
             presentWithoutSectionCount: $present['withoutSectionCount'] ?? 0,
@@ -192,6 +190,15 @@ final class CaiRegionalGroupTrails
         return $areas;
     }
 
+    /**
+     * Km nel territorio regionale (tutti gli stati, anche senza Sezione) per il badge della Dashboard GR (US-1066), 0 se
+     * il datapack non contiene la regione o non ha km per lei. Due query.
+     */
+    public static function territoryKm(Region $region): float
+    {
+        return round(self::territory(self::regionId($region))->km(), 2);
+    }
+
     /** Id della regione osm2cai abbinata alla regione del GR, `null` se il datapack non la contiene. */
     public static function regionId(Region $region): ?int
     {
@@ -214,6 +221,14 @@ final class CaiRegionalGroupTrails
             ->whereNull('province_id')
             ->whereNull('sector_id')
             ->where('percentage', '>=', 50));
+    }
+
+    /** Km e sentieri presenti per stato nella regione osm2cai, vuoti senza regione o senza dati. */
+    private static function territory(?int $regionId): CaiTrailKmStats
+    {
+        return $regionId === null
+            ? CaiTrailKmStats::empty()
+            : (self::territoryStats(CaiTrailTerritoryType::Region, [$regionId])[$regionId] ?? CaiTrailKmStats::empty());
     }
 
     /** @return array{0: float, 1: int} km (deduplicati) e numero dei sentieri delle Sezioni del GR */
