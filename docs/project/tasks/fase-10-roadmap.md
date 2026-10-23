@@ -12,7 +12,7 @@ Aperta il 2026-10-21, dopo la chiusura della Fase 9. Riferimento: `PRD-ORCHESTRA
 | 10.4 | Sezioni | Rifugi di Sezione | [prd-fase-10-rifugi-di-sezione.md](prd-fase-10-rifugi-di-sezione.md) | sviluppata (US-1031..US-1037, collaudo F10-134..F10-188); PR verso `develop` a fine run 10.4–10.9 |
 | 10.5 | GR | Rifugi delle Sezioni del GR | [prd-fase-10-rifugi-del-gr.md](prd-fase-10-rifugi-del-gr.md) | sviluppata (US-1041..US-1046, collaudo F10-189..F10-226); PR verso `develop` a fine run 10.4–10.9 |
 | 10.6 | Sezione | Sentieri di Sezione | [prd-fase-10-sentieri-di-sezione.md](prd-fase-10-sentieri-di-sezione.md) | sviluppata (US-1051..US-1057, collaudo F10-227..F10-287); PR verso `develop` a fine run 10.4–10.9 |
-| 10.7 | GR | Sentieri del GR | [prd-fase-10-sentieri-del-gr.md](prd-fase-10-sentieri-del-gr.md) | in sviluppo (run Ralph unico 10.4–10.9) |
+| 10.7 | GR | Sentieri del GR | [prd-fase-10-sentieri-del-gr.md](prd-fase-10-sentieri-del-gr.md) | sviluppata (US-1061..US-1067, collaudo F10-288..F10-363); PR verso `develop` a fine run 10.4–10.9 |
 | 10.8 | Sezione | Tappe SICAI | — | non prevista: in osm2cai solo 29 tappe su 525 hanno una Sezione |
 | 10.9 | GR | Tappe SICAI | [prd-fase-10-tappe-sicai-gr.md](prd-fase-10-tappe-sicai-gr.md) | in sviluppo (run Ralph unico 10.4–10.9) |
 | 10.10 | OTCOSO / Sezioni / GR | Gestione dei Verbali | — | da specificare |

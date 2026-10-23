@@ -586,6 +586,17 @@ Operativo (ordine dei comandi e vincolo di spazio remoto): `deploy/CLAUDE.md` §
   `section()` dal codice `#[Locked]`): 404 se la Sezione non esiste, 403 se fuori dal prefisso del GR.
 - **`CaiTrailPolicy::view` per il GR** ammette anche i sentieri **presenti** (≥ 50%) nella sua regione osm2cai, senza
   Sezione o di Sezioni di altri GR: sono nell'elenco del GR e la scheda deve aprirsi.
+- **Riepilogo 10.7 (US-1067)** — **due totali, mai confonderli**: "Km nel territorio regionale" = km di
+  `cai_trail_territory_km` della regione (tutti gli stati, sentieri tagliati sul confine, compresi quelli senza
+  Sezione; è anche il badge "Sentieri" della Dashboard GR, `CaiRegionalGroupTrails::territoryKm()`, 0 e mai null se la
+  regione manca dal datapack) e "Km gestiti dalle Sezioni del GR" = lunghezza intera dei sentieri di almeno una Sezione
+  del prefisso, **deduplicati per `id`** (un condiviso una volta sola): può superare il primo (sentieri che escono dalla
+  regione). Solo la tabella "Per Sezione" conta un condiviso per ogni Sezione, e lo dice con la riga "Somma delle
+  Sezioni". **Sentieri presenti** = ≥ 50% della lunghezza nella regione (stessa soglia per provincia/settore): sono
+  l'elenco del GR, la mappa e l'accesso alla scheda. **Abbinamento regioni**: osm2cai ↔ `Region` per nome con
+  `Support\CaiOsm2caiRegionName` (nomi bilingui; estere scartate; due sullo stesso enum → rollback), salvato in
+  `cai_trail_regions.region_key`; l'id osm2cai non è stabile (vedi sopra). Checkpoint:
+  `tests/Feature/EndToEnd/Fase10SentieriGrEndToEndTest.php`, collaudo F10-288..F10-363.
 - **Blade**: in una vista con blocchi `@php … @endphp` NON usare la forma inline `@php($x = …)` — Blade non la chiude e
   la vista dà "syntax error" (successo in `section-trails.blade.php`).
 - **Dato della fonte**: nel dump di settembre 2026 nessun sentiero è legato a codici `9218…` (SAT/Trentino): la SAT
