@@ -492,6 +492,16 @@ Operativo (ordine dei comandi e vincolo di spazio remoto): `deploy/CLAUDE.md` §
   `cai:import-osm2cai-extract` (nel container `app` se è su, altrimenti `php` dell'host: il datapack va quindi indicato
   relativo alla root del repo). `trap` rimuove container e CSV anche in caso di errore; `--keep-db` lascia il container
   per ispezionare il dump (`docker exec -it <nome> psql -U postgres -d osm2cai`).
+- **Riepilogo 10.6 (US-1057)** — fonte: solo il dump osm2cai, via script → datapack → `cai:import-datapack` (mai scritti
+  a mano, mai modificati dall'app); estratti solo i sentieri con `osm2cai_status` 1–4 e non `deleted_on_osm`. Tabelle:
+  `snap_osm2cai_trails`/`snap_osm2cai_trail_sections` (datapack) → `cai_trails`/`cai_trail_section` (app). **Regola dei
+  sentieri condivisi**: un sentiero appartiene a OGNI Sezione il cui `codice_cai` compare fra i suoi club osm2cai, e
+  conta per intero in ciascuna (elenco, km del riepilogo, badge "Sentieri" di `CaiSectionDashboardMetrics`): la somma dei
+  km di più Sezioni può quindi superare i km reali — chi aggrega più Sezioni (GR, 10.7) deve deduplicare per `id`.
+  **Stati** (`CaiTrailStatus`, colori `SDA` del design): 1 Difficoltà `#e8b500`, 2 Ricognizione `#f07c22`, 3
+  Pre-validato `#a24cc7`, 4 Validato `#2563c9`. **Percorribilità** (`CaiTrailPracticability`, `PER`): percorribile, con
+  difficoltà, non percorribile, sconosciuto. Checkpoint: `tests/Feature/EndToEnd/Fase10SentieriSezioneEndToEndTest.php`,
+  collaudo F10-227..F10-287.
 - **Gotcha del dump**: i `pg_dump` recenti scrivono `\restrict`/`\unrestrict`, che lo psql 16.4 dell'immagine non
   conosce (`invalid command \restrict`): lo script li filtra con `sed`. `hiking_routes.name` è un JSON traducibile
   (`{"it": "P69A - Partenza - Arrivo"}`), `hiking_routes.osmid` è vuoto (l'id OSM sta in
