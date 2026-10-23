@@ -76,8 +76,8 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Riga/card senza link finché la US-1035 non crea CaiHutDetail: SectionHuts::hutUrl() restituisce null (il clic apre il popup sulla mappa) — da collegare nella US-1035."
     },
     {
       "id": "US-1035",
