@@ -208,6 +208,12 @@ I colori dei marker vengono dagli enum del tipo (es. `CaiHutType::color()`), non
 | `chip-active-bg` | `#e3f4ee` | Chip di filtro selezionato (bordo `brand`, testo `brand-link-hover`) |
 | `row-highlight-bg` | `#eef8f5` | Riga dell'elenco evidenziata dal marker (hover/selezione) |
 | `photo-placeholder-bg` / `photo-placeholder-icon` | `#eef1f4` / `#b4bbc6` | Segnaposto della miniatura senza foto |
+| `hero-surface` / `hero-overlay` / `hero-text-soft` | `#e3e8ed` / gradiente verso `rgba(18,26,36,.8)` / `rgba(255,255,255,.88)` | Testata della scheda rifugio: sfondo senza foto, velatura sopra la foto, testo secondario sulla foto |
+| `value-missing` | `#9aa1ad` | Valore assente ("—") e servizio "No"/"—" nella scheda rifugio |
+| `flag-unknown-icon` | `#c8cdd4` | Icona di un servizio senza dato ("—") |
+| `management-surface` | `#e6eaee` | Riquadro "Gestione" (dati riservati) della scheda rifugio |
+| `contract-expired-bg` / `-border` / `-text` | `#fbe7e5` / `#f3c4bf` / `#b42318` | Contratto di gestione scaduto (pillola e riga "Data di scadenza") |
+| `contract-expiring-bg` / `-border` / `-text` | `#fdf1dc` / `#f3d9a6` / `#8a5600` | Contratto in scadenza entro 6 mesi |
 
 ## Breakpoint
 

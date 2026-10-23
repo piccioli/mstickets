@@ -121,6 +121,23 @@ parametro di rotta) e `docs/collaudo/CLAUDE.md` per il metodo di generazione del
   `\u00..`: nelle fixture che si riasseriscono dopo un update usare nomi ASCII (accenti → test unitario di `CaiHutSort`).
   Per regex sull'HTML togliere prima i commenti `<!--[if BLOCK]>` di Livewire.
 
+## Scheda del rifugio (`CaiHutDetail`, US-1035 — da riusare dal GR e per sentieri/tappe)
+
+- Rotta `rifugi/{idCai}` (pagina Filament con parametro, vedi §US-807 sotto): `canAccess()` ammette staff
+  `CaiDirectoryView` e customer Sezione/GR, `mount()` verifica `CaiHutPolicy::view` sul rifugio (id non numerico o
+  inesistente → 404, rifugio di altri → 403). La sezione "Gestione" è dentro un `@if (canViewManagement())`: mai
+  nascosta con CSS. Test della gestione nascosta con `Gate::before(fn ($u, $a) => $a === 'viewManagement' ? false : null)`
+  (oggi la policy dà `view` = `viewManagement`, quindi non c'è un utente reale che vede la scheda senza gestione).
+- Formattazione in `Support\CaiHutSheet` (valore assente = `null`, la vista mette "—"): servizi (`SERVICES`, 15 chiavi
+  di `services`), certificazioni (`CERTIFICATIONS`), contatti con link, orari, canone, scadenza contratto
+  (`Enums\CaiHutContractStatus`: scaduto < 0 giorni, in scadenza ≤ 183, testo "Scaduto da N mesi/giorni"). Oggi passato
+  come argomento (`contractStatus($today)`) per i test con `Carbon::setTestNow`.
+- Certificazioni del design non presenti in rifugi.cai.it (depuratore, solare termico, Ecolabel): sostituite da chiavi
+  reali sì/no (`oilSeparator`, `rain_water`, `greenCertification`). Le altre chiavi `*_certification` sono testo libero
+  (anno di costruzione, classe catastale, ...), non vanno nella griglia Sì/No.
+- `?da=gr` → link "← Rifugi del GR" (anche senza parametro per un utente GR); staff → scheda della Sezione nella Resource.
+- Mobile: ordine del design (testata, mappa, schede, gestione, fonte) con griglie in `display: contents` + `order`.
+
 ## Componente mappa `x-cai.map` (US-1033, rifugi / sentieri / tappe SICAI)
 
 - Unico componente mappa delle pagine Sezione/GR della Fase 10: `resources/views/components/cai/map.blade.php`, CSS

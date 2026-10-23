@@ -29,3 +29,6 @@
 
 /* Rifugi di Sezione (Fase 10.4). */
 @import './section-huts.css';
+
+/* Scheda del rifugio (Fase 10.4). */
+@import './cai-hut-detail.css';

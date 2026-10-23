@@ -263,10 +263,10 @@ class SectionHuts extends Page
             ->all();
     }
 
-    /** Scheda del rifugio: arriva con la US-1035, fino ad allora la riga apre solo l'anteprima sulla mappa. */
+    /** Scheda del rifugio ({@see CaiHutDetail}), aperta dal clic sulla riga e dal popup "Apri scheda →". */
     public function hutUrl(CaiHut $hut): ?string
     {
-        return null;
+        return CaiHutDetail::getUrl(['idCai' => $hut->id_cai]);
     }
 
     /** Prima foto del rifugio (URL di rifugi.cai.it), `null` se non ne ha. */
