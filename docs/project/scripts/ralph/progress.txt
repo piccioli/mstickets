@@ -618,3 +618,19 @@ Fase 10.4–10.9 (run unico): rifugi, sentieri, tappe SICAI. PRD in docs/project
   - Il nome dei settori lombardi coincide spesso col codice (DBGA1): mostrare "—" invece di ripeterlo.
   - Per US-1067 (e2e): fixture `grTrailsFixture()` + `grTrailsCustomer()` in RegionalGroupTrailsTest.
 ---
+
+## 2026-10-23 - US-1066
+- `CaiRegionalGroupDashboardMetrics::forRegion()` valorizza `trailsKm` con `CaiRegionalGroupTrails::territoryKm($region)`
+  (km di `cai_trail_territory_km` della regione osm2cai, tutti gli stati, arrotondati a 2 decimali; 0 se la regione manca
+  dal datapack o non ha km). Regione senza Sezioni → resta tutto `null`; utente GR senza regione → `$data` null (badge
+  "Non disponibile", invariato). Badge con nota "nel territorio regionale".
+- Refactor: `CaiRegionalGroupTrails::territory(?int)` privato, condiviso fra `forRegion()` e `territoryKm()`.
+- Dev DB: Lombardia 20.534,78 km, Molise 983,02 km, Toscana 15.090,07 km.
+- Files: app/Domain/CaiDirectory/{Queries/CaiRegionalGroupDashboardMetrics,Queries/CaiRegionalGroupTrails,Support/
+  CaiRegionalGroupDashboardData}.php, resources/views/filament/pages/regional-group-dashboard.blade.php; test:
+  CaiRegionalGroupDashboardMetricsTest (+3), RegionalGroupDashboardTest (+2, conteggio badge non disponibili 4 → 3).
+- **Learnings for future iterations:**
+  - Valorizzare un badge della Dashboard GR cambia il conteggio `ms-metric-badge--unavailable` nel test "GR con
+    Sezioni" di RegionalGroupDashboardTest: aggiornarlo (per US-1097 tappe SICAI scenderà ancora).
+  - Nessuna verifica in browser necessaria: solo valore e nota di un badge esistente, coperti dai test Livewire.
+---
