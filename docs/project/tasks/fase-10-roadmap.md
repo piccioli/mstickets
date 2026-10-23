@@ -9,7 +9,7 @@ Aperta il 2026-10-21, dopo la chiusura della Fase 9. Riferimento: `PRD-ORCHESTRA
 | 10.1 | Sezioni | Dashboard V2 | [prd-fase-10-dashboard-sezione-v2.md](prd-fase-10-dashboard-sezione-v2.md) | su UAT (PR #19), verifica del committente in corso |
 | 10.2 | GR | Dashboard V2 | [prd-fase-10-dashboard-gr-v2.md](prd-fase-10-dashboard-gr-v2.md) | su UAT (PR #20), verifica del committente in corso |
 | 10.3 | GR | Bilancio consolidato Sezioni | [prd-fase-10-bilancio-consolidato-gr.md](prd-fase-10-bilancio-consolidato-gr.md) | su UAT (PR #21), verifica del committente in corso |
-| 10.4 | Sezioni | Rifugi di Sezione | [prd-fase-10-rifugi-di-sezione.md](prd-fase-10-rifugi-di-sezione.md) | in sviluppo (run Ralph unico 10.4–10.9) |
+| 10.4 | Sezioni | Rifugi di Sezione | [prd-fase-10-rifugi-di-sezione.md](prd-fase-10-rifugi-di-sezione.md) | sviluppata (US-1031..US-1037, collaudo F10-134..F10-188); PR verso `develop` a fine run 10.4–10.9 |
 | 10.5 | GR | Rifugi delle Sezioni del GR | [prd-fase-10-rifugi-del-gr.md](prd-fase-10-rifugi-del-gr.md) | in sviluppo (run Ralph unico 10.4–10.9) |
 | 10.6 | Sezione | Sentieri di Sezione | [prd-fase-10-sentieri-di-sezione.md](prd-fase-10-sentieri-di-sezione.md) | in sviluppo (run Ralph unico 10.4–10.9) |
 | 10.7 | GR | Sentieri del GR | [prd-fase-10-sentieri-del-gr.md](prd-fase-10-sentieri-del-gr.md) | in sviluppo (run Ralph unico 10.4–10.9) |

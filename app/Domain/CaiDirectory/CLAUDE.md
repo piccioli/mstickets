@@ -396,6 +396,14 @@ Operativo (ordine dei comandi e vincolo di spazio remoto): `deploy/CLAUDE.md` §
 
 ## Rifugi da rifugi.cai.it (`cai_huts`, Fase 10.4, US-1031)
 
+- **In sintesi (feature 10.4)**: fonte = API pubblica `https://rifugi.cai.it/api/v1` (unica, nessun altro dato sui
+  rifugi) → script `cai:fetch-huts` (a mano, mai pianificato) → tabella `snap_cai_huts` del datapack →
+  `cai:import-datapack` → tabella `cai_huts` (PK `id_cai`, `branch_code` = `codice_cai` della Sezione, senza FK) →
+  pagine `SectionHuts` (elenco + mappa), `CaiHutDetail` (scheda), badge "Rifugi" della Dashboard Sezione. Visibilità:
+  scheda e "Gestione" (gestore, contratto, canone, proprietà, certificazioni, CIN) solo a staff `CaiDirectoryView`,
+  Sezione proprietaria e GR della sua regione (`CaiHutPolicy::view`/`viewManagement`, oggi coincidenti; per
+  restringere la gestione basta cambiare `viewManagement`, la vista non rende nulla senza permesso). Collaudo:
+  `docs/collaudo/fase-10.php` F10-134..F10-188, E2E `tests/Feature/EndToEnd/Fase10RifugiSezioneEndToEndTest.php`.
 - **Fonte di verità esterna**, sola lettura: `snap_cai_huts` nel datapack (`id_cai`, `payload` = JSON grezzo del
   dettaglio `GET /api/v1/shelters/{id_cai}`) → `Import\CaiHutsImporter` (chiamato da `CaiDatapackImporter` solo
   nell'import nazionale, riga `snapshot_rifugi`). Crea/aggiorna/**elimina** (conteggio `deleted` di
