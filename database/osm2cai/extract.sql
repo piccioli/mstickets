@@ -150,14 +150,15 @@ JOIN osm2cai_extract.territory_parts tp ON ST_Intersects(hr.geometry::geometry, 
 GROUP BY tp.territory_type, tp.territory_id, hr.id, hr.osm2cai_status, hr.geometry
 HAVING SUM(ST_Length(ST_Intersection(hr.geometry::geometry, tp.geom)::geography)) > 0;
 
--- Km intersecati e sentieri presenti (≥ 50%) per territorio e stato.
+-- Km intersecati e sentieri presenti (≥ 50%) per territorio e stato. "Presente" con la STESSA espressione della
+-- `percentage` di `trail_territory` (sotto): `inside_m >= 0.5 * length_m` in virgola mobile divergeva su 2 sentieri al 50%.
 CREATE TABLE osm2cai_extract.territory_km AS
 SELECT
     territory_type,
     territory_id,
     status,
     round((SUM(inside_m) / 1000)::numeric, 3) AS km,
-    COUNT(*) FILTER (WHERE inside_m >= 0.5 * length_m) AS present_routes
+    COUNT(*) FILTER (WHERE trunc((100 * inside_m / NULLIF(length_m, 0))::numeric, 2) >= 50) AS present_routes
 FROM osm2cai_extract.trail_territory_m
 GROUP BY territory_type, territory_id, status
 ORDER BY 1, 2, 3;
@@ -165,14 +166,16 @@ ORDER BY 1, 2, 3;
 -- Legame sentiero–territorio con la percentuale della lunghezza nel territorio, dalle stesse intersezioni di
 -- `territory_km` (così "presente" nell'elenco e nei conteggi coincide; le `percentage` di `hiking_route_*` della fonte
 -- sono precalcolate da osm2cai e possono divergere). Il livello è il più profondo id valorizzato: riga di regione
--- (solo `region_id`), di provincia (`region_id` + `province_id`), di settore (tutti e tre).
+-- (solo `region_id`), di provincia (`region_id` + `province_id`), di settore (tutti e tre). Percentuale TRONCATA (non
+-- arrotondata) a 2 decimali, la stessa espressione di `present_routes`: `percentage >= 50` nell'app coincide con i
+-- sentieri presenti dei conteggi.
 CREATE TABLE osm2cai_extract.trail_territory AS
 SELECT
     m.trail_id,
     COALESCE(r.id, p.region_id, sp.region_id) AS region_id,
     COALESCE(p.id, sp.id) AS province_id,
     s.id AS sector_id,
-    round((100 * m.inside_m / NULLIF(m.length_m, 0))::numeric, 2) AS percentage
+    trunc((100 * m.inside_m / NULLIF(m.length_m, 0))::numeric, 2) AS percentage
 FROM osm2cai_extract.trail_territory_m m
 LEFT JOIN osm2cai_extract.regions r ON m.territory_type = 'region' AND r.id = m.territory_id
 LEFT JOIN osm2cai_extract.provinces p ON m.territory_type = 'province' AND p.id = m.territory_id

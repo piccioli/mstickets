@@ -519,7 +519,7 @@ Operativo (ordine dei comandi e vincolo di spazio remoto): `deploy/CLAUDE.md` §
   Adige/Südtirol", "Valle d'Aosta / Vallée d'Aoste") e scarta in cascata province/settori/statistiche/legami; due regioni
   sullo stesso enum → rollback. **Differenza voluta col report**: contano solo i sentieri estratti (non
   `deleted_on_osm`, come l'elenco dell'app), OSM2CAIReport include anche i ~344 eliminati: i numeri per regione calano
-  dell'1–3% (Lombardia presenti 4.016 invece di 4.157). `trail_territory` usa le percentuali delle stesse intersezioni,
+  dell'1–3% (Lombardia presenti 4.017 invece di 4.157). `trail_territory` usa le percentuali delle stesse intersezioni,
   non le `percentage` precalcolate di `hiking_route_*` (così conteggi ed elenco coincidono); livello = id più profondo
   valorizzato (regione / +provincia / +settore). `human_name` dei settori spesso vuoto → ripiego sul nome tecnico.
 - **Tabelle locali** (US-1052): `cai_trails` (modello `CaiTrail`, PK `id` = id osm2cai, `geometry` json GeoJSON, colonna
@@ -545,6 +545,17 @@ Operativo (ordine dei comandi e vincolo di spazio remoto): `deploy/CLAUDE.md` §
   stabili). ~88.600 righe in ~3 s su Postgres. Una qualunque delle cinque `snap_*` assente → avviso, tabelle intatte.
   Il writer della 10.6 scarta già i territori sconosciuti: all'importer arrivano come orfani solo stati fuori da 1–4 e
   sentieri non importati. Helper di test `makeTrailTerritoriesDatapack($overrides)` (writer reale sui CSV fixture).
+- **Dati "Sentieri del GR"** (`Queries\CaiRegionalGroupTrails`, US-1063): `forRegion($region)` → `CaiRegionalGroupTrailsData`
+  (riepilogo, province con settori, Sezioni del GR), `trails($region, CaiRegionalGroupTrailFilters, $perPage, $page)` →
+  paginatore SQL di `CaiRegionalGroupTrailRow` (sentiero senza geometria + Sezioni + provincia/settore con la quota
+  maggiore). Km per stato in `Support\CaiTrailKmStats` (km + conteggi, `consolidatedShare()` null senza km). **L'id della
+  regione osm2cai NON è prevedibile** (Lombardia = 20 sul dev): sempre `CaiRegionalGroupTrails::regionId($region)`.
+  "Presente" = riga di livello regione (provincia/settore null) con `percentage >= 50`; i filtri provincia/settore usano
+  la stessa soglia sul loro livello. "Senza Sezione"/"condiviso" contano solo codici esistenti in `cai_sections`.
+  Settori ordinati per `full_code` ("LBG01"): `code` della fonte è solo il progressivo ("1", "6").
+  In `extract.sql` `percentage` (troncata a 2 decimali) e `present_routes` usano la STESSA espressione: con `round` e
+  `inside_m >= 0.5 * length_m` in virgola mobile l'elenco contava sentieri in più di `present_routes` (Lombardia 4.017
+  contro 4.016). Se si tocca una delle due, toccare anche l'altra.
 - **Dato della fonte**: nel dump di settembre 2026 nessun sentiero è legato a codici `9218…` (SAT/Trentino): la SAT
   risulta senza sentieri. Per verifiche "molti sentieri" usare p.es. Parma (9224001, 380) o Sulmona (9234004, 382).
 - **Pagina "Sentieri di Sezione"** (`SectionTrails`, US-1054, slug `sezione/sentieri` della vecchia pagina "in arrivo"):
