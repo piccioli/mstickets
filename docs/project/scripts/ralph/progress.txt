@@ -45,6 +45,10 @@ Fase 10.4–10.9 (run unico): rifugi, sentieri, tappe SICAI. PRD in docs/project
 - Rifugi dall'API: `cai:fetch-huts` → `CaiHutsFetcher` (rate limit 1000 richieste/finestra, `429` + `Retry-After` rispettato; mai due run di fila senza aspettare ~2 min). Pause nei comandi via `Illuminate\Support\Sleep` (testabile con `Sleep::fake()`). Helper di test condivisi fra file (`hutApiDetail`, `makeHutsDatapack`) vanno in `tests/Pest.php`, mai `require_once` di un altro file di test (ne riregistrerebbe i test).
 - Mappa (10.4+): componente `x-cai.map` (prop `name`, `markers` di `CaiMapMarker`, `lines` di `CaiMapLine`, `selected`, `height`), rifugio → `CaiMapMarker::forHut($hut, $url)`. Legame con l'elenco solo via eventi `cai-map-marker-selected`/`-hovered` (emessi) e `cai-map-highlight`/`cai-map-select` (ascoltati su window), `detail.map` = `name`. Dettagli in `app/Domain/CaiDirectory/CLAUDE.md`.
 - I design di questo run sono file `.dc.html` in `docs/project/design/fase-10/`: stili inline + blocco `<script type="text/x-dc">` con dati d'esempio e logica degli stati. Leggerli per misure, colori, testi e comportamenti.
+- Sentieri osm2cai (10.6+): `bin/update-osm2cai-datapack <dump>` (container PostGIS usa-e-getta, ~6 min) → tabelle
+  `snap_osm2cai_trails`/`snap_osm2cai_trail_sections` del datapack (costanti in `Import\CaiOsm2caiExtractWriter`), estrazione in
+  `database/osm2cai/extract.sql`. `issues_status` reali: percorribile / percorribile parzialmente / non percorribile / sconosciuto.
+  Per ispezionare il dump: `--keep-db`, poi `docker exec -it <container> psql -U postgres -d osm2cai`.
 - Fonti esterne: API pubblica https://rifugi.cai.it/api/v1 (rifugi e punti SICAI) e dump osm2cai in /Users/alessiopiccioli/Documents/LAVORO/MS/SOFTWARE/OSM2CAIReport/data/last_dump.sql.gz (contiene dati personali: mai nel DB dell'app). Tile CAI: https://r3-it.storage.cloud.it/tiles/{z}/{x}/{y}.png zoom 6–16.
 
 ## 2026-10-23 - US-1031
@@ -272,4 +276,33 @@ Fase 10.4–10.9 (run unico): rifugi, sentieri, tappe SICAI. PRD in docs/project
   - Una storia che rende valorizzato un badge prima "Non disponibile" deve far girare anche `tests/Feature/EndToEnd`
     (contano `ms-metric-badge--unavailable`): US-1056 e i badge delle 10.7/10.9 faranno lo stesso.
   - Un numero nel badge va scelto diverso dagli altri badge della stessa dashboard, altrimenti `substr_count` conta 2.
+---
+
+## 2026-10-23 - US-1051
+- `bin/update-osm2cai-datapack <dump.sql.gz> [--datapack=] [--keep-db]`: container `postgis/postgis:16-3.4-alpine`
+  (`--platform linux/amd64`, nome univoco, nessuna porta), controllo spazio (host e disco Docker, 10 GB), ruolo `osm2cai2`,
+  import con filtro `\restrict`, `database/osm2cai/extract.sql` (schema `osm2cai_extract`), CSV via `\copy ... TO STDOUT` in
+  `storage/app/osm2cai-extract-*`, poi `cai:import-osm2cai-extract` (container `app` se su, sennò php host); `trap` rimuove
+  container e CSV. Riepilogo + peso del datapack.
+- `cai:import-osm2cai-extract <dir> [--datapack=]` → `Import\CaiOsm2caiExtractWriter` (DROP+CREATE+INSERT delle sole
+  `snap_osm2cai_*` in una transazione, intestazioni CSV verificate) → `CaiOsm2caiExtractSummary`.
+- Files: bin/update-osm2cai-datapack, database/osm2cai/extract.sql, app/Console/Commands/CaiImportOsm2caiExtractCommand.php,
+  app/Domain/CaiDirectory/Import/CaiOsm2caiExtract{Writer,Summary}.php, tests/Feature/Console/CaiImportOsm2caiExtractCommandTest.php,
+  tests/Fixtures/osm2cai/*.csv, deploy/CLAUDE.md, app/Domain/CaiDirectory/CLAUDE.md.
+- **Run reale sul dump (settembre 2026)**: 6 min 20 s; 26.056 sentieri estratti (stato 1: 3.438, 2: 470, 3: 7.171,
+  4: 14.977), 150.920 km; 7.731 con almeno un club, 7.403 con almeno una Sezione di `sezioni_cai`; 22 codici di Sezione
+  osm2cai non presenti in `sezioni_cai` (es. 9126023: 113 sentieri, 9126015: 41); datapack da 21 MB a 160 MB; tutte le
+  altre tabelle del datapack con conteggi identici al backup. Container e CSV rimossi a fine script.
+- **Learnings for future iterations:**
+  - Il dump ha `\restrict`/`\unrestrict` (pg_dump recenti) che psql 16.4 non conosce → filtrati con sed.
+  - `hiking_routes.name` è JSON traducibile `{"it": ...}`; `hiking_routes.osmid` è vuoto (id OSM in
+    `osmfeatures_data.properties.osm_id`); ascent/descent dai tag OSM presenti solo in ~40% (resto null; esiste un
+    `dem_enrichment` con valori calcolati, ma spesso in direzione opposta ai tag: non usato).
+  - `issues_status` reale usa "percorribile parzialmente", non "percorribile con difficoltà": US-1052 deve mapparlo a
+    `CaiTrailPracticability` "percorribile con difficoltà".
+  - `cai_scale` reale: E, T, EE, EEA, ma anche EEA:F/EEA:PD/EEA:D/EEA:MD, T/E, E;EE, AT (estratti così come sono).
+  - Tolleranza geometrie 0.00002° (≈1 px a zoom 16): GeoJSON 108 MB (200 MB senza semplificazione).
+  - Il comando `pg_isready -h 127.0.0.1` aspetta il server definitivo (quello dell'init dell'immagine ascolta solo sul socket).
+  - Lanciare a mano `extract.sql` mentre lo script gira sullo stesso container crea una race (schema droppato): con
+    `--keep-db` iterare solo dopo la fine dello script.
 ---
