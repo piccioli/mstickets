@@ -102,8 +102,8 @@ test('a Gruppo Regionale user logs in, lands on the Dashboard V2 with the consol
         ->assertDontSeeText('Terzo Settore')
         ->assertSeeText('Ticket e documenti');
 
-    // Bilancio proprio del GR (2) e tappe SICAI: senza sorgente dati, mai "0" (rifugi e sentieri hanno un valore dalla 10.5/10.7).
-    expect(substr_count((string) $response->getContent(), 'ms-metric-badge--unavailable'))->toBe(3);
+    // Bilancio proprio del GR (2): senza sorgente dati, mai "0" (rifugi, sentieri e tappe SICAI hanno un valore dalla 10.5/10.7/10.9).
+    expect(substr_count((string) $response->getContent(), 'ms-metric-badge--unavailable'))->toBe(2);
 
     // --- Click sul badge "Sezioni" → elenco delle Sezioni del GR --------------------------
     $response->assertSee('href="'.CustomerRegionalSectionsDashboard::getUrl().'"', escape: false);

@@ -99,8 +99,10 @@ test('an empty section shows every badge as not available except huts and trails
         ->assertDontSeeText('Esercizio')
         ->html();
 
+    // Tappe SICAI: "In attesa" (stesso stile attenuato), non "Non disponibile".
     expect(substr_count($html, 'ms-metric-badge--unavailable'))->toBe(4)
-        ->and(substr_count($html, 'Non disponibile'))->toBe(4)
+        ->and(substr_count($html, 'Non disponibile'))->toBe(3)
+        ->and(substr_count($html, 'ms-metric-badge--pending'))->toBe(1)
         ->and(substr_count($html, 'ms-metric-badge__number">0<'))->toBe(1)
         ->and(substr_count($html, 'ms-metric-badge__number">0,0<'))->toBe(1);
 });
@@ -243,4 +245,16 @@ test('each badge link is labelled with the name of its detail page', function ()
         ->assertSeeTextInOrder(['Conto economico', 'Bilancio', 'Stato patrimoniale', 'Bilancio',
             'Soci', 'Soci', 'Rifugi', 'Rifugi di Sezione', 'Sentieri', 'Sentieri di Sezione', 'Tappe SICAI', 'Tappe SICAI'])
         ->assertDontSeeText('Vedi dettaglio');
+});
+
+test('the SICAI stages badge is pending, not "not available"', function (): void {
+    $user = sectionDashboardCustomer();
+    caiSection(['user_id' => $user->id]);
+
+    $this->actingAs($user);
+
+    $text = (string) preg_replace('/\s+/u', ' ', strip_tags(Livewire::test(SectionDashboard::class)->html()));
+
+    expect(str($text)->after('Sentieri di Sezione')->value())->toContain('Tappe SICAI — In attesa Tappe SICAI')
+        ->not->toContain('Non disponibile');
 });

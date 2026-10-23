@@ -70,7 +70,7 @@ test('a regional group with sections shows the GR code, consolidated statements 
         ->assertDontSeeText('Nessuna regione associata');
 });
 
-test('the GR own statements, trails and SICAI stages are not available, never 0', function (): void {
+test('the GR own statements are not available, never 0', function (): void {
     caiSection(['codice_cai' => '9226001', 'region' => 'TOSCANA', 'members_count' => 1]);
     CaiFinancialStatement::create(['cai_section_id' => '9226001', 'year' => 2024,
         'net_result' => -500, 'net_equity' => 10, 'total_assets' => 20]);
@@ -84,9 +84,32 @@ test('the GR own statements, trails and SICAI stages are not available, never 0'
         ->assertSeeText('Esercizio 2024 · Somma di 1 Sezione su 1')
         ->html();
 
-    // Conto economico + stato patrimoniale del GR, tappe SICAI (i sentieri sono 0,0 km, dato noto).
-    expect(substr_count($html, 'ms-metric-badge--unavailable'))->toBe(3)
-        ->and($html)->not->toContain('>0<');
+    // Conto economico + stato patrimoniale del GR (sentieri 0,0 km e tappe SICAI 0 sono dati noti).
+    expect(substr_count($html, 'ms-metric-badge--unavailable'))->toBe(2);
+});
+
+test('the SICAI stages badge shows the number of stages and the km of the main ones', function (): void {
+    caiSection(['codice_cai' => '9226001', 'region' => 'TOSCANA']);
+    grSicaiStage('L01', ['length_km' => 12.25]);
+    grSicaiStage('L01S', ['length_km' => 4]);
+    grSicaiStage('L02', ['length_km' => 10.5]);
+
+    $this->actingAs(regionalGroupDashboardCustomer());
+
+    Livewire::test(RegionalGroupDashboard::class)
+        ->assertSeeTextInOrder(['Tappe SICAI', '3', '22,8 km', 'Tappe SICAI']);
+});
+
+test('the SICAI stages badge shows 0 without a km note when the region has no stages', function (): void {
+    caiSection(['codice_cai' => '9226001', 'region' => 'TOSCANA']);
+
+    $this->actingAs(regionalGroupDashboardCustomer());
+
+    $text = (string) preg_replace('/\s+/u', ' ', strip_tags(Livewire::test(RegionalGroupDashboard::class)->html()));
+    $badge = str($text)->after('Sentieri del GR')->value();
+
+    expect($badge)->toContain('Tappe SICAI 0 Tappe SICAI')
+        ->and($badge)->not->toContain('km');
 });
 
 test('the huts badge counts the huts of the sections and those owned by the GR', function (): void {

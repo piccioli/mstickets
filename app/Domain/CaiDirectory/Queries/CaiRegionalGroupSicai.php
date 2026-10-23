@@ -243,6 +243,16 @@ final class CaiRegionalGroupSicai
     }
 
     /**
+     * Km delle sole tappe principali (le varianti a parte), come il riepilogo: anche il badge della Dashboard GR.
+     *
+     * @param  list<CaiRegionalGroupSicaiStageRow>  $rows
+     */
+    public static function mainKm(array $rows): float
+    {
+        return self::sumKm(array_values(array_filter($rows, fn (CaiRegionalGroupSicaiStageRow $row): bool => ! $row->isVariant)));
+    }
+
+    /**
      * @param  list<CaiRegionalGroupSicaiStageRow>  $rows
      * @return list<CaiRegionalGroupSicaiStageRow>
      */

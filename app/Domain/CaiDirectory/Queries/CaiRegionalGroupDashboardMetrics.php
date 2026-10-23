@@ -28,6 +28,8 @@ use Illuminate\Support\Collection;
  *   query; la nota conta le Sezioni con almeno un rifugio. Zero rifugi è un dato noto (0), non `null`.
  * - **sentieri** (10.7) = km nel territorio regionale di {@see CaiRegionalGroupTrails::territoryKm()} (km intersecati
  *   con la regione osm2cai, anche dei sentieri senza Sezione); regione assente dal datapack o senza km → 0, non `null`.
+ * - **tappe SICAI** (10.9) = numero di tappe e km delle principali di {@see CaiRegionalGroupSicai::forRegion()} (una
+ *   sola query); nessuna tappa → 0, non `null`.
  *
  * Il bilancio di una Sezione per un anno segue le regole della 10.1 ({@see CaiSectionStatementsQuery}, a parità
  * di anno vince quello RUNTS), con una sola query per tutti i bilanci del GR.
@@ -66,6 +68,8 @@ final class CaiRegionalGroupDashboardMetrics
             ->mapWithKeys(fn (mixed $count, mixed $code): array => [(string) $code => (int) $count])
             ->all();
 
+        $sicaiRows = CaiRegionalGroupSicai::stageRows($region);
+
         return new CaiRegionalGroupDashboardData(
             codiceCai: $prefix.'000',
             sectionsCount: $sections->count(),
@@ -76,6 +80,8 @@ final class CaiRegionalGroupDashboardMetrics
             huts: array_sum($hutsBySection),
             hutsSectionsCount: count(array_intersect_key($hutsBySection, array_flip($codes))),
             trailsKm: CaiRegionalGroupTrails::territoryKm($region),
+            sicaiStages: count($sicaiRows),
+            sicaiStagesKm: CaiRegionalGroupSicai::mainKm($sicaiRows),
         );
     }
 

@@ -14,8 +14,8 @@ use App\Domain\CaiDirectory\Queries\CaiRegionalGroupDashboardMetrics;
  * Il bilancio proprio del GR (`incomeStatement`/`balanceSheet`) non si raccoglie ancora: sempre `null`.
  * `huts` (10.5) è sempre valorizzato se la regione ha Sezioni (anche 0, dato noto), con `hutsSectionsCount` = Sezioni
  * con almeno un rifugio (quelli intestati al GR non contano come Sezione). `trailsKm` (10.7) = km nel territorio
- * regionale, sempre valorizzato se la regione ha Sezioni (0 senza dati). `sicaiStages` resta `null` finché non esiste
- * una sorgente dati (10.9).
+ * regionale, sempre valorizzato se la regione ha Sezioni (0 senza dati). `sicaiStages` (10.9) = tappe SICAI delle lettere
+ * della regione (principali e varianti, come il riepilogo della pagina), `sicaiStagesKm` = km delle sole principali.
  */
 final readonly class CaiRegionalGroupDashboardData
 {
@@ -32,5 +32,6 @@ final readonly class CaiRegionalGroupDashboardData
         public ?int $hutsSectionsCount = null,
         public ?float $trailsKm = null,
         public ?int $sicaiStages = null,
+        public ?float $sicaiStagesKm = null,
     ) {}
 }

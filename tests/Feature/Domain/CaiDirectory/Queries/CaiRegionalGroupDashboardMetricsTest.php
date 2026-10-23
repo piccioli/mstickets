@@ -269,3 +269,26 @@ test('a region known to the trails data but without km has 0 km', function (): v
 
     expect(CaiRegionalGroupDashboardMetrics::forRegion(Region::Lombardia)->trailsKm)->toBe(0.0);
 });
+
+test('SICAI stages are those of the letters of the region, with the km of the main stages', function (): void {
+    caiSection(['codice_cai' => '9226001', 'region' => 'TOSCANA']);
+    grSicaiStage('L01', ['length_km' => 12.25]);
+    grSicaiStage('L01S', ['length_km' => 4]);
+    grSicaiStage('L02', ['length_km' => 10.5]);
+    grSicaiStage('E01', ['length_km' => 30]);
+
+    $data = CaiRegionalGroupDashboardMetrics::forRegion(Region::Toscana);
+
+    expect($data->sicaiStages)->toBe(3)
+        ->and($data->sicaiStagesKm)->toBe(22.75);
+});
+
+test('a group without SICAI stages has 0 stages, never null', function (): void {
+    caiSection(['codice_cai' => '9226001', 'region' => 'TOSCANA']);
+    grSicaiStage('E01', ['length_km' => 30]);
+
+    $data = CaiRegionalGroupDashboardMetrics::forRegion(Region::Toscana);
+
+    expect($data->sicaiStages)->toBe(0)
+        ->and($data->sicaiStagesKm)->toBe(0.0);
+});
