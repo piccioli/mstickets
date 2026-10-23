@@ -421,3 +421,20 @@ Fase 10.4–10.9 (run unico): rifugi, sentieri, tappe SICAI. PRD in docs/project
   - `Filament Page::getUrl()` con un parametro array produce `stato%5B0%5D=4`, che `#[Url]` di Livewire rilegge bene.
   - La 10.7 (`RegionalGroupTrails`) deve aggiornare `CaiTrailDetail::listQueryFrom()` se usa chiavi diverse.
 ---
+
+## 2026-10-23 - US-1056
+- `CaiSectionDashboardMetrics::forSection()` valorizza `trailsKm` = `(float) $section->trails()->sum('cai_trails.length_km')`
+  (sentiero condiviso conta per intero in ogni Sezione; `length_km` null ignorato). Nessun sentiero → 0.0 ("0,0 km", dato
+  noto); `forSubsection()` resta `null`. La vista `section-dashboard` aveva già il badge (unità km, 1 decimale, link a
+  `SectionTrails`): nessuna modifica alla vista.
+- Verificato sul dev DB: Parma 9224001 → 380 sentieri, 2.042,793 km (badge "2.042,8 km").
+- File: app/Domain/CaiDirectory/Queries/CaiSectionDashboardMetrics.php, app/Domain/CaiDirectory/Support/CaiSectionDashboardData.php,
+  tests/Feature/Domain/CaiDirectory/Queries/CaiSectionDashboardMetricsTest.php (3 nuovi), tests/Feature/Filament/Pages/
+  SectionDashboardTest.php (1 nuovo, conteggi "Non disponibile" aggiornati), tests/Feature/EndToEnd/Fase10DashboardSezioneEndToEndTest.php,
+  docs/collaudo/fase-10.php (F10-32 rinominato col test).
+- **Learnings for future iterations:**
+  - Rinominare un test citato in `docs/collaudo/fase-10.php` rompe `collaudo:verify-manifest 10`: aggiornare il manifest
+    nello stesso commit (grep del vecchio titolo in docs/collaudo).
+  - I conteggi `ms-metric-badge--unavailable` sono asseriti in SectionDashboardTest e negli end-to-end Fase10: quando un
+    badge diventa reale (10.8 tappe SICAI, 10.7 sentieri GR) aggiornarli tutti.
+---
