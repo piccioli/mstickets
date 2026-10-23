@@ -838,3 +838,24 @@ Fase 10.4–10.9 (run unico): rifugi, sentieri, tappe SICAI. PRD in docs/project
   - Per US-1098: test da collegare nel manifest — `CaiRegionalGroupDashboardMetricsTest` (2 SICAI), `RegionalGroupDashboardTest`
     (2 SICAI), `SectionDashboardTest` ("pending"), `SectionComingSoonPagesTest`, `CaiMetricBadgeTest` (2 pending).
 ---
+
+## 2026-10-23 - US-1098
+- Test end-to-end `tests/Feature/EndToEnd/Fase10TappeSicaiGrEndToEndTest.php`: GR Piemonte login → Dashboard (badge "Tappe
+  SICAI" 3 · 18,5 km) → pagina → E01 → tappa successiva E02 → punto di appoggio vicino con link a rifugi.cai.it; GR Toscana ed
+  Emilia-Romagna vedono L01/L02 e ricevono 403 su E01; utente Sezione: badge "Tappe SICAI — In attesa", pagina "in arrivo",
+  403 su "Tappe SICAI".
+- Manifest `docs/collaudo/fase-10.php`: 8 argomenti "Tappe SICAI del GR (10.9)" (uno per story US-1091..US-1098),
+  F10-364..F10-442; corretto F10-76 (test rinominato in US-1097). `collaudo:verify-manifest 10` passa.
+- Roadmap: 10.8 "non prevista (dati assenti in osm2cai…)", 10.9 "sviluppata". `app/Domain/CaiDirectory/CLAUDE.md`: note
+  superate sulle policy corrette + riepilogo 10.9 (fonti, parsing del codice, lettere condivise, raggio 1,5 km, 10.8).
+- Pint/Larastan puliti; 185 test (tutti quelli del manifest 10.9 + tests/Feature/EndToEnd) verdi. Nessuna UI: niente browser.
+- Files: tests/Feature/EndToEnd/Fase10TappeSicaiGrEndToEndTest.php, docs/collaudo/fase-10.php, app/Domain/CaiDirectory/CLAUDE.md,
+  docs/project/tasks/fase-10-roadmap.md.
+- **Learnings for future iterations:**
+  - In un test end-to-end che cambia utente più volte dopo un login vero, `flushSession()` va chiamato prima di OGNI
+    `actingAs()` successivo, non solo il primo: altrimenti l'hash della password in sessione fa scattare il logout
+    (`Redirector` restituito al posto di una `Response` in `StartSession`).
+  - `collaudo:verify-manifest` controlla solo che il nome del test sia una sottostringa del file: rinominare un test rompe
+    il manifest di una feature precedente (F10-76) — rilanciare la verifica dopo ogni rinomina.
+  - Fine run 10.4–10.9: prima della PR verso `develop` rifare `bin/push-cai-datapack` (tappe e punti SICAI nel datapack).
+---
