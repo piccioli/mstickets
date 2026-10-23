@@ -12,6 +12,7 @@ use App\Domain\CaiDirectory\Models\CaiHut;
 use App\Domain\CaiDirectory\Models\CaiRuntsRegistration;
 use App\Domain\CaiDirectory\Models\CaiSection;
 use App\Domain\CaiDirectory\Models\CaiTrail;
+use App\Domain\CaiDirectory\Support\CaiGeoJsonBounds;
 use App\Domain\Identity\Enums\Permission as PermissionEnum;
 use App\Domain\Identity\Enums\UserRole;
 use App\Domain\Identity\Models\User;
@@ -665,7 +666,7 @@ function makeTrailsDatapack(array $trails, array $links, ?string $sqlite = null)
 
 /**
  * Sentiero osm2cai salvato in `cai_trails` (US-1054), collegato alle Sezioni con i codici indicati: validato,
- * percorribile, 5,4 km, con geometria a due punti.
+ * percorribile, 5,4 km, con geometria a due punti (lng 10,1–10,2, lat 43,1–43,2) e il suo riquadro.
  *
  * @param  array<string, mixed>  $attributes
  * @param  list<string>  $sectionCodes
@@ -675,7 +676,7 @@ function caiTrail(array $attributes = [], array $sectionCodes = []): CaiTrail
     static $sequence = 0;
     $sequence++;
 
-    $trail = CaiTrail::create(array_merge([
+    $attributes = array_merge([
         'id' => 500000 + $sequence,
         'osmid' => 9000000 + $sequence,
         'ref' => (string) $sequence,
@@ -688,7 +689,12 @@ function caiTrail(array $attributes = [], array $sectionCodes = []): CaiTrail
         'issues_status' => 'percorribile',
         'practicability' => CaiTrailPracticability::Practicable,
         'geometry' => ['type' => 'MultiLineString', 'coordinates' => [[[10.1 + $sequence / 1000, 43.1], [10.2, 43.2]]]],
-    ], $attributes));
+    ], $attributes);
+    // Riquadro della geometria come lo calcola l'import (US-1064), se non indicato.
+    $bounds = CaiGeoJsonBounds::of($attributes['geometry']);
+    $attributes += ['min_lat' => $bounds?->minLat, 'min_lng' => $bounds?->minLng, 'max_lat' => $bounds?->maxLat, 'max_lng' => $bounds?->maxLng];
+
+    $trail = CaiTrail::create($attributes);
 
     foreach ($sectionCodes as $code) {
         DB::table('cai_trail_section')->insert(['cai_trail_id' => $trail->id, 'section_code' => $code]);
@@ -732,4 +738,80 @@ function makeTrailTerritoriesDatapack(array $overrides = [], ?string $sqlite = n
     (new CaiOsm2caiExtractWriter)->write($pdo, osm2caiCsvDirectory($overrides));
 
     return $sqlite;
+}
+
+/**
+ * Lombardia (regione osm2cai 1) con le province Bergamo (settori BG01 con sentieri, BG02 vuoto), Brescia (BS01) e
+ * Cremona (CR01 vuoto, nessun km); Molise (regione 2) con un sentiero solo suo. Sezioni del GR 9300: Milano, Bergamo,
+ * Vuota (senza sentieri); Torino è di un altro GR.
+ *
+ * Sentieri: "10" (Milano, 10 km, validato, presente 100%), "2" (Milano + Bergamo, 6 km, pre-validato, presente),
+ * "2A" (nessuna Sezione, 4 km, difficoltà, con difficoltà, presente 80%), "E1" (solo Torino, 8 km, ricognizione,
+ * presente esattamente al 50%), "5" (Bergamo, 20 km, validato, solo il 30% in regione: non presente ma gestito),
+ * "" (nessuna Sezione, 49,99%: non presente), "M1" (Molise). Condivisa dai test di `CaiRegionalGroupTrails` (US-1063)
+ * e della mappa del GR (US-1064).
+ */
+function grTrailsFixture(): void
+{
+    caiSection(['codice_cai' => '9300001', 'name' => 'SEZ. MILANO', 'region' => 'LOMBARDIA']);
+    caiSection(['codice_cai' => '9300002', 'name' => 'SEZ. BERGAMO', 'region' => 'LOMBARDIA']);
+    caiSection(['codice_cai' => '9300003', 'name' => 'SEZ. VUOTA', 'region' => 'LOMBARDIA']);
+    caiSection(['codice_cai' => '9230001', 'name' => 'SEZ. TORINO', 'region' => 'PIEMONTE']);
+    caiSection(['codice_cai' => '9720001', 'name' => 'SEZ. CAMPOBASSO', 'region' => 'MOLISE']);
+
+    DB::table('cai_trail_regions')->insert([
+        ['id' => 1, 'name' => 'Lombardia', 'region_key' => 'lombardia'],
+        ['id' => 2, 'name' => 'Molise', 'region_key' => 'molise'],
+    ]);
+    DB::table('cai_trail_provinces')->insert([
+        ['id' => 10, 'region_id' => 1, 'name' => 'Bergamo', 'code' => 'BG'],
+        ['id' => 11, 'region_id' => 1, 'name' => 'Brescia', 'code' => 'BS'],
+        ['id' => 12, 'region_id' => 1, 'name' => 'Cremona', 'code' => 'CR'],
+        ['id' => 20, 'region_id' => 2, 'name' => 'Campobasso', 'code' => 'CB'],
+    ]);
+    DB::table('cai_trail_sectors')->insert([
+        ['id' => 100, 'province_id' => 10, 'code' => 'BG01', 'full_code' => 'LBG01', 'name' => 'Val Brembana', 'geometry' => null],
+        ['id' => 101, 'province_id' => 10, 'code' => 'BG02', 'full_code' => 'LBG02', 'name' => 'Pianura', 'geometry' => null],
+        ['id' => 102, 'province_id' => 11, 'code' => 'BS01', 'full_code' => 'LBS01', 'name' => 'Val Camonica', 'geometry' => null],
+        ['id' => 103, 'province_id' => 12, 'code' => 'CR01', 'full_code' => 'LCR01', 'name' => 'Cremonese', 'geometry' => null],
+        ['id' => 200, 'province_id' => 20, 'code' => 'CB01', 'full_code' => 'MCB01', 'name' => 'Matese', 'geometry' => null],
+    ]);
+
+    $ten = caiTrail(['ref' => '10', 'name' => 'Sentiero delle Orobie', 'length_km' => 10, 'status' => CaiTrailStatus::Validated], ['9300001']);
+    $two = caiTrail(['ref' => '2', 'name' => 'Sentiero dei Laghi', 'length_km' => 6, 'status' => CaiTrailStatus::PreValidated], ['9300001', '9300002']);
+    $twoA = caiTrail(['ref' => '2A', 'name' => null, 'from_place' => 'Passo Gavia', 'length_km' => 4, 'status' => CaiTrailStatus::Difficulty,
+        'practicability' => CaiTrailPracticability::WithDifficulty]);
+    $e1 = caiTrail(['ref' => 'E1', 'name' => 'Alta Via', 'length_km' => 8, 'status' => CaiTrailStatus::Reconnaissance,
+        'practicability' => CaiTrailPracticability::Unknown], ['9230001', '9999999']);
+    $five = caiTrail(['ref' => '5', 'length_km' => 20, 'status' => CaiTrailStatus::Validated], ['9300002']);
+    $none = caiTrail(['ref' => '', 'length_km' => 3, 'status' => CaiTrailStatus::Reconnaissance]);
+    $molise = caiTrail(['ref' => 'M1', 'length_km' => 7], ['9720001']);
+
+    $links = [
+        [$ten->id, 1, null, null, 100], [$ten->id, 1, 10, null, 100], [$ten->id, 1, 10, 100, 100],
+        [$two->id, 1, null, null, 100], [$two->id, 1, 10, null, 100], [$two->id, 1, 10, 100, 100],
+        [$twoA->id, 1, null, null, 80], [$twoA->id, 1, 11, null, 80], [$twoA->id, 1, 11, 102, 80],
+        [$e1->id, 1, null, null, 50], [$e1->id, 1, 11, null, 50], [$e1->id, 1, 11, 102, 40], [$e1->id, 1, 10, 100, 10],
+        [$five->id, 1, null, null, 30], [$five->id, 1, 10, null, 30], [$five->id, 1, 10, 100, 30],
+        [$none->id, 1, null, null, 49.99], [$none->id, 1, 11, null, 49.99], [$none->id, 1, 11, 102, 49.99],
+        [$molise->id, 2, null, null, 100], [$molise->id, 2, 20, null, 100], [$molise->id, 2, 20, 200, 100],
+    ];
+
+    DB::table('cai_trail_territory')->insert(array_map(fn (array $l): array => [
+        'cai_trail_id' => $l[0], 'region_id' => $l[1], 'province_id' => $l[2], 'sector_id' => $l[3], 'percentage' => $l[4],
+    ], $links));
+
+    // km intersecati (calcolati dallo script, qui scelti a mano) e sentieri presenti.
+    $km = [
+        ['region', 1, 1, 3.2, 1], ['region', 1, 2, 5.5, 1], ['region', 1, 3, 6.0, 1], ['region', 1, 4, 16.0, 1],
+        ['province', 10, 2, 0.8, 0], ['province', 10, 3, 6.0, 1], ['province', 10, 4, 16.0, 1],
+        ['province', 11, 1, 3.2, 1], ['province', 11, 2, 4.7, 1],
+        ['sector', 100, 2, 0.8, 0], ['sector', 100, 3, 6.0, 1], ['sector', 100, 4, 16.0, 1],
+        ['sector', 102, 1, 3.2, 1], ['sector', 102, 2, 3.2, 0],
+        ['region', 2, 4, 7.0, 1], ['province', 20, 4, 7.0, 1], ['sector', 200, 4, 7.0, 1],
+    ];
+
+    DB::table('cai_trail_territory_km')->insert(array_map(fn (array $r): array => [
+        'territory_type' => $r[0], 'territory_id' => $r[1], 'status' => $r[2], 'km' => $r[3], 'present_routes' => $r[4],
+    ], $km));
 }

@@ -95,4 +95,13 @@ return [
     'snapshot' => [
         'disk_margin_percent' => (float) env('CAI_SNAPSHOT_DISK_MARGIN_PERCENT', 10),
     ],
+
+    /*
+     * Mappa dei sentieri del GR (US-1064): numero massimo di sentieri restituiti per riquadro dall'endpoint
+     * `cai-trail-regions.map-trails` (i più lunghi; oltre, la mappa dice di zoomare). A zoom 11 la Lombardia ne ha
+     * ~250 in vista e 500–700 nel riquadro allargato che chiede la mappa; 400 linee semplificate ≈ 1,2 MB di JSON.
+     */
+    'trails_map' => [
+        'limit' => (int) env('CAI_TRAILS_MAP_LIMIT', 600),
+    ],
 ];

@@ -90,3 +90,204 @@
   width: 7px;
   height: 7px;
 }
+
+/* Mappa per settori dei sentieri del GR (US-1064, components/cai/trail-sectors-map.blade.php): riquadro del modo in alto a
+   sinistra, "Vista regione" sotto lo zoom, legenda in basso a sinistra; su mobile modo e legenda sotto la mappa. */
+.ms-trail-sectors-map {
+  --ms-trail-sectors-map-height: 600px;
+}
+
+.ms-trail-sectors-map__mode,
+.ms-trail-sectors-map__legend,
+.ms-trail-sectors-map__reset {
+  position: absolute;
+  z-index: 1000;
+  border-radius: var(--ms-radius-lg);
+  background: var(--ms-map-overlay-surface);
+  box-shadow: var(--ms-shadow-map-overlay);
+}
+
+.ms-trail-sectors-map__mode {
+  top: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(640px, calc(100% - 80px));
+  padding: 8px 8px 8px 12px;
+}
+
+.ms-trail-sectors-map__mode-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--ms-text-strong);
+  font-size: var(--ms-text-sm);
+  font-weight: 700;
+}
+
+.ms-trail-sectors-map__note {
+  color: var(--ms-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ms-trail-sectors-map__note--error {
+  color: var(--ms-map-empty-text);
+}
+
+.ms-trail-sectors-map__mode-button {
+  flex: none;
+  height: 28px;
+  padding: 0 12px;
+  border: var(--ms-border-width) solid var(--ms-brand-border-tint);
+  border-radius: 14px;
+  background: var(--ms-surface-card);
+  color: var(--ms-brand-link-hover);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.ms-trail-sectors-map__reset {
+  top: 86px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: var(--ms-surface-card);
+  box-shadow: var(--ms-shadow-map-control);
+  cursor: pointer;
+}
+
+.ms-trail-sectors-map__reset svg {
+  fill: none;
+  stroke: var(--ms-text-strong);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ms-trail-sectors-map__legend {
+  bottom: 26px;
+  left: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+}
+
+.ms-trail-sectors-map__legend-title {
+  color: var(--ms-text-secondary);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.ms-trail-sectors-map__ramp {
+  display: flex;
+  gap: 2px;
+}
+
+.ms-trail-sectors-map__ramp-band {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 52px;
+  color: var(--ms-text-strong);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.ms-trail-sectors-map__ramp-band span {
+  height: 12px;
+  opacity: 0.85;
+}
+
+.ms-trail-sectors-map__legend-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--ms-text-strong);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.ms-trail-sectors-map__statuses {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.ms-trail-sectors-map__statuses .ms-trail-sectors-map__legend-item {
+  font-weight: 600;
+}
+
+.ms-trail-sectors-map__empty-swatch {
+  width: 20px;
+  height: 12px;
+  border: var(--ms-border-width-thick) dashed;
+}
+
+.ms-trail-sectors-map__line-swatch {
+  width: 18px;
+  height: 4px;
+  border-radius: 2px;
+}
+
+.ms-trail-sectors-map__footer {
+  display: none;
+}
+
+@media (max-width: 639.98px) {
+  .ms-trail-sectors-map {
+    --ms-trail-sectors-map-height: 340px;
+  }
+
+  .ms-trail-sectors-map__mode,
+  .ms-trail-sectors-map__legend {
+    display: none;
+  }
+
+  .ms-trail-sectors-map__reset {
+    top: 84px;
+  }
+
+  .ms-trail-sectors-map__footer {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px 12px;
+    border-top: var(--ms-border-width) solid var(--ms-border-subtle);
+  }
+
+  .ms-trail-sectors-map__footer-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    color: var(--ms-text-strong);
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .ms-trail-sectors-map__footer .ms-trail-sectors-map__mode-button {
+    height: 36px;
+    border-radius: 18px;
+  }
+
+  .ms-trail-sectors-map__footer .ms-trail-sectors-map__ramp-band {
+    flex: 1;
+    width: auto;
+    font-size: 10px;
+  }
+
+  .ms-trail-sectors-map__footer .ms-trail-sectors-map__statuses {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+  }
+}

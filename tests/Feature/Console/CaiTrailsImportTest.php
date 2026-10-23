@@ -169,3 +169,22 @@ test('cai:import-datapack prints the trails summary lines', function (): void {
         ->expectsOutputToContain('- snapshot_sentieri_sezioni: letti 1, creati 1, aggiornati 0, saltati 0')
         ->assertSuccessful();
 });
+
+test('the import stores the bounding box of the geometry and fills it on trails imported before (US-1064)', function (): void {
+    $geometry = '{"type":"MultiLineString","coordinates":[[[9.61,45.92],[9.7,46.01]],[[9.55,45.95],[9.65,45.9]]]}';
+    $sqlite = makeTrailsDatapack([osm2caiTrailRow(101, ['geometry_geojson' => $geometry]), osm2caiTrailRow(102, ['geometry_geojson' => null])], []);
+
+    app(CaiDatapackImporter::class)->import($sqlite, false);
+    $trail = CaiTrail::query()->findOrFail(101);
+
+    expect([$trail->min_lat, $trail->min_lng, $trail->max_lat, $trail->max_lng])->toBe(['45.900000', '9.550000', '46.010000', '9.700000'])
+        ->and(CaiTrail::query()->findOrFail(102)->min_lat)->toBeNull();
+
+    // Righe importate prima della colonna: il riquadro mancante è una differenza, il run successivo lo completa e poi
+    // non riscrive più nulla.
+    DB::table('cai_trails')->where('id', 101)->update(['min_lat' => null, 'min_lng' => null, 'max_lat' => null, 'max_lng' => null]);
+
+    expect(app(CaiDatapackImporter::class)->import($sqlite, false)['snapshot_sentieri']->updated)->toBe(1)
+        ->and(CaiTrail::query()->findOrFail(101)->max_lng)->toBe('9.700000')
+        ->and(app(CaiDatapackImporter::class)->import($sqlite, false)['snapshot_sentieri']->updated)->toBe(0);
+});

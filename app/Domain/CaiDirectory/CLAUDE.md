@@ -179,6 +179,14 @@ parametro di rotta) e `docs/collaudo/CLAUDE.md` per il metodo di generazione del
   `cai-map-select` dall'elenco usa `zoomToShowLayer()` prima di aprire il popup. In Playwright i marker fuori vista
   restano nel DOM: cliccarli via `element.click()` in `evaluate`, non con `locator.click()`.
 - Popup con la Sezione proprietaria: `CaiMapMarker::forHut($hut, $url, $sectionName)` (terzo argomento facoltativo).
+- **Aree e linee per area visibile (US-1064)**: prop `areas` (poligoni sullo STESSO canvas delle linee, aggiunti prima:
+  le linee restano sopra e vincono il clic; un renderer SVG separato sotto il canvas non riceverebbe mai i clic) e
+  `lines-url` (fetch da `linesMinZoom` con cache per riquadro+zoom e `AbortController`). Senza `areas` il payload resta
+  `{markers, lines}` (stesso `wire:key` delle mappe 10.4–10.6). Stato Alpine `mode`/`lineCount`/`linesTruncated`/… e
+  azioni `showLines()`/`showAreas()` leggibili dagli slot `overlay`/`footer`. Con `lines-url`, `cai-map-select` su una
+  linea non zooma mai sotto `linesMinZoom` (le linee sparirebbero). Verifica in browser con l'endpoint reale: login
+  Playwright su `localhost:8080`, poi `page.route('<origin>/__qualcosa', fulfill)` con la pagina HTML del componente reso
+  in tinker — stessa origine, il `fetch` porta il cookie di sessione.
 - **Linee / sentieri (US-1053)**: `CaiMapLine::forTrail($trail, $url)` (colore dello stato, spessore 3, anteprima
   `components.cai.map-trail-popup` col segnavia `x-cai.trail-sign`, CSS comune dei sentieri in `cai-trails.css`).
   Le linee hanno eventi propri `cai-map-line-selected` / `cai-map-line-hovered` (stesso `detail`); `cai-map-highlight` /
@@ -556,6 +564,18 @@ Operativo (ordine dei comandi e vincolo di spazio remoto): `deploy/CLAUDE.md` §
   In `extract.sql` `percentage` (troncata a 2 decimali) e `present_routes` usano la STESSA espressione: con `round` e
   `inside_m >= 0.5 * length_m` in virgola mobile l'elenco contava sentieri in più di `present_routes` (Lombardia 4.017
   contro 4.016). Se si tocca una delle due, toccare anche l'altra.
+- **Mappa per settori del GR (US-1064)**: `x-cai.trail-sectors-map` (wrapper del design su `x-cai.map`: riquadro del modo,
+  "Vista regione", legende desktop/mobile) con `areas` = `CaiRegionalGroupTrails::sectorAreas($data)` (`Support\CaiMapArea`,
+  id `settore-{id}`, colore dalla quota consolidata, vuoti = `! hasTrails`; ~430 KB per gli 83 settori lombardi) e
+  `lines-url` = `route('cai-trail-regions.map-trails', ['caiTrailRegion' => $data->regionId])`. L'endpoint
+  (`CaiRegionalGroupTrailsMapController`, `CaiTrailRegionPolicy::view`) usa `CaiRegionalGroupTrails::inBounds()` sulle
+  colonne `min_lat…max_lng` di `cai_trails` (le valorizza `CaiTrailsImporter` con `Support\CaiGeoJsonBounds`: **dopo una
+  migrazione che tocca il riquadro serve un `cai:import-datapack`**, il dev locale le ha già) e semplifica le geometrie per
+  lo `zoom` chiesto (`Support\CaiGeoJsonSimplifier`, mezzo pixel: 400 linee lombarde 3,5 MB → 1,2 MB a zoom 11). Limite
+  `cai_directory.trails_map.limit` (600, i più lunghi): a zoom 11 nelle valli lombarde il riquadro allargato ne contiene
+  700–1.100, quindi il messaggio "Mostrati i 600 sentieri più lunghi" è uno stato normale, non un errore. Il riquadro del
+  settore emette `cai-map-area-listed` ("Elenco sentieri →"): la pagina (US-1065) lo ascolta per filtrare l'elenco.
+  Nessun gzip configurato in `docker/`: le risposte JSON viaggiano non compresse.
 - **Dato della fonte**: nel dump di settembre 2026 nessun sentiero è legato a codici `9218…` (SAT/Trentino): la SAT
   risulta senza sentieri. Per verifiche "molti sentieri" usare p.es. Parma (9224001, 380) o Sulmona (9234004, 382).
 - **Pagina "Sentieri di Sezione"** (`SectionTrails`, US-1054, slug `sezione/sentieri` della vecchia pagina "in arrivo"):

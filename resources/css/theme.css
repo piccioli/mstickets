@@ -175,6 +175,14 @@
   --ms-trail-bar-track: #eef1f4;
   --ms-trail-shared-bg: #e5eef8;
 
+  /* ---- Sentieri del GR, mappa per settori (Fase 10.7) ---- */
+  --ms-map-area-label: #1f2633;
+  --ms-map-area-label-halo: #ffffff;
+  --ms-map-overlay-surface: rgba(255, 255, 255, 0.96);
+  --ms-shadow-map-overlay: 0 1px 4px rgba(0, 0, 0, 0.15);
+  --ms-map-empty-bg: #fbe7e5;
+  --ms-map-empty-text: #b42318;
+
   /* ---- Elenco rifugi (Fase 10.4) ---- */
   --ms-chip-active-bg: #e3f4ee;
   --ms-row-highlight-bg: #eef8f5;

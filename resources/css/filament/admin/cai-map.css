@@ -7,6 +7,11 @@
   position: relative;
 }
 
+/* Riquadro della mappa con gli slot `overlay` posizionati sopra (US-1064). */
+.ms-cai-map__frame {
+  position: relative;
+}
+
 .ms-cai-map__canvas {
   width: 100%;
   overflow: hidden;
@@ -211,4 +216,108 @@
   color: var(--ms-text-body);
   font-size: 12px;
   font-weight: 700;
+}
+
+.ms-cai-map-popup__sections {
+  color: var(--ms-text-body);
+  font-size: 12px;
+}
+
+.ms-cai-map-popup__sections--missing {
+  color: var(--ms-value-missing);
+}
+
+/* Aree (US-1064, design "Sentieri del GR"): etichetta permanente del settore al centro, nascosta sotto lo zoom 9. */
+.ms-cai-map .ms-cai-map__area-label {
+  padding: 0;
+  border: none;
+  background: none;
+  box-shadow: none;
+  color: var(--ms-map-area-label);
+  font-family: var(--ms-font-sans);
+  font-size: 11px;
+  font-weight: 800;
+  text-shadow: 0 0 3px var(--ms-map-area-label-halo), 0 0 3px var(--ms-map-area-label-halo), 0 0 2px var(--ms-map-area-label-halo);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.ms-cai-map .ms-cai-map__area-label::before {
+  display: none;
+}
+
+.ms-cai-map .is-area-labels-hidden .ms-cai-map__area-label {
+  display: none;
+}
+
+/* Riquadro di un settore: card 280 px. */
+.ms-cai-map .ms-cai-map__popup--area .leaflet-popup-content {
+  width: 280px !important;
+}
+
+.ms-cai-map-popup--sector .ms-cai-map-popup__body {
+  align-items: stretch;
+  gap: 8px;
+  padding: 12px 14px 14px;
+}
+
+.ms-cai-map-popup__eyebrow {
+  padding-right: 16px;
+  color: var(--ms-text-secondary);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ms-cai-map-popup--sector .ms-cai-map-popup__title {
+  font-size: var(--ms-text-lg);
+}
+
+.ms-cai-map-popup__empty {
+  padding: 8px 10px;
+  border-radius: var(--ms-radius-lg);
+  background: var(--ms-map-empty-bg);
+  color: var(--ms-map-empty-text);
+  font-size: var(--ms-text-sm);
+  font-weight: 700;
+}
+
+.ms-cai-map-popup--sector .ms-cai-map-popup__km {
+  font-size: var(--ms-text-sm);
+}
+
+.ms-cai-map-popup__bar {
+  display: flex;
+  gap: 1px;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--ms-trail-bar-track);
+}
+
+.ms-cai-map-popup__consolidated {
+  color: var(--ms-text-secondary);
+  font-size: 12px;
+}
+
+.ms-cai-map-popup__consolidated strong {
+  color: var(--ms-text-strong);
+  font-weight: 800;
+}
+
+.ms-cai-map-popup__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  padding-top: 2px;
+}
+
+.ms-cai-map button.ms-cai-map-popup__link {
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  cursor: pointer;
 }

@@ -31,9 +31,12 @@ final readonly class CaiMapLine
 
     /**
      * Linea di un sentiero, colorata per stato di accatastamento, con l'anteprima del design; `null` se il sentiero non
-     * ha geometria.
+     * ha geometria. Dal GR (US-1064) l'anteprima mostra anche il settore (`$place`) e le Sezioni (`$sections`, lista
+     * vuota = "Nessuna Sezione").
+     *
+     * @param  list<string>|null  $sections
      */
-    public static function forTrail(CaiTrail $trail, ?string $url = null): ?self
+    public static function forTrail(CaiTrail $trail, ?string $url = null, ?string $place = null, ?array $sections = null): ?self
     {
         if ($trail->geometry === null || $trail->geometry === []) {
             return null;
@@ -56,6 +59,8 @@ final readonly class CaiMapLine
                 'practicabilityBackground' => $trail->practicability->background(),
                 'practicabilityForeground' => $trail->practicability->foreground(),
                 'km' => $trail->length_km === null ? null : ItalianNumberFormatter::kilometers((float) $trail->length_km),
+                'place' => $place,
+                'sections' => $sections,
                 'url' => $url,
             ])->render(),
         );

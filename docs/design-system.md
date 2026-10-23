@@ -212,6 +212,9 @@ I colori dei marker vengono dagli enum del tipo (es. `CaiHutType::color()`), non
 | `trail-shared-text` | `#2f5f93` | Nota "Condiviso con …" dell'elenco sentieri |
 | `trail-shared-bg` | `#e5eef8` | Fondo della nota "Sentiero gestito in comune da N Sezioni" della scheda (testo `trail-shared-text`) |
 | `trail-bar-track` | `#eef1f4` | Fondo della barra dei km per stato di accatastamento |
+| `map-area-label` / `map-area-label-halo` | `#1f2633` / `#ffffff` | Codice del settore al centro del poligono (da zoom 9), con alone bianco ("Sentieri del GR") |
+| `map-overlay-surface` / `shadow-map-overlay` | `rgba(255,255,255,.96)` / `0 1px 4px rgba(0,0,0,.15)` | Riquadro del modo ("Mostra i sentieri" / "Vista per settori") e legenda sopra la mappa per settori |
+| `map-empty-bg` / `map-empty-text` | `#fbe7e5` / `#b42318` | "Nessun sentiero censito in questo settore" nel riquadro del settore e messaggi di errore della mappa. Riempimento e bordo tratteggiato del settore vuoto e scala blu dei km consolidati vengono da `CaiMapArea` (`EMPTY_FILL`/`EMPTY_STROKE`/`CONSOLIDATED_RAMP`), non da token |
 | `chip-active-bg` | `#e3f4ee` | Chip di filtro selezionato (bordo `brand`, testo `brand-link-hover`) |
 | `row-highlight-bg` | `#eef8f5` | Riga dell'elenco evidenziata dal marker (hover/selezione) |
 | `photo-placeholder-bg` / `photo-placeholder-icon` | `#eef1f4` / `#b4bbc6` | Segnaposto della miniatura senza foto |

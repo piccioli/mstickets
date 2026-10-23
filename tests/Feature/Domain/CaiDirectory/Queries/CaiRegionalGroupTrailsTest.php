@@ -6,6 +6,8 @@ use App\Domain\CaiDirectory\Enums\CaiTrailPracticability;
 use App\Domain\CaiDirectory\Enums\CaiTrailSort;
 use App\Domain\CaiDirectory\Enums\CaiTrailStatus;
 use App\Domain\CaiDirectory\Queries\CaiRegionalGroupTrails;
+use App\Domain\CaiDirectory\Support\CaiGeoJsonBounds;
+use App\Domain\CaiDirectory\Support\CaiMapArea;
 use App\Domain\CaiDirectory\Support\CaiRegionalGroupTrailFilters;
 use App\Domain\CaiDirectory\Support\CaiRegionalGroupTrailRow;
 use App\Domain\Identity\Enums\Region;
@@ -13,81 +15,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 
 uses(RefreshDatabase::class);
-
-/**
- * Lombardia (regione osm2cai 1) con le province Bergamo (settori BG01 con sentieri, BG02 vuoto), Brescia (BS01) e
- * Cremona (CR01 vuoto, nessun km); Molise (regione 2) con un sentiero solo suo. Sezioni del GR 9300: Milano, Bergamo,
- * Vuota (senza sentieri); Torino è di un altro GR.
- *
- * Sentieri: "10" (Milano, 10 km, validato, presente 100%), "2" (Milano + Bergamo, 6 km, pre-validato, presente),
- * "2A" (nessuna Sezione, 4 km, difficoltà, con difficoltà, presente 80%), "E1" (solo Torino, 8 km, ricognizione,
- * presente esattamente al 50%), "5" (Bergamo, 20 km, validato, solo il 30% in regione: non presente ma gestito),
- * "" (nessuna Sezione, 49,99%: non presente), "M1" (Molise).
- */
-function grTrailsFixture(): void
-{
-    caiSection(['codice_cai' => '9300001', 'name' => 'SEZ. MILANO', 'region' => 'LOMBARDIA']);
-    caiSection(['codice_cai' => '9300002', 'name' => 'SEZ. BERGAMO', 'region' => 'LOMBARDIA']);
-    caiSection(['codice_cai' => '9300003', 'name' => 'SEZ. VUOTA', 'region' => 'LOMBARDIA']);
-    caiSection(['codice_cai' => '9230001', 'name' => 'SEZ. TORINO', 'region' => 'PIEMONTE']);
-    caiSection(['codice_cai' => '9720001', 'name' => 'SEZ. CAMPOBASSO', 'region' => 'MOLISE']);
-
-    DB::table('cai_trail_regions')->insert([
-        ['id' => 1, 'name' => 'Lombardia', 'region_key' => 'lombardia'],
-        ['id' => 2, 'name' => 'Molise', 'region_key' => 'molise'],
-    ]);
-    DB::table('cai_trail_provinces')->insert([
-        ['id' => 10, 'region_id' => 1, 'name' => 'Bergamo', 'code' => 'BG'],
-        ['id' => 11, 'region_id' => 1, 'name' => 'Brescia', 'code' => 'BS'],
-        ['id' => 12, 'region_id' => 1, 'name' => 'Cremona', 'code' => 'CR'],
-        ['id' => 20, 'region_id' => 2, 'name' => 'Campobasso', 'code' => 'CB'],
-    ]);
-    DB::table('cai_trail_sectors')->insert([
-        ['id' => 100, 'province_id' => 10, 'code' => 'BG01', 'full_code' => 'LBG01', 'name' => 'Val Brembana', 'geometry' => null],
-        ['id' => 101, 'province_id' => 10, 'code' => 'BG02', 'full_code' => 'LBG02', 'name' => 'Pianura', 'geometry' => null],
-        ['id' => 102, 'province_id' => 11, 'code' => 'BS01', 'full_code' => 'LBS01', 'name' => 'Val Camonica', 'geometry' => null],
-        ['id' => 103, 'province_id' => 12, 'code' => 'CR01', 'full_code' => 'LCR01', 'name' => 'Cremonese', 'geometry' => null],
-        ['id' => 200, 'province_id' => 20, 'code' => 'CB01', 'full_code' => 'MCB01', 'name' => 'Matese', 'geometry' => null],
-    ]);
-
-    $ten = caiTrail(['ref' => '10', 'name' => 'Sentiero delle Orobie', 'length_km' => 10, 'status' => CaiTrailStatus::Validated], ['9300001']);
-    $two = caiTrail(['ref' => '2', 'name' => 'Sentiero dei Laghi', 'length_km' => 6, 'status' => CaiTrailStatus::PreValidated], ['9300001', '9300002']);
-    $twoA = caiTrail(['ref' => '2A', 'name' => null, 'from_place' => 'Passo Gavia', 'length_km' => 4, 'status' => CaiTrailStatus::Difficulty,
-        'practicability' => CaiTrailPracticability::WithDifficulty]);
-    $e1 = caiTrail(['ref' => 'E1', 'name' => 'Alta Via', 'length_km' => 8, 'status' => CaiTrailStatus::Reconnaissance,
-        'practicability' => CaiTrailPracticability::Unknown], ['9230001', '9999999']);
-    $five = caiTrail(['ref' => '5', 'length_km' => 20, 'status' => CaiTrailStatus::Validated], ['9300002']);
-    $none = caiTrail(['ref' => '', 'length_km' => 3, 'status' => CaiTrailStatus::Reconnaissance]);
-    $molise = caiTrail(['ref' => 'M1', 'length_km' => 7], ['9720001']);
-
-    $links = [
-        [$ten->id, 1, null, null, 100], [$ten->id, 1, 10, null, 100], [$ten->id, 1, 10, 100, 100],
-        [$two->id, 1, null, null, 100], [$two->id, 1, 10, null, 100], [$two->id, 1, 10, 100, 100],
-        [$twoA->id, 1, null, null, 80], [$twoA->id, 1, 11, null, 80], [$twoA->id, 1, 11, 102, 80],
-        [$e1->id, 1, null, null, 50], [$e1->id, 1, 11, null, 50], [$e1->id, 1, 11, 102, 40], [$e1->id, 1, 10, 100, 10],
-        [$five->id, 1, null, null, 30], [$five->id, 1, 10, null, 30], [$five->id, 1, 10, 100, 30],
-        [$none->id, 1, null, null, 49.99], [$none->id, 1, 11, null, 49.99], [$none->id, 1, 11, 102, 49.99],
-        [$molise->id, 2, null, null, 100], [$molise->id, 2, 20, null, 100], [$molise->id, 2, 20, 200, 100],
-    ];
-
-    DB::table('cai_trail_territory')->insert(array_map(fn (array $l): array => [
-        'cai_trail_id' => $l[0], 'region_id' => $l[1], 'province_id' => $l[2], 'sector_id' => $l[3], 'percentage' => $l[4],
-    ], $links));
-
-    // km intersecati (calcolati dallo script, qui scelti a mano) e sentieri presenti.
-    $km = [
-        ['region', 1, 1, 3.2, 1], ['region', 1, 2, 5.5, 1], ['region', 1, 3, 6.0, 1], ['region', 1, 4, 16.0, 1],
-        ['province', 10, 2, 0.8, 0], ['province', 10, 3, 6.0, 1], ['province', 10, 4, 16.0, 1],
-        ['province', 11, 1, 3.2, 1], ['province', 11, 2, 4.7, 1],
-        ['sector', 100, 2, 0.8, 0], ['sector', 100, 3, 6.0, 1], ['sector', 100, 4, 16.0, 1],
-        ['sector', 102, 1, 3.2, 1], ['sector', 102, 2, 3.2, 0],
-        ['region', 2, 4, 7.0, 1], ['province', 20, 4, 7.0, 1], ['sector', 200, 4, 7.0, 1],
-    ];
-
-    DB::table('cai_trail_territory_km')->insert(array_map(fn (array $r): array => [
-        'territory_type' => $r[0], 'territory_id' => $r[1], 'status' => $r[2], 'km' => $r[3], 'present_routes' => $r[4],
-    ], $km));
-}
 
 /** @return list<string> */
 function grTrailRefs(CaiRegionalGroupTrailFilters $filters = new CaiRegionalGroupTrailFilters, int $perPage = 50, int $page = 1): array
@@ -294,4 +221,74 @@ test('a region without osm2cai data has zero totals and an empty list, a group w
     expect($molise->territory->km())->toEqualWithDelta(7.0, 0.001)
         ->and($molise->managedKm)->toEqualWithDelta(7.0, 0.001)
         ->and(array_map(fn ($p) => $p->name, $molise->provinces))->toBe(['Campobasso']);
+});
+
+/** Sposta il riquadro di un sentiero della fixture (la geometria resta quella di default). */
+function moveGrTrail(string $ref, float $minLat, float $minLng, float $maxLat, float $maxLng): void
+{
+    DB::table('cai_trails')->where('ref', $ref)->update(['min_lat' => $minLat, 'min_lng' => $minLng, 'max_lat' => $maxLat, 'max_lng' => $maxLng]);
+}
+
+test('the map trails in bounds are the present trails whose box intersects it, longest first, up to the limit', function (): void {
+    grTrailsFixture();
+    // "2A" lontano dal riquadro, "E1" lo tocca solo sul bordo; "5" e "" sono nel riquadro ma non presenti.
+    moveGrTrail('2A', 46.0, 9.0, 46.1, 9.1);
+    moveGrTrail('E1', 43.3, 10.25, 43.5, 10.4);
+    $bounds = new CaiGeoJsonBounds(minLat: 43.0, minLng: 10.0, maxLat: 43.3, maxLng: 10.3);
+    $regionId = (int) CaiRegionalGroupTrails::regionId(Region::Lombardia);
+
+    $refs = fn (array $result): array => array_map(fn (CaiRegionalGroupTrailRow $row): string => (string) $row->trail->ref, $result['rows']);
+    $all = CaiRegionalGroupTrails::inBounds($regionId, $bounds, 10);
+    $limited = CaiRegionalGroupTrails::inBounds($regionId, $bounds, 2);
+
+    expect($refs($all))->toBe(['10', 'E1', '2'])
+        ->and($all['total'])->toBe(3)
+        ->and($refs($limited))->toBe(['10', 'E1'])
+        ->and($limited['total'])->toBe(3)
+        // Con geometria, Sezioni e il settore della quota maggiore, come le righe dell'elenco.
+        ->and($all['rows'][0]->trail->geometry)->toBeArray()
+        ->and($all['rows'][0]->sector?->full_code)->toBe('LBG01')
+        ->and(array_map(fn ($section): string => $section->name, $all['rows'][2]->sections()))->toBe(['SEZ. BERGAMO', 'SEZ. MILANO'])
+        ->and($refs(CaiRegionalGroupTrails::inBounds($regionId, new CaiGeoJsonBounds(45.9, 8.9, 46.2, 9.2), 10)))->toBe(['2A']);
+});
+
+test('a trail without bounds never reaches the map and the query count does not depend on the trails', function (): void {
+    grTrailsFixture();
+    DB::table('cai_trails')->where('ref', '10')->update(['geometry' => null, 'min_lat' => null, 'min_lng' => null, 'max_lat' => null, 'max_lng' => null]);
+    $regionId = (int) CaiRegionalGroupTrails::regionId(Region::Lombardia);
+
+    DB::flushQueryLog();
+    DB::enableQueryLog();
+    $result = CaiRegionalGroupTrails::inBounds($regionId, new CaiGeoJsonBounds(40.0, 5.0, 48.0, 15.0), 10);
+    $queries = count(DB::getQueryLog());
+    DB::disableQueryLog();
+
+    expect($result['total'])->toBe(3)
+        ->and(array_map(fn (CaiRegionalGroupTrailRow $row): string => (string) $row->trail->ref, $result['rows']))->not->toContain('10')
+        // conteggio, sentieri, Sezioni, territori con province e settori.
+        ->and($queries)->toBeLessThanOrEqual(6);
+});
+
+test('the sector areas of the map carry geometry, consolidated colour and the empty state', function (): void {
+    grTrailsFixture();
+    $square = fn (float $lng, float $lat): array => ['type' => 'MultiPolygon', 'coordinates' => [[[[$lng, $lat], [$lng + 0.1, $lat], [$lng + 0.1, $lat + 0.1], [$lng, $lat]]]]];
+    DB::table('cai_trail_sectors')->where('id', 100)->update(['geometry' => json_encode($square(9.6, 45.9))]);
+    DB::table('cai_trail_sectors')->where('id', 101)->update(['geometry' => json_encode($square(9.7, 45.6))]);
+    DB::table('cai_trail_sectors')->where('id', 102)->update(['geometry' => json_encode($square(10.3, 46.0))]);
+
+    $areas = CaiRegionalGroupTrails::sectorAreas(CaiRegionalGroupTrails::forRegion(Region::Lombardia));
+    $byId = collect($areas)->keyBy('id');
+
+    // CR01 senza geometria non c'è; ordine delle province (Bergamo, Brescia) e dei settori.
+    expect(array_map(fn (CaiMapArea $area): string => $area->id, $areas))->toBe(['settore-100', 'settore-101', 'settore-102'])
+        // BG01: 22,0 km consolidati su 22,8 (96%) → ultima fascia; BS01: 0 su 6,4 → prima.
+        ->and($byId['settore-100']->color)->toBe('#1f4fa8')
+        ->and($byId['settore-100']->empty)->toBeFalse()
+        ->and($byId['settore-100']->label)->toBe('LBG01')
+        ->and($byId['settore-100']->geojson['type'])->toBe('MultiPolygon')
+        ->and($byId['settore-100']->popupHtml)->toContain('Settore LBG01 · BERGAMO')->toContain('Val Brembana')
+        ->toContain('2 sentieri · 22,8 km')->toContain('<strong>96%</strong>')
+        ->and($byId['settore-101']->empty)->toBeTrue()
+        ->and($byId['settore-101']->popupHtml)->toContain('Nessun sentiero censito in questo settore')->not->toContain('Zooma sul settore')
+        ->and($byId['settore-102']->color)->toBe('#e3ecfa');
 });

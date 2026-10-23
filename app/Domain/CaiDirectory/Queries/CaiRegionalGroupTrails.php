@@ -14,6 +14,8 @@ use App\Domain\CaiDirectory\Models\CaiTrailProvince;
 use App\Domain\CaiDirectory\Models\CaiTrailRegion;
 use App\Domain\CaiDirectory\Models\CaiTrailSector;
 use App\Domain\CaiDirectory\Models\CaiTrailTerritory;
+use App\Domain\CaiDirectory\Support\CaiGeoJsonBounds;
+use App\Domain\CaiDirectory\Support\CaiMapArea;
 use App\Domain\CaiDirectory\Support\CaiRegionalGroupTrailFilters;
 use App\Domain\CaiDirectory\Support\CaiRegionalGroupTrailProvinceRow;
 use App\Domain\CaiDirectory\Support\CaiRegionalGroupTrailRow;
@@ -98,13 +100,7 @@ final class CaiRegionalGroupTrails
 
         $query = self::presentTrails($regionId)
             ->select(self::LIST_COLUMNS)
-            ->with([
-                'sections' => fn ($sections) => $sections->select(['cai_sections.codice_cai', 'cai_sections.name'])
-                    ->orderBy('cai_sections.name'),
-                'territories' => fn ($territories) => $territories->where('region_id', $regionId)
-                    ->whereNotNull('province_id')
-                    ->with(['province:id,region_id,name,code', 'sector:id,province_id,code,full_code,name']),
-            ]);
+            ->with(self::rowRelations($regionId));
 
         self::applyFilters($query, $filters);
         self::applySort($query, $filters);
@@ -115,6 +111,70 @@ final class CaiRegionalGroupTrails
         $rows = $paginator->through(fn (CaiTrail $trail): CaiRegionalGroupTrailRow => self::row($trail));
 
         return $rows;
+    }
+
+    /**
+     * Sentieri presenti nella regione il cui riquadro interseca `$bounds` (mappa del GR da zoom 11, US-1064), con la
+     * geometria: al massimo `$limit`, i più lunghi per primi (quelli senza lunghezza in fondo); `total` = tutti quelli
+     * nel riquadro. Tre query (conteggio, sentieri, Sezioni + territori) qualunque sia il numero di sentieri.
+     *
+     * @return array{rows: list<CaiRegionalGroupTrailRow>, total: int}
+     */
+    public static function inBounds(int $regionId, CaiGeoJsonBounds $bounds, int $limit): array
+    {
+        $query = self::presentTrails($regionId)
+            ->whereNotNull('cai_trails.min_lat')
+            ->where('cai_trails.min_lat', '<=', $bounds->maxLat)
+            ->where('cai_trails.max_lat', '>=', $bounds->minLat)
+            ->where('cai_trails.min_lng', '<=', $bounds->maxLng)
+            ->where('cai_trails.max_lng', '>=', $bounds->minLng);
+
+        $total = (clone $query)->count();
+
+        $trails = $query
+            ->select([...self::LIST_COLUMNS, 'geometry'])
+            ->with(self::rowRelations($regionId))
+            ->orderByRaw('CASE WHEN cai_trails.length_km IS NULL THEN 1 ELSE 0 END')
+            ->orderByDesc('cai_trails.length_km')
+            ->orderBy('cai_trails.id')
+            ->limit(max(0, $limit))
+            ->get();
+
+        return [
+            'rows' => $trails->map(fn (CaiTrail $trail): CaiRegionalGroupTrailRow => self::row($trail))->values()->all(),
+            'total' => $total,
+        ];
+    }
+
+    /**
+     * Settori della mappa del GR (US-1064), dalle province di {@see forRegion()} con la geometria (una query); i settori
+     * senza geometria non compaiono.
+     *
+     * @return list<CaiMapArea>
+     */
+    public static function sectorAreas(CaiRegionalGroupTrailsData $data, bool $listable = true): array
+    {
+        $ids = collect($data->provinces)->flatMap(fn (CaiRegionalGroupTrailProvinceRow $province): array => array_map(
+            fn (CaiRegionalGroupTrailSectorRow $sector): int => $sector->id,
+            $province->sectors,
+        ))->all();
+
+        $geometries = CaiTrailSector::query()->whereIn('id', $ids)->pluck('geometry', 'id');
+        $areas = [];
+
+        foreach ($data->provinces as $province) {
+            foreach ($province->sectors as $sector) {
+                $geometry = $geometries->get($sector->id);
+                $geometry = is_string($geometry) ? json_decode($geometry, true) : $geometry;
+                $area = CaiMapArea::forSector($sector, is_array($geometry) ? $geometry : null, $province->name, $listable);
+
+                if ($area !== null) {
+                    $areas[] = $area;
+                }
+            }
+        }
+
+        return $areas;
     }
 
     /** Id della regione osm2cai abbinata alla regione del GR, `null` se il datapack non la contiene. */
@@ -394,6 +454,22 @@ final class CaiRegionalGroupTrails
         $query->orderByRaw($missingRef);
         $byNumber($filters->sort->column() === 'numero' ? $direction : 'asc');
         $query->orderBy('cai_trails.id');
+    }
+
+    /**
+     * Relazioni di una riga ({@see row()}): Sezioni per nome, provincia e settore della regione.
+     *
+     * @return array<string, \Closure>
+     */
+    private static function rowRelations(int $regionId): array
+    {
+        return [
+            'sections' => fn ($sections) => $sections->select(['cai_sections.codice_cai', 'cai_sections.name'])
+                ->orderBy('cai_sections.name'),
+            'territories' => fn ($territories) => $territories->where('region_id', $regionId)
+                ->whereNotNull('province_id')
+                ->with(['province:id,region_id,name,code', 'sector:id,province_id,code,full_code,name']),
+        ];
     }
 
     private static function row(CaiTrail $trail): CaiRegionalGroupTrailRow

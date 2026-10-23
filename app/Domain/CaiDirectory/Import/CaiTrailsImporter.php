@@ -7,6 +7,7 @@ namespace App\Domain\CaiDirectory\Import;
 use App\Domain\CaiDirectory\Enums\CaiTrailPracticability;
 use App\Domain\CaiDirectory\Enums\CaiTrailStatus;
 use App\Domain\CaiDirectory\Models\CaiTrail;
+use App\Domain\CaiDirectory\Support\CaiGeoJsonBounds;
 use Illuminate\Database\Connection;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +21,8 @@ use stdClass;
  * un datapack che non li contiene).
  *
  * Scrive con il query builder, a blocchi: ~26.000 sentieri con ~108 MB di GeoJSON. La geometria si salva come la stringa
- * della fonte e si confronta così (colonna `json`, non `jsonb`: il testo resta identico), senza decodificarla.
+ * della fonte e si confronta così (colonna `json`, non `jsonb`: il testo resta identico); la si decodifica solo per il
+ * riquadro `min_lat`…`max_lng` (US-1064, mappa del GR per area visibile).
  */
 final class CaiTrailsImporter
 {
@@ -30,6 +32,9 @@ final class CaiTrailsImporter
     private const INTEGER_COLUMNS = ['id', 'osmid', 'ascent', 'descent', 'status'];
 
     private const DATE_COLUMNS = ['issues_last_update', 'validation_date'];
+
+    /** Riquadro della geometria, 6 decimali (US-1064). */
+    private const BOUNDS_COLUMNS = ['min_lat', 'min_lng', 'max_lat', 'max_lng'];
 
     /**
      * @return array<string, CaiImportTableResult>
@@ -205,7 +210,8 @@ final class CaiTrailsImporter
     }
 
     /**
-     * Riga di `cai_trails` dalla riga del datapack: date a `Y-m-d`, km a 3 decimali, percorribilità da `issues_status`.
+     * Riga di `cai_trails` dalla riga del datapack: date a `Y-m-d`, km a 3 decimali, percorribilità da `issues_status`,
+     * riquadro dalla geometria.
      *
      * @return array<string, int|float|string|null>
      */
@@ -230,6 +236,12 @@ final class CaiTrailsImporter
         $candidate['length_km'] = $row->length_km === null || $row->length_km === '' ? null : round((float) $row->length_km, 3);
         $candidate['practicability'] = CaiTrailPracticability::fromIssuesStatus($candidate['issues_status'])->value;
         $candidate['geometry'] = $text($row->geometry_geojson);
+
+        $bounds = CaiGeoJsonBounds::of($candidate['geometry']);
+        $candidate['min_lat'] = $bounds === null ? null : round($bounds->minLat, 6);
+        $candidate['min_lng'] = $bounds === null ? null : round($bounds->minLng, 6);
+        $candidate['max_lat'] = $bounds === null ? null : round($bounds->maxLat, 6);
+        $candidate['max_lng'] = $bounds === null ? null : round($bounds->maxLng, 6);
 
         return $candidate;
     }
@@ -257,6 +269,7 @@ final class CaiTrailsImporter
 
         return match (true) {
             $column === 'length_km' => number_format((float) $value, 3, '.', ''),
+            in_array($column, self::BOUNDS_COLUMNS, true) => number_format((float) $value, 6, '.', ''),
             in_array($column, self::INTEGER_COLUMNS, true) => (string) (int) $value,
             in_array($column, self::DATE_COLUMNS, true) => mb_substr((string) $value, 0, 10),
             default => (string) $value,

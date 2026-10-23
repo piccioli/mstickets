@@ -8,8 +8,11 @@ use App\Domain\CaiDirectory\Enums\CaiTrailPracticability;
 use App\Domain\CaiDirectory\Enums\CaiTrailStatus;
 use App\Domain\CaiDirectory\Models\CaiHut;
 use App\Domain\CaiDirectory\Models\CaiTrail;
+use App\Domain\CaiDirectory\Support\CaiMapArea;
 use App\Domain\CaiDirectory\Support\CaiMapLine;
 use App\Domain\CaiDirectory\Support\CaiMapMarker;
+use App\Domain\CaiDirectory\Support\CaiRegionalGroupTrailSectorRow;
+use App\Domain\CaiDirectory\Support\CaiTrailKmStats;
 
 /**
  * @return array<string, mixed>
@@ -273,4 +276,116 @@ test('trail lines reach the map payload as GeoJSON with their preview', function
         ->and($payload['lines'][0])->toMatchArray(['id' => 4512, 'color' => '#a24cc7', 'weight' => 3])
         ->and($payload['lines'][0]['geojson']['type'])->toBe('MultiLineString')
         ->and($payload['lines'][0]['popupHtml'])->toContain('Apri scheda →');
+});
+
+test('without areas the payload and config of the 10.4–10.6 maps keep their shape, lines are loaded only with an url', function (): void {
+    $html = (string) $this->blade('<x-cai.map name="rifugi" />');
+
+    expect(caiMapPayload($html))->toBe(['markers' => [], 'lines' => []])
+        ->and(caiMapPayload($html, 'data-cai-map-config'))->toMatchArray(['linesUrl' => null, 'linesMinZoom' => 11])
+        ->and($html)->toContain('if (! config.linesUrl || ! map) {')
+        ->not->toContain('ms-trail-sectors-map');
+});
+
+test('areas reach the payload with colour, empty state and label, and the config carries the styles of the design', function (): void {
+    $polygon = ['type' => 'MultiPolygon', 'coordinates' => [[[[9.6, 45.9], [9.7, 45.9], [9.7, 46.05], [9.6, 45.9]]]]];
+    $areas = [
+        new CaiMapArea(id: 'settore-100', geojson: $polygon, color: '#4a81d3', label: 'LBG01', popupHtml: '<b>BG01</b>'),
+        new CaiMapArea(id: 'settore-101', geojson: $polygon, color: '#e3ecfa', empty: true, label: 'LBG02'),
+    ];
+
+    $html = (string) $this->blade(
+        '<x-cai.map name="gr-sentieri" :areas="$areas" lines-url="/cai-trail-regions/20/map-trails" />',
+        ['areas' => $areas],
+    );
+
+    expect(caiMapPayload($html)['areas'])->toBe([
+        ['id' => 'settore-100', 'geojson' => $polygon, 'color' => '#4a81d3', 'empty' => false, 'label' => 'LBG01', 'popupHtml' => '<b>BG01</b>'],
+        ['id' => 'settore-101', 'geojson' => $polygon, 'color' => '#e3ecfa', 'empty' => true, 'label' => 'LBG02', 'popupHtml' => null],
+    ])->and(caiMapPayload($html, 'data-cai-map-config'))->toMatchArray([
+        'linesUrl' => '/cai-trail-regions/20/map-trails',
+        'linesMinZoom' => 11,
+        'areaLabelsMinZoom' => 9,
+        'areaFillOpacity' => ['low' => 0.74, 'high' => 0.06, 'emptyLow' => 0.85, 'emptyHigh' => 0.4],
+        'areaStroke' => ['low' => '#ffffff', 'high' => '#5b6475', 'selected' => '#1f2633', 'empty' => '#b42318'],
+        'areaEmptyFill' => '#fbe7e5',
+        'areaEmptyDash' => '5 3',
+    ])->and($html)
+        // Aree sullo stesso canvas delle linee (sotto), linee per riquadro con cache e richiesta precedente annullata.
+        ->toContain('L.geoJSON(area.geojson, { renderer: lineRenderer, style: areaStyle(area) })')
+        ->toContain("url.searchParams.set('bbox', bbox)")
+        ->toContain("url.searchParams.set('zoom', String(zoom))")
+        ->toContain('linesCache.has(requestKey)')
+        ->toContain('linesRequest?.abort()')
+        ->toContain('cai-map-area-listed');
+});
+
+test('the consolidated colour follows the five bands of the design', function (?float $share, string $color): void {
+    expect(CaiMapArea::consolidatedColor($share))->toBe($color);
+})->with([
+    'no km' => [null, '#e3ecfa'],
+    '0%' => [0.0, '#e3ecfa'],
+    '19%' => [0.19, '#e3ecfa'],
+    '20%' => [0.2, '#b3cbf0'],
+    '59%' => [0.59, '#7fa6e2'],
+    '79%' => [0.79, '#4a81d3'],
+    '80%' => [0.8, '#1f4fa8'],
+    '100%' => [1.0, '#1f4fa8'],
+]);
+
+test('a sector area has the preview of the design: code, province, name, trails, km, bar and consolidated share', function (): void {
+    $stats = CaiTrailKmStats::empty()->with(CaiTrailStatus::Difficulty, 2.5, 1)->with(CaiTrailStatus::Validated, 7.5, 2);
+    $sector = new CaiRegionalGroupTrailSectorRow(id: 100, code: '1', fullCode: 'LBG01', name: 'Val Brembana', stats: $stats, hasTrails: true);
+    $geometry = ['type' => 'MultiPolygon', 'coordinates' => [[[[9.6, 45.9], [9.7, 45.9], [9.7, 46.0], [9.6, 45.9]]]]];
+
+    $area = CaiMapArea::forSector($sector, $geometry, 'Bergamo');
+
+    expect($area?->id)->toBe('settore-100')
+        ->and($area?->color)->toBe('#4a81d3')
+        ->and($area?->empty)->toBeFalse()
+        ->and($area?->label)->toBe('LBG01')
+        ->and($area?->popupHtml)
+        ->toContain('Settore LBG01 · BERGAMO')
+        ->toContain('Val Brembana')
+        ->toContain('3 sentieri · 10,0 km')
+        ->toContain('width: 25%; background: #e8b500')
+        ->toContain('width: 75%; background: #2563c9')
+        ->toContain('Consolidati (stati 3–4): <strong>75%</strong>')
+        ->toContain('data-cai-map-area-action="zoom">Zooma sul settore</button>')
+        ->toContain('data-cai-map-area-action="list">Elenco sentieri →</button>')
+        ->and(CaiMapArea::forSector($sector, $geometry, 'Bergamo', listable: false)?->popupHtml)->not->toContain('Elenco sentieri')
+        ->and(CaiMapArea::forSector($sector, null, 'Bergamo'))->toBeNull();
+});
+
+test('an empty sector is pink with the dashed border and says no trail is recorded', function (): void {
+    $sector = new CaiRegionalGroupTrailSectorRow(id: 101, code: '2', fullCode: 'LBG02', name: 'Pianura', stats: CaiTrailKmStats::empty(), hasTrails: false);
+
+    $area = CaiMapArea::forSector($sector, ['type' => 'Polygon', 'coordinates' => [[[9.6, 45.6], [9.7, 45.6], [9.6, 45.6]]]], 'Bergamo');
+
+    expect($area?->empty)->toBeTrue()
+        ->and($area?->popupHtml)->toContain('Nessun sentiero censito in questo settore')
+        ->not->toContain('Zooma sul settore')
+        ->not->toContain('sentieri ·');
+});
+
+test('the trail sectors map renders the mode texts, buttons and legends of the design for desktop and mobile', function (): void {
+    $html = (string) $this->blade('<x-cai.trail-sectors-map name="gr-sentieri" lines-url="/cai-trail-regions/20/map-trails" />');
+
+    expect($html)
+        ->toContain('Settori colorati per km consolidati · i sentieri compaiono da zoom 11')
+        ->toContain('sentieri in vista, colorati per stato di accatastamento')
+        ->toContain('Vista per settori · zooma per i sentieri')
+        ->toContain("mode === 'lines' ? 'Vista per settori' : 'Mostra i sentieri'")
+        ->toContain('title="Vista regione"')
+        ->toContain('Km consolidati (stati 3–4) per settore')
+        ->toContain('0–20%')
+        ->toContain('80–100%')
+        ->toContain('Settore senza sentieri')
+        ->toContain('Stato di accatastamento')
+        ->toContain('4 · Validato')
+        ->toContain('zooma per vederli tutti')
+        ->and(caiMapPayload($html, 'data-cai-map-config'))->toMatchArray([
+            'linesUrl' => '/cai-trail-regions/20/map-trails',
+            'attribution' => 'Cartografia CAI · osm2cai · © OpenStreetMap',
+        ]);
 });

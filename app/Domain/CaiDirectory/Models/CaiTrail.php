@@ -14,13 +14,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /**
  * Sentiero del catasto osm2cai (US-1052), sola lettura: si scrive solo da `cai:import-datapack` (tabelle
  * `snap_osm2cai_*`). `id` = id osm2cai, `osmid` = id della relazione OpenStreetMap, `geometry` = GeoJSON
- * MultiLineString semplificato. Un sentiero può appartenere a più Sezioni (`cai_trail_section`).
+ * MultiLineString semplificato, `min_lat`…`max_lng` = suo riquadro (US-1064, calcolato all'import). Un sentiero può appartenere a più Sezioni (`cai_trail_section`).
  *
  * @property array<string, mixed>|null $geometry
  */
 #[Fillable([
     'id', 'osmid', 'ref', 'name', 'from_place', 'to_place', 'cai_scale', 'length_km', 'ascent', 'descent', 'status',
-    'issues_status', 'practicability', 'issues_last_update', 'validation_date', 'geometry',
+    'issues_status', 'practicability', 'issues_last_update', 'validation_date', 'geometry', 'min_lat', 'min_lng', 'max_lat',
+    'max_lng',
 ])]
 class CaiTrail extends Model
 {
@@ -42,6 +43,10 @@ class CaiTrail extends Model
             'issues_last_update' => 'date',
             'validation_date' => 'date',
             'geometry' => 'array',
+            'min_lat' => 'decimal:6',
+            'min_lng' => 'decimal:6',
+            'max_lat' => 'decimal:6',
+            'max_lng' => 'decimal:6',
         ];
     }
 
