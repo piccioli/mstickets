@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domain\CaiDirectory\Enums\CaiHutStatus;
 use App\Domain\CaiDirectory\Enums\CaiHutType;
+use App\Domain\CaiDirectory\Import\CaiOsm2caiExtractWriter;
 use App\Domain\CaiDirectory\Models\CaiDocument;
 use App\Domain\CaiDirectory\Models\CaiHut;
 use App\Domain\CaiDirectory\Models\CaiRuntsRegistration;
@@ -591,6 +592,68 @@ function makeHutsDatapack(array $details, ?string $sqlite = null): string
 
     foreach ($details as $detail) {
         $insert->execute([$detail['id_cai'], json_encode($detail)]);
+    }
+
+    return $sqlite;
+}
+
+/**
+ * Riga di `snap_osm2cai_trails` di fixture (US-1052): sentiero validato e percorribile, con geometria a due punti.
+ *
+ * @param  array<string, mixed>  $overrides
+ * @return array<string, mixed>
+ */
+function osm2caiTrailRow(int $id, array $overrides = []): array
+{
+    return array_merge([
+        'id' => $id,
+        'osmid' => 7000 + $id,
+        'ref' => (string) $id,
+        'name' => 'Sentiero '.$id,
+        'from_place' => 'Rifugio A',
+        'to_place' => 'Passo B',
+        'cai_scale' => 'E',
+        'length_km' => 5.432,
+        'ascent' => 640,
+        'descent' => 12,
+        'status' => 4,
+        'issues_status' => 'percorribile',
+        'issues_last_update' => '2025-06-01',
+        'validation_date' => '2024-09-15',
+        'geometry_geojson' => '{"type":"MultiLineString","coordinates":[[[10.1,43.1],[10.2,43.2]]]}',
+    ], $overrides);
+}
+
+/**
+ * Datapack con le tabelle legacy vuote e le tabelle `snap_osm2cai_*` scritte da `CaiOsm2caiExtractWriter` (US-1052).
+ *
+ * @param  list<array<string, mixed>>  $trails  righe di {@see osm2caiTrailRow()}
+ * @param  list<array{0: int, 1: string}>  $links  coppie (id sentiero, codice di Sezione)
+ */
+function makeTrailsDatapack(array $trails, array $links, ?string $sqlite = null): string
+{
+    $sqlite = makeHutsDatapack([], $sqlite);
+    $pdo = new PDO('sqlite:'.$sqlite);
+    $pdo->exec('DROP TABLE snap_cai_huts');
+
+    foreach ([
+        CaiOsm2caiExtractWriter::TRAILS_TABLE => CaiOsm2caiExtractWriter::TRAIL_COLUMNS,
+        CaiOsm2caiExtractWriter::TRAIL_SECTIONS_TABLE => CaiOsm2caiExtractWriter::TRAIL_SECTION_COLUMNS,
+    ] as $table => $columns) {
+        $pdo->exec("DROP TABLE IF EXISTS {$table}");
+        $pdo->exec("CREATE TABLE {$table} (".implode(', ', array_map(fn (string $column, string $type): string => "{$column} {$type}", array_keys($columns), $columns)).')');
+    }
+
+    $insert = $pdo->prepare('INSERT INTO '.CaiOsm2caiExtractWriter::TRAILS_TABLE.' ('.implode(', ', array_keys(CaiOsm2caiExtractWriter::TRAIL_COLUMNS)).') VALUES ('.implode(', ', array_fill(0, count(CaiOsm2caiExtractWriter::TRAIL_COLUMNS), '?')).')');
+
+    foreach ($trails as $trail) {
+        $insert->execute(array_map(fn (string $column): mixed => $trail[$column] ?? null, array_keys(CaiOsm2caiExtractWriter::TRAIL_COLUMNS)));
+    }
+
+    $insert = $pdo->prepare('INSERT INTO '.CaiOsm2caiExtractWriter::TRAIL_SECTIONS_TABLE.' (trail_id, section_code) VALUES (?, ?)');
+
+    foreach ($links as [$trailId, $code]) {
+        $insert->execute([$trailId, $code]);
     }
 
     return $sqlite;

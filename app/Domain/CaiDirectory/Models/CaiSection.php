@@ -9,6 +9,7 @@ use App\Domain\Identity\Models\User;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
@@ -94,5 +95,16 @@ class CaiSection extends Model
     public function huts(): HasMany
     {
         return $this->hasMany(CaiHut::class, 'branch_code', 'codice_cai');
+    }
+
+    /**
+     * Sentieri osm2cai gestiti dalla Sezione (`cai_trail_section.section_code` = `codice_cai`, US-1052); un sentiero
+     * condiviso compare fra i sentieri di ognuna delle sue Sezioni.
+     *
+     * @return BelongsToMany<CaiTrail, $this>
+     */
+    public function trails(): BelongsToMany
+    {
+        return $this->belongsToMany(CaiTrail::class, 'cai_trail_section', 'section_code', 'cai_trail_id', 'codice_cai', 'id');
     }
 }

@@ -491,3 +491,18 @@ Operativo (ordine dei comandi e vincolo di spazio remoto): `deploy/CLAUDE.md` §
   `snap_osm2cai_trail_sections` in una transazione; intestazione dei CSV = `TRAIL_COLUMNS` / `TRAIL_SECTION_COLUMNS`
   (se cambia `extract.sql`, cambiare anche le costanti, o il comando rifiuta il CSV). Cella vuota → `NULL`.
 - Geometria semplificata a 0.00002° (~1 pixel a zoom 16) e 6 decimali: 108 MB di GeoJSON invece di 200 MB.
+- **Tabelle locali** (US-1052): `cai_trails` (modello `CaiTrail`, PK `id` = id osm2cai, `geometry` json GeoJSON, colonna
+  `practicability` ricavata all'import) e `cai_trail_section` (`cai_trail_id` FK in cascata, `section_code` **senza FK**:
+  i 22 codici osm2cai assenti da `cai_sections` restano nel legame). Relazioni `CaiSection::trails()` /
+  `CaiTrail::sections()` (belongsToMany: un sentiero condiviso appartiene a ogni sua Sezione). Enum `CaiTrailStatus`
+  (1–4, `getLabel()` "1 · Difficoltà"…, `color()`/`foreground()` di `SDA`) e `CaiTrailPracticability`
+  (`fromIssuesStatus()`: "percorribile parzialmente" → con difficoltà, vuoto/ignoto → sconosciuto; colori di `PER`).
+  `CaiTrailPolicy`: sola lettura, `view` = staff `CaiDirectoryView`, customer di una delle Sezioni, GR il cui prefisso
+  contiene una delle Sezioni.
+- **Import** (`Import\CaiTrailsImporter`, righe `snapshot_sentieri` / `snapshot_sentieri_sezioni` di `cai:import-datapack`):
+  query builder a blocchi da 500 in una transazione (~7 s per 26.000 sentieri), **mai** Eloquent riga per riga. La
+  geometria si scrive e si confronta come stringa della fonte: funziona perché la colonna è `json` (Postgres conserva il
+  testo), non `jsonb` — non cambiare il tipo senza rivedere l'idempotenza. Datapack senza `snap_osm2cai_*` → solo una
+  riga `snapshot_sentieri` con avviso, sentieri intatti.
+- **Dato della fonte**: nel dump di settembre 2026 nessun sentiero è legato a codici `9218…` (SAT/Trentino): la SAT
+  risulta senza sentieri. Per verifiche "molti sentieri" usare p.es. Parma (9224001, 380) o Sulmona (9234004, 382).

@@ -45,6 +45,7 @@ final class CaiDatapackImporter
         private readonly CaiManualBilanciImporter $manualBilanciImporter,
         private readonly CaiSnapshotImporter $snapshotImporter,
         private readonly CaiHutsImporter $hutsImporter,
+        private readonly CaiTrailsImporter $trailsImporter,
     ) {}
 
     private const CONNECTION_NAME = 'cai_datapack';
@@ -124,6 +125,8 @@ final class CaiDatapackImporter
                 if ($huts !== null) {
                     $results['snapshot_rifugi'] = $huts;
                 }
+
+                $results += $this->trailsImporter->import($connection, $dryRun);
             }
 
             return $results;
