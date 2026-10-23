@@ -218,3 +218,20 @@ Fase 10.4–10.9 (run unico): rifugi, sentieri, tappe SICAI. PRD in docs/project
   - Con la sidebar a 1440 px l'area contenuti è ~1050 px: la card contratti (1,5fr nel design) va su una riga sua
     (container query < 1200 px), altrimenti le due cifre vanno a capo.
 ---
+
+## 2026-10-23 - US-1044
+- `CaiHutDetail` conserva i parametri dell'elenco GR: `mount()` legge dalla query le chiavi
+  `RegionalGroupHuts::LIST_QUERY_KEYS` (nuova costante: `sezione`/`tipo`/`stato`/`contratti`/`ordina`/`verso`/`raggruppa`,
+  solo stringhe non vuote ≤ 100 caratteri, il resto scartato) in `public array $listQuery`; con `da=gr` il link "Rifugi
+  del GR" (desktop "← Dashboard / Rifugi del GR / {nome}", mobile "← Rifugi del GR", già presenti dalla 10.4) va a
+  `RegionalGroupHuts::getUrl($listQuery)`. Senza `da=gr` (utente GR arrivato da altrove) il link resta senza parametri.
+  Valori non validi li normalizza la pagina elenco, come per un URL scritto a mano. Resto della scheda invariato.
+- Test: link di ritorno con tutti i parametri via HTTP (chiave estranea scartata) e via Livewire (`assertSet`), nessun
+  parametro senza `da=gr`, `listQueryFrom()` con array/vuoti/troppo lunghi.
+- Verifica in browser non eseguita (modifica al solo `href` del link, coperta dai test sull'HTML reso).
+- File: `app/Filament/Pages/{CaiHutDetail,RegionalGroupHuts}.php`, `app/Domain/CaiDirectory/CLAUDE.md`,
+  `tests/Feature/Filament/Pages/CaiHutDetailTest.php`.
+- **Learnings for future iterations:**
+  - La scheda non ha proprietà `#[Url]` per i parametri dell'elenco: li cattura una volta in `mount()` (persistono nello
+    stato Livewire). Un nuovo filtro dell'elenco GR va aggiunto anche a `LIST_QUERY_KEYS`.
+---
