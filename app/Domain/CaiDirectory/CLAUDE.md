@@ -151,6 +151,9 @@ parametro di rotta) e `docs/collaudo/CLAUDE.md` per il metodo di generazione del
   reali sì/no (`oilSeparator`, `rain_water`, `greenCertification`). Le altre chiavi `*_certification` sono testo libero
   (anno di costruzione, classe catastale, ...), non vanno nella griglia Sì/No.
 - `?da=gr` → link "← Rifugi del GR" (anche senza parametro per un utente GR); staff → scheda della Sezione nella Resource.
+  I parametri dell'elenco li legge `mount()` dalla query (chiavi `RegionalGroupHuts::LIST_QUERY_KEYS`, solo stringhe)
+  in `$listQuery`, riportati nel link di ritorno solo con `da=gr`: aggiungendo un filtro all'elenco GR, aggiungere la
+  chiave a `LIST_QUERY_KEYS` oltre che a `listQuery()`.
 - Mobile: ordine del design (testata, mappa, schede, gestione, fonte) con griglie in `display: contents` + `order`.
 
 ## Componente mappa `x-cai.map` (US-1033, rifugi / sentieri / tappe SICAI)

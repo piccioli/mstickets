@@ -47,6 +47,9 @@ class RegionalGroupHuts extends Page
     /** Nome della mappa negli eventi `cai-map-*` (vedi `x-cai.map`). */
     public const MAP_NAME = 'gr-huts';
 
+    /** Parametri dell'URL dell'elenco (filtri, ordinamento, raggruppamento), riportati dalla scheda nel link di ritorno. */
+    public const LIST_QUERY_KEYS = ['sezione', 'tipo', 'stato', 'contratti', 'ordina', 'verso', 'raggruppa'];
+
     protected string $view = 'filament.pages.regional-group-huts';
 
     protected static ?string $title = 'Rifugi del GR';

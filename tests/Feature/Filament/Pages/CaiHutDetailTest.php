@@ -227,6 +227,45 @@ test('the link back points to the regional group list when opened from it', func
         ->assertDontSeeText('Rifugi di Sezione');
 });
 
+test('the link back to the regional group list keeps its filters, sort and grouping', function (): void {
+    $group = hutDetailCustomer(CustomerType::GruppoRegionale, Region::TrentinoAltoAdige);
+    $list = [
+        'sezione' => '9220002',
+        'tipo' => 'rifugio',
+        'stato' => 'aperto',
+        'contratti' => '1',
+        'ordina' => 'scadenza',
+        'verso' => 'desc',
+        'raggruppa' => '0',
+    ];
+    $back = RegionalGroupHuts::getUrl($list);
+
+    $this->actingAs($group)
+        ->get(CaiHutDetail::getUrl(['idCai' => 1, 'da' => 'gr', ...$list, 'estraneo' => 'x']))
+        ->assertOk()
+        ->assertSeeText('← Rifugi del GR')
+        ->assertSee('href="'.e($back).'"', escape: false)
+        ->assertDontSee('estraneo');
+
+    Livewire::withQueryParams(['da' => 'gr', 'sezione' => '9220002', 'raggruppa' => '1'])
+        ->test(CaiHutDetail::class, ['idCai' => '1'])
+        ->assertSet('listQuery', ['sezione' => '9220002', 'raggruppa' => '1'])
+        ->assertSee('href="'.e(RegionalGroupHuts::getUrl(['sezione' => '9220002', 'raggruppa' => '1'])).'"', escape: false);
+});
+
+test('the list parameters are only carried back when the sheet is opened from the regional group list', function (): void {
+    $group = hutDetailCustomer(CustomerType::GruppoRegionale, Region::TrentinoAltoAdige);
+
+    $this->actingAs($group)
+        ->get(CaiHutDetail::getUrl(['idCai' => 1, 'sezione' => '9220002']))
+        ->assertOk()
+        ->assertSee('href="'.RegionalGroupHuts::getUrl().'"', escape: false)
+        ->assertDontSee(e(RegionalGroupHuts::getUrl(['sezione' => '9220002'])), escape: false);
+
+    expect(CaiHutDetail::listQueryFrom(['sezione' => ['a'], 'tipo' => '', 'stato' => str_repeat('x', 101), 'ordina' => 'quota']))
+        ->toBe(['ordina' => 'quota']);
+});
+
 test('another section, another regional group and other customers get 403, also with a manipulated id', function (): void {
     $other = hutDetailCustomer(CustomerType::Sezione);
     caiSection(['codice_cai' => '9226002', 'region' => 'TOSCANA', 'user_id' => $other->id]);

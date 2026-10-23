@@ -28,7 +28,7 @@ use Livewire\Attributes\Url;
  * Due livelli di autorizzazione: {@see canAccess()} ammette solo i profili che possono vedere rifugi (staff con
  * `CaiDirectoryView`, customer Sezione o GR), {@see mount()} verifica `CaiHutPolicy::view` sul singolo rifugio (Sezione
  * proprietaria, GR per prefisso, staff): un id manipolato nell'URL dà 403. Fuori dalla navigazione: si apre dall'elenco
- * dei rifugi; `?da=gr` (pagina "Rifugi del GR") cambia il link di ritorno.
+ * dei rifugi; `?da=gr` (pagina "Rifugi del GR", US-1044) cambia il link di ritorno, che riporta i parametri dell'elenco.
  */
 class CaiHutDetail extends Page
 {
@@ -46,6 +46,14 @@ class CaiHutDetail extends Page
     /** Pagina di provenienza: `gr` = "Rifugi del GR". */
     #[Url(as: 'da')]
     public ?string $from = null;
+
+    /**
+     * Parametri dell'elenco "Rifugi del GR" ({@see RegionalGroupHuts::LIST_QUERY_KEYS}) con cui si è aperta la scheda:
+     * il link di ritorno li riporta, così filtri, ordinamento e raggruppamento restano quelli di prima.
+     *
+     * @var array<string, string>
+     */
+    public array $listQuery = [];
 
     public static function getRoutePath(Panel $panel): string
     {
@@ -77,6 +85,29 @@ class CaiHutDetail extends Page
         abort_unless(Auth::user()?->can('view', $hut) === true, 403);
 
         $this->hut = $hut;
+        $this->listQuery = self::listQueryFrom(request()->query());
+    }
+
+    /**
+     * Solo le chiavi dell'elenco con un valore stringa non vuoto: il resto (array, chiavi estranee) è scartato.
+     * I valori non validi li normalizza poi {@see RegionalGroupHuts}, come per un URL scritto a mano.
+     *
+     * @param  array<array-key, mixed>  $query
+     * @return array<string, string>
+     */
+    public static function listQueryFrom(array $query): array
+    {
+        $list = [];
+
+        foreach (RegionalGroupHuts::LIST_QUERY_KEYS as $key) {
+            $value = $query[$key] ?? null;
+
+            if (is_string($value) && $value !== '' && strlen($value) <= 100) {
+                $list[$key] = $value;
+            }
+        }
+
+        return $list;
     }
 
     public function getTitle(): string
@@ -133,7 +164,7 @@ class CaiHutDetail extends Page
         $customerType = $user instanceof User && $user->hasRole(UserRole::Customer->value) ? $user->customer_type : null;
 
         if ($this->from === 'gr' || $customerType === CustomerType::GruppoRegionale) {
-            return ['label' => 'Rifugi del GR', 'url' => RegionalGroupHuts::getUrl()];
+            return ['label' => 'Rifugi del GR', 'url' => RegionalGroupHuts::getUrl($this->from === 'gr' ? $this->listQuery : [])];
         }
 
         if ($customerType === CustomerType::Sezione) {
