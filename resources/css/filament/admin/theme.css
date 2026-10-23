@@ -32,3 +32,6 @@
 
 /* Scheda del rifugio (Fase 10.4). */
 @import './cai-hut-detail.css';
+
+/* Rifugi del GR (Fase 10.5). */
+@import './regional-group-huts.css';

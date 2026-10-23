@@ -136,7 +136,7 @@ return [
         [
             'titolo' => 'Dashboard V2 del Gruppo Regionale (10.2) — pagine di approfondimento "in arrivo" (US-1013)',
             'test' => [
-                ['id' => 'F10-71', 'descrizione' => 'L\'utente GR apre Soci, Rifugi, Sentieri e Tappe SICAI: "Questa sezione è in arrivo." (il Bilancio è diventato una pagina reale nella 10.3)', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupComingSoonPagesTest.php::a regional group customer sees the coming soon page'],
+                ['id' => 'F10-71', 'descrizione' => 'L\'utente GR apre Soci, Sentieri e Tappe SICAI: "Questa sezione è in arrivo." (Bilancio e Rifugi sono diventati pagine reali nella 10.3 e 10.5)', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupComingSoonPagesTest.php::a regional group customer sees the coming soon page'],
                 ['id' => 'F10-72', 'descrizione' => 'Un utente staff riceve 403 sulle pagine "in arrivo" del GR', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupComingSoonPagesTest.php::a staff user cannot access the regional group coming soon page'],
                 ['id' => 'F10-73', 'descrizione' => 'Un cliente di altro tipo (Sezione, Organo Tecnico, nessun tipo) riceve 403', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupComingSoonPagesTest.php::a customer of another type cannot access the regional group coming soon page'],
                 ['id' => 'F10-74', 'descrizione' => 'Le pagine "in arrivo" del GR non compaiono nella navigazione', 'test_automatico' => 'tests/Feature/Filament/Pages/RegionalGroupComingSoonPagesTest.php::the regional group coming soon pages are not in the navigation'],

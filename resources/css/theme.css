@@ -170,6 +170,13 @@
   --ms-photo-placeholder-bg: #eef1f4;
   --ms-photo-placeholder-icon: #b4bbc6;
 
+  /* ---- Rifugi del GR (Fase 10.5) ---- */
+  --ms-group-header-bg: #eef1f4;
+  --ms-group-header-border: #e3e7ec;
+  --ms-shadow-card-hover: 0 4px 14px rgba(20, 30, 40, 0.08);
+  --ms-shadow-map-legend-cluster: 0 0 0 2px rgba(23, 161, 128, 0.3);
+  --ms-shadow-switch-knob: 0 1px 2px rgba(0, 0, 0, 0.25);
+
   /* ---- Scheda rifugio (Fase 10.4) ---- */
   --ms-hero-surface: #e3e8ed;
   --ms-hero-overlay: linear-gradient(180deg, rgba(18, 26, 36, 0) 30%, rgba(18, 26, 36, 0.8) 100%);

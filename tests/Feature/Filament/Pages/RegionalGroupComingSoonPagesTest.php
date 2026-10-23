@@ -6,7 +6,6 @@ use App\Domain\Identity\Enums\CustomerType;
 use App\Domain\Identity\Enums\UserRole;
 use App\Domain\Identity\Models\User;
 use App\Filament\Pages\Dashboard;
-use App\Filament\Pages\RegionalGroupHuts;
 use App\Filament\Pages\RegionalGroupMembers;
 use App\Filament\Pages\RegionalGroupSicaiStages;
 use App\Filament\Pages\RegionalGroupTrails;
@@ -23,7 +22,6 @@ beforeEach(function (): void {
 
 dataset('regional group coming soon pages', [
     'Soci' => [RegionalGroupMembers::class, 'Soci', '/gr/soci'],
-    'Rifugi del GR' => [RegionalGroupHuts::class, 'Rifugi del GR', '/gr/rifugi'],
     'Sentieri del GR' => [RegionalGroupTrails::class, 'Sentieri del GR', '/gr/sentieri'],
     'Tappe SICAI' => [RegionalGroupSicaiStages::class, 'Tappe SICAI', '/gr/tappe-sicai'],
 ]);

@@ -215,6 +215,10 @@ I colori dei marker vengono dagli enum del tipo (es. `CaiHutType::color()`), non
 | `management-surface` | `#e6eaee` | Riquadro "Gestione" (dati riservati) della scheda rifugio |
 | `contract-expired-bg` / `-border` / `-text` | `#fbe7e5` / `#f3c4bf` / `#b42318` | Contratto di gestione scaduto (pillola e riga "Data di scadenza") |
 | `contract-expiring-bg` / `-border` / `-text` | `#fdf1dc` / `#f3d9a6` / `#8a5600` | Contratto in scadenza entro 6 mesi |
+| `group-header-bg` / `group-header-border` | `#eef1f4` / `#e3e7ec` | Testata di gruppo dell'elenco raggruppato per Sezione ("Rifugi del GR") |
+| `shadow-card-hover` | `0 4px 14px rgba(20,30,40,.08)` | Card cliccabile del riepilogo al passaggio (card "Contratti di gestione") |
+| `shadow-map-legend-cluster` | `0 0 0 2px rgba(23,161,128,.3)` | Voce "Gruppo di rifugi" della legenda della mappa |
+| `shadow-switch-knob` | `0 1px 2px rgba(0,0,0,.25)` | Pomello dell'interruttore ("Raggruppa per Sezione") |
 
 ## Breakpoint
 

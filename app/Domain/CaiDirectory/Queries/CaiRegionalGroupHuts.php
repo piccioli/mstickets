@@ -31,7 +31,7 @@ final class CaiRegionalGroupHuts
 {
     /** Colonne di `cai_huts` che servono a elenco, mappa e riepilogo (non i JSON grezzi della scheda). */
     private const array COLUMNS = ['id_cai', 'branch_code', 'branch_name', 'name', 'alias', 'type', 'status',
-        'latitude', 'longitude', 'altitude', 'beds', 'photos', 'management'];
+        'latitude', 'longitude', 'altitude', 'beds', 'photos', 'management', 'source_updated_at'];
 
     public static function forRegion(Region $region, ?CarbonInterface $today = null): CaiRegionalGroupHutsData
     {

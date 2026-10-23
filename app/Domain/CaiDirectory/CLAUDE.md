@@ -138,7 +138,15 @@ parametro di rotta) e `docs/collaudo/CLAUDE.md` per il metodo di generazione del
   `CaiRegionalGroupHutRow` con nome Sezione, flag `ownedByGroup`, scadenza; M, Sezioni con/senza rifugi, contatori).
   Sezioni per prefisso (`sectionsOf()`) **più** i rifugi intestati al GR (`branch_code` `95…` e `branch_name` =
   "GR {Region::label()}" senza maiuscole, oggi solo `9500046` GR Sicilia), con "GR {regione}" come Sezione; un rifugio
-  del GR non conta fra le "Sezioni con rifugi". Da riusare per pagina e badge della Dashboard GR.
+  del GR non conta fra le "Sezioni con rifugi". Da riusare per pagina e badge della Dashboard GR. `CaiHutPolicy::view`
+  ammette il GR anche sui rifugi intestati a lui (stessa regola, `CaiRegionalGroupHuts::groupName()`): se cambia la
+  regola, cambiarla in entrambi i punti.
+- Pagina `RegionalGroupHuts` (10.5, slug `gr/rifugi`): filtri/ordinamento/raggruppamento in `Support\CaiRegionalGroupHutFilters`
+  (chiave Sezione = codice CAI o `gr`) ed `Enums\CaiRegionalGroupHutSortColumn` (mancanti sempre in fondo). URL
+  `sezione`/`tipo`/`stato`/`contratti`/`ordina`/`verso`/`raggruppa`, solo se diversi dal default; `listQuery()` è
+  l'elenco dei parametri da conservare e la riga apre `CaiHutDetail` con `da=gr` + quei parametri (il ritorno li legge
+  dalla query della scheda). La colonna di ordinamento di default dipende dal filtro contratti (scadenza) e il toggle
+  del filtro azzera l'ordinamento.
 - Certificazioni del design non presenti in rifugi.cai.it (depuratore, solare termico, Ecolabel): sostituite da chiavi
   reali sì/no (`oilSeparator`, `rain_water`, `greenCertification`). Le altre chiavi `*_certification` sono testo libero
   (anno di costruzione, classe catastale, ...), non vanno nella griglia Sì/No.

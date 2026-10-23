@@ -56,3 +56,11 @@ test('huts are read-only for everyone', function (): void {
         ->and($staff->can('update', $this->hut))->toBeFalse()
         ->and($staff->can('delete', $this->hut))->toBeFalse();
 });
+
+test('a regional group sees the huts registered directly to it, not those of another group', function (): void {
+    caiSection(['codice_cai' => '9228001', 'region' => 'SICILIA']);
+    $hut = CaiHut::create(['id_cai' => 2, 'name' => 'Punto Etna', 'branch_code' => '9500046', 'branch_name' => 'GR SICILIA']);
+
+    expect(hutCustomer(CustomerType::GruppoRegionale, Region::Sicilia)->can('view', $hut))->toBeTrue()
+        ->and(hutCustomer(CustomerType::GruppoRegionale, Region::Toscana)->can('view', $hut))->toBeFalse();
+});
