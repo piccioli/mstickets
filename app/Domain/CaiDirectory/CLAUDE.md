@@ -445,7 +445,11 @@ Operativo (ordine dei comandi e vincolo di spazio remoto): `deploy/CLAUDE.md` §
   customer GR il cui `prefixOf(region)` è prefisso del `branch_code`; create/update/delete sempre `false`.
 - **Badge "Rifugi" (US-1036)**: unica eccezione alla regola "mancante = `null`, mai 0" delle dashboard — la banca
   dati rifugi.cai.it è completa, quindi una Sezione senza rifugi ha `huts = 0` (mostrato "0"); solo la Sottosezione
-  resta `null`. Conta tutti i `cai_huts` della Sezione, qualunque `status`.
+  resta `null`. Conta tutti i `cai_huts` della Sezione, qualunque `status`. Stessa eccezione per il badge "Rifugi"
+  della Dashboard GR (US-1045): `huts` = rifugi di `CaiRegionalGroupHuts::hutsQuery()` (Sezioni + intestati al GR, la
+  stessa regola della pagina "Rifugi del GR" — se cambia lì, cambia anche il badge), `hutsSectionsCount` per la nota
+  "Somma di N Sezioni" (i rifugi intestati al GR non contano come Sezione; nota assente con N = 0); `null` solo se la
+  regione non ha Sezioni.
 - **Aggiornamento dall'API (US-1032)**: `cai:fetch-huts [--datapack=] [--dry-run]` → `Import\CaiHutsFetcher`
   (`fetch()` elenco paginato + dettagli con `Http::pool` a blocchi, `write()` DROP+CREATE+INSERT in una transazione,
   tutto o niente) → riepilogo `CaiHutsFetchSummary` (collegati = `branch_id` presente in `sezioni_cai` del datapack).

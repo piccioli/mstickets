@@ -24,6 +24,9 @@ use Illuminate\Support\Collection;
  *   Sezioni con dati in quell'anno e solo i valori non nulli (un totale senza valori resta `null`, mai 0). Conto
  *   economico e stato patrimoniale scelgono l'esercizio indipendentemente.
  *
+ * - **rifugi** (10.5) = quelli di {@see CaiRegionalGroupHuts} (Sezioni del GR + intestati al GR), contati con una sola
+ *   query; la nota conta le Sezioni con almeno un rifugio. Zero rifugi è un dato noto (0), non `null`.
+ *
  * Il bilancio di una Sezione per un anno segue le regole della 10.1 ({@see CaiSectionStatementsQuery}, a parità
  * di anno vince quello RUNTS), con una sola query per tutti i bilanci del GR.
  */
@@ -52,6 +55,15 @@ final class CaiRegionalGroupDashboardMetrics
         $codes = $sections->pluck('codice_cai')->values()->all();
         $statements = CaiSectionStatementsQuery::forSections($codes)->toBase();
 
+        /** @var array<string, int> $hutsBySection `branch_code` → numero di rifugi */
+        $hutsBySection = CaiRegionalGroupHuts::hutsQuery($codes, CaiRegionalGroupHuts::groupName($region))
+            ->toBase()
+            ->selectRaw('branch_code, COUNT(*) AS huts_count')
+            ->groupBy('branch_code')
+            ->pluck('huts_count', 'branch_code')
+            ->mapWithKeys(fn (mixed $count, mixed $code): array => [(string) $code => (int) $count])
+            ->all();
+
         return new CaiRegionalGroupDashboardData(
             codiceCai: $prefix.'000',
             sectionsCount: $sections->count(),
@@ -59,6 +71,8 @@ final class CaiRegionalGroupDashboardMetrics
             membersSectionsCount: $withMembers->count(),
             consolidatedIncomeStatement: self::consolidatedIncomeStatement($statements),
             consolidatedBalanceSheet: self::consolidatedBalanceSheet($statements, $sections->count()),
+            huts: array_sum($hutsBySection),
+            hutsSectionsCount: count(array_intersect_key($hutsBySection, array_flip($codes))),
         );
     }
 

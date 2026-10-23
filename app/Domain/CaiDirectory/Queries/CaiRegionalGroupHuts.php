@@ -106,10 +106,13 @@ final class CaiRegionalGroupHuts
     }
 
     /**
+     * I rifugi del GR: quelli delle Sezioni indicate più quelli intestati al GR (regola condivisa con il badge
+     * "Rifugi" della Dashboard GR, {@see CaiRegionalGroupDashboardMetrics}).
+     *
      * @param  list<string>  $sectionCodes
      * @return Builder<CaiHut>
      */
-    private static function hutsQuery(array $sectionCodes, string $groupName): Builder
+    public static function hutsQuery(array $sectionCodes, string $groupName): Builder
     {
         return CaiHut::query()->where(function (Builder $query) use ($sectionCodes, $groupName): void {
             if ($sectionCodes !== []) {

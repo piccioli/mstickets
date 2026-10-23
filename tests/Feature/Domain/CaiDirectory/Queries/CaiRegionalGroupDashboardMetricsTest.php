@@ -66,8 +66,60 @@ test('a region without sections has everything null', function (): void {
         ->and($data->incomeStatement)->toBeNull()
         ->and($data->balanceSheet)->toBeNull()
         ->and($data->huts)->toBeNull()
+        ->and($data->hutsSectionsCount)->toBeNull()
         ->and($data->trailsKm)->toBeNull()
         ->and($data->sicaiStages)->toBeNull();
+});
+
+test('huts are those of the sections of the group plus those owned by the GR', function (): void {
+    caiSection(['codice_cai' => '9226001', 'region' => 'TOSCANA']);
+    caiSection(['codice_cai' => '9226002', 'region' => 'TOSCANA']);
+    caiSection(['codice_cai' => '9226003', 'region' => 'TOSCANA']);
+    caiHut(['branch_code' => '9226001']);
+    caiHut(['branch_code' => '9226001']);
+    caiHut(['branch_code' => '9226003', 'status' => null]);
+    caiHut(['branch_code' => '9500010', 'branch_name' => 'gr toscana']);
+    caiHut(['branch_code' => '9500046', 'branch_name' => 'GR SICILIA']);
+    caiHut(['branch_code' => '9216001']);
+    caiHut(['branch_code' => null]);
+
+    $data = CaiRegionalGroupDashboardMetrics::forRegion(Region::Toscana);
+
+    expect($data->huts)->toBe(4)
+        ->and($data->hutsSectionsCount)->toBe(2);
+});
+
+test('a group without huts has 0 huts and 0 sections with huts, never null', function (): void {
+    caiSection(['codice_cai' => '9226001', 'region' => 'TOSCANA']);
+    caiHut(['branch_code' => '9216001']);
+
+    $data = CaiRegionalGroupDashboardMetrics::forRegion(Region::Toscana);
+
+    expect($data->huts)->toBe(0)
+        ->and($data->hutsSectionsCount)->toBe(0);
+});
+
+test('the huts owned by the GR do not count as a section with huts', function (): void {
+    caiSection(['codice_cai' => '9233001', 'region' => 'SICILIA']);
+    caiHut(['branch_code' => '9500046', 'branch_name' => 'GR SICILIA']);
+
+    $data = CaiRegionalGroupDashboardMetrics::forRegion(Region::Sicilia);
+
+    expect($data->huts)->toBe(1)
+        ->and($data->hutsSectionsCount)->toBe(0);
+});
+
+test('the huts of the group are counted with a single query', function (): void {
+    foreach (range(1, 5) as $i) {
+        caiSection(['codice_cai' => '922600'.$i, 'region' => 'TOSCANA']);
+        caiHut(['branch_code' => '922600'.$i]);
+    }
+
+    DB::enableQueryLog();
+    CaiRegionalGroupDashboardMetrics::forRegion(Region::Toscana);
+    $hutQueries = collect(DB::getQueryLog())->filter(fn (array $q): bool => str_contains($q['query'], 'cai_huts'));
+
+    expect($hutQueries)->toHaveCount(1);
 });
 
 test('members are the sum of the sections that have them', function (): void {

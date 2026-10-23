@@ -109,7 +109,13 @@
                 :href="RegionalGroupMembers::getUrl()"
                 link-label="Soci"
             />
-            <x-cai.metric-badge label="Rifugi" :value="$data?->huts" :href="RegionalGroupHuts::getUrl()" link-label="Rifugi del GR" />
+            <x-cai.metric-badge
+                label="Rifugi"
+                :value="$data?->huts"
+                :note="($data?->hutsSectionsCount ?? 0) === 0 ? null : RegionalGroupDashboard::sumNote($data->hutsSectionsCount)"
+                :href="RegionalGroupHuts::getUrl()"
+                link-label="Rifugi del GR"
+            />
             <x-cai.metric-badge
                 label="Sentieri"
                 :value="$data?->trailsKm"
