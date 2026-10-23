@@ -159,6 +159,13 @@
   --ms-shadow-map-marker-active: 0 2px 6px rgba(0, 0, 0, 0.4);
   --ms-shadow-map-popup: 0 8px 24px rgba(20, 30, 40, 0.25);
   --ms-shadow-map-control: 0 1px 4px rgba(0, 0, 0, 0.2);
+  --ms-map-legend-surface: rgba(255, 255, 255, 0.95);
+
+  /* ---- Elenco rifugi (Fase 10.4) ---- */
+  --ms-chip-active-bg: #e3f4ee;
+  --ms-row-highlight-bg: #eef8f5;
+  --ms-photo-placeholder-bg: #eef1f4;
+  --ms-photo-placeholder-icon: #b4bbc6;
 
   /* ---- Motion ---- */
   --ms-dur-fast: 150ms;

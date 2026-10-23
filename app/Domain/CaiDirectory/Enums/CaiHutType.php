@@ -35,6 +35,29 @@ enum CaiHutType: string implements HasLabel
         };
     }
 
+    /** Chiave breve del tipo nell'URL dei filtri (`?tipo[]=bivacco`). */
+    public function key(): string
+    {
+        return match ($this) {
+            self::Managed => 'custodito',
+            self::Unmanaged => 'incustodito',
+            self::Bivouac => 'bivacco',
+            self::SocialHut => 'capanna',
+            self::SupportPoint => 'appoggio',
+        };
+    }
+
+    public static function fromKey(?string $key): ?self
+    {
+        foreach (self::cases() as $case) {
+            if ($case->key() === $key) {
+                return $case;
+            }
+        }
+
+        return null;
+    }
+
     /** Lettera nel marker della mappa. */
     public function letter(): string
     {

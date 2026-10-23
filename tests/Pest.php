@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Domain\CaiDirectory\Enums\CaiHutStatus;
+use App\Domain\CaiDirectory\Enums\CaiHutType;
 use App\Domain\CaiDirectory\Models\CaiDocument;
+use App\Domain\CaiDirectory\Models\CaiHut;
 use App\Domain\CaiDirectory\Models\CaiRuntsRegistration;
 use App\Domain\CaiDirectory\Models\CaiSection;
 use App\Domain\Identity\Enums\Permission as PermissionEnum;
@@ -500,6 +503,31 @@ function caiDocument(array $attributes = []): CaiDocument
         'mime_type' => 'application/pdf',
         'size' => 100,
         'hash' => 'hash-'.$sequence,
+    ], $attributes))->fresh();
+}
+
+/**
+ * Rifugio di `cai_huts` (già importato): custodito, in attività, con coordinate in Trentino, salvo override.
+ *
+ * @param  array<string, mixed>  $attributes
+ */
+function caiHut(array $attributes = []): CaiHut
+{
+    static $sequence = 0;
+    $sequence++;
+
+    return CaiHut::create(array_merge([
+        'id_cai' => 100000 + $sequence,
+        'name' => 'Rifugio '.$sequence,
+        'type' => CaiHutType::Managed,
+        'status' => CaiHutStatus::Active,
+        'latitude' => 46.1 + $sequence / 1000,
+        'longitude' => 10.8 + $sequence / 1000,
+        'altitude' => 2000,
+        'municipality' => 'Pinzolo',
+        'province' => 'TN',
+        'beds' => 20,
+        'photos' => [],
     ], $attributes))->fresh();
 }
 

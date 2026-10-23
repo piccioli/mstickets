@@ -25,6 +25,30 @@ enum CaiHutStatus: string implements HasLabel
         return $this->value;
     }
 
+    /** Chiave breve dello stato nell'URL dei filtri (`?stato=in-attivita`). */
+    public function key(): string
+    {
+        return match ($this) {
+            self::Active => 'in-attivita',
+            self::TemporarilyClosed => 'chiuso',
+            self::UnderRenovation => 'in-ristrutturazione',
+            self::Unusable => 'non-agibile',
+            self::CustodyEnded => 'cessazione-affido',
+            self::Sold => 'alienato',
+        };
+    }
+
+    public static function fromKey(?string $key): ?self
+    {
+        foreach (self::cases() as $case) {
+            if ($case->key() === $key) {
+                return $case;
+            }
+        }
+
+        return null;
+    }
+
     /** Sfondo della pillola di stato. */
     public function background(): string
     {

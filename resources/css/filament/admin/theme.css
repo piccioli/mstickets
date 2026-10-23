@@ -26,3 +26,6 @@
 
 /* Mappa con cartografia CAI per rifugi, sentieri e tappe SICAI (Fase 10.4). */
 @import './cai-map.css';
+
+/* Rifugi di Sezione (Fase 10.4). */
+@import './section-huts.css';

@@ -7,7 +7,6 @@ use App\Domain\Identity\Enums\UserRole;
 use App\Domain\Identity\Models\User;
 use App\Filament\Pages\Dashboard;
 use App\Filament\Pages\SectionFinancialStatements;
-use App\Filament\Pages\SectionHuts;
 use App\Filament\Pages\SectionMembers;
 use App\Filament\Pages\SectionSicaiStages;
 use App\Filament\Pages\SectionTrails;
@@ -25,7 +24,6 @@ beforeEach(function (): void {
 dataset('section coming soon pages', [
     'Soci' => [SectionMembers::class, 'Soci'],
     'Bilancio' => [SectionFinancialStatements::class, 'Bilancio'],
-    'Rifugi di Sezione' => [SectionHuts::class, 'Rifugi di Sezione'],
     'Sentieri di Sezione' => [SectionTrails::class, 'Sentieri di Sezione'],
     'Tappe SICAI' => [SectionSicaiStages::class, 'Tappe SICAI'],
 ]);

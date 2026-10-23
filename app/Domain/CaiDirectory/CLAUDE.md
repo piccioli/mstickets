@@ -107,6 +107,20 @@ parametro di rotta) e `docs/collaudo/CLAUDE.md` per il metodo di generazione del
   calcolo dell'inquadratura iniziale. Verificare sempre con lo screenshot reale (non solo la fixture) prima
   di dichiarare completa una story che usa dati RUNTS-CAI.
 
+## Pagina elenco rifugi (`SectionHuts`, US-1034 — da riusare per i rifugi del GR)
+
+- Filtri/ordinamento in `Support\CaiHutFilters` (tipi in OR, stato, `Enums\CaiHutSort`) applicati in PHP sui rifugi
+  già caricati; nell'URL chiavi brevi `CaiHutType::key()` / `CaiHutStatus::key()` (`?tipo[]=bivacco&stato=chiuso`),
+  mai il testo della fonte (spazi/apostrofi). `fromKey()` → `null` per un valore sconosciuto (= filtro assente).
+- Layout desktop con **container query** (`container: huts / inline-size`), non media query: con la sidebar di Filament
+  a 1440px l'area contenuti è ~1050px e il design "elenco + mappa 500px" schiaccia la tabella; affiancati solo da 1200px
+  di contenuto, sotto mappa sopra. Altezza della mappa passata come `height="var(--ms-huts-map-height)"`.
+- Mobile: in un flex a colonna con `flex-wrap: wrap` i figli si allargano quanto la riga di chip scorrevole (nowrap):
+  sotto i 640px la colonna dei filtri va `nowrap`, i `<select>` in griglia con `width: 100%; min-width: 0`.
+- Test Livewire: dopo un `call()`/`set()` gli `assertSee*` lavorano sulla risposta JSON, dove i caratteri non ASCII sono
+  `\u00..`: nelle fixture che si riasseriscono dopo un update usare nomi ASCII (accenti → test unitario di `CaiHutSort`).
+  Per regex sull'HTML togliere prima i commenti `<!--[if BLOCK]>` di Livewire.
+
 ## Componente mappa `x-cai.map` (US-1033, rifugi / sentieri / tappe SICAI)
 
 - Unico componente mappa delle pagine Sezione/GR della Fase 10: `resources/views/components/cai/map.blade.php`, CSS
