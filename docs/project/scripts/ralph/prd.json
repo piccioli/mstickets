@@ -517,8 +517,8 @@
         "Typecheck passes"
       ],
       "priority": 30,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Calcolo dalle tabelle dell'app (non dal datapack), ultimo passo di cai:import-datapack. Dev DB: 464 legami, 291/525 tappe con almeno un punto. 405/489 codici di fields.stages entro 1,5 km."
     },
     {
       "id": "US-1094",
