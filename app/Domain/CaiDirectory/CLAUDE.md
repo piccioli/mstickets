@@ -740,4 +740,17 @@ Operativo (ordine dei comandi e vincolo di spazio remoto): `deploy/CLAUDE.md` §
   ratei); `total_liabilities` = soli debiti/fondi/ratei. Foligno: `net_equity` = valore dichiarato dai revisori (somma dei conti).
 - Rilanciare `cai:analyze-financial-documents --force` su questi documenti **riscriverebbe con `null`/valori parziali** solo se
   l'estrazione trovasse cifre: oggi non ne trova, ma non va rilanciato su queste Sezioni senza ricontrollare il risultato.
-- Prima di altre regioni: valutare l'attivazione dell'OCR nello scraper o una lettura assistita, perché il problema è lo stesso.
+- **Tutte le regioni, 2025 (2026-10-24)**: stessa procedura estesa a ogni GR, per i PDF di bilancio 2025 delle Sezioni senza
+  conto economico completo o con conto economico incoerente (ricavi − costi ≠ risultato oltre imposte e margine). Lettura dei
+  PDF (testo o immagine) con agenti, verifica delle somme, scrittura con uno script che aggiorna TUTTI i bilanci 2025 della
+  Sezione (diretto e via RUNTS) e segna i documenti `extracted` / `no_data_extracted`; imposte registrate in `taxes` e
+  `pre_tax_result` quando presenti. Risultato: Sezioni con conto economico 2025 da 42 a 306 su 529 (tetto 311 = Sezioni con
+  almeno un PDF di bilancio 2025); 0 bilanci 2025 incoerenti. Il datapack è stato riesportato, non inviato a UAT.
+- Regole usate (da riusare per altri anni): Mod. D → risultato "prima di investimenti e disinvestimenti", mai l'avanzo
+  complessivo; prospetti di cassa → entrate/uscite senza saldi iniziali/finali né giroconti; stato patrimoniale solo se è un
+  vero SP (non la sola liquidità), con i fondi di ammortamento portati a rettifica dell'attivo; patrimonio netto = attivo −
+  (debiti, fondi, TFR, ratei).
+- Correzioni di valori automatici errati trovate in questa revisione: SEZ. RAGUSA 2025 (letto 202.519.000,40 invece di
+  19.000,40), Cagliari (usato l'avanzo complessivo), Potenza Picena (segno invertito), Biella e Cumiana (incoerenti).
+- Casi da verificare con le Sezioni: 9216050 (Mod. D "2025" compilato nella colonna dell'anno precedente), 9216049 (prima nota
+  non riconciliabile: solo risultato), 9210002 e 9216072 (solo stato patrimoniale), 9224005 (PDF incompleto).
