@@ -728,3 +728,29 @@ Operativo (ordine dei comandi e vincolo di spazio remoto): `deploy/CLAUDE.md` §
 - **10.8 (Tappe SICAI di Sezione) non prevista**: solo 29/525 tappe hanno una Sezione in osm2cai; il badge della Sezione
   resta "In attesa" (`x-cai.metric-badge` con `pending`), mai "Non disponibile" né 0.
 - Percorso end-to-end di collaudo: `tests/Feature/EndToEnd/Fase10TappeSicaiGrEndToEndTest.php` (manifest F10-364..F10-442).
+
+## Bilanci letti a mano (correzioni dati, non codice)
+
+- **Umbria 2025 (2026-10-24)**: i PDF delle Sezioni `9230001`–`9230008` sono quasi tutti scansioni o prospetti propri (non Mod.
+  A/B/D ETS) e `cai-runts-scraper` restituiva "nessun dato" (OCR disattivato: `ocr_fallback=False` in `app/main.py`; regex
+  tarate sui modelli ministeriali). Le cifre 2025 sono state lette a mano dai PDF, confermate dal committente e scritte in
+  `cai_financial_statements` (id 654–661), con i documenti 523, 525, 527–529, 535, 536, 538 segnati `extracted`; poi
+  `cai:export-datapack-snapshot`. Prospetti di cassa (Spoleto, Gubbio, Gualdo Tadino, Orvieto): solo CE, SP `null`. Spoleto:
+  entrate/uscite al netto delle disponibilità iniziale/finale. Perugia e Terni: patrimonio netto = attivo − (debiti, fondi,
+  ratei); `total_liabilities` = soli debiti/fondi/ratei. Foligno: `net_equity` = valore dichiarato dai revisori (somma dei conti).
+- Rilanciare `cai:analyze-financial-documents --force` su questi documenti **riscriverebbe con `null`/valori parziali** solo se
+  l'estrazione trovasse cifre: oggi non ne trova, ma non va rilanciato su queste Sezioni senza ricontrollare il risultato.
+- **Tutte le regioni, 2025 (2026-10-24)**: stessa procedura estesa a ogni GR, per i PDF di bilancio 2025 delle Sezioni senza
+  conto economico completo o con conto economico incoerente (ricavi − costi ≠ risultato oltre imposte e margine). Lettura dei
+  PDF (testo o immagine) con agenti, verifica delle somme, scrittura con uno script che aggiorna TUTTI i bilanci 2025 della
+  Sezione (diretto e via RUNTS) e segna i documenti `extracted` / `no_data_extracted`; imposte registrate in `taxes` e
+  `pre_tax_result` quando presenti. Risultato: Sezioni con conto economico 2025 da 42 a 306 su 529 (tetto 311 = Sezioni con
+  almeno un PDF di bilancio 2025); 0 bilanci 2025 incoerenti. Il datapack è stato riesportato, non inviato a UAT.
+- Regole usate (da riusare per altri anni): Mod. D → risultato "prima di investimenti e disinvestimenti", mai l'avanzo
+  complessivo; prospetti di cassa → entrate/uscite senza saldi iniziali/finali né giroconti; stato patrimoniale solo se è un
+  vero SP (non la sola liquidità), con i fondi di ammortamento portati a rettifica dell'attivo; patrimonio netto = attivo −
+  (debiti, fondi, TFR, ratei).
+- Correzioni di valori automatici errati trovate in questa revisione: SEZ. RAGUSA 2025 (letto 202.519.000,40 invece di
+  19.000,40), Cagliari (usato l'avanzo complessivo), Potenza Picena (segno invertito), Biella e Cumiana (incoerenti).
+- Casi da verificare con le Sezioni: 9216050 (Mod. D "2025" compilato nella colonna dell'anno precedente), 9216049 (prima nota
+  non riconciliabile: solo risultato), 9210002 e 9216072 (solo stato patrimoniale), 9224005 (PDF incompleto).
