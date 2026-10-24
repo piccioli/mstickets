@@ -728,3 +728,16 @@ Operativo (ordine dei comandi e vincolo di spazio remoto): `deploy/CLAUDE.md` §
 - **10.8 (Tappe SICAI di Sezione) non prevista**: solo 29/525 tappe hanno una Sezione in osm2cai; il badge della Sezione
   resta "In attesa" (`x-cai.metric-badge` con `pending`), mai "Non disponibile" né 0.
 - Percorso end-to-end di collaudo: `tests/Feature/EndToEnd/Fase10TappeSicaiGrEndToEndTest.php` (manifest F10-364..F10-442).
+
+## Bilanci letti a mano (correzioni dati, non codice)
+
+- **Umbria 2025 (2026-10-24)**: i PDF delle Sezioni `9230001`–`9230008` sono quasi tutti scansioni o prospetti propri (non Mod.
+  A/B/D ETS) e `cai-runts-scraper` restituiva "nessun dato" (OCR disattivato: `ocr_fallback=False` in `app/main.py`; regex
+  tarate sui modelli ministeriali). Le cifre 2025 sono state lette a mano dai PDF, confermate dal committente e scritte in
+  `cai_financial_statements` (id 654–661), con i documenti 523, 525, 527–529, 535, 536, 538 segnati `extracted`; poi
+  `cai:export-datapack-snapshot`. Prospetti di cassa (Spoleto, Gubbio, Gualdo Tadino, Orvieto): solo CE, SP `null`. Spoleto:
+  entrate/uscite al netto delle disponibilità iniziale/finale. Perugia e Terni: patrimonio netto = attivo − (debiti, fondi,
+  ratei); `total_liabilities` = soli debiti/fondi/ratei. Foligno: `net_equity` = valore dichiarato dai revisori (somma dei conti).
+- Rilanciare `cai:analyze-financial-documents --force` su questi documenti **riscriverebbe con `null`/valori parziali** solo se
+  l'estrazione trovasse cifre: oggi non ne trova, ma non va rilanciato su queste Sezioni senza ricontrollare il risultato.
+- Prima di altre regioni: valutare l'attivazione dell'OCR nello scraper o una lettura assistita, perché il problema è lo stesso.
